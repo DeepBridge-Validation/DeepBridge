@@ -1,0 +1,7 @@
+site_name: DeepBridge
+repo_url: https://github.com/guhaase/DeepBridge
+remote_name: guhaase/DeepBridge
+
+theme: 
+  name: material
+  language: pt-BR
