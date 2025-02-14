@@ -5,3 +5,9 @@ remote_name: guhaase/DeepBridge
 theme: 
   name: material
   language: pt-BR
+
+plugins: 
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [deepbridge]
