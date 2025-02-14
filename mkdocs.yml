@@ -11,3 +11,8 @@ plugins:
     handlers:
       python:
         paths: [deepbridge]
+
+
+extra:
+  commands:
+    run: DeepBridge
