@@ -17,3 +17,4 @@ build:
       - poetry install --all-extras --with doc  # Adicionando --all-extras
       - pip install mkdocs-material  # Garantindo a instalação do tema
       - pip install mkdocs-macros-plugin  # Garantindo a instalação do plugin
+      - pip install mkdocstrings mkdocstrings-python  # Força instalação do plugin
