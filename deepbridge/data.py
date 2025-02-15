@@ -14,7 +14,7 @@ class MLDataset:
     The MLDataset class provides a structured way to handle machine learning datasets,
     models, and predictions while maintaining data integrity and providing useful utilities.
 
-    Args
+    Attributes:
     ----------
     train_data : pd.DataFrame
         Training dataset containing features and target
@@ -22,17 +22,17 @@ class MLDataset:
         Test dataset containing features and target
     target_column : str
         Name of the target column in both datasets
-    features : t.Optional[t.List[str]] , default: None
+    features : t.Optional[t.List[str]], default: None
         List of feature column names. If None, all columns except target will be used
-    model_path : t.Optional[t.Union[str, Path]] , default: None
+    model_path : t.Optional[t.Union[str, Path]], default: None
         Path to the saved model file (joblib format)
-    predictions : t.Optional[t.Union[np.ndarray, pd.Series]] , default: None
+    predictions : t.Optional[t.Union[np.ndarray, pd.Series]], default: None
         Array or series containing model predictions for the test set
-    categorical_features : t.Optional[t.List[str]] , default: None
+    categorical_features : t.Optional[t.List[str]], default: None
         List of categorical feature names. If None, will attempt to infer
-    max_categories : t.Optional[int] , default: None
+    max_categories : t.Optional[int], default: None
         Maximum number of unique values for a column to be considered categorical
-    dataset_name : t.Optional[str] , default: None
+    dataset_name : t.Optional[str], default: None
         Name identifier for the dataset
     """
 
