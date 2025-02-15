@@ -6,7 +6,7 @@ authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
 packages = [{include = "deepb"}]
 classifiers = [
-    "Topic :: Scientific/Engineering :: Data Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Environment :: Console",
     "Natural Language :: Portuguese (Brazilian)",
     "Development Status :: 5 - Production/Stable",
