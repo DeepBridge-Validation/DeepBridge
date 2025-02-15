@@ -7,14 +7,14 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from joblib import load
 
-class MLDataset:
+class DBDataset:
     """
-    MLDataset wraps training and test datasets along with optional model and predictions.
+    DBDataset wraps training and test datasets along with optional model and predictions.
     
     The MLDataset class provides a structured way to handle machine learning datasets,
     models, and predictions while maintaining data integrity and providing useful utilities.
 
-        Attributes:
+    Attributes:
         train_data (pd.DataFrame): Training dataset containing features and target
         test_data (pd.DataFrame): Test dataset containing features and target
         target_column (str): Name of the target column in both datasets
