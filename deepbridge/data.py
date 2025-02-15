@@ -14,26 +14,16 @@ class MLDataset:
     The MLDataset class provides a structured way to handle machine learning datasets,
     models, and predictions while maintaining data integrity and providing useful utilities.
 
-    Attributes:
-    ----------
-    train_data : pd.DataFrame
-        Training dataset containing features and target
-    test_data : pd.DataFrame
-        Test dataset containing features and target
-    target_column : str
-        Name of the target column in both datasets
-    features : t.Optional[t.List[str]], default: None
-        List of feature column names. If None, all columns except target will be used
-    model_path : t.Optional[t.Union[str, Path]], default: None
-        Path to the saved model file (joblib format)
-    predictions : t.Optional[t.Union[np.ndarray, pd.Series]], default: None
-        Array or series containing model predictions for the test set
-    categorical_features : t.Optional[t.List[str]], default: None
-        List of categorical feature names. If None, will attempt to infer
-    max_categories : t.Optional[int], default: None
-        Maximum number of unique values for a column to be considered categorical
-    dataset_name : t.Optional[str], default: None
-        Name identifier for the dataset
+        Attributes:
+        train_data (pd.DataFrame): Training dataset containing features and target
+        test_data (pd.DataFrame): Test dataset containing features and target
+        target_column (str): Name of the target column in both datasets
+        features (t.Optional[t.List[str]]): List of feature column names. If None, all columns except target will be used. Defaults to None.
+        model_path (t.Optional[t.Union[str, Path]]): Path to the saved model file (joblib format). Defaults to None.
+        predictions (t.Optional[t.Union[np.ndarray, pd.Series]]): Array or series containing model predictions for the test set. Defaults to None.
+        categorical_features (t.Optional[t.List[str]]): List of categorical feature names. If None, will attempt to infer. Defaults to None.
+        max_categories (t.Optional[int]): Maximum number of unique values for a column to be considered categorical. Defaults to None.
+        dataset_name (t.Optional[str]): Name identifier for the dataset. Defaults to None.
     """
 
     def __init__(
