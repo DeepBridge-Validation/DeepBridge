@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
-packages = [{include = "deepb"}]
+packages = [{include = "deepbridge"}]
 classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Environment :: Console",
