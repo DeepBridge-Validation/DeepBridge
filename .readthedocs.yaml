@@ -14,5 +14,5 @@ build:
       - poetry config virtualenvs.create false
 
     post_install:
-      - poetry install --with doc
-
+      - poetry install --all-extras --with doc  # Adicionando --all-extras
+      - pip install mkdocs-material  # Garantindo a instalação do tema
