@@ -14,7 +14,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 1. **Fork the Repository**
    ```bash
-   git clone https://github.com/yourusername/deepbridge.git
+   git clone https://github.com/DeepBridge-Validation/DeepBridge.git
    cd deepbridge
    ```
 
@@ -104,7 +104,7 @@ test: add tests for feature Z
 
 ### Required Tools
 
-- Python 3.8+
+- Python 3.12+
 - Git
 - virtualenv or conda
 

@@ -60,6 +60,6 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/DeepBridge-Validation/DeepBridge
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/deepb/
+      link: https://pypi.org/project/deepbridge/
 
-copyright: Copyright &copy; 2024 DeepBridge-Validation
+copyright: Copyright &copy; 2025 DeepBridge-Validation

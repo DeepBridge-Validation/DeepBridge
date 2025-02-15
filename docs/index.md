@@ -7,7 +7,7 @@ DeepBridge is a Python library that streamlines machine learning model validatio
 Install DeepBridge using pip:
 
 ```bash
-pip install deepb
+pip install deepbridge
 ```
 
 ## Quick Start
@@ -94,6 +94,6 @@ DeepBridge is released under the MIT License. See the [License](license.md) file
 
 ## Support
 
-- Report bugs and request features on [GitHub Issues](https://github.com/yourusername/deepbridge/issues)
+- Report bugs and request features on [GitHub Issues](https://github.com/DeepBridge-Validation/DeepBridge/issues)
 - Join our community discussions
 - Check out our [documentation](https://deepbridge.readthedocs.io/)

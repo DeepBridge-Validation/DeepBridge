@@ -7,7 +7,7 @@ This guide will help you get started with DeepBridge by walking through common u
 First, install DeepBridge using pip:
 
 ```bash
-pip install deepb
+pip install deepbridge
 ```
 
 ## Basic Usage

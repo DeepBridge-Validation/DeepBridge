@@ -7,7 +7,7 @@ This guide will walk you through using the DeepBridge Command Line Interface (CL
 The CLI is automatically installed with DeepBridge:
 
 ```bash
-pip install deepb
+pip install deepbridge
 ```
 
 ## Basic Commands

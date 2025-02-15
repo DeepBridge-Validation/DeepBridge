@@ -1,8 +1,8 @@
 # DeepBridge
 
 [![Documentation Status](https://deepbridge.readthedocs.io/en/latest/)](https://deepbridge.readthedocs.io/en/latest/)
-[![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
-
+[![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
+[![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
 
 DeepBridge is a Python library for streamlining machine learning model validation and distillation processes. It provides tools to manage experiments, validate models, and create more efficient versions of complex models.
 
@@ -11,13 +11,13 @@ DeepBridge is a Python library for streamlining machine learning model validatio
 You can install DeepBridge using pip:
 
 ```bash
-pip install deepb
+pip install deepbridge
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/yourusername/deepbridge.git
+git clone https://github.com/DeepBridge-Validation/DeepBridge.git
 cd deepbridge
 pip install -e .
 ```
@@ -118,7 +118,7 @@ We welcome contributions! Here's how you can help:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/deepbridge.git
+git clone https://github.com/DeepBridge-Validation/DeepBridge.git
 cd deepbridge
 
 # Create virtual environment
@@ -148,9 +148,9 @@ If you use DeepBridge in your research, please cite:
 ```bibtex
 @software{deepbridge2024,
   title = {DeepBridge: A Python Library for Model Validation and Distillation},
-  author = {Your Name},
-  year = {2024},
-  url = {https://github.com/yourusername/deepbridge}
+  author = {Team DeepBridge},
+  year = {2025},
+  url = {https://github.com/DeepBridge-Validation/DeepBridge}
 }
 ```
 
@@ -163,5 +163,5 @@ If you use DeepBridge in your research, please cite:
 ## Contact
 
 - GitHub Issues: For bugs and feature requests
-- Email: your.email@example.com
-- Twitter: [@YourHandle](https://twitter.com/YourHandle)
+- Email: gustavo.haase@gmail.com
+<!-- - Twitter: [@YourHandle](https://twitter.com/YourHandle) -->
