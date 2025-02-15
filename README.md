@@ -1,9 +1,8 @@
 # DeepBridge
 
-[![PyPI version](https://badge.fury.io/py/deepb.svg)](https://badge.fury.io/py/deepb)
-[![Python Version](https://img.shields.io/pypi/pyversions/deepb)](https://pypi.org/project/deepb/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://pepy.tech/badge/deepb)](https://pepy.tech/project/deepb)
+[![Documentation Status](https://deepbridge.readthedocs.io/en/latest/)](https://deepbridge.readthedocs.io/en/latest/)
+[![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
+
 
 DeepBridge is a Python library for streamlining machine learning model validation and distillation processes. It provides tools to manage experiments, validate models, and create more efficient versions of complex models.
 
