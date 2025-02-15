@@ -14,7 +14,7 @@ class MLDataset:
     The MLDataset class provides a structured way to handle machine learning datasets,
     models, and predictions while maintaining data integrity and providing useful utilities.
 
-    Parameters
+    Args
     ----------
     train_data : pd.DataFrame
         Training dataset containing features and target
