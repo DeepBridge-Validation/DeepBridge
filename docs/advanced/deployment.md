@@ -353,6 +353,6 @@ class MetricsCollector:
 
 ## Next Steps
 
-- Review [Model Validation](validation.md) for model preparation
-- Check [Optimization](optimization.md) for performance tuning
+- Review [Model Validation](../guides/validation.md)for model preparation
+- Check [Optimization](../guides/optimization.md) for performance tuning
 - See [API Reference](../api/model_validation.md) for detailed documentation
