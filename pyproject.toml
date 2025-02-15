@@ -2,8 +2,21 @@
 name = "deepbridge"
 version = "0.1.0"
 description = ""
-authors = ["Gustavo Haase <gustavo.haase@gmail.com>"]
+authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
+packages = [{include = "deepb"}]
+classifiers = [
+    "Topic :: Validation",
+    "Environment :: Console",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3.12",
+]
+
+
+[tool.poetry.urls]
+"Documentação" = "https://deepbridge.readthedocs.io/en/latest/"
+"Código" = "https://github.com/DeepBridge-Validation/DeepBridge"
 
 [tool.poetry.dependencies]
 python = "^3.12"
