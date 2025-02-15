@@ -1,166 +1,99 @@
-# DeepBridge Documentation
+# Welcome to DeepBridge
 
-Welcome to DeepBridge's documentation. DeepBridge is a comprehensive Python library designed to simplify machine learning model validation and distillation processes.
+DeepBridge is a Python library that streamlines machine learning model validation and distillation processes. It provides a comprehensive toolkit for managing experiments, validating models, and creating efficient versions of complex models.
 
-## Overview
+## Installation
 
-DeepBridge provides tools and utilities for:
-- Managing and validating machine learning models
-- Implementing model distillation techniques
-- Streamlining experiment workflows
-- Optimizing model performance
-
-## Getting Started
-
-### Installation
+Install DeepBridge using pip:
 
 ```bash
 pip install deepb
 ```
 
-### Basic Usage
+## Quick Start
+
+### Model Validation
 
 ```python
 from deepbridge.model_validation import ModelValidation
-from deepbridge.model_distiller import ModelDistiller
 
-# Create and manage experiments
-experiment = ModelValidation("my_experiment")
-experiment.add_data(X_train, y_train, X_test, y_test)
-
-# Perform model distillation
-distiller = ModelDistiller(model_type="gbm")
-distiller.fit(X=features, probas=predictions)
-```
-
-## Core Components
-
-### Model Validation Module
-The validation module provides tools for:
-- Experiment management
-- Model versioning
-- Performance tracking
-- Surrogate model support
-
-[Learn more about Model Validation →](./model_validation.md)
-
-### Model Distillation Module
-The distillation module includes:
-- Multiple model architectures
-- Performance optimization
-- Automated training workflows
-- Detailed metrics
-
-[Learn more about Model Distillation →](./model_distiller.md)
-
-### Command Line Interface
-The CLI offers:
-- Intuitive commands
-- Rich output formatting
-- Batch processing capabilities
-- Experiment management
-
-[Learn more about CLI →](./cli.md)
-
-## User Guide
-
-1. [Quick Start Tutorial](./tutorials/quickstart.md)
-2. [Model Validation Guide](./guides/validation.md)
-3. [Model Distillation Guide](./guides/distillation.md)
-4. [CLI Usage Guide](./guides/cli.md)
-
-## API Reference
-
-- [ModelValidation Class](./api/model_validation.md)
-- [ModelDistiller Class](./api/model_distiller.md)
-- [CLI Reference](./api/cli.md)
-
-## Examples
-
-### Model Validation
-```python
-# Create experiment
+# Create a new experiment
 experiment = ModelValidation("my_experiment")
 
-# Add data and model
+# Add training and test data
 experiment.add_data(X_train, y_train, X_test, y_test)
+
+# Add a model to the experiment
 experiment.add_model(model, "model_v1")
 
-# Save and analyze
+# Save the model
 experiment.save_model("model_v1")
-info = experiment.get_experiment_info()
 ```
 
 ### Model Distillation
-```python
-# Configure distiller
-distiller = ModelDistiller(
-    model_type="xgb",
-    model_params={
-        'n_estimators': 100,
-        'max_depth': 5
-    }
-)
 
-# Train and evaluate
+```python
+from deepbridge.model_distiller import ModelDistiller
+
+# Create a distiller
+distiller = ModelDistiller(model_type="gbm")
+
+# Train the distilled model
 distiller.fit(X=features, probas=predictions)
-predictions = distiller.predict(X_new)
+
+# Make predictions
+new_predictions = distiller.predict(X_test)
 ```
 
-### Using the CLI
+## Key Features
+
+### Model Validation
+
+- Experiment management and tracking
+- Model versioning and storage
+- Performance metrics calculation
+- Support for surrogate models
+
+### Model Distillation
+
+- Support for multiple model types:
+  - Gradient Boosting (GBM)
+  - XGBoost
+  - Multi-layer Perceptron (MLP)
+- Automated model training
+- Comprehensive performance metrics
+- Easy model persistence
+
+### Command Line Interface
+
 ```bash
-# Create experiment
+# Create a new experiment
 deepbridge validation create my_experiment --path ./experiments
 
-# Train model
+# Train a distilled model
 deepbridge distill train gbm predictions.csv features.csv -s ./models
 
 # Make predictions
 deepbridge distill predict ./models/model.joblib new_data.csv -o predictions.csv
 ```
 
-## Best Practices
+## Next Steps
 
-### Experiment Management
-- Use meaningful experiment names
-- Maintain consistent directory structure
-- Document model configurations
-- Track experiment metrics
-
-### Model Distillation
-- Start with default parameters
-- Monitor training progress
-- Compare different architectures
-- Validate results thoroughly
-
-### Data Handling
-- Validate input data
-- Use appropriate data formats
-- Maintain data versioning
-- Handle missing values
-
-## Advanced Topics
-
-- [Custom Model Integration](./advanced/custom_models.md)
-- [Performance Optimization](./advanced/optimization.md)
-- [Experiment Tracking](./advanced/tracking.md)
-- [Model Deployment](./advanced/deployment.md)
+- Check out the [Quick Start Guide](tutorials/quickstart.md) for a detailed introduction
+- Learn about [Model Validation](guides/validation.md)
+- Explore [Model Distillation](guides/distillation.md)
+- See the [API Reference](api/model_validation.md) for detailed documentation
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](./contributing.md) for details on:
-- Setting up development environment
-- Code style guidelines
-- Pull request process
-- Bug reporting
-
-## Support
-
-- GitHub Issues: For bug reports and feature requests
-- Documentation: Comprehensive guides and API reference
-- Examples: Practical use cases and tutorials
-- Community: Discussion forums and chat
+We welcome contributions! Please see our [Contributing Guide](contributing.md) for details.
 
 ## License
 
-DeepBridge is released under the MIT License. See [LICENSE](./LICENSE) for details.
+DeepBridge is released under the MIT License. See the [License](license.md) file for more details.
+
+## Support
+
+- Report bugs and request features on [GitHub Issues](https://github.com/yourusername/deepbridge/issues)
+- Join our community discussions
+- Check out our [documentation](https://deepbridge.readthedocs.io/)
