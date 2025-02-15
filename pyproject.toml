@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "deepbridge"
+name = "deepb"
 version = "0.1.0"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
