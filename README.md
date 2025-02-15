@@ -1,6 +1,6 @@
 # DeepBridge
 
-[![Documentation Status](https://deepbridge.readthedocs.io/en/latest/)](https://deepbridge.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/deepbridge/badge/?version=latest)](https://deepbridge.readthedocs.io/en/latest/)
 [![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
 [![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
 
