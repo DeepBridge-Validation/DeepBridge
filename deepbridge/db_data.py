@@ -3,10 +3,10 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from processing.data_validator import DataValidator
-from processing.feature_manager import FeatureManager
-from processing.model_handler import ModelHandler
-from results.dataset_formatter import DatasetFormatter
+from deepbridge.processing.data_validator import DataValidator
+from deepbridge.processing.feature_manager import FeatureManager
+from deepbridge.processing.model_handler import ModelHandler
+from deepbridge.results.dataset_formatter import DatasetFormatter
 
 class DBDataset:
     """
