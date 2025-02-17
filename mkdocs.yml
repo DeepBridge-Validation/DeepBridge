@@ -27,7 +27,6 @@ nav:
   - API Reference:
     - Data: api/db_data.md
     - Experiment: api/experiment.md
-    - Model Distiller: api/model_distiller.md
     - CLI: api/cli.md
   - Distiller Models:
     - Knowledge Distillation: models_distiller/knowledge_distillation.md
