@@ -27,6 +27,8 @@ scikit-learn = "^1.6.1"
 xgboost = "^2.1.4"
 scipy = "^1.15.1"
 rich = "^13.9.4"
+joblib = "^1.4.2"
+ipython = "^8.32.0"
 
 
 [tool.poetry.group.dev.dependencies]
