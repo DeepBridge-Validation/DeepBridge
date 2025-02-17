@@ -25,7 +25,8 @@ nav:
     - Model Distillation: guides/distillation.md
     - CLI Usage: guides/cli.md
   - API Reference:
-    - Data: api/data.md
+    - Data: api/db_data.md
+    - Experiment: api/experiment.md
     - Model Validation: api/model_validation.md
     - Model Distiller: api/model_distiller.md
     - CLI: api/cli.md
