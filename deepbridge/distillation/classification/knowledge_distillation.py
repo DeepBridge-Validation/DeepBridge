@@ -4,8 +4,9 @@ from scipy.special import softmax
 from sklearn.base import BaseEstimator, ClassifierMixin
 from typing import Dict, Any, Optional, Union
 
-from distillation.classification.model_registry import ModelRegistry, ModelType
-from metrics.classification import Classification
+# Corrigir imports para usar caminhos absolutos
+from deepbridge.distillation.classification.model_registry import ModelRegistry, ModelType
+from deepbridge.metrics.classification import Classification
 
 class KnowledgeDistillation(BaseEstimator, ClassifierMixin):
     def __init__(
