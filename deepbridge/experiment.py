@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 # Imports absolutos
 from deepbridge.metrics.classification import Classification
-from deepbridge.distillation.classification.knowledge_distillation import KnowledgeDistillation, ModelType
+from deepbridge.distillation.classification import KnowledgeDistillation, ModelType
 
 class Experiment:
     """
