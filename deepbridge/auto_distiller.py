@@ -205,7 +205,7 @@ class AutoDistiller:
     def _save_results(self):
         """Save results to CSV file."""
         results_path = os.path.join(self.output_dir, "distillation_results.csv")
-        self.results_df.to_csv(results_path, index=False)
+        self.results_df.to_csv(results_path, index=False, sep=';')
     
     def _create_visualizations(self):
         """Create and save visualizations of the results."""
