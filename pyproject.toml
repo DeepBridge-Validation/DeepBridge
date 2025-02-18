@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.2.7"
+version = "0.2.0"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
@@ -29,6 +29,7 @@ scipy = "^1.15.1"
 rich = "^13.9.4"
 joblib = "^1.4.2"
 ipython = "^8.32.0"
+optuna = "^4.2.1"
 
 
 [tool.poetry.group.dev.dependencies]

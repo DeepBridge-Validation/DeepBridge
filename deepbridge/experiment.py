@@ -58,7 +58,10 @@ class Experiment:
         student_params: t.Optional[dict] = None,
         temperature: float = 1.0,
         alpha: float = 0.5,
-        use_probabilities: bool = True
+        use_probabilities: bool = True,
+        n_trials: int = 50,
+        validation_split: float = 0.2,
+        verbose: bool = True
     ) -> 'Experiment':
         """
         Train a Knowledge Distillation model using either teacher probabilities or teacher model.
@@ -69,6 +72,9 @@ class Experiment:
             temperature: Temperature parameter for softening probability distributions
             alpha: Weight between teacher's loss and true label loss
             use_probabilities: Whether to use pre-calculated probabilities (True) or teacher model (False)
+            n_trials: Number of Optuna trials for hyperparameter optimization
+            validation_split: Fraction of data to use for validation during optimization
+            verbose: Whether to show optimization logs and results
             
         Returns:
             self: The experiment instance with trained distillation model
@@ -76,6 +82,13 @@ class Experiment:
         if self.experiment_type != "binary_classification":
             raise ValueError("Knowledge Distillation is only supported for binary classification")
             
+        # Suprimir logs do Optuna se verbose=False
+        if not verbose:
+            import logging
+            optuna_logger = logging.getLogger("optuna")
+            optuna_logger_level = optuna_logger.getEffectiveLevel()
+            optuna_logger.setLevel(logging.ERROR)  # Mostrar apenas erros
+
         if use_probabilities:
             if self.prob_train is None:
                 raise ValueError("No teacher probabilities available. Set use_probabilities=False to use teacher model")
@@ -86,7 +99,10 @@ class Experiment:
                 student_model_type=student_model_type,
                 student_params=student_params,
                 temperature=temperature,
-                alpha=alpha
+                alpha=alpha,
+                n_trials=n_trials,
+                validation_split=validation_split,
+                random_state=self.random_state
             )
         else:
             if self.dataset.model is None:
@@ -98,29 +114,92 @@ class Experiment:
                 student_model_type=student_model_type,
                 student_params=student_params,
                 temperature=temperature,
-                alpha=alpha
+                alpha=alpha,
+                n_trials=n_trials,
+                validation_split=validation_split,
+                random_state=self.random_state
             )
         
-        # Train the model
-        self.distillation_model.fit(self.X_train, self.y_train)
+        # Treinar o modelo com o controle de verbosidade
+        self.distillation_model.fit(self.X_train, self.y_train, verbose=verbose)
         
-        # Evaluate on train set
-        train_metrics = self.distillation_model.evaluate(
-            self.X_train,
-            self.y_train,
-            return_predictions=True
-        )
+        # Continuar com a avaliação
+        train_metrics = self._evaluate_distillation_model('train')
         self.results['train'] = train_metrics['metrics']
         
-        # Evaluate on test set
-        test_metrics = self.distillation_model.evaluate(
-            self.X_test,
-            self.y_test,
-            return_predictions=True
-        )
+        test_metrics = self._evaluate_distillation_model('test')
         self.results['test'] = test_metrics['metrics']
         
+        # Restaurar nível do logger do Optuna
+        if not verbose:
+            import logging
+            optuna_logger = logging.getLogger("optuna")
+            optuna_logger.setLevel(optuna_logger_level)
+        
         return self
+    
+    def _evaluate_distillation_model(self, dataset: str = 'test') -> dict:
+        """
+        Avalia o modelo de destilação para o conjunto de dados especificado
+        
+        Args:
+            dataset: Qual conjunto de dados avaliar ('train' ou 'test')
+            
+        Returns:
+            dict: Dicionário contendo métricas de avaliação e previsões
+        """
+        if dataset == 'train':
+            X, y, prob = self.X_train, self.y_train, self.prob_train
+        else:
+            X, y, prob = self.X_test, self.y_test, self.prob_test
+        
+        # Obter previsões
+        y_pred = self.distillation_model.predict(X)
+        y_prob = self.distillation_model.predict_proba(X)
+        
+        # Calcular métricas usando a classe Classification
+        metrics = self.metrics_calculator.calculate_metrics(
+            y_true=y,
+            y_pred=y_pred,
+            y_prob=y_prob[:, 1]  # Probabilidade da classe positiva
+        )
+        
+        # Adicionar divergência KL às métricas, se tivermos probabilidades do professor
+        if prob is not None:
+            if isinstance(prob, pd.DataFrame):
+                if 'prob_1' in prob.columns:
+                    teacher_probs = np.column_stack([1 - prob['prob_1'], prob['prob_1']])
+                else:
+                    # Assume que a última coluna é a probabilidade da classe positiva
+                    pos_prob = prob.iloc[:, -1].values
+                    teacher_probs = np.column_stack([1 - pos_prob, pos_prob])
+            else:
+                teacher_probs = prob
+                
+            student_probs = y_prob
+            
+            # Calcular divergência KL (apenas se tivermos probabilidades do professor)
+            # Adicionar epsilon para evitar log(0)
+            epsilon = 1e-10
+            teacher_probs = np.clip(teacher_probs, epsilon, 1-epsilon)
+            student_probs = np.clip(student_probs, epsilon, 1-epsilon)
+            
+            # Calcular divergência KL média (por amostra)
+            kl_div = np.mean(np.sum(teacher_probs * np.log(teacher_probs / student_probs), axis=1))
+            metrics['kl_divergence'] = kl_div
+        
+        # Adicionar os hiperparâmetros à saída
+        if hasattr(self.distillation_model, 'best_params') and self.distillation_model.best_params:
+            metrics['best_params'] = self.distillation_model.best_params
+            
+        # Incluir previsões
+        predictions_df = pd.DataFrame({
+            'y_true': y,
+            'y_pred': y_pred,
+            'y_prob': y_prob[:, 1]  # Probabilidade da classe positiva
+        })
+        
+        return {'metrics': metrics, 'predictions': predictions_df}
     
     def get_student_predictions(self, dataset: str = 'test') -> pd.DataFrame:
         """
@@ -219,7 +298,7 @@ class Experiment:
                     'metric': metric_name,
                     'student_value': student_metrics[metric_name]
                 }
-                if teacher_metrics:
+                if teacher_metrics and metric_name in teacher_metrics:
                     result['teacher_value'] = teacher_metrics[metric_name]
                     result['difference'] = student_metrics[metric_name] - teacher_metrics[metric_name]
                 results.append(result)
