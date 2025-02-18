@@ -6,7 +6,7 @@ from deepbridge.db_data import DBDataset
 from deepbridge.experiment import Experiment
 from deepbridge.auto_distiller import AutoDistiller
 
-__version__ = "0.2.0"
+__version__ = "0.1.2"
 __author__ = "Team DeepBridge"
 
 __all__ = [
