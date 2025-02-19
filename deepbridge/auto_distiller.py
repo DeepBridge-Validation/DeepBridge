@@ -167,25 +167,86 @@ class AutoDistiller:
             raise ValueError("No results available. Run the distillation process first.")
             
         self._ensure_components_initialized()
-        return self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
-    
-    def get_trained_model(self, model_type: ModelType, temperature: float, alpha: float):
+        best_config = self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
+        
+        # Converter o tipo de modelo de string para ModelType
+        if 'model_type' in best_config and isinstance(best_config['model_type'], str):
+            model_type_str = best_config['model_type']
+            for model_type in ModelType:
+                if model_type.name == model_type_str:
+                    best_config['model_type'] = model_type
+                    break
+        
+        return best_config
+        
+    def get_trained_model(self, model_type: Union[ModelType, str], temperature: float, alpha: float):
         """
         Get a trained model with specific configuration.
         
         Args:
-            model_type: Type of model to train
+            model_type: Type of model to train (ModelType enum or string)
             temperature: Temperature parameter
             alpha: Alpha parameter
         
         Returns:
             Trained distillation model
         """
+        # Converter string para ModelType se necessário
+        if isinstance(model_type, str):
+            try:
+                model_type = ModelType[model_type]
+            except KeyError:
+                # Caso especial para 'GBM' que pode estar armazenado diretamente como string e não como 'GBM'
+                if model_type == 'GBM':
+                    model_type = ModelType.GBM
+                elif model_type == 'XGB':
+                    model_type = ModelType.XGB
+                else:
+                    raise ValueError(f"Unsupported model type string: {model_type}")
+        
         return self.experiment_runner.get_trained_model(
             model_type=model_type,
             temperature=temperature,
             alpha=alpha
         )
+    
+    def save_best_model(self, metric: str = 'test_accuracy', minimize: bool = False, 
+                        file_path: str = 'best_distilled_model.pkl') -> str:
+        """
+        Find the best model and save it as a pickle file using joblib.
+        
+        Args:
+            metric: Metric to use for finding the best model (default: 'test_accuracy')
+            minimize: Whether the metric should be minimized (default: False)
+            file_path: Path where to save the model (default: 'best_distilled_model.pkl')
+        
+        Returns:
+            String containing the path where the model was saved
+        """
+        import joblib
+        from pathlib import Path
+        
+        # Encontrar a melhor configuração
+        best_config = self.find_best_model(metric=metric, minimize=minimize)
+        
+        # Obter o modelo treinado com esta configuração
+        best_model = self.get_trained_model(
+            model_type=best_config['model_type'],
+            temperature=best_config['temperature'],
+            alpha=best_config['alpha']
+        )
+        
+        # Garantir que o diretório existe
+        output_file = Path(file_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Salvar o modelo usando joblib
+        joblib.dump(best_model, output_file)
+        
+        if self.config.verbose:
+            print(f"Best model saved to: {output_file}")
+        
+        return str(output_file)
     
     def generate_report(self) -> str:
         """
