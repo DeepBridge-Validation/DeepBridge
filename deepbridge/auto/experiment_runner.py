@@ -140,6 +140,13 @@ class ExperimentRunner:
                 'test_auc_pr': test_metrics.get('auc_pr', None),
                 'train_kl_divergence': train_metrics.get('kl_divergence', None),
                 'test_kl_divergence': test_metrics.get('kl_divergence', None),
+                # Add new metrics
+                'train_ks_statistic': train_metrics.get('ks_statistic', None),
+                'test_ks_statistic': test_metrics.get('ks_statistic', None),
+                'train_ks_pvalue': train_metrics.get('ks_pvalue', None),
+                'test_ks_pvalue': test_metrics.get('ks_pvalue', None),
+                'train_r2_score': train_metrics.get('r2_score', None),
+                'test_r2_score': test_metrics.get('r2_score', None),
                 'best_params': str(test_metrics.get('best_params', {}))
             }
             

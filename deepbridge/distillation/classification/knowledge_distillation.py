@@ -64,30 +64,134 @@ class KnowledgeDistillation(BaseEstimator, ClassifierMixin):
         Returns:
             Soft labels (probabilities)
         """
+        print(f"\n=== DEBUG: _get_teacher_soft_labels ===")
+        print(f"X shape: {X.shape}")
+        print(f"teacher_model: {self.teacher_model is not None}")
+        print(f"teacher_probabilities: {self.teacher_probabilities is not None}")
+        
         if self.teacher_probabilities is not None:
             # Use pre-calculated probabilities
-            if len(self.teacher_probabilities) != len(X):
+            print(f"Using pre-calculated probabilities")
+            if isinstance(self.teacher_probabilities, pd.DataFrame):
+                print(f"teacher_probabilities is DataFrame with shape {self.teacher_probabilities.shape}")
+                print(f"teacher_probabilities columns: {self.teacher_probabilities.columns.tolist()}")
+                
+                # Check if we have column names like 'prob_class_0', 'prob_class_1'
+                if all(col in self.teacher_probabilities.columns for col in ['prob_class_0', 'prob_class_1']):
+                    print(f"Found prob_class_0 and prob_class_1 columns")
+                    probabilities = self.teacher_probabilities[['prob_class_0', 'prob_class_1']].values
+                else:
+                    probabilities = self.teacher_probabilities.values
+            else:
+                print(f"teacher_probabilities is {type(self.teacher_probabilities)} with shape {self.teacher_probabilities.shape}")
+                probabilities = self.teacher_probabilities
+                
+            if len(probabilities) != len(X):
                 raise ValueError(
-                    f"Number of teacher probabilities ({len(self.teacher_probabilities)}) "
+                    f"Number of teacher probabilities ({len(probabilities)}) "
                     f"doesn't match number of samples ({len(X)})"
                 )
+                
+            print(f"First 3 probabilities: {probabilities[:3]}")
+            print(f"Probabilities shape: {probabilities.shape}")
+            
+            # Handle single column probabilities (convert to two columns)
+            if len(probabilities.shape) == 1 or probabilities.shape[1] == 1:
+                print(f"Single column probabilities detected, converting to two columns")
+                if len(probabilities.shape) == 1:
+                    pos_proba = probabilities
+                else:
+                    pos_proba = probabilities[:, 0]
+                    
+                # Ensure probabilities are between 0 and 1
+                pos_proba = np.clip(pos_proba, 0.0, 1.0)
+                probabilities = np.column_stack([1 - pos_proba, pos_proba])
+                print(f"After conversion: probabilities shape {probabilities.shape}")
+                print(f"First 3 rows after conversion: {probabilities[:3]}")
+            elif probabilities.shape[1] != 2:
+                print(f"WARNING: Expected 2 columns for binary classification, got {probabilities.shape[1]}")
+                if probabilities.shape[1] > 2:
+                    print(f"Using first two columns of probability array")
+                    probabilities = probabilities[:, :2]
+                    print(f"After selection: probabilities shape {probabilities.shape}")
+                    print(f"First 3 rows after selection: {probabilities[:3]}")
+            
+            # Verify probabilities sum to 1
+            row_sums = probabilities.sum(axis=1)
+            if not np.allclose(row_sums, 1.0, rtol=1e-3):
+                print(f"WARNING: Probabilities don't sum to 1. Min sum: {np.min(row_sums)}, Max sum: {np.max(row_sums)}")
+                # Normalize
+                probabilities = probabilities / row_sums[:, np.newaxis]
+                print(f"Normalized probabilities. New sums: {probabilities.sum(axis=1)[:5]}")
+                
             # Apply temperature scaling to probabilities
-            logits = np.log(self.teacher_probabilities + 1e-7)
-            return softmax(logits / self.temperature, axis=1)
+            print(f"Applying temperature={self.temperature} scaling")
+            # Convert to logits
+            epsilon = 1e-7
+            probabilities = np.clip(probabilities, epsilon, 1 - epsilon)
+            logits = np.log(probabilities)
+            
+            # Apply temperature scaling
+            scaled_logits = logits / self.temperature
+            
+            # Convert back to probabilities using softmax
+            exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=1, keepdims=True))
+            soft_labels = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+            
+            print(f"Soft labels shape: {soft_labels.shape}")
+            print(f"First 3 soft labels: {soft_labels[:3]}")
+            print(f"=== END DEBUG ===\n")
+            
+            return soft_labels
             
         # Use teacher model
+        print(f"Using teacher model predictions")
         try:
             # Try to get logits using decision_function
-            teacher_logits = self.teacher_model.decision_function(X)
-            if len(teacher_logits.shape) == 1:
-                # Convert to 2D array if necessary
-                teacher_logits = np.column_stack([-teacher_logits, teacher_logits])
-        except (AttributeError, NotImplementedError):
+            if hasattr(self.teacher_model, 'decision_function'):
+                print(f"Using teacher model's decision_function")
+                teacher_logits = self.teacher_model.decision_function(X)
+                print(f"teacher_logits shape: {teacher_logits.shape}")
+                
+                if len(teacher_logits.shape) == 1:
+                    # Convert to 2D array if necessary
+                    print(f"Converting 1D logits to 2D, first 3 values: {teacher_logits[:3]}")
+                    teacher_logits = np.column_stack([-teacher_logits, teacher_logits])
+                    print(f"After conversion: {teacher_logits[:3]}")
+            else:
+                print(f"Teacher model has no decision_function, using predict_proba")
+                # Fallback to predict_proba
+                teacher_probs = self.teacher_model.predict_proba(X)
+                print(f"teacher_probs shape: {teacher_probs.shape}, first 3 rows: {teacher_probs[:3]}")
+                
+                # Convert to logits
+                epsilon = 1e-7
+                teacher_probs = np.clip(teacher_probs, epsilon, 1-epsilon)
+                teacher_logits = np.log(teacher_probs)
+                print(f"Converted to logits, first 3 rows: {teacher_logits[:3]}")
+        except (AttributeError, NotImplementedError) as e:
+            print(f"Error getting teacher predictions: {str(e)}")
+            print(f"Falling back to predict_proba")
             # Fallback to predict_proba
             teacher_probs = self.teacher_model.predict_proba(X)
-            teacher_logits = np.log(teacher_probs + 1e-7)
+            print(f"teacher_probs shape: {teacher_probs.shape}, first 3 rows: {teacher_probs[:3]}")
+            
+            # Convert to logits
+            epsilon = 1e-7
+            teacher_probs = np.clip(teacher_probs, epsilon, 1-epsilon)
+            teacher_logits = np.log(teacher_probs)
         
-        return softmax(teacher_logits / self.temperature, axis=1)
+        # Apply temperature scaling    
+        print(f"Applying temperature={self.temperature} scaling to logits")
+        scaled_logits = teacher_logits / self.temperature
+        
+        # Apply softmax
+        soft_labels = softmax(scaled_logits, axis=1)
+        print(f"Final soft labels shape: {soft_labels.shape}")
+        print(f"First 3 soft labels: {soft_labels[:3]}")
+        print(f"=== END DEBUG ===\n")
+        
+        return soft_labels
         
     def _get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
         """
@@ -209,19 +313,52 @@ class KnowledgeDistillation(BaseEstimator, ClassifierMixin):
         Returns:
             KnowledgeDistillation instance
         """
+        print(f"Creating KnowledgeDistillation from probabilities")
+        print(f"Probabilities type: {type(probabilities)}")
+        
         if isinstance(probabilities, pd.DataFrame):
-            probabilities = probabilities.values
+            # Special handling for named probability columns
+            if all(col in probabilities.columns for col in ['prob_class_0', 'prob_class_1']):
+                print(f"Found prob_class_0 and prob_class_1 columns in DataFrame")
+                probs_array = probabilities[['prob_class_0', 'prob_class_1']].values
+            else:
+                print(f"Using all columns from DataFrame, shape: {probabilities.shape}")
+                probs_array = probabilities.values
+        else:
+            probs_array = probabilities
             
-        if probabilities.shape[1] != 2:
-            raise ValueError(
-                f"Probabilities must have shape (n_samples, 2), got {probabilities.shape}"
-            )
+        print(f"Processed probabilities shape: {probs_array.shape}")
+        print(f"First 3 probabilities: {probs_array[:3]}")
+        
+        if probs_array.shape[1] != 2:
+            print(f"WARNING: Expected probabilities with shape (n_samples, 2), got {probs_array.shape}")
+            if len(probs_array.shape) == 1 or probs_array.shape[1] == 1:
+                # Convert single-column probabilities to two columns
+                if len(probs_array.shape) == 1:
+                    pos_class = probs_array
+                else:
+                    pos_class = probs_array[:, 0]
+                    
+                # Ensure in range [0, 1]
+                pos_class = np.clip(pos_class, 0.0, 1.0)
+                probs_array = np.column_stack([1 - pos_class, pos_class])
+                print(f"Converted to two-column format: {probs_array.shape}")
+            elif probs_array.shape[1] > 2:
+                # Use first two columns
+                probs_array = probs_array[:, :2]
+                print(f"Using first two columns: {probs_array.shape}")
+                
+        # Ensure probabilities sum to 1
+        row_sums = probs_array.sum(axis=1)
+        if not np.allclose(row_sums, 1.0, rtol=1e-3):
+            print(f"Normalizing probabilities: min_sum={np.min(row_sums)}, max_sum={np.max(row_sums)}")
+            probs_array = probs_array / row_sums[:, np.newaxis]
             
-        if not np.allclose(probabilities.sum(axis=1), 1.0, rtol=1e-5):
+        if not np.allclose(probs_array.sum(axis=1), 1.0, rtol=1e-5):
             raise ValueError("Probabilities must sum to 1 for each sample")
             
         return cls(
-            teacher_probabilities=probabilities,
+            teacher_probabilities=probs_array,
             student_model_type=student_model_type,
             student_params=student_params,
             temperature=temperature,
@@ -337,25 +474,75 @@ class KnowledgeDistillation(BaseEstimator, ClassifierMixin):
         Returns:
             Dictionary containing evaluation metrics and optionally predictions
         """
+        print("\n=== EVALUATING DISTILLATION MODEL ===")
         if self.student_model is None:
             raise RuntimeError("Model not trained. Call fit() first.")
             
         # Get predictions
         y_pred = self.predict(X)
-        y_prob = self.predict_proba(X)[:, 1]  # Probability of positive class
+        student_probs = self.predict_proba(X)
+        print(f"Student probabilities shape: {student_probs.shape}")
+        print(f"First 3 student probabilities: {student_probs[:3]}")
+        
+        # Extract probability of positive class
+        y_prob = student_probs[:, 1] if student_probs.shape[1] > 1 else student_probs
+        print(f"y_prob shape: {y_prob.shape}")
+        print(f"First 5 y_prob values: {y_prob[:5]}")
+        
+        # Get teacher soft labels for comparison
+        teacher_soft_labels = self._get_teacher_soft_labels(X)
+        print(f"Teacher soft labels shape: {teacher_soft_labels.shape}")
+        print(f"First 3 teacher soft labels: {teacher_soft_labels[:3]}")
+        
+        # Extract teacher probability for positive class (consistently)
+        teacher_prob = teacher_soft_labels[:, 1] if teacher_soft_labels.shape[1] > 1 else teacher_soft_labels
+        print(f"teacher_prob shape: {teacher_prob.shape}")
+        print(f"First 5 teacher_prob values: {teacher_prob[:5]}")
+        
+        # Verify both probability arrays
+        print(f"y_prob stats: min={np.min(y_prob)}, max={np.max(y_prob)}, mean={np.mean(y_prob)}")
+        print(f"teacher_prob stats: min={np.min(teacher_prob)}, max={np.max(teacher_prob)}, mean={np.mean(teacher_prob)}")
+        
+        # Ensure no NaN values
+        if np.isnan(y_prob).any() or np.isnan(teacher_prob).any():
+            print("WARNING: NaN values detected in probability arrays!")
         
         # Calculate metrics using Classification class
+        print(f"Calculating metrics with Classification.calculate_metrics")
         metrics = self.metrics_calculator.calculate_metrics(
             y_true=y_true,
             y_pred=y_pred,
-            y_prob=y_prob
+            y_prob=y_prob,
+            teacher_prob=teacher_prob
         )
         
-        # Add KL divergence to metrics
-        teacher_soft_labels = self._get_teacher_soft_labels(X)
-        student_probs = self.predict_proba(X)
-        kl_div = self._kl_divergence(teacher_soft_labels, student_probs)
-        metrics['kl_divergence'] = kl_div
+        print(f"Resulting metrics: {metrics}")
+        
+        # Manually calculate KS and R² if they're None in metrics
+        if metrics.get('ks_statistic') is None:
+            print("KS statistic is None, calculating manually...")
+            try:
+                from scipy import stats
+                ks_stat, p_value = stats.ks_2samp(teacher_prob, y_prob)
+                metrics['ks_statistic'] = float(ks_stat)
+                metrics['ks_pvalue'] = float(p_value)
+                print(f"Manual KS calculation: statistic={ks_stat}, p-value={p_value}")
+            except Exception as e:
+                print(f"Manual KS calculation failed: {str(e)}")
+        
+        if metrics.get('r2_score') is None:
+            print("R² score is None, calculating manually...")
+            try:
+                from sklearn.metrics import r2_score
+                # Sort for distribution comparison
+                teacher_sorted = np.sort(teacher_prob)
+                student_sorted = np.sort(y_prob)
+                min_len = min(len(teacher_sorted), len(student_sorted))
+                r2 = r2_score(teacher_sorted[:min_len], student_sorted[:min_len])
+                metrics['r2_score'] = float(r2)
+                print(f"Manual R² calculation: {r2}")
+            except Exception as e:
+                print(f"Manual R² calculation failed: {str(e)}")
         
         # Add hyperparameter info
         metrics['best_params'] = self.best_params
@@ -365,10 +552,12 @@ class KnowledgeDistillation(BaseEstimator, ClassifierMixin):
             predictions_df = pd.DataFrame({
                 'y_true': y_true,
                 'y_pred': y_pred,
-                'y_prob': y_prob
+                'y_prob': y_prob,
+                'teacher_prob': teacher_prob
             })
             return {'metrics': metrics, 'predictions': predictions_df}
         
+        print("=== EVALUATION COMPLETE ===\n")
         return metrics
 
     def evaluate_from_dataframe(

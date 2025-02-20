@@ -148,6 +148,7 @@ class Experiment:
         Returns:
             dict: Dicionário contendo métricas de avaliação e previsões
         """
+        print(f"\n=== Evaluating distillation model on {dataset} dataset ===")
         if dataset == 'train':
             X, y, prob = self.X_train, self.y_train, self.prob_train
         else:
@@ -157,47 +158,115 @@ class Experiment:
         y_pred = self.distillation_model.predict(X)
         y_prob = self.distillation_model.predict_proba(X)
         
+        print(f"Student predictions shape: {y_prob.shape}")
+        print(f"First 3 student probabilities: {y_prob[:3]}")
+        
+        # Extract probability of positive class for student
+        student_prob_pos = y_prob[:, 1] if y_prob.shape[1] > 1 else y_prob
+        
+        # Prepare teacher probabilities
+        if prob is not None:
+            print(f"Teacher probabilities type: {type(prob)}")
+            if isinstance(prob, pd.DataFrame):
+                if 'prob_class_1' in prob.columns:
+                    print(f"Using 'prob_class_1' column from teacher probabilities")
+                    teacher_prob_pos = prob['prob_class_1'].values
+                    teacher_probs = prob[['prob_class_0', 'prob_class_1']].values
+                else:
+                    # Assume que a última coluna é a probabilidade da classe positiva
+                    print(f"Using last column as positive class probability")
+                    pos_prob = prob.iloc[:, -1].values
+                    teacher_prob_pos = pos_prob
+                    teacher_probs = np.column_stack([1 - pos_prob, pos_prob])
+            else:
+                teacher_probs = prob
+                teacher_prob_pos = prob[:, 1] if prob.shape[1] > 1 else prob
+                    
+            print(f"Teacher probabilities shape: {teacher_probs.shape if hasattr(teacher_probs, 'shape') else 'unknown'}")
+            print(f"First 3 teacher probabilities (positive class): {teacher_prob_pos[:3]}")
+            
+            # Manually calculate KS statistic
+            try:
+                from scipy import stats
+                ks_stat, ks_pvalue = stats.ks_2samp(teacher_prob_pos, student_prob_pos)
+                print(f"KS Statistic calculation: {ks_stat}, p-value: {ks_pvalue}")
+            except Exception as e:
+                print(f"Error calculating KS statistic: {str(e)}")
+                ks_stat, ks_pvalue = None, None
+                
+            # Manually calculate R² score
+            try:
+                from sklearn.metrics import r2_score
+                # Sort distributions
+                teacher_sorted = np.sort(teacher_prob_pos)
+                student_sorted = np.sort(student_prob_pos)
+                # Use equal lengths
+                min_len = min(len(teacher_sorted), len(student_sorted))
+                r2 = r2_score(teacher_sorted[:min_len], student_sorted[:min_len])
+                print(f"R² Score calculation: {r2}")
+            except Exception as e:
+                print(f"Error calculating R² score: {str(e)}")
+                r2 = None
+        else:
+            print(f"No teacher probabilities available for {dataset} dataset")
+            ks_stat, ks_pvalue, r2 = None, None, None
+        
         # Calcular métricas usando a classe Classification
         metrics = self.metrics_calculator.calculate_metrics(
             y_true=y,
             y_pred=y_pred,
-            y_prob=y_prob[:, 1]  # Probabilidade da classe positiva
+            y_prob=student_prob_pos  # Probabilidade da classe positiva
         )
         
-        # Adicionar divergência KL às métricas, se tivermos probabilidades do professor
-        if prob is not None:
-            if isinstance(prob, pd.DataFrame):
-                if 'prob_1' in prob.columns:
-                    teacher_probs = np.column_stack([1 - prob['prob_1'], prob['prob_1']])
-                else:
-                    # Assume que a última coluna é a probabilidade da classe positiva
-                    pos_prob = prob.iloc[:, -1].values
-                    teacher_probs = np.column_stack([1 - pos_prob, pos_prob])
-            else:
-                teacher_probs = prob
-                
-            student_probs = y_prob
+        # Manually add distribution comparison metrics if not present
+        if 'ks_statistic' not in metrics or metrics['ks_statistic'] is None:
+            metrics['ks_statistic'] = ks_stat
+            metrics['ks_pvalue'] = ks_pvalue
             
-            # Calcular divergência KL (apenas se tivermos probabilidades do professor)
-            # Adicionar epsilon para evitar log(0)
-            epsilon = 1e-10
-            teacher_probs = np.clip(teacher_probs, epsilon, 1-epsilon)
-            student_probs = np.clip(student_probs, epsilon, 1-epsilon)
-            
-            # Calcular divergência KL média (por amostra)
-            kl_div = np.mean(np.sum(teacher_probs * np.log(teacher_probs / student_probs), axis=1))
-            metrics['kl_divergence'] = kl_div
+        if 'r2_score' not in metrics or metrics['r2_score'] is None:
+            metrics['r2_score'] = r2
         
-        # Adicionar os hiperparâmetros à saída
+        # Add KL divergence if not present and we have teacher probabilities
+        if 'kl_divergence' not in metrics and prob is not None:
+            try:
+                # Calculate KL divergence manually
+                # Add epsilon to avoid log(0)
+                epsilon = 1e-10
+                teacher_prob_pos = np.clip(teacher_prob_pos, epsilon, 1-epsilon)
+                student_prob_pos = np.clip(student_prob_pos, epsilon, 1-epsilon)
+                
+                # For binary classification (calculate for both classes)
+                teacher_prob_neg = 1 - teacher_prob_pos
+                student_prob_neg = 1 - student_prob_pos
+                
+                # Calculate KL divergence
+                kl_div_pos = np.mean(teacher_prob_pos * np.log(teacher_prob_pos / student_prob_pos))
+                kl_div_neg = np.mean(teacher_prob_neg * np.log(teacher_prob_neg / student_prob_neg))
+                kl_div = (kl_div_pos + kl_div_neg) / 2
+                
+                metrics['kl_divergence'] = kl_div
+                print(f"Manually calculated KL divergence: {kl_div}")
+            except Exception as e:
+                print(f"Error calculating KL divergence: {str(e)}")
+                metrics['kl_divergence'] = None
+        
+        # Include best hyperparameters in metrics
         if hasattr(self.distillation_model, 'best_params') and self.distillation_model.best_params:
             metrics['best_params'] = self.distillation_model.best_params
             
-        # Incluir previsões
+        # Include previsões
         predictions_df = pd.DataFrame({
             'y_true': y,
             'y_pred': y_pred,
-            'y_prob': y_prob[:, 1]  # Probabilidade da classe positiva
+            'y_prob': student_prob_pos  # Probabilidade da classe positiva
         })
+        
+        if prob is not None:
+            # Add teacher probabilities to predictions dataframe
+            predictions_df['teacher_prob'] = teacher_prob_pos
+        
+        print(f"Evaluation metrics: {metrics}")
+        print(f"=== Evaluation complete ===\n")
         
         return {'metrics': metrics, 'predictions': predictions_df}
     

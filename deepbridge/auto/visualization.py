@@ -107,7 +107,264 @@ class Visualizer:
             except Exception as e:
                 self.config.log_info(f"Error creating precision-recall trade-off plot: {str(e)}")
         
+        # 6. NEW: Distribution Similarity Metrics (KS and R²)
+        try:
+            if (('test_ks_statistic' in valid_results.columns and 
+                not valid_results['test_ks_statistic'].isna().all()) and
+                ('test_r2_score' in valid_results.columns and 
+                not valid_results['test_r2_score'].isna().all())):
+                
+                self._plot_distribution_metrics_comparison(valid_results)
+                self.config.log_info("Created distribution metrics comparison plot")
+            else:
+                self.config.log_info("Skipping distribution metrics plot: data not available")
+        except Exception as e:
+            self.config.log_info(f"Error creating distribution metrics plot: {str(e)}")
+            import traceback
+            self.config.log_info(traceback.format_exc())
+        
+        # 7. NEW: KS Statistic by Temperature
+        try:
+            if 'test_ks_statistic' in valid_results.columns and not valid_results['test_ks_statistic'].isna().all():
+                self._plot_ks_statistic_by_temperature(valid_results)
+                self.config.log_info("Created KS statistic by temperature plot")
+            else:
+                self.config.log_info("Skipping KS statistic plot: metric not available")
+        except Exception as e:
+            self.config.log_info(f"Error creating KS statistic plot: {str(e)}")
+        
+        # 8. NEW: R² Score by Temperature
+        try:
+            if 'test_r2_score' in valid_results.columns and not valid_results['test_r2_score'].isna().all():
+                self._plot_r2_score_by_temperature(valid_results)
+                self.config.log_info("Created R² score by temperature plot")
+            else:
+                self.config.log_info("Skipping R² score plot: metric not available")
+        except Exception as e:
+            self.config.log_info(f"Error creating R² score plot: {str(e)}")
+        
         self.config.log_info(f"Visualization process completed. Results saved to {self.config.output_dir}")
+
+    def _plot_distribution_metrics_comparison(self, results_df: pd.DataFrame):
+        """
+        Plot comparison of distribution similarity metrics (KS Statistic and R² Score).
+        
+        Args:
+            results_df: DataFrame containing valid results
+        """
+        try:
+            plt.figure(figsize=(20, 10))
+            
+            # Left subplot for KS Statistic (lower is better)
+            plt.subplot(1, 2, 1)
+            model_types = results_df['model_type'].unique()
+            
+            # Group by model type and calculate mean KS statistic
+            model_ks_values = []
+            model_names = []
+            
+            for model in model_types:
+                model_data = results_df[results_df['model_type'] == model]['test_ks_statistic']
+                if not model_data.empty and not model_data.isna().all():
+                    model_names.append(model)
+                    # For KS, lower is better
+                    best_ks = model_data.min()
+                    avg_ks = model_data.mean()
+                    model_ks_values.append((best_ks, avg_ks))
+            
+            if model_ks_values:
+                best_ks_values = [x[0] for x in model_ks_values]
+                avg_ks_values = [x[1] for x in model_ks_values]
+                
+                x = range(len(model_names))
+                width = 0.35
+                
+                plt.bar([i - width/2 for i in x], best_ks_values, width, label='Best KS (Min)', color='darkblue')
+                plt.bar([i + width/2 for i in x], avg_ks_values, width, label='Average KS', color='royalblue', alpha=0.7)
+                
+                plt.xlabel('Model Type')
+                plt.ylabel('KS Statistic (lower is better)')
+                plt.title('KS Statistic by Model Type')
+                plt.xticks(x, model_names, rotation=45)
+                plt.legend()
+                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                
+                # Add values on top of bars
+                for i, v in enumerate(best_ks_values):
+                    plt.text(i - width/2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
+                for i, v in enumerate(avg_ks_values):
+                    plt.text(i + width/2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
+            else:
+                plt.text(0.5, 0.5, 'No valid KS statistic data available',
+                    horizontalalignment='center', verticalalignment='center',
+                    transform=plt.gca().transAxes)
+            
+            # Right subplot for R² Score (higher is better)
+            plt.subplot(1, 2, 2)
+            
+            # Group by model type and calculate mean R² score
+            model_r2_values = []
+            model_names = []
+            
+            for model in model_types:
+                model_data = results_df[results_df['model_type'] == model]['test_r2_score']
+                if not model_data.empty and not model_data.isna().all():
+                    model_names.append(model)
+                    # For R², higher is better
+                    best_r2 = model_data.max()
+                    avg_r2 = model_data.mean()
+                    model_r2_values.append((best_r2, avg_r2))
+            
+            if model_r2_values:
+                best_r2_values = [x[0] for x in model_r2_values]
+                avg_r2_values = [x[1] for x in model_r2_values]
+                
+                x = range(len(model_names))
+                width = 0.35
+                
+                plt.bar([i - width/2 for i in x], best_r2_values, width, label='Best R² (Max)', color='darkgreen')
+                plt.bar([i + width/2 for i in x], avg_r2_values, width, label='Average R²', color='mediumseagreen', alpha=0.7)
+                
+                plt.xlabel('Model Type')
+                plt.ylabel('R² Score (higher is better)')
+                plt.title('R² Score by Model Type')
+                plt.xticks(x, model_names, rotation=45)
+                plt.legend()
+                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                
+                # Add values on top of bars
+                for i, v in enumerate(best_r2_values):
+                    plt.text(i - width/2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
+                for i, v in enumerate(avg_r2_values):
+                    plt.text(i + width/2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
+            else:
+                plt.text(0.5, 0.5, 'No valid R² score data available',
+                    horizontalalignment='center', verticalalignment='center',
+                    transform=plt.gca().transAxes)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.config.output_dir, 'distribution_metrics_comparison.png'))
+            plt.close()
+        
+        except Exception as e:
+            self.config.log_info(f"Error in _plot_distribution_metrics_comparison: {str(e)}")
+            plt.close()
+
+    def _plot_ks_statistic_by_temperature(self, results_df: pd.DataFrame):
+        """
+        Plot KS statistic by temperature for each model type.
+        
+        Args:
+            results_df: DataFrame containing valid results
+        """
+        try:
+            plt.figure(figsize=(15, 10))
+            model_types = results_df['model_type'].unique()
+            
+            for i, alpha in enumerate(self.config.alphas):
+                if i >= 4:  # Limit to 4 subplots
+                    break
+                    
+                plt.subplot(2, 2, i+1)
+                
+                alpha_data = results_df[results_df['alpha'] == alpha]
+                
+                # Dictionary to store data for each model
+                model_data = {}
+                
+                for model in model_types:
+                    model_alpha_data = alpha_data[alpha_data['model_type'] == model]
+                    if not model_alpha_data.empty and 'test_ks_statistic' in model_alpha_data:
+                        temperatures = []
+                        ks_values = []
+                        
+                        for temp in self.config.temperatures:
+                            temp_data = model_alpha_data[model_alpha_data['temperature'] == temp]['test_ks_statistic']
+                            if not temp_data.empty and not temp_data.isna().all():
+                                temperatures.append(temp)
+                                ks_values.append(temp_data.mean())
+                        
+                        if temperatures and ks_values:
+                            model_data[model] = (temperatures, ks_values)
+                
+                if model_data:
+                    for model, (temps, ks_vals) in model_data.items():
+                        plt.plot(temps, ks_vals, 'o-', label=model, linewidth=2)
+                    
+                    plt.xlabel('Temperature')
+                    plt.ylabel('KS Statistic (lower is better)')
+                    plt.title(f'KS Statistic with Alpha = {alpha}')
+                    plt.legend()
+                    plt.grid(True, alpha=0.3)
+                else:
+                    plt.text(0.5, 0.5, f'No valid KS statistic data for alpha={alpha}',
+                        horizontalalignment='center', verticalalignment='center',
+                        transform=plt.gca().transAxes)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.config.output_dir, 'ks_statistic_by_temperature.png'))
+            plt.close()
+        except Exception as e:
+            self.config.log_info(f"Error in _plot_ks_statistic_by_temperature: {str(e)}")
+            plt.close()
+
+    def _plot_r2_score_by_temperature(self, results_df: pd.DataFrame):
+        """
+        Plot R² score by temperature for each model type.
+        
+        Args:
+            results_df: DataFrame containing valid results
+        """
+        try:
+            plt.figure(figsize=(15, 10))
+            model_types = results_df['model_type'].unique()
+            
+            for i, alpha in enumerate(self.config.alphas):
+                if i >= 4:  # Limit to 4 subplots
+                    break
+                    
+                plt.subplot(2, 2, i+1)
+                
+                alpha_data = results_df[results_df['alpha'] == alpha]
+                
+                # Dictionary to store data for each model
+                model_data = {}
+                
+                for model in model_types:
+                    model_alpha_data = alpha_data[alpha_data['model_type'] == model]
+                    if not model_alpha_data.empty and 'test_r2_score' in model_alpha_data:
+                        temperatures = []
+                        r2_values = []
+                        
+                        for temp in self.config.temperatures:
+                            temp_data = model_alpha_data[model_alpha_data['temperature'] == temp]['test_r2_score']
+                            if not temp_data.empty and not temp_data.isna().all():
+                                temperatures.append(temp)
+                                r2_values.append(temp_data.mean())
+                        
+                        if temperatures and r2_values:
+                            model_data[model] = (temperatures, r2_values)
+                
+                if model_data:
+                    for model, (temps, r2_vals) in model_data.items():
+                        plt.plot(temps, r2_vals, 'o-', label=model, linewidth=2)
+                    
+                    plt.xlabel('Temperature')
+                    plt.ylabel('R² Score (higher is better)')
+                    plt.title(f'R² Score with Alpha = {alpha}')
+                    plt.legend()
+                    plt.grid(True, alpha=0.3)
+                else:
+                    plt.text(0.5, 0.5, f'No valid R² score data for alpha={alpha}',
+                        horizontalalignment='center', verticalalignment='center',
+                        transform=plt.gca().transAxes)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.config.output_dir, 'r2_score_by_temperature.png'))
+            plt.close()
+        except Exception as e:
+            self.config.log_info(f"Error in _plot_r2_score_by_temperature: {str(e)}")
+            plt.close()
     
     def _plot_kl_divergence_by_temperature(self, results_df: pd.DataFrame):
         """

@@ -56,7 +56,7 @@ class ReportGenerator:
         
         # Add best configurations for each metric
         report.append("## Best Configurations")
-        
+
         # Define all metrics to find best models for
         metrics = [
             ('test_accuracy', False, 'Test Accuracy'),
@@ -65,9 +65,11 @@ class ReportGenerator:
             ('test_f1', False, 'F1 Score'),
             ('test_auc_roc', False, 'AUC-ROC'),
             ('test_auc_pr', False, 'AUC-PR'),
-            ('test_kl_divergence', True, 'KL Divergence')
+            ('test_kl_divergence', True, 'KL Divergence'),
+            ('test_ks_statistic', True, 'KS Statistic'),
+            ('test_r2_score', False, 'R² Score')
         ]
-        
+
         for metric, minimize, metric_name in metrics:
             try:
                 best = self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
@@ -82,6 +84,9 @@ class ReportGenerator:
                 report.append(f"- Test AUC-ROC: {best.get('test_auc_roc', 'N/A')}")
                 report.append(f"- Test AUC-PR: {best.get('test_auc_pr', 'N/A')}")
                 report.append(f"- KL Divergence (Test): {best.get('test_kl_divergence', 'N/A')}")
+                report.append(f"- KS Statistic (Test): {best.get('test_ks_statistic', 'N/A')}")
+                report.append(f"- KS p-value (Test): {best.get('test_ks_pvalue', 'N/A')}")
+                report.append(f"- R² Score (Test): {best.get('test_r2_score', 'N/A')}")
                 report.append(f"- Parameters: {best.get('best_params', 'N/A')}")
                 report.append("")
             except (ValueError, KeyError) as e:
@@ -167,6 +172,8 @@ class ReportGenerator:
             best_precision = self.metrics_evaluator.find_best_model(metric='test_precision')
             best_recall = self.metrics_evaluator.find_best_model(metric='test_recall')
             best_kl = self.metrics_evaluator.find_best_model(metric='test_kl_divergence', minimize=True)
+            best_ks = self.metrics_evaluator.find_best_model(metric='test_ks_statistic', minimize=True)
+            best_r2 = self.metrics_evaluator.find_best_model(metric='test_r2_score')
             
             summary = ["# Knowledge Distillation Summary\n"]
             
@@ -175,39 +182,39 @@ class ReportGenerator:
             summary.append(f"- Temperature: {best_accuracy['temperature']}")
             summary.append(f"- Alpha: {best_accuracy['alpha']}")
             summary.append(f"- Test Accuracy: {best_accuracy.get('test_accuracy', 'N/A')}")
-            summary.append(f"- Test Precision: {best_accuracy.get('test_precision', 'N/A')}")
-            summary.append(f"- Test Recall: {best_accuracy.get('test_recall', 'N/A')}")
             summary.append(f"- KL Divergence: {best_accuracy.get('test_kl_divergence', 'N/A')}")
+            summary.append(f"- KS Statistic: {best_accuracy.get('test_ks_statistic', 'N/A')}")
+            summary.append(f"- R² Score: {best_accuracy.get('test_r2_score', 'N/A')}")
             summary.append("")
             
-            summary.append("## Best Precision Configuration")
-            summary.append(f"- Model: {best_precision['model_type']}")
-            summary.append(f"- Temperature: {best_precision['temperature']}")
-            summary.append(f"- Alpha: {best_precision['alpha']}")
-            summary.append(f"- Test Accuracy: {best_precision.get('test_accuracy', 'N/A')}")
-            summary.append(f"- Test Precision: {best_precision.get('test_precision', 'N/A')}")
-            summary.append(f"- Test Recall: {best_precision.get('test_recall', 'N/A')}")
-            summary.append(f"- KL Divergence: {best_precision.get('test_kl_divergence', 'N/A')}")
-            summary.append("")
-            
-            summary.append("## Best Recall Configuration")
-            summary.append(f"- Model: {best_recall['model_type']}")
-            summary.append(f"- Temperature: {best_recall['temperature']}")
-            summary.append(f"- Alpha: {best_recall['alpha']}")
-            summary.append(f"- Test Accuracy: {best_recall.get('test_accuracy', 'N/A')}")
-            summary.append(f"- Test Precision: {best_recall.get('test_precision', 'N/A')}")
-            summary.append(f"- Test Recall: {best_recall.get('test_recall', 'N/A')}")
-            summary.append(f"- KL Divergence: {best_recall.get('test_kl_divergence', 'N/A')}")
-            summary.append("")
-            
-            summary.append("## Best KL Divergence Configuration")
+            summary.append("## Best Distribution Match by KL Divergence")
             summary.append(f"- Model: {best_kl['model_type']}")
             summary.append(f"- Temperature: {best_kl['temperature']}")
             summary.append(f"- Alpha: {best_kl['alpha']}")
             summary.append(f"- Test Accuracy: {best_kl.get('test_accuracy', 'N/A')}")
-            summary.append(f"- Test Precision: {best_kl.get('test_precision', 'N/A')}")
-            summary.append(f"- Test Recall: {best_kl.get('test_recall', 'N/A')}")
             summary.append(f"- KL Divergence: {best_kl.get('test_kl_divergence', 'N/A')}")
+            summary.append(f"- KS Statistic: {best_kl.get('test_ks_statistic', 'N/A')}")
+            summary.append(f"- R² Score: {best_kl.get('test_r2_score', 'N/A')}")
+            summary.append("")
+            
+            summary.append("## Best Distribution Match by KS Statistic")
+            summary.append(f"- Model: {best_ks['model_type']}")
+            summary.append(f"- Temperature: {best_ks['temperature']}")
+            summary.append(f"- Alpha: {best_ks['alpha']}")
+            summary.append(f"- Test Accuracy: {best_ks.get('test_accuracy', 'N/A')}")
+            summary.append(f"- KL Divergence: {best_ks.get('test_kl_divergence', 'N/A')}")
+            summary.append(f"- KS Statistic: {best_ks.get('test_ks_statistic', 'N/A')}")
+            summary.append(f"- R² Score: {best_ks.get('test_r2_score', 'N/A')}")
+            summary.append("")
+            
+            summary.append("## Best Distribution Match by R² Score")
+            summary.append(f"- Model: {best_r2['model_type']}")
+            summary.append(f"- Temperature: {best_r2['temperature']}")
+            summary.append(f"- Alpha: {best_r2['alpha']}")
+            summary.append(f"- Test Accuracy: {best_r2.get('test_accuracy', 'N/A')}")
+            summary.append(f"- KL Divergence: {best_r2.get('test_kl_divergence', 'N/A')}")
+            summary.append(f"- KS Statistic: {best_r2.get('test_ks_statistic', 'N/A')}")
+            summary.append(f"- R² Score: {best_r2.get('test_r2_score', 'N/A')}")
             summary.append("")
             
             # Add experiment info

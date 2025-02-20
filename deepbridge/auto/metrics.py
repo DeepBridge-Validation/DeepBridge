@@ -124,7 +124,10 @@ class MetricsEvaluator:
                 'test_f1': ('avg_f1', 'max_f1'),
                 'test_auc_roc': ('avg_auc_roc', 'max_auc_roc'),
                 'test_auc_pr': ('avg_auc_pr', 'max_auc_pr'),
-                'test_kl_divergence': ('avg_kl_div', 'min_kl_div')
+                'test_kl_divergence': ('avg_kl_div', 'min_kl_div'),
+                # Add new metrics
+                'test_ks_statistic': ('avg_ks_stat', 'min_ks_stat'),
+                'test_r2_score': ('avg_r2', 'max_r2')
             }
             
             # Check which metrics are actually available in the results
@@ -148,12 +151,12 @@ class MetricsEvaluator:
                 
                 # Add available metrics
                 for metric_col, (avg_name, max_or_min_name) in available_metrics.items():
-                    if metric_col == 'test_kl_divergence':
-                        # For KL divergence, we want minimum
+                    if metric_col in ['test_kl_divergence', 'test_ks_statistic']:
+                        # For these metrics, we want minimum (lower is better)
                         model_metric[avg_name] = model_data[metric_col].mean()
                         model_metric[max_or_min_name] = model_data[metric_col].min()
                     else:
-                        # For other metrics, we want maximum
+                        # For other metrics, we want maximum (higher is better)
                         model_metric[avg_name] = model_data[metric_col].mean()
                         model_metric[max_or_min_name] = model_data[metric_col].max()
                 
@@ -233,7 +236,10 @@ class MetricsEvaluator:
                 self.config.log_info("No results available for metrics analysis")
                 return []
                 
-            base_metrics = ['accuracy', 'precision', 'recall', 'f1', 'auc_roc', 'auc_pr', 'kl_divergence']
+            base_metrics = [
+                'accuracy', 'precision', 'recall', 'f1', 'auc_roc', 'auc_pr', 
+                'kl_divergence', 'ks_statistic', 'r2_score'
+            ]
             available = []
             
             for metric in base_metrics:
