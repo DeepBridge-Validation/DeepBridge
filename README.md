@@ -22,22 +22,35 @@ cd deepbridge
 pip install -e .
 ```
 
+# DeepBridge
+
+[![Documentation Status](https://readthedocs.org/projects/deepbridge/badge/?version=latest)](https://deepbridge.readthedocs.io/en/latest/)
+[![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
+[![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
+
+DeepBridge is a comprehensive Python library for advanced machine learning model validation, distillation, and performance analysis. It provides powerful tools to manage experiments, validate models, create more efficient model versions, and conduct in-depth performance evaluations.
+
+## Key Features
+
+- **Model Validation**
+  - Experiment tracking and management
+  - Comprehensive model performance analysis
+  - Advanced metric tracking
+  - Model versioning support
+
+- **Model Distillation**
+  - Knowledge distillation across multiple model types
+  - Advanced configuration options
+  - Performance optimization
+  - Probabilistic model compression
+
+- **Advanced Analytics**
+  - Detailed performance metrics
+  - Distribution analysis
+  - Visualization of model performance
+  - Precision-recall trade-off analysis
+
 ## Quick Start
-
-### Model Validation
-```python
-from deepbridge.model_validation import ModelValidation
-
-# Create experiment
-experiment = ModelValidation("my_experiment")
-
-# Add data
-experiment.add_data(X_train, y_train, X_test, y_test)
-
-# Add and save model
-experiment.add_model(model, "model_v1")
-experiment.save_model("model_v1")
-```
 
 ### Model Distillation
 ```python
@@ -51,7 +64,30 @@ distiller.fit(X=features, probas=predictions)
 predictions = distiller.predict(X_new)
 ```
 
-### Using the CLI
+### Automated Distillation
+```python
+from deepbridge.auto_distiller import AutoDistiller
+from deepbridge.db_data import DBDataset
+
+# Create dataset
+dataset = DBDataset(
+    data=df,
+    target_column='target',
+    features=features,
+    prob_cols=['prob_class_0', 'prob_class_1']
+)
+
+# Run automated distillation
+distiller = AutoDistiller(
+    dataset=dataset,
+    output_dir='results',
+    test_size=0.2,
+    n_trials=10
+)
+results = distiller.run(use_probabilities=True)
+```
+
+## Command-Line Interface
 ```bash
 # Create experiment
 deepbridge validation create my_experiment --path ./experiments
@@ -60,58 +96,29 @@ deepbridge validation create my_experiment --path ./experiments
 deepbridge distill train gbm predictions.csv features.csv -s ./models
 ```
 
-## Features
-
-- **Model Validation**
-  - Experiment management
-  - Metric tracking
-  - Model versioning
-  - Surrogate model support
-
-- **Model Distillation**
-  - Multiple model types (GBM, XGBoost, MLP)
-  - Performance metrics
-  - Optimization options
-  - Easy model persistence
-
-- **Command Line Interface**
-  - Intuitive commands
-  - Rich output formatting
-  - Multiple data format support
-
 ## Requirements
 
 - Python 3.8+
-- Dependencies:
-  ```
-  numpy>=1.24.0
-  pandas>=2.0.0
-  scikit-learn>=1.2.0
-  xgboost>=1.7.0
-  scipy>=1.10.0
-  typer[all]>=0.9.0
-  rich>=13.0.0
-  ```
+- Key Dependencies:
+  - numpy
+  - pandas
+  - scikit-learn
+  - xgboost
+  - scipy
+  - matplotlib
 
 ## Documentation
 
-For detailed documentation, visit [our documentation page](https://deepbridge.readthedocs.io/).
-
-### Example Notebooks
-
-Check out our [example notebooks](examples/) for detailed usage scenarios:
-- Basic Model Validation
-- Model Distillation Techniques
-- CLI Usage Examples
+Full documentation available at: [DeepBridge Documentation](https://deepbridge.readthedocs.io/)
 
 ## Contributing
 
-We welcome contributions! Here's how you can help:
+We welcome contributions! Please see our contribution guidelines for details on how to submit pull requests, report issues, and contribute to the project.
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
 5. Open a Pull Request
 
 ## Development Setup
@@ -123,12 +130,10 @@ cd deepbridge
 
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate     # Windows
+source venv/bin/activate
 
-# Install development dependencies
-pip install -r requirements-dev.txt
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ## Running Tests
@@ -139,7 +144,7 @@ pytest tests/
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License
 
 ## Citation
 
@@ -147,21 +152,14 @@ If you use DeepBridge in your research, please cite:
 
 ```bibtex
 @software{deepbridge2024,
-  title = {DeepBridge: A Python Library for Model Validation and Distillation},
-  author = {Team DeepBridge},
-  year = {2025},
+  title = {DeepBridge: Advanced Model Validation and Distillation Library},
+  author = {Gustavo Haase},
+  year = {2024},
   url = {https://github.com/DeepBridge-Validation/DeepBridge}
 }
 ```
 
-## Acknowledgments
-
-- Thanks to all contributors
-- Inspired by best practices in model optimization
-- Built with modern Python tools and libraries
-
 ## Contact
 
-- GitHub Issues: For bugs and feature requests
+- GitHub Issues: [DeepBridge Issues](https://github.com/DeepBridge-Validation/DeepBridge/issues)
 - Email: gustavo.haase@gmail.com
-<!-- - Twitter: [@YourHandle](https://twitter.com/YourHandle) -->
