@@ -129,15 +129,48 @@ VS Code settings:
 
 ```
 deepbridge/
-├── docs/
-│   ├── api/
-│   ├── guides/
-│   └── advanced/
-├── src/
-│   └── deepbridge/
-├── tests/
-├── examples/
-└── tools/
+├── __init__.py
+├── auto
+│   ├── __init__.py
+│   ├── config.py
+│   ├── experiment_runner.py
+│   ├── metrics.py
+│   ├── reporting.py
+│   └── visualization.py
+├── auto_distiller.py
+├── cli.py
+├── db_data.py
+├── distillation
+│   ├── __init__.py
+│   └── classification
+│       ├── __init__.py
+│       ├── __pycache__
+│       │   ├── __init__.cpython-312.pyc
+│       │   ├── knowledge_distillation.cpython-312.pyc
+│       │   └── model_registry.cpython-312.pyc
+│       ├── ensambledistillation.py
+│       ├── knowledge_distillation.py
+│       ├── model_registry.py
+│       ├── pruning.py
+│       ├── quantization.py
+│       └── temperature_scaling.py
+├── experiment.py
+├── metrics
+│   ├── __init__.py
+│   └── classification.py
+├── processing
+│   ├── __init__.py
+│   ├── data_validator.py
+│   ├── feature_manager.py
+│   ├── model_handler.py
+│   └── probability_manager.py
+├── results
+│   ├── __init__.py
+│   ├── dataset_formatter.py
+│   └── html.py
+└── visualizer
+    ├── __init__.py
+    └── distribution_visualizer.py
 ```
 
 ## Common Tasks

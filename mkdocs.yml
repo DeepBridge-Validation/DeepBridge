@@ -9,6 +9,8 @@ theme:
   palette:
     primary: indigo
     accent: indigo
+  logo: assets/images/deepbridge-logo.svg
+  favicon: assets/images/deepbridge-logo.svg
   features:
     - navigation.tabs
     - navigation.instant
@@ -36,6 +38,9 @@ nav:
     - Deployment: advanced/deployment.md
   - Contributing: contributing.md
   - License: license.md
+
+extra_css:
+  - assets/custom.css
 
 markdown_extensions:
   - admonition

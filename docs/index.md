@@ -1,3 +1,5 @@
+![DeepBridge Logo](/assets/images/deepbridge-logo.svg)
+
 # Welcome to DeepBridge
 
 DeepBridge is a Python library that streamlines machine learning model validation and distillation processes. It provides a comprehensive toolkit for managing experiments, validating models, and creating efficient versions of complex models.
