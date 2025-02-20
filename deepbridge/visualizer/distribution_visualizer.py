@@ -26,12 +26,300 @@ class DistributionVisualizer:
         # Set Seaborn styling
         sns.set_theme(style="darkgrid")
     
+    def visualize_all(self, distiller, best_metric='test_kl_divergence', minimize=True):
+        """
+        Generate all visualizations in one call.
+        
+        Args:
+            distiller: Trained AutoDistiller instance
+            best_metric: Metric to use for finding the best model
+            minimize: Whether the metric should be minimized
+        """
+        print("Generating all visualizations...")
+        
+        # 1. Generate distribution visualizations for best model
+        self.visualize_distillation_results(distiller, best_metric, minimize)
+        
+        # 2. Generate precision-recall tradeoff plot
+        self.create_precision_recall_plot(distiller.results_df)
+        
+        # 3. Generate distribution metrics by temperature
+        self.create_distribution_metrics_by_temperature_plot(distiller.results_df)
+        
+        # 4. Generate model comparison plot
+        model_metrics = distiller.metrics_evaluator.get_model_comparison_metrics()
+        self.create_model_comparison_plot(model_metrics)
+        
+        print(f"All visualizations saved to {self.output_dir}")
+    
+    def create_precision_recall_plot(self, results_df):
+        """
+        Create precision-recall trade-off plot.
+        
+        Args:
+            results_df: DataFrame containing experiment results
+        """
+        try:
+            if ('test_precision' in results_df.columns and not results_df['test_precision'].isna().all() and
+                'test_recall' in results_df.columns and not results_df['test_recall'].isna().all()):
+                
+                plt.figure(figsize=(12, 8))
+                
+                # Plot scatter points for each model
+                for model in results_df['model_type'].unique():
+                    model_data = results_df[results_df['model_type'] == model]
+                    valid_data = model_data.dropna(subset=['test_precision', 'test_recall'])
+                    
+                    if not valid_data.empty:
+                        # Create scatter plot
+                        scatter = plt.scatter(
+                            valid_data['test_recall'], 
+                            valid_data['test_precision'],
+                            label=model,
+                            alpha=0.7,
+                            s=80
+                        )
+                        
+                        # Add alpha annotations
+                        for _, row in valid_data.iterrows():
+                            plt.annotate(
+                                f"α={row['alpha']}, T={row['temperature']}", 
+                                (row['test_recall'], row['test_precision']),
+                                textcoords="offset points",
+                                xytext=(0, 5),
+                                ha='center',
+                                fontsize=8
+                            )
+
+                # Add reference line if we have valid data
+                valid_results = results_df.dropna(subset=['test_precision', 'test_recall'])
+                if not valid_results.empty:
+                    max_val = max(
+                        valid_results['test_precision'].max(),
+                        valid_results['test_recall'].max()
+                    )
+                    plt.plot([0, max_val], [0, max_val], 'k--', alpha=0.3)
+                    
+                plt.xlabel('Recall', fontsize=12)
+                plt.ylabel('Precision', fontsize=12)
+                plt.title('Precision vs Recall Trade-off', fontsize=14, fontweight='bold')
+                plt.grid(True, alpha=0.3)
+                plt.legend(title='Model Type')
+                
+                # Add explanatory text
+                plt.figtext(0.01, 0.01, 
+                           "Points above the diagonal line indicate better precision at the expense of recall.\n"
+                           "Points closer to (1,1) show better overall performance.",
+                           ha="left", fontsize=9, style='italic')
+                
+                output_path = os.path.join(self.output_dir, 'precision_recall_tradeoff.png')
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                print(f"Created precision-recall tradeoff plot: {output_path}")
+                
+        except Exception as e:
+            print(f"Error creating precision-recall visualization: {str(e)}")
+    
+    def create_distribution_metrics_by_temperature_plot(self, results_df):
+        """
+        Create visualization showing distribution metrics by temperature.
+        
+        Args:
+            results_df: DataFrame containing experiment results
+        """
+        try:
+            if ('test_ks_statistic' in results_df.columns and not results_df['test_ks_statistic'].isna().all() and
+                'test_r2_score' in results_df.columns and not results_df['test_r2_score'].isna().all()):
+                
+                plt.figure(figsize=(15, 12))
+                
+                # Plot KS statistic (lower is better)
+                plt.subplot(2, 1, 1)
+                for model in results_df['model_type'].unique():
+                    model_data = results_df[results_df['model_type'] == model]
+                    temps = sorted(model_data['temperature'].unique())
+                    
+                    for alpha in sorted(model_data['alpha'].unique()):
+                        alpha_data = model_data[model_data['alpha'] == alpha]
+                        if not alpha_data.empty:
+                            ks_values = []
+                            valid_temps = []
+                            
+                            for temp in temps:
+                                temp_data = alpha_data[alpha_data['temperature'] == temp]['test_ks_statistic']
+                                if not temp_data.empty and not temp_data.isna().all():
+                                    valid_temps.append(temp)
+                                    ks_values.append(temp_data.mean())
+                            
+                            if valid_temps and ks_values:
+                                plt.plot(valid_temps, ks_values, 'o-', 
+                                        linewidth=2, markersize=8,
+                                        label=f"{model} (α={alpha})")
+                
+                plt.xlabel('Temperature', fontsize=12)
+                plt.ylabel('KS Statistic (lower is better)', fontsize=12)
+                plt.title('Effect of Temperature on Distribution Similarity (KS Statistic)', 
+                         fontsize=14, fontweight='bold')
+                
+                # Highlight that lower is better
+                ymin, ymax = plt.ylim()
+                plt.annotate('Better', xy=(0.02, 0.1), xycoords='axes fraction',
+                           xytext=(0.02, 0.25), 
+                           arrowprops=dict(arrowstyle='->', color='green'),
+                           color='green', fontweight='bold')
+                
+                plt.grid(True, alpha=0.3)
+                plt.legend(title="Model & Alpha")
+                
+                # Plot R² score (higher is better)
+                plt.subplot(2, 1, 2)
+                for model in results_df['model_type'].unique():
+                    model_data = results_df[results_df['model_type'] == model]
+                    temps = sorted(model_data['temperature'].unique())
+                    
+                    for alpha in sorted(model_data['alpha'].unique()):
+                        alpha_data = model_data[model_data['alpha'] == alpha]
+                        if not alpha_data.empty:
+                            r2_values = []
+                            valid_temps = []
+                            
+                            for temp in temps:
+                                temp_data = alpha_data[alpha_data['temperature'] == temp]['test_r2_score']
+                                if not temp_data.empty and not temp_data.isna().all():
+                                    valid_temps.append(temp)
+                                    r2_values.append(temp_data.mean())
+                            
+                            if valid_temps and r2_values:
+                                plt.plot(valid_temps, r2_values, 'o-', 
+                                        linewidth=2, markersize=8,
+                                        label=f"{model} (α={alpha})")
+                
+                plt.xlabel('Temperature', fontsize=12)
+                plt.ylabel('R² Score (higher is better)', fontsize=12)
+                plt.title('Effect of Temperature on Distribution Similarity (R² Score)', 
+                         fontsize=14, fontweight='bold')
+                
+                # Highlight that higher is better
+                ymin, ymax = plt.ylim()
+                plt.annotate('Better', xy=(0.02, 0.9), xycoords='axes fraction',
+                           xytext=(0.02, 0.75), 
+                           arrowprops=dict(arrowstyle='->', color='green'),
+                           color='green', fontweight='bold')
+                
+                plt.grid(True, alpha=0.3)
+                plt.legend(title="Model & Alpha")
+                
+                # Add explanatory notes
+                plt.figtext(0.5, 0.01,
+                          "These plots show how temperature affects the similarity between teacher and student probability distributions.\n"
+                          "KS Statistic: Measures maximum difference between distributions (lower is better).\n"
+                          "R² Score: Measures how well the distributions align (higher is better).",
+                          ha="center", fontsize=10, bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
+                
+                plt.tight_layout(rect=[0, 0.03, 1, 0.97])
+                output_path = os.path.join(self.output_dir, 'distribution_metrics_by_temperature.png')
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                print(f"Created distribution metrics by temperature plot: {output_path}")
+                
+        except Exception as e:
+            print(f"Error creating distribution metrics visualization: {str(e)}")
+    
+    def create_model_comparison_plot(self, model_metrics):
+        """
+        Create bar chart comparing model performance across metrics.
+        
+        Args:
+            model_metrics: DataFrame with model comparison metrics
+        """
+        try:
+            if model_metrics is not None and not model_metrics.empty:
+                plt.figure(figsize=(14, 10))
+                
+                # Number of metrics to display
+                metric_keys = []
+                metric_display_names = {
+                    'max_accuracy': 'Accuracy',
+                    'max_precision': 'Precision',
+                    'max_recall': 'Recall',
+                    'max_f1': 'F1 Score',
+                    'min_kl_div': 'KL Divergence',
+                    'min_ks_stat': 'KS Statistic',
+                    'max_r2': 'R² Score'
+                }
+                
+                for metric in ['max_accuracy', 'min_kl_div', 'min_ks_stat', 'max_r2']:
+                    if metric in model_metrics.columns:
+                        metric_keys.append(metric)
+                
+                if metric_keys:
+                    models = model_metrics['model'].tolist()
+                    x = np.arange(len(models))
+                    n_metrics = len(metric_keys)
+                    width = 0.8 / n_metrics
+                    
+                    # Color map for better visualization
+                    colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52', '#8172B3', '#937860']
+                    
+                    for i, metric in enumerate(metric_keys):
+                        display_name = metric_display_names.get(metric, metric)
+                        is_minimize = 'min_' in metric
+                        
+                        values = model_metrics[metric].values
+                        offset = (i - n_metrics/2 + 0.5) * width
+                        
+                        bars = plt.bar(x + offset, values, width, 
+                                label=display_name,
+                                color=colors[i % len(colors)])
+                        
+                        # Add value labels
+                        for bar in bars:
+                            height = bar.get_height()
+                            plt.annotate(f'{height:.3f}',
+                                       xy=(bar.get_x() + bar.get_width()/2, height),
+                                       xytext=(0, 3),
+                                       textcoords="offset points",
+                                       ha='center', va='bottom',
+                                       fontsize=9)
+                    
+                    plt.xlabel('Model Type', fontsize=12)
+                    plt.ylabel('Metric Value', fontsize=12)
+                    plt.title('Model Performance Comparison Across Metrics', fontsize=14, fontweight='bold')
+                    plt.xticks(x, models, rotation=45)
+                    plt.legend(title='Metrics')
+                    plt.grid(axis='y', alpha=0.3)
+                    
+                    # Add explanatory notes
+                    note_text = "Note: "
+                    for metric in metric_keys:
+                        if 'min_' in metric:
+                            display_name = metric_display_names.get(metric, metric)
+                            note_text += f"For {display_name}, lower is better. "
+                        else:
+                            display_name = metric_display_names.get(metric, metric)
+                            note_text += f"For {display_name}, higher is better. "
+                    
+                    plt.figtext(0.5, 0.01, note_text, ha="center", fontsize=10, 
+                               bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
+                    
+                    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+                    output_path = os.path.join(self.output_dir, 'model_performance_comparison.png')
+                    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    
+                    print(f"Created model comparison bar chart: {output_path}")
+                    
+        except Exception as e:
+            print(f"Error creating model comparison visualization: {str(e)}")
+    
     def compare_distributions(self,
-                            teacher_probs: np.ndarray,
-                            student_probs: np.ndarray,
-                            title: str = "Teacher vs Student Probability Distribution",
-                            filename: str = "probability_distribution_comparison.png",
-                            show_metrics: bool = True) -> dict:
+                             teacher_probs,
+                             student_probs,
+                             title="Teacher vs Student Probability Distribution",
+                             filename="probability_distribution_comparison.png",
+                             show_metrics=True):
         """
         Create a visualization comparing teacher and student probability distributions.
         
@@ -45,7 +333,7 @@ class DistributionVisualizer:
         Returns:
             Dictionary containing calculated distribution metrics
         """
-        # Ensure we're working with the right format of probabilities
+        # Process probabilities to correct format
         teacher_probs_processed = self._process_probabilities(teacher_probs)
         student_probs_processed = self._process_probabilities(student_probs)
             
@@ -57,17 +345,17 @@ class DistributionVisualizer:
         
         # Plot density curves
         sns.kdeplot(teacher_probs_processed, fill=True, color="royalblue", alpha=0.5, 
-                label="Teacher Model", linewidth=2)
+                   label="Teacher Model", linewidth=2)
         sns.kdeplot(student_probs_processed, fill=True, color="crimson", alpha=0.5, 
-                label="Student Model", linewidth=2)
+                   label="Student Model", linewidth=2)
         
         # Add histogram for additional clarity (normalized)
         plt.hist(teacher_probs_processed, bins=30, density=True, alpha=0.3, color="blue")
         plt.hist(student_probs_processed, bins=30, density=True, alpha=0.3, color="red")
         
         # Add titles and labels
-        plt.xlabel("Probability Value")
-        plt.ylabel("Density")
+        plt.xlabel("Probability Value", fontsize=12)
+        plt.ylabel("Density", fontsize=12)
         plt.title(title, fontsize=14, fontweight='bold')
         
         # Add metrics to the plot if requested
@@ -90,13 +378,14 @@ class DistributionVisualizer:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         
+        print(f"Created distribution comparison: {output_path}")
         return metrics
     
     def compare_cumulative_distributions(self,
-                                        teacher_probs: np.ndarray,
-                                        student_probs: np.ndarray,
-                                        title: str = "Cumulative Distribution Comparison",
-                                        filename: str = "cumulative_distribution_comparison.png") -> None:
+                                        teacher_probs,
+                                        student_probs,
+                                        title="Cumulative Distribution Comparison",
+                                        filename="cumulative_distribution_comparison.png"):
         """
         Create a visualization comparing cumulative distributions.
         
@@ -150,8 +439,8 @@ class DistributionVisualizer:
                     bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
         
         # Add labels and title
-        plt.xlabel('Probability Value')
-        plt.ylabel('Cumulative Probability')
+        plt.xlabel('Probability Value', fontsize=12)
+        plt.ylabel('Cumulative Probability', fontsize=12)
         plt.title(title, fontsize=14, fontweight='bold')
         plt.legend(loc='best')
         plt.grid(True, linestyle='--', alpha=0.7)
@@ -160,12 +449,14 @@ class DistributionVisualizer:
         output_path = os.path.join(self.output_dir, filename)
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
-
+        
+        print(f"Created cumulative distribution comparison: {output_path}")
+    
     def create_quantile_plot(self,
-                            teacher_probs: np.ndarray,
-                            student_probs: np.ndarray,
-                            title: str = "Q-Q Plot: Teacher vs Student",
-                            filename: str = "qq_plot_comparison.png") -> None:
+                            teacher_probs,
+                            student_probs,
+                            title="Q-Q Plot: Teacher vs Student",
+                            filename="qq_plot_comparison.png"):
         """
         Create a quantile-quantile plot to compare distributions.
         
@@ -198,8 +489,8 @@ class DistributionVisualizer:
         plt.annotate(f"R² = {r2:.4f}", xy=(0.05, 0.95), xycoords='axes fraction',
                     bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
         
-        plt.xlabel('Teacher Model Quantiles')
-        plt.ylabel('Student Model Quantiles')
+        plt.xlabel('Teacher Model Quantiles', fontsize=12)
+        plt.ylabel('Student Model Quantiles', fontsize=12)
         plt.title(title, fontsize=14, fontweight='bold')
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.7)
@@ -212,7 +503,81 @@ class DistributionVisualizer:
         output_path = os.path.join(self.output_dir, filename)
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
-
+        
+        print(f"Created quantile plot: {output_path}")
+    
+    def visualize_distillation_results(self,
+                                     auto_distiller,
+                                     best_model_metric='test_kl_divergence',
+                                     minimize=True):
+        """
+        Generate comprehensive distribution visualizations for the best distilled model.
+        
+        Args:
+            auto_distiller: AutoDistiller instance with completed experiments
+            best_model_metric: Metric to use for finding the best model
+            minimize: Whether the metric should be minimized
+        """
+        try:
+            # Find the best model configuration
+            best_config = auto_distiller.find_best_model(metric=best_model_metric, minimize=minimize)
+            
+            model_type = best_config['model_type']
+            temperature = best_config['temperature']
+            alpha = best_config['alpha']
+            
+            # Log the best configuration
+            print(f"Generating visualizations for best model:")
+            print(f"  Model Type: {model_type}")
+            print(f"  Temperature: {temperature}")
+            print(f"  Alpha: {alpha}")
+            print(f"  {best_model_metric}: {best_config.get(best_model_metric, 'N/A')}")
+            
+            # Get student model and predictions
+            best_model = auto_distiller.get_trained_model(model_type, temperature, alpha)
+            
+            # Get test set from experiment_runner
+            X_test = auto_distiller.experiment_runner.experiment.X_test
+            y_test = auto_distiller.experiment_runner.experiment.y_test
+            
+            # Get student predictions
+            student_probs = best_model.predict_proba(X_test)
+            
+            # Get teacher probabilities
+            teacher_probs = auto_distiller.experiment_runner.experiment.prob_test
+            
+            # Create various distribution visualizations
+            model_desc = f"{model_type}_t{temperature}_a{alpha}"
+            
+            # Distribution comparison
+            self.compare_distributions(
+                teacher_probs=teacher_probs,
+                student_probs=student_probs,
+                title=f"Probability Distribution: Teacher vs Best Student Model\n({model_desc})",
+                filename=f"best_model_{model_desc}_distribution.png"
+            )
+            
+            # Cumulative distribution
+            self.compare_cumulative_distributions(
+                teacher_probs=teacher_probs,
+                student_probs=student_probs,
+                title=f"Cumulative Distribution: Teacher vs Best Student Model\n({model_desc})",
+                filename=f"best_model_{model_desc}_cdf.png"
+            )
+            
+            # Q-Q plot
+            self.create_quantile_plot(
+                teacher_probs=teacher_probs,
+                student_probs=student_probs,
+                title=f"Q-Q Plot: Teacher vs Best Student Model\n({model_desc})",
+                filename=f"best_model_{model_desc}_qq_plot.png"
+            )
+            
+        except Exception as e:
+            print(f"Error visualizing distillation results: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
     def _process_probabilities(self, probs):
         """
         Process probabilities to extract positive class probabilities and ensure correct format.
@@ -248,8 +613,8 @@ class DistributionVisualizer:
         
         # If we get here, input format is not recognized
         raise ValueError(f"Unrecognized probability format: {type(probs)}")
-
-    def _calculate_metrics(self, teacher_probs: np.ndarray, student_probs: np.ndarray) -> dict:
+    
+    def _calculate_metrics(self, teacher_probs, student_probs):
         """
         Calculate distribution similarity metrics.
         
@@ -288,107 +653,15 @@ class DistributionVisualizer:
             # Calculate Jensen-Shannon divergence (symmetric)
             m = 0.5 * (teacher_hist + student_hist)
             js_div = 0.5 * np.sum(teacher_hist * np.log(teacher_hist / m)) + \
-                    0.5 * np.sum(student_hist * np.log(student_hist / m))
+                     0.5 * np.sum(student_hist * np.log(student_hist / m))
             metrics['jensen_shannon'] = float(js_div)
             
         except Exception as e:
             print(f"Error calculating KL divergence: {str(e)}")
             metrics['kl_divergence'] = float('nan')
             metrics['jensen_shannon'] = float('nan')
-        
-        # KS statistic
-        try:
-            ks_stat, ks_pvalue = stats.ks_2samp(teacher_probs, student_probs)
-            metrics['ks_statistic'] = float(ks_stat)
-            metrics['ks_pvalue'] = float(ks_pvalue)
-        except Exception as e:
-            print(f"Error calculating KS statistic: {str(e)}")
-            metrics['ks_statistic'] = float('nan')
-            metrics['ks_pvalue'] = float('nan')
-        
-        # R² score (using sorted distributions)
-        try:
-            # Sort both distributions to compare shape rather than correlation
-            teacher_sorted = np.sort(teacher_probs)
-            student_sorted = np.sort(student_probs)
             
-            # Ensure equal length by sampling or truncating
-            if len(teacher_sorted) != len(student_sorted):
-                min_len = min(len(teacher_sorted), len(student_sorted))
-                teacher_sorted = teacher_sorted[:min_len]
-                student_sorted = student_sorted[:min_len]
-                
-            metrics['r2_score'] = float(r2_score(teacher_sorted, student_sorted))
         except Exception as e:
-            print(f"Error calculating R² score: {str(e)}")
-            metrics['r2_score'] = float('nan')
-            
-        return metrics
-    
-    def visualize_distillation_results(self,
-                                      auto_distiller,
-                                      best_model_metric: str = 'test_kl_divergence',
-                                      minimize: bool = True) -> None:
-        """
-        Generate comprehensive distribution visualizations for the best distilled model.
-        
-        Args:
-            auto_distiller: AutoDistiller instance with completed experiments
-            best_model_metric: Metric to use for finding the best model
-            minimize: Whether the metric should be minimized
-        """
-        # Find the best model configuration
-        best_config = auto_distiller.find_best_model(metric=best_model_metric, minimize=minimize)
-        
-        model_type = best_config['model_type']
-        temperature = best_config['temperature']
-        alpha = best_config['alpha']
-        
-        # Log the best configuration
-        print(f"Generating visualizations for best model:")
-        print(f"  Model Type: {model_type}")
-        print(f"  Temperature: {temperature}")
-        print(f"  Alpha: {alpha}")
-        print(f"  {best_model_metric}: {best_config.get(best_model_metric, 'N/A')}")
-        
-        # Get student model probabilities
-        best_model = auto_distiller.get_trained_model(model_type, temperature, alpha)
-        
-        # Get test set from experiment_runner
-        X_test = auto_distiller.experiment_runner.experiment.X_test
-        y_test = auto_distiller.experiment_runner.experiment.y_test
-        
-        # Get student predictions
-        student_probs = best_model.predict_proba(X_test)
-        
-        # Get teacher probabilities
-        teacher_probs = auto_distiller.experiment_runner.experiment.prob_test
-        
-        # Create various distribution visualizations
-        model_desc = f"{model_type}_t{temperature}_a{alpha}"
-        
-        # Distribution comparison
-        self.compare_distributions(
-            teacher_probs=teacher_probs,
-            student_probs=student_probs,
-            title=f"Probability Distribution: Teacher vs Best Student Model\n({model_desc})",
-            filename=f"best_model_{model_desc}_distribution.png"
-        )
-        
-        # Cumulative distribution
-        self.compare_cumulative_distributions(
-            teacher_probs=teacher_probs,
-            student_probs=student_probs,
-            title=f"Cumulative Distribution: Teacher vs Best Student Model\n({model_desc})",
-            filename=f"best_model_{model_desc}_cdf.png"
-        )
-        
-        # Q-Q plot
-        self.create_quantile_plot(
-            teacher_probs=teacher_probs,
-            student_probs=student_probs,
-            title=f"Q-Q Plot: Teacher vs Best Student Model\n({model_desc})",
-            filename=f"best_model_{model_desc}_qq_plot.png"
-        )
-        
-        print(f"Visualizations saved to: {self.output_dir}")
+            print(f"Error calculating KL divergence: {str(e)}")
+            metrics['kl_divergence'] = float('nan')
+            metrics['jensen_shannon'] = float('nan')
