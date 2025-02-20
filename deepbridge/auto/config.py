@@ -56,8 +56,8 @@ class DistillationConfig:
             ModelType.XGB
         ]
         
-        self.temperatures = [0.5, 1.0, 2.0]
-        self.alphas = [0.3, 0.5, 0.7]
+        self.temperatures = [0.5, 1.0, 2.0, 3.0]
+        self.alphas = [0.3, 0.5, 0.7, 0.9]
     
     def _configure_logging(self):
         """Configure logging based on verbosity setting."""

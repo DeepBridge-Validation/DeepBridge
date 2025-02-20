@@ -27,11 +27,11 @@ class DistributionVisualizer:
         sns.set_theme(style="darkgrid")
     
     def compare_distributions(self,
-                             teacher_probs: np.ndarray,
-                             student_probs: np.ndarray,
-                             title: str = "Teacher vs Student Probability Distribution",
-                             filename: str = "probability_distribution_comparison.png",
-                             show_metrics: bool = True) -> dict:
+                            teacher_probs: np.ndarray,
+                            student_probs: np.ndarray,
+                            title: str = "Teacher vs Student Probability Distribution",
+                            filename: str = "probability_distribution_comparison.png",
+                            show_metrics: bool = True) -> dict:
         """
         Create a visualization comparing teacher and student probability distributions.
         
@@ -45,33 +45,25 @@ class DistributionVisualizer:
         Returns:
             Dictionary containing calculated distribution metrics
         """
-        # Ensure inputs are numpy arrays
-        if isinstance(teacher_probs, pd.Series):
-            teacher_probs = teacher_probs.values
-        if isinstance(student_probs, pd.Series):
-            student_probs = student_probs.values
-            
-        # For multi-dimensional arrays, extract positive class probabilities
-        if len(teacher_probs.shape) > 1:
-            teacher_probs = teacher_probs[:, 1]
-        if len(student_probs.shape) > 1:
-            student_probs = student_probs[:, 1]
+        # Ensure we're working with the right format of probabilities
+        teacher_probs_processed = self._process_probabilities(teacher_probs)
+        student_probs_processed = self._process_probabilities(student_probs)
             
         # Calculate distribution similarity metrics
-        metrics = self._calculate_metrics(teacher_probs, student_probs)
+        metrics = self._calculate_metrics(teacher_probs_processed, student_probs_processed)
         
         # Create the plot
         plt.figure(figsize=(12, 7))
         
         # Plot density curves
-        sns.kdeplot(teacher_probs, fill=True, color="royalblue", alpha=0.5, 
-                   label="Teacher Model", linewidth=2)
-        sns.kdeplot(student_probs, fill=True, color="crimson", alpha=0.5, 
-                   label="Student Model", linewidth=2)
+        sns.kdeplot(teacher_probs_processed, fill=True, color="royalblue", alpha=0.5, 
+                label="Teacher Model", linewidth=2)
+        sns.kdeplot(student_probs_processed, fill=True, color="crimson", alpha=0.5, 
+                label="Student Model", linewidth=2)
         
         # Add histogram for additional clarity (normalized)
-        plt.hist(teacher_probs, bins=30, density=True, alpha=0.3, color="blue")
-        plt.hist(student_probs, bins=30, density=True, alpha=0.3, color="red")
+        plt.hist(teacher_probs_processed, bins=30, density=True, alpha=0.3, color="blue")
+        plt.hist(student_probs_processed, bins=30, density=True, alpha=0.3, color="red")
         
         # Add titles and labels
         plt.xlabel("Probability Value")
@@ -114,26 +106,18 @@ class DistributionVisualizer:
             title: Plot title
             filename: Output filename
         """
-        # Ensure inputs are numpy arrays of the right shape
-        if isinstance(teacher_probs, pd.Series):
-            teacher_probs = teacher_probs.values
-        if isinstance(student_probs, pd.Series):
-            student_probs = student_probs.values
-            
-        # For multi-dimensional arrays, extract positive class probabilities
-        if len(teacher_probs.shape) > 1:
-            teacher_probs = teacher_probs[:, 1]
-        if len(student_probs.shape) > 1:
-            student_probs = student_probs[:, 1]
+        # Process probabilities to correct format
+        teacher_probs_processed = self._process_probabilities(teacher_probs)
+        student_probs_processed = self._process_probabilities(student_probs)
         
         # Create CDF plot
         plt.figure(figsize=(12, 7))
         
         # Compute empirical CDFs
-        x_teacher = np.sort(teacher_probs)
+        x_teacher = np.sort(teacher_probs_processed)
         y_teacher = np.arange(1, len(x_teacher) + 1) / len(x_teacher)
         
-        x_student = np.sort(student_probs)
+        x_student = np.sort(student_probs_processed)
         y_student = np.arange(1, len(x_student) + 1) / len(x_student)
         
         # Plot CDFs
@@ -141,7 +125,7 @@ class DistributionVisualizer:
         plt.plot(x_student, y_student, '-', linewidth=2, color='crimson', label='Student Model')
         
         # Calculate KS statistic and visualize it
-        ks_stat, ks_pvalue = stats.ks_2samp(teacher_probs, student_probs)
+        ks_stat, ks_pvalue = stats.ks_2samp(teacher_probs_processed, student_probs_processed)
         
         # Find the point of maximum difference between the CDFs
         # This requires a bit of interpolation since the x-values may not align
@@ -176,7 +160,7 @@ class DistributionVisualizer:
         output_path = os.path.join(self.output_dir, filename)
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
-    
+
     def create_quantile_plot(self,
                             teacher_probs: np.ndarray,
                             student_probs: np.ndarray,
@@ -191,29 +175,21 @@ class DistributionVisualizer:
             title: Plot title
             filename: Output filename
         """
-        # Ensure inputs are flattened numpy arrays
-        if isinstance(teacher_probs, pd.Series):
-            teacher_probs = teacher_probs.values
-        if isinstance(student_probs, pd.Series):
-            student_probs = student_probs.values
-            
-        # For multi-dimensional arrays, extract positive class probabilities
-        if len(teacher_probs.shape) > 1:
-            teacher_probs = teacher_probs[:, 1]
-        if len(student_probs.shape) > 1:
-            student_probs = student_probs[:, 1]
+        # Process probabilities to correct format
+        teacher_probs_processed = self._process_probabilities(teacher_probs)
+        student_probs_processed = self._process_probabilities(student_probs)
         
         plt.figure(figsize=(10, 10))
         
         # Create Q-Q plot
-        teacher_quantiles = np.quantile(teacher_probs, np.linspace(0, 1, 100))
-        student_quantiles = np.quantile(student_probs, np.linspace(0, 1, 100))
+        teacher_quantiles = np.quantile(teacher_probs_processed, np.linspace(0, 1, 100))
+        student_quantiles = np.quantile(student_probs_processed, np.linspace(0, 1, 100))
         
         plt.scatter(teacher_quantiles, student_quantiles, color='purple', alpha=0.7)
         
         # Add reference line (perfect match)
-        min_val = min(teacher_probs.min(), student_probs.min())
-        max_val = max(teacher_probs.max(), student_probs.max())
+        min_val = min(teacher_probs_processed.min(), student_probs_processed.min())
+        max_val = max(teacher_probs_processed.max(), student_probs_processed.max())
         plt.plot([min_val, max_val], [min_val, max_val], 'k--', linewidth=1.5, 
                 label='Perfect Match Reference')
         
@@ -236,7 +212,43 @@ class DistributionVisualizer:
         output_path = os.path.join(self.output_dir, filename)
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
-    
+
+    def _process_probabilities(self, probs):
+        """
+        Process probabilities to extract positive class probabilities and ensure correct format.
+        
+        Args:
+            probs: Input probabilities (DataFrame, Series, or ndarray)
+            
+        Returns:
+            numpy.ndarray: Processed probability array for the positive class
+        """
+        # Handle pandas DataFrame
+        if isinstance(probs, pd.DataFrame):
+            # Check for specific probability columns
+            if 'prob_class_1' in probs.columns:
+                return probs['prob_class_1'].values
+            elif 'prob_1' in probs.columns:
+                return probs['prob_1'].values
+            elif 'class_1_prob' in probs.columns:
+                return probs['class_1_prob'].values
+            # If no specific columns found, use the last column
+            return probs.iloc[:, -1].values
+        
+        # Handle pandas Series
+        if isinstance(probs, pd.Series):
+            return probs.values
+        
+        # Handle numpy arrays
+        if isinstance(probs, np.ndarray):
+            # Extract positive class for 2D arrays
+            if len(probs.shape) > 1 and probs.shape[1] > 1:
+                return probs[:, 1]
+            return probs
+        
+        # If we get here, input format is not recognized
+        raise ValueError(f"Unrecognized probability format: {type(probs)}")
+
     def _calculate_metrics(self, teacher_probs: np.ndarray, student_probs: np.ndarray) -> dict:
         """
         Calculate distribution similarity metrics.
@@ -276,7 +288,7 @@ class DistributionVisualizer:
             # Calculate Jensen-Shannon divergence (symmetric)
             m = 0.5 * (teacher_hist + student_hist)
             js_div = 0.5 * np.sum(teacher_hist * np.log(teacher_hist / m)) + \
-                     0.5 * np.sum(student_hist * np.log(student_hist / m))
+                    0.5 * np.sum(student_hist * np.log(student_hist / m))
             metrics['jensen_shannon'] = float(js_div)
             
         except Exception as e:

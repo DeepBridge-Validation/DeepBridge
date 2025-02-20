@@ -36,7 +36,7 @@ class AutoDistiller:
         random_state: int = 42,
         n_trials: int = 10,
         validation_split: float = 0.2,
-        verbose: bool = True
+        verbose: bool = False
     ):
         """
         Initialize the AutoDistiller.
@@ -92,32 +92,54 @@ class AutoDistiller:
             alphas=alphas
         )
     
-    def run(self, use_probabilities: bool = True) -> pd.DataFrame:
+    def run(self, use_probabilities: bool = True, verbose_output: bool = False) -> pd.DataFrame:
         """
         Run the automated distillation process.
         
         Args:
             use_probabilities: Whether to use pre-calculated probabilities or teacher model
+            verbose_output: Whether to display detailed output during training (default: False)
         
         Returns:
             DataFrame containing results for all configurations
         """
-        # Run experiments
-        self.results_df = self.experiment_runner.run_experiments(
-            use_probabilities=use_probabilities
-        )
+        # Store original verbose setting
+        original_verbose = self.config.verbose
         
-        # Save results
-        self.experiment_runner.save_results()
+        if not verbose_output:
+            # Temporarily redirect stdout to suppress output
+            import sys
+            import os
+            original_stdout = sys.stdout
+            sys.stdout = open(os.devnull, 'w')
         
-        # Initialize components that depend on results
-        self._initialize_analysis_components()
+        try:
+            # Run experiments
+            self.results_df = self.experiment_runner.run_experiments(
+                use_probabilities=use_probabilities
+            )
+            
+            # Save results
+            self.experiment_runner.save_results()
+            
+            # Initialize components that depend on results
+            self._initialize_analysis_components()
+            
+            # Create visualizations
+            self.visualizer.create_all_visualizations()
+            
+            # Generate and save report
+            self.report_generator.save_report()
         
-        # Create visualizations
-        self.visualizer.create_all_visualizations()
-        
-        # Generate and save report
-        self.report_generator.save_report()
+        finally:
+            if not verbose_output:
+                # Restore stdout
+                sys.stdout.close()
+                sys.stdout = original_stdout
+                
+                # Print minimal completion message
+                if original_verbose:
+                    print(f"Completed distillation experiments. Tested {self.config.get_total_configurations()} configurations.")
         
         return self.results_df
     
