@@ -4,6 +4,9 @@
 
 AutoDistiller is a central component of the DeepBridge library that automates the knowledge distillation process for machine learning models. Knowledge distillation is a technique where a simpler model (the "student") learns to mimic the behavior of a more complex model (the "teacher"), resulting in smaller and more efficient models that preserve most of the original performance.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepBridge-Validation/DeepBridge/blob/master/examples/quickstart.ipynb)
+
+
 ## Why use AutoDistiller?
 
 - **Automation**: Automated testing of multiple student model configurations
