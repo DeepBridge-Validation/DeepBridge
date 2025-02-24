@@ -1,308 +1,351 @@
-# Using the DeepBridge CLI
+# DeepBridge CLI User Guide
 
-This guide will walk you through using the DeepBridge Command Line Interface (CLI) for managing your machine learning experiments and model distillation tasks.
+## Table of Contents
+1. [Installation](#installation)
+2. [Basic Usage](#basic-usage)
+3. [Command Reference](#command-reference)
+4. [Advanced Usage Patterns](#advanced-usage-patterns)
+5. [Environment Configuration](#environment-configuration)
+6. [Troubleshooting](#troubleshooting)
+7. [Best Practices](#best-practices)
 
 ## Installation
 
-The CLI is automatically installed with DeepBridge:
+### Prerequisites
+- Python 3.8+
+- pip package manager
 
+### Installation Methods
+
+#### Using pip
 ```bash
+# Install latest stable version
 pip install deepbridge
+
+# Install with optional dependencies
+pip install deepbridge[full]
 ```
 
-## Basic Commands
-
-Check the installation and version:
+#### Using pipx (Recommended)
 ```bash
+# Install pipx
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install DeepBridge
+pipx install deepbridge
+```
+
+## Basic Usage
+
+### Quick Start
+
+```bash
+# Show available commands
+deepbridge --help
+
+# Check version
 deepbridge --version
 ```
 
-Get help on available commands:
+## Command Reference
+
+### Model Validation Commands
+
 ```bash
-deepbridge --help
-```
+# Create a new validation experiment
+deepbridge validation create experiment_name \
+    --path /path/to/experiments \
+    [--description "Optional experiment description"]
 
-## Working with Experiments
-
-### Creating and Managing Experiments
-
-1. Create a new experiment:
-```bash
-# Basic experiment
-deepbridge validation create my_first_experiment
-
-# With custom path
-deepbridge validation create churn_prediction --path ./projects/churn
-```
-
-2. Add data to your experiment:
-```bash
-# Add training data with target column
+# Add data to an experiment
 deepbridge validation add-data \
-    ./projects/churn \
-    data/train.csv \
-    --target-column churn
+    /path/to/experiment \
+    train_data.csv \
+    --target-column target_variable \
+    [--test-data test_data.csv]
 
-# Add both training and test data
-deepbridge validation add-data \
-    ./projects/churn \
-    data/train.csv \
-    --test-data data/test.csv \
-    --target-column churn
-```
-
-3. Check experiment status:
-```bash
 # View experiment information
-deepbridge validation info ./projects/churn
-
-# Get JSON output for scripting
-deepbridge validation info ./projects/churn --format json
+deepbridge validation info \
+    /path/to/experiment \
+    [--format json|table]
 ```
 
-### Real-World Example: Customer Churn Prediction
+### Model Distillation Commands
 
 ```bash
-# 1. Create project structure
-mkdir -p churn_project/{data,models,results}
-
-# 2. Create experiment
-deepbridge validation create churn_model --path ./churn_project
-
-# 3. Add data
-deepbridge validation add-data \
-    ./churn_project \
-    ./churn_project/data/train.csv \
-    --test-data ./churn_project/data/test.csv \
-    --target-column customer_churned
-
-# 4. Check setup
-deepbridge validation info ./churn_project
-```
-
-## Model Distillation
-
-### Training Distilled Models
-
-1. Basic model training:
-```bash
-# Train GBM model
-deepbridge distill train gbm \
-    original_predictions.csv \
+# Train a distilled model
+deepbridge distill train model_type \
+    teacher_predictions.csv \
     features.csv \
-    --save-path ./models/gbm_v1
+    [--save-path /path/to/save] \
+    [--params params.json] \
+    [--test-size 0.2] \
+    [--temperature 1.0] \
+    [--alpha 0.5]
 
-# Train XGBoost with custom parameters
-deepbridge distill train xgb \
-    predictions.csv \
-    features.csv \
-    --save-path ./models/xgb_v1 \
-    --params params.json
-```
-
-Example `params.json`:
-```json
-{
-    "n_estimators": 100,
-    "max_depth": 5,
-    "learning_rate": 0.1
-}
-```
-
-2. Making predictions:
-```bash
-# Save predictions to file
+# Make predictions with a distilled model
 deepbridge distill predict \
-    ./models/gbm_v1/model.joblib \
-    new_data.csv \
-    --output predictions.csv
+    /path/to/model.pkl \
+    input_data.csv \
+    [--output predictions.csv]
 
-# View predictions directly
-deepbridge distill predict \
-    ./models/gbm_v1/model.joblib \
-    new_data.csv
-```
-
-3. Evaluating models:
-```bash
-# Compare model performances
+# Evaluate distilled model performance
 deepbridge distill evaluate \
-    ./models/gbm_v1/model.joblib \
+    /path/to/model.pkl \
     true_labels.csv \
-    original_preds.csv \
-    distilled_preds.csv
+    original_predictions.csv \
+    distilled_predictions.csv \
+    [--format json|table]
 ```
 
-### Real-World Example: Model Optimization
+## Advanced Usage Patterns
+
+### Complex Experiment Workflows
 
 ```bash
-# 1. Train different model types
-for model in gbm xgb mlp; do
-    deepbridge distill train $model \
-        teacher_predictions.csv \
-        features.csv \
-        --save-path ./models/${model}_v1
-done
+#!/bin/bash
+# Advanced experiment automation script
 
-# 2. Generate predictions
-for model in gbm xgb mlp; do
-    deepbridge distill predict \
-        ./models/${model}_v1/model.joblib \
-        test_data.csv \
-        --output ./results/${model}_predictions.csv
-done
+# Set up experiment directories
+mkdir -p experiments/{v1,v2,v3}
 
-# 3. Evaluate each model
-for model in gbm xgb mlp; do
-    deepbridge distill evaluate \
-        ./models/${model}_v1/model.joblib \
-        true_labels.csv \
-        teacher_preds.csv \
-        ./results/${model}_predictions.csv \
-        --format json > ./results/${model}_evaluation.json
+# Iterate through multiple configurations
+MODEL_TYPES=("gbm" "xgb" "random_forest")
+TEMPERATURES=(0.5 1.0 2.0)
+ALPHAS=(0.3 0.5 0.7)
+
+# Loop through configurations
+for model in "${MODEL_TYPES[@]}"; do
+    for temp in "${TEMPERATURES[@]}"; do
+        for alpha in "${ALPHAS[@]}"; do
+            # Create unique experiment name
+            exp_name="experiment_${model}_t${temp}_a${alpha}"
+            
+            # Run distillation
+            deepbridge distill train "$model" \
+                teacher_predictions.csv \
+                features.csv \
+                --save-path "experiments/${exp_name}" \
+                --temperature "$temp" \
+                --alpha "$alpha"
+            
+            # Evaluate model
+            deepbridge distill evaluate \
+                "experiments/${exp_name}/model.pkl" \
+                true_labels.csv \
+                teacher_predictions.csv \
+                "experiments/${exp_name}/predictions.csv" \
+                --format json > "experiments/${exp_name}/metrics.json"
+        done
+    done
 done
 ```
 
-## Common Workflows
+### Parallel Experiment Execution
 
-### 1. Experiment Iteration
+```python
+# parallel_experiments.py
+import subprocess
+import multiprocessing
+from itertools import product
+
+def run_experiment(params):
+    """
+    Run a single experiment configuration
+    
+    Args:
+        params (tuple): Experiment configuration parameters
+    """
+    model, temp, alpha = params
+    exp_name = f"experiment_{model}_t{temp}_a{alpha}"
+    
+    try:
+        # Construct CLI command
+        cmd = [
+            "deepbridge", "distill", "train", model,
+            "teacher_predictions.csv",
+            "features.csv",
+            "--save-path", f"experiments/{exp_name}",
+            "--temperature", str(temp),
+            "--alpha", str(alpha)
+        ]
+        
+        # Run command
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True
+        )
+        
+        # Log results
+        with open(f"experiments/{exp_name}/log.txt", "w") as log_file:
+            log_file.write(result.stdout)
+            log_file.write(result.stderr)
+        
+        return exp_name
+    except Exception as e:
+        print(f"Error in experiment {exp_name}: {e}")
+        return None
+
+def main():
+    # Define experiment configurations
+    model_types = ["gbm", "xgb", "random_forest"]
+    temperatures = [0.5, 1.0, 2.0]
+    alphas = [0.3, 0.5, 0.7]
+    
+    # Generate all possible configurations
+    experiments = list(product(model_types, temperatures, alphas))
+    
+    # Use multiprocessing to run experiments in parallel
+    with multiprocessing.Pool() as pool:
+        completed_experiments = pool.map(run_experiment, experiments)
+    
+    print("Completed experiments:", completed_experiments)
+
+if __name__ == "__main__":
+    main()
+```
+
+## Environment Configuration
+
+### Virtual Environment Setup
 
 ```bash
-# Iterate through model versions
-for version in {1..3}; do
-    # Create experiment version
-    deepbridge validation create \
-        experiment_v${version} \
-        --path ./experiments/v${version}
-    
-    # Add data
-    deepbridge validation add-data \
-        ./experiments/v${version} \
-        train_v${version}.csv \
-        --test-data test_v${version}.csv \
-        --target-column target
-    
-    # Train distilled model
-    deepbridge distill train gbm \
-        original_preds_v${version}.csv \
-        features_v${version}.csv \
-        --save-path ./models/v${version}
-done
+# Create virtual environment
+python3 -m venv deepbridge_env
+
+# Activate virtual environment
+# On Unix/macOS
+source deepbridge_env/bin/activate
+# On Windows
+deepbridge_env\Scripts\activate
+
+# Install DeepBridge
+pip install deepbridge
+
+# Create requirements file
+pip freeze > requirements.txt
 ```
 
-### 2. Model Comparison
+### Configuration File
 
-```bash
-# Create results directory
-mkdir -p results
+Create a `deepbridge.yaml` in your project root:
 
-# Train and evaluate multiple models
-for model_type in gbm xgb mlp; do
-    # Train model
-    deepbridge distill train ${model_type} \
-        predictions.csv \
-        features.csv \
-        --save-path ./models/${model_type}
-    
-    # Generate predictions
-    deepbridge distill predict \
-        ./models/${model_type}/model.joblib \
-        test_features.csv \
-        --output ./results/${model_type}_preds.csv
-    
-    # Evaluate model
-    deepbridge distill evaluate \
-        ./models/${model_type}/model.joblib \
-        true_labels.csv \
-        teacher_preds.csv \
-        ./results/${model_type}_preds.csv \
-        --format json > ./results/${model_type}_eval.json
-done
+```yaml
+# DeepBridge Configuration
+project:
+  name: my_ml_project
+  version: 1.0.0
+
+experiments:
+  default_path: ./experiments
+  random_seed: 42
+
+distillation:
+  default_model_type: gbm
+  temperatures: [0.5, 1.0, 2.0]
+  alphas: [0.3, 0.5, 0.7]
+
+logging:
+  level: INFO
+  path: ./logs
 ```
-
-## Tips and Best Practices
-
-1. **Organize Your Projects**
-   ```bash
-   project/
-   ├── data/
-   │   ├── train.csv
-   │   └── test.csv
-   ├── models/
-   │   ├── gbm/
-   │   ├── xgb/
-   │   └── mlp/
-   └── results/
-       ├── predictions/
-       └── evaluations/
-   ```
-
-2. **Use Meaningful Names**
-   ```bash
-   # Good
-   deepbridge validation create customer_churn_rf_v1
-   
-   # Not so good
-   deepbridge validation create exp1
-   ```
-
-3. **Document Your Experiments**
-   ```bash
-   # Save experiment info
-   deepbridge validation info ./experiments/exp1 \
-       --format json > experiment_metadata.json
-   ```
-
-4. **Automate Common Tasks**
-   Create shell scripts for repeated workflows:
-   ```bash
-   #!/bin/bash
-   # train_models.sh
-   
-   MODEL_TYPES="gbm xgb mlp"
-   
-   for model in $MODEL_TYPES; do
-       echo "Training $model model..."
-       deepbridge distill train $model \
-           data/predictions.csv \
-           data/features.csv \
-           --save-path models/$model
-   done
-   ```
 
 ## Troubleshooting
 
-Common issues and solutions:
+### Common Issues and Solutions
 
-1. **File Not Found**
+1. **Installation Problems**
+   - Ensure Python version compatibility (3.8+)
+   - Update pip: `python -m pip install --upgrade pip`
+   - Check system dependencies
+
+2. **Command Execution Errors**
+
    ```bash
-   # Check file paths
-   ls -l data/train.csv
-   
-   # Use absolute paths if needed
-   deepbridge validation add-data \
-       $(pwd)/experiment \
-       $(pwd)/data/train.csv
+   # Verbose error logging
+   DEEPBRIDGE_DEBUG=1 deepbridge distill train ...
    ```
 
-2. **Invalid Data Format**
+3. **Dependency Conflicts**
+
    ```bash
-   # Check CSV format
-   head -n 5 data/train.csv
-   
-   # Verify column names
-   deepbridge validation info ./experiment
+   # Create isolated environment
+   pipx install deepbridge
+
+   # Or use explicit version
+   pip install deepbridge==X.Y.Z
    ```
 
-3. **Model Training Failures**
-   ```bash
-   # Enable debug logging
-   export DEEPBRIDGE_LOG_LEVEL=DEBUG
-   deepbridge distill train gbm predictions.csv features.csv
-   ```
+### Debugging Commands
 
-## Next Steps
+```bash
+# Show detailed version information
+deepbridge --version --verbose
 
-- Check the [API Reference](../api/cli.md) for detailed command documentation
-- Learn about [Model Validation](validation.md)
-- Explore [Model Distillation](distillation.md)
+# Validate installation
+deepbridge doctor
+
+# Check system compatibility
+deepbridge system-check
+```
+
+## Best Practices
+
+1. **Environment Management**
+   - Always use virtual environments
+   - Pin dependencies
+   - Use consistent Python versions
+
+2. **Experiment Organization**
+   - Use descriptive experiment names
+   - Store metadata with experiments
+   - Version control your configurations
+
+3. **Security**
+   - Avoid committing sensitive data
+   - Use environment variables for credentials
+   - Implement access controls
+
+4. **Performance**
+   - Monitor resource usage
+   - Use parallel processing for large experiments
+   - Optimize model and data preprocessing
+
+## Extending CLI Functionality
+
+### Custom CLI Plugins
+
+```python
+# custom_plugin.py
+import typer
+
+# Create a custom CLI extension
+custom_app = typer.Typer()
+
+@custom_app.command()
+def analyze(
+    experiment_path: str,
+    output_path: str = None
+):
+    """
+    Custom analysis command for DeepBridge experiments
+    """
+    # Implement your custom analysis logic
+    print(f"Analyzing experiment: {experiment_path}")
+
+# Integrate with main DeepBridge CLI
+from deepbridge.cli import app
+app.add_typer(custom_app, name="custom")
+```
+
+## Community and Support
+
+- **Documentation**: [DeepBridge Docs](https://deepbridge.readthedocs.io/)
+- **Issue Tracker**: [GitHub Issues](https://github.com/deepbridge/deepbridge/issues)
+- **Community Chat**: [Slack Channel](https://deepbridge-community.slack.com)
+
+## Conclusion
+
+The DeepBridge CLI provides a powerful, flexible interface for machine learning experiment management. By following these guidelines, you can streamline your model validation and distillation workflows.

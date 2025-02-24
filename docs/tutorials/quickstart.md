@@ -1,233 +1,350 @@
-# Quick Start Guide
+# DeepBridge Quick Start Guide
 
-This guide will help you get started with DeepBridge by walking through common use cases and basic functionality.
+## Introduction
+
+DeepBridge is a powerful Python library for machine learning model validation and distillation. This guide will help you quickly get started, covering different scenarios and use cases.
 
 ## Installation
 
-First, install DeepBridge using pip:
+Install DeepBridge using pip:
 
 ```bash
 pip install deepbridge
 ```
 
-## Basic Usage
+## Use Cases and Examples
 
-Let's walk through some common use cases.
+### 1. Basic Model Validation
 
-### 1. Model Validation
-
-#### Setting Up an Experiment
+#### When to Use
+- For binary classification projects
+- When you need to compare different models
+- To validate model performance before deployment
 
 ```python
-from deepbridge.model_validation import ModelValidation
 import pandas as pd
+import json
+from deepbridge.model_validation import ModelValidation
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 
-# Create a new experiment
-experiment = ModelValidation(
-    experiment_name="first_experiment",
-    save_path="./experiments"
-)
+def robust_model_validation(data, target_column):
+    """
+    Validates models with comprehensive error handling.
+    
+    Args:
+        data (pd.DataFrame): Dataset
+        target_column (str): Name of the target column
+    
+    Returns:
+        dict: Model validation results
+    
+    Raises:
+        ValueError: For invalid data
+        Exception: For validation process failures
+    """
+    try:
+        # Initial validations
+        if data is None or len(data) == 0:
+            raise ValueError("Dataset cannot be empty")
+        
+        if target_column not in data.columns:
+            raise ValueError(f"Target column '{target_column}' not found")
+        
+        # Prepare data
+        X = data.drop(columns=[target_column])
+        y = data[target_column]
+        
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+        
+        # Create validation experiment
+        experiment = ModelValidation(
+            experiment_name="customer_churn_validation"
+        )
+        
+        # Add data to experiment
+        experiment.add_data(
+            X_train=X_train, 
+            y_train=y_train, 
+            X_test=X_test, 
+            y_test=y_test
+        )
+        
+        # Define models for comparison
+        models = {
+            'Random Forest': Pipeline([
+                ('scaler', StandardScaler()),
+                ('clf', RandomForestClassifier(n_estimators=100, random_state=42))
+            ]),
+            'Logistic Regression': Pipeline([
+                ('scaler', StandardScaler()),
+                ('clf', LogisticRegression(max_iter=1000, random_state=42))
+            ])
+        }
+        
+        # Model results
+        results = {}
+        
+        # Train and evaluate each model
+        for name, model in models.items():
+            try:
+                # Train model
+                model.fit(X_train, y_train)
+                
+                # Add model to experiment
+                experiment.add_model(model, name)
+                
+                # Evaluate model
+                results[name] = {
+                    'train_accuracy': model.score(X_train, y_train),
+                    'test_accuracy': model.score(X_test, y_test)
+                }
+            
+            except Exception as model_error:
+                print(f"Error processing model {name}: {model_error}")
+                results[name] = {'error': str(model_error)}
+        
+        return results
+    
+    except Exception as e:
+        print(f"Validation process error: {e}")
+        raise
 
-# Prepare your data
-data = pd.read_csv("your_data.csv")
-X = data.drop("target", axis=1)
-y = data["target"]
+# Usage example
+try:
+    # Load data (replace with your dataset)
+    data = pd.read_csv('churn_data.csv')
+    
+    # Validate models
+    validation_results = robust_model_validation(data, 'churn')
+    
+    # Print results
+    for model, metrics in validation_results.items():
+        print(f"\nModel: {model}")
+        print(json.dumps(metrics, indent=2))
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-
-# Add data to the experiment
-experiment.add_data(X_train, y_train, X_test, y_test)
-```
-
-#### Adding and Validating Models
-
-```python
-# Train a model
-model = RandomForestClassifier(n_estimators=100)
-model.fit(X_train, y_train)
-
-# Add model to experiment
-experiment.add_model(model, "rf_model_v1")
-
-# Save the model
-experiment.save_model("rf_model_v1")
-
-# Get experiment information
-info = experiment.get_experiment_info()
-print(info)
+except Exception as e:
+    print(f"General error: {e}")
 ```
 
 ### 2. Model Distillation
 
-#### Basic Distillation
+#### When to Use
+- To reduce computational complexity
+- When you need lighter models for production
+- To improve inference time
 
 ```python
 from deepbridge.model_distiller import ModelDistiller
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
-# Create a distiller with default settings
-distiller = ModelDistiller(model_type="gbm")
+def robust_model_distillation(
+    X_train, 
+    y_train, 
+    teacher_model, 
+    student_model_type='gbm'
+):
+    """
+    Performs knowledge distillation with error handling.
+    
+    Args:
+        X_train (np.ndarray): Training features
+        y_train (np.ndarray): Training labels
+        teacher_model: High-complexity model
+        student_model_type (str): Student model type
+    
+    Returns:
+        ModelDistiller: Distilled model
+    
+    Raises:
+        ValueError: For invalid inputs
+        Exception: For distillation process failures
+    """
+    try:
+        # Initial validations
+        if X_train is None or y_train is None:
+            raise ValueError("Training data cannot be None")
+        
+        if len(X_train) != len(y_train):
+            raise ValueError("Features and labels must have equal length")
+        
+        # Get teacher model probabilities
+        try:
+            teacher_probas = teacher_model.predict_proba(X_train)
+        except Exception as e:
+            raise ValueError(f"Failed to get probabilities from teacher model: {e}")
+        
+        # Create distiller
+        try:
+            distiller = ModelDistiller(
+                model_type=student_model_type,
+                model_params={
+                    'n_estimators': 50,
+                    'learning_rate': 0.1
+                }
+            )
+            
+            # Train distilled model
+            distiller.fit(
+                X=X_train, 
+                probas=teacher_probas,
+                test_size=0.2,
+                verbose=True
+            )
+            
+            return distiller
+        
+        except Exception as distillation_error:
+            raise ValueError(f"Error in distillation process: {distillation_error}")
+    
+    except Exception as e:
+        print(f"Model distillation error: {e}")
+        raise
 
-# Get predictions from your complex model
-complex_model_probs = complex_model.predict_proba(X)
-
-# Train the distilled model
-distiller.fit(
-    X=X_train,
-    probas=complex_model_probs,
-    test_size=0.2
-)
-
-# Make predictions with the distilled model
-predictions = distiller.predict(X_test)
-```
-
-#### Customizing the Distillation
-
-```python
-# Custom model parameters
-model_params = {
-    'n_estimators': 150,
-    'learning_rate': 0.05,
-    'max_depth': 4
-}
-
-# Create a configured distiller
-distiller = ModelDistiller(
-    model_type="xgb",
-    model_params=model_params,
-    save_path="./models/distilled"
-)
-
-# Train with custom settings
-distiller.fit(
-    X=X_train,
-    probas=complex_model_probs,
-    test_size=0.3,
-    verbose=True
-)
-
-# Save the distilled model
-distiller.save("distilled_model_v1")
-```
-
-### 3. Using the CLI
-
-The CLI provides easy access to common operations.
-
-#### Model Validation Commands
-
-```bash
-# Create a new experiment
-deepbridge validation create my_experiment --path ./experiments
-
-# Add data to the experiment
-deepbridge validation add-data \
-    ./experiments/my_experiment \
-    train_data.csv \
-    --test-data test_data.csv \
-    --target-column target
-```
-
-#### Model Distillation Commands
-
-```bash
-# Train a distilled model
-deepbridge distill train gbm \
-    predictions.csv \
-    features.csv \
-    --save-path ./models \
-    --test-size 0.2
-
-# Make predictions
-deepbridge distill predict \
-    ./models/model.joblib \
-    new_data.csv \
-    --output predictions.csv
-```
-
-## Common Patterns
-
-### 1. Experiment Organization
-
-```python
-# Create structured experiments
-experiment = ModelValidation(
-    experiment_name="project_name/experiment_type/version",
-    save_path="./experiments"
-)
-
-# Add experiment metadata
-experiment.save_metrics({
-    "model_type": "random_forest",
-    "hyperparameters": model.get_params(),
-    "training_date": "2024-02-14"
-}, "rf_model_v1")
-```
-
-### 2. Model Comparison
-
-```python
-# Add multiple models
-experiment.add_model(model1, "model_v1")
-experiment.add_model(model2, "model_v2")
-
-# Compare performances
-info = experiment.get_experiment_info()
-for model_name, metrics in info["metrics"].items():
-    print(f"Model: {model_name}")
-    print(f"Performance: {metrics}")
-```
-
-### 3. Efficient Distillation
-
-```python
-# Start with simpler models
-distiller = ModelDistiller(
-    model_type="gbm",
-    model_params={"n_estimators": 50}
-)
-
-# Gradually increase complexity if needed
-if performance_not_sufficient:
-    distiller = ModelDistiller(
-        model_type="xgb",
-        model_params={
-            "n_estimators": 100,
-            "max_depth": 5
-        }
+# Usage example
+try:
+    # Prepare data (replace with your data)
+    X_train = np.random.rand(1000, 10)
+    y_train = np.random.randint(0, 2, 1000)
+    
+    # Train teacher model (e.g., a complex model)
+    teacher_model = RandomForestClassifier(n_estimators=200)
+    teacher_model.fit(X_train, y_train)
+    
+    # Perform distillation
+    distilled_model = robust_model_distillation(
+        X_train, 
+        y_train, 
+        teacher_model, 
+        student_model_type='gbm'
     )
+    
+    # Compare performance
+    teacher_metrics = teacher_model.score(X_train, y_train)
+    distilled_metrics = distilled_model.evaluate(X_train, y_train)
+    
+    print("Teacher Model Metrics:", teacher_metrics)
+    print("Distilled Model Metrics:", distilled_metrics)
+
+except Exception as e:
+    print(f"General process error: {e}")
+```
+
+### 3. Complex Use Case: Experiment Management
+
+#### When to Use
+- Machine learning projects with multiple models
+- Algorithm comparative research
+- Systematic experiment tracking
+
+```python
+import os
+from deepbridge.auto_distiller import AutoDistiller
+from deepbridge.db_data import DBDataset
+import pandas as pd
+
+def advanced_experiment(
+    data_path, 
+    target_column, 
+    output_path='experiment_results'
+):
+    """
+    Performs advanced distillation experiment with multiple models.
+    
+    Args:
+        data_path (str): Path to the dataset
+        target_column (str): Name of the target column
+        output_path (str): Directory to save results
+    
+    Returns:
+        dict: Consolidated experiment results
+    """
+    try:
+        # Validate data path
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Data file not found: {data_path}")
+        
+        # Load data
+        data = pd.read_csv(data_path)
+        
+        # Create dataset
+        dataset = DBDataset(
+            data=data,
+            target_column=target_column,
+            synthetic=True  # Generate synthetic data for augmentation
+        )
+        
+        # Configure auto distiller
+        auto_distiller = AutoDistiller(
+            dataset=dataset,
+            output_dir=output_path,
+            n_trials=20,  # More iterations for optimization
+            random_state=42
+        )
+        
+        # Customize model configuration
+        auto_distiller.customize_config(
+            model_types=['gbm', 'xgb', 'random_forest'],
+            temperatures=[0.5, 1.0, 2.0],
+            alphas=[0.3, 0.5, 0.7]
+        )
+        
+        # Run experiments
+        results = auto_distiller.run()
+        
+        # Generate report
+        report = auto_distiller.generate_report()
+        
+        # Save best model
+        best_model_path = auto_distiller.save_best_model()
+        
+        return {
+            'results': results,
+            'report': report,
+            'best_model': best_model_path
+        }
+    
+    except Exception as e:
+        print(f"Advanced experiment error: {e}")
+        raise
+
+# Usage example
+try:
+    experiment_results = advanced_experiment(
+        data_path='project_data.csv', 
+        target_column='classification_target'
+    )
+    
+    print("Experiment completed successfully!")
+    print("Report Summary:")
+    print(experiment_results['report'])
+
+except Exception as e:
+    print(f"Experiment failed: {e}")
 ```
 
 ## Next Steps
 
-- Learn more about [Model Validation](../guides/validation.md)
-- Explore [Model Distillation](../guides/distillation.md)
-- Check out the [CLI Guide](../guides/cli.md)
-- See the [API Reference](../api/model_validation.md)
+- Explore the [Advanced Guides](advanced/index.md)
+- Consult the [API Reference](api/index.md)
+- Join the [DeepBridge Community](community.md)
 
-## Tips and Best Practices
+## Final Tips
 
-1. **Data Management**
-   - Always validate your data before adding to experiments
-   - Keep consistent data formats
-   - Document data preprocessing steps
+1. Always validate your data before creating experiments
+2. Use robust error handling
+3. Document each step of your machine learning process
+4. Experiment with different model configurations
+5. Compare multiple models before making your final choice
 
-2. **Model Organization**
-   - Use clear naming conventions
-   - Version your models systematically
-   - Document model configurations
+## Troubleshooting
 
-3. **Performance Optimization**
-   - Start with simple models
-   - Monitor training metrics
-   - Validate results thoroughly
-
-4. **Resource Management**
-   - Clean up unused experiments
-   - Monitor disk usage
-   - Use appropriate model complexity
+- **Installation Error**: Check Python version compatibility
+- **Performance Issues**: Adjust hyperparameters and dataset size
+- **Model Errors**: Verify data quality and preprocessing
