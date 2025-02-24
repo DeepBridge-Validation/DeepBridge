@@ -14,6 +14,10 @@ pip install deepbridge
 
 ## Use Cases and Examples
 
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepBridge-Validation/DeepBridge/blob/master/examples/quickstart.ipynb)
+
+
 ### 1. Basic Model Validation
 
 #### When to Use
