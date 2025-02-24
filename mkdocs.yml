@@ -23,6 +23,7 @@ nav:
   - Home: index.md
   - User Guide:
     - Quick Start: tutorials/quickstart.md
+    - Auto Distiller: tutorials/AutoDistiller.md
     - Model Validation: guides/validation.md
     - Model Distillation: guides/distillation.md
     - CLI Usage: guides/cli.md
