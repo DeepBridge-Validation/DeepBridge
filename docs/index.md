@@ -1,4 +1,4 @@
-![DeepBridge Logo](/assets/images/deepbridge-logo.svg)
+![DeepBridge Logo](/assets/images/logo.svg)
 
 # DeepBridge: Advanced Machine Learning Model Validation and Distillation
 

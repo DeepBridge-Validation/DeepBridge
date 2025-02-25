@@ -33,6 +33,7 @@ nav:
     - CLI: api/cli.md
   - Distiller Models:
     - Knowledge Distillation: models_distiller/knowledge_distillation.md
+    - What is Knowledge Distillation?: models_distiller/what_Knowledge.md
   - Advanced Topics:
     - Custom Models: advanced/custom_models.md
     - Optimization: advanced/optimization.md
@@ -48,6 +49,8 @@ markdown_extensions:
   - codehilite
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
@@ -69,5 +72,9 @@ extra:
       link: https://github.com/DeepBridge-Validation/DeepBridge
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/deepbridge/
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 copyright: Copyright &copy; 2025 DeepBridge-Validation
