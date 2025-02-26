@@ -35,6 +35,7 @@ nav:
     - Knowledge Distillation: models_distiller/knowledge_distillation.md
     - How a Student Model Learns from a Teacher Model: models_distiller/model_learns.md
     - What is Knowledge Distillation?: models_distiller/what_Knowledge.md
+    - Auto Distiller: models_distiller/auto_distillation.md
   - Advanced Topics:
     - Custom Models: advanced/custom_models.md
     - Optimization: advanced/optimization.md
