@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from typing import List, Dict, Optional, Any, Tuple, Union
 
 from deepbridge.distillation.classification.model_registry import ModelType
@@ -71,6 +72,9 @@ class AutoDistiller:
         self.visualizer = None
         self.report_generator = None
         self.results_df = None
+        
+        # Initialize cache for original metrics
+        self._original_metrics_cache = None
     
     def customize_config(
         self,
@@ -91,6 +95,113 @@ class AutoDistiller:
             temperatures=temperatures,
             alphas=alphas
         )
+    
+    def original_metrics(self) -> Dict[str, Dict[str, float]]:
+        """
+        Calculate metrics for the original model after train/test split.
+        
+        Returns:
+            Dictionary containing metrics for both train and test sets
+        """
+        # Check if we've already calculated these metrics
+        if self._original_metrics_cache is not None:
+            return self._original_metrics_cache
+            
+        from deepbridge.metrics.classification import Classification
+        
+        metrics_calculator = Classification()
+        results = {'train': {}, 'test': {}}
+        
+        # Get split data from experiment
+        experiment = self.experiment_runner.experiment
+        
+        # Train set metrics
+        if experiment.prob_train is not None:
+            # Get positive class probabilities
+            train_probs = self._extract_positive_class_probs(experiment.prob_train)
+                
+            # Convert probabilities to binary predictions (threshold 0.5)
+            train_preds = (train_probs >= 0.5).astype(int)
+            
+            # Calculate metrics
+            train_metrics = metrics_calculator.calculate_metrics(
+                y_true=experiment.y_train,
+                y_pred=train_preds,
+                y_prob=train_probs
+            )
+            results['train'] = train_metrics
+            
+        # Test set metrics
+        if experiment.prob_test is not None:
+            # Get positive class probabilities
+            test_probs = self._extract_positive_class_probs(experiment.prob_test)
+                
+            # Convert probabilities to binary predictions (threshold 0.5)
+            test_preds = (test_probs >= 0.5).astype(int)
+            
+            # Calculate metrics
+            test_metrics = metrics_calculator.calculate_metrics(
+                y_true=experiment.y_test,
+                y_pred=test_preds,
+                y_prob=test_probs
+            )
+            results['test'] = test_metrics
+        
+        # Print a summary of the original model metrics if verbose is true
+        if self.config.verbose:
+            print("\n=== Original Model Metrics ===")
+            if results['train']:
+                print("Train metrics:")
+                for metric, value in results['train'].items():
+                    if metric in ['accuracy', 'precision', 'recall', 'f1_score', 'auc_roc', 'auc_pr']:
+                        print(f"  {metric}: {value:.4f}")
+            
+            if results['test']:
+                print("\nTest metrics:")
+                for metric, value in results['test'].items():
+                    if metric in ['accuracy', 'precision', 'recall', 'f1_score', 'auc_roc', 'auc_pr']:
+                        print(f"  {metric}: {value:.4f}")
+            print("=============================\n")
+        
+        # Cache the results
+        self._original_metrics_cache = results
+        
+        return results
+    
+    def _extract_positive_class_probs(self, probs):
+        """
+        Helper method to extract positive class probabilities from different formats.
+        
+        Args:
+            probs: Probabilities in various formats (DataFrame, Series, or numpy array)
+            
+        Returns:
+            numpy array of positive class probabilities
+        """
+        if isinstance(probs, pd.DataFrame):
+            # Try to find the right column
+            if 'prob_class_1' in probs.columns:
+                return probs['prob_class_1'].values
+            elif 'prob1' in probs.columns:
+                return probs['prob1'].values
+            elif len(probs.columns) == 2:
+                # Assume second column is positive class in binary classification
+                return probs.iloc[:, 1].values
+            else:
+                # Fallback to last column
+                return probs.iloc[:, -1].values
+        elif isinstance(probs, pd.Series):
+            return probs.values
+        elif isinstance(probs, np.ndarray):
+            # For 2D arrays, assume second column (index 1) is positive class
+            if len(probs.shape) > 1 and probs.shape[1] > 1:
+                return probs[:, 1]
+            return probs
+        else:
+            # Fallback with warning
+            if self.config.verbose:
+                print(f"Warning: Unrecognized probability format: {type(probs)}")
+            return np.array(probs)
     
     def run(self, use_probabilities: bool = True, verbose_output: bool = False) -> pd.DataFrame:
         """
@@ -191,7 +302,7 @@ class AutoDistiller:
         self._ensure_components_initialized()
         best_config = self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
         
-        # Converter o tipo de modelo de string para ModelType
+        # Convert model_type from string to ModelType enum if needed
         if 'model_type' in best_config and isinstance(best_config['model_type'], str):
             model_type_str = best_config['model_type']
             for model_type in ModelType:
@@ -213,12 +324,12 @@ class AutoDistiller:
         Returns:
             Trained distillation model
         """
-        # Converter string para ModelType se necessário
+        # Convert string to ModelType if needed
         if isinstance(model_type, str):
             try:
                 model_type = ModelType[model_type]
             except KeyError:
-                # Caso especial para 'GBM' que pode estar armazenado diretamente como string e não como 'GBM'
+                # Special cases for common model types
                 if model_type == 'GBM':
                     model_type = ModelType.GBM
                 elif model_type == 'XGB':
@@ -248,21 +359,21 @@ class AutoDistiller:
         import joblib
         from pathlib import Path
         
-        # Encontrar a melhor configuração
+        # Find the best configuration
         best_config = self.find_best_model(metric=metric, minimize=minimize)
         
-        # Obter o modelo treinado com esta configuração
+        # Get the trained model with this configuration
         best_model = self.get_trained_model(
             model_type=best_config['model_type'],
             temperature=best_config['temperature'],
             alpha=best_config['alpha']
         )
         
-        # Garantir que o diretório existe
+        # Ensure the directory exists
         output_file = Path(file_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
-        # Salvar o modelo usando joblib
+        # Save the model using joblib
         joblib.dump(best_model, output_file)
         
         if self.config.verbose:
@@ -303,3 +414,73 @@ class AutoDistiller:
             
         self._ensure_components_initialized()
         self.visualizer.create_all_visualizations()
+    
+    def compare_models(self, best_metric: str = 'test_accuracy', minimize: bool = False) -> pd.DataFrame:
+        """
+        Compare the original model with the best distilled model.
+        
+        Args:
+            best_metric: Metric to use for finding the best distilled model
+            minimize: Whether the metric should be minimized
+            
+        Returns:
+            DataFrame with comparison metrics
+        """
+        if self.results_df is None:
+            raise ValueError("No results available. Run the distillation process first.")
+        
+        # Get original model metrics
+        original_metrics = self.original_metrics()
+        
+        # Find best distilled model
+        best_config = self.find_best_model(metric=best_metric, minimize=minimize)
+        
+        # Create comparison DataFrame
+        comparison = []
+        
+        # Common metrics to compare
+        metrics_to_compare = [
+            'accuracy', 'precision', 'recall', 'f1_score', 'auc_roc', 'auc_pr'
+        ]
+        
+        # Add rows for each dataset and metric
+        for dataset in ['train', 'test']:
+            for metric in metrics_to_compare:
+                original_value = original_metrics[dataset].get(metric, None)
+                distilled_value = None
+                
+                # Get distilled model metric
+                distilled_col = f'{dataset}_{metric}'
+                if distilled_col in best_config:
+                    distilled_value = best_config[distilled_col]
+                
+                # Calculate difference if both values are available
+                diff = None
+                if original_value is not None and distilled_value is not None:
+                    diff = distilled_value - original_value
+                
+                # Add to comparison
+                comparison.append({
+                    'dataset': dataset,
+                    'metric': metric,
+                    'original': original_value,
+                    'distilled': distilled_value,
+                    'difference': diff
+                })
+        
+        # Create DataFrame
+        df = pd.DataFrame(comparison)
+        
+        # Print summary if verbose
+        if self.config.verbose:
+            print("\n=== Model Comparison Summary ===")
+            print(f"Best distilled model: {best_config['model_type']}, "
+                 f"temp={best_config['temperature']}, alpha={best_config['alpha']}")
+            print("\nTest set comparison:")
+            test_comparison = df[df['dataset'] == 'test']
+            for _, row in test_comparison.iterrows():
+                diff_str = f" (Δ: {row['difference']:.4f})" if row['difference'] is not None else ""
+                print(f"  {row['metric']}: {row['original']:.4f} → {row['distilled']:.4f}{diff_str}")
+            print("================================\n")
+        
+        return df
