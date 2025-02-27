@@ -841,7 +841,7 @@ version = "3.1.5"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
-groups = ["doc"]
+groups = ["main", "doc"]
 markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
 files = [
     {file = "jinja2-3.1.5-py3-none-any.whl", hash = "sha256:aba0f4dc9ed8013c424088f68a5c226f7d6097ed89b246d7749c2ec4175c6adb"},
@@ -2877,4 +2877,4 @@ scikit-learn = ["scikit-learn"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "77f6ed863114b2ea2673def4833ec351f2412989d59d2f422af4dc1715f3269e"
+content-hash = "85142b777b2fabd7453caca61426813c041e4e3ac7305b5be9606bc1a53ebab6"
