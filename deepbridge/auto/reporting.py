@@ -1,15 +1,18 @@
 import os
 import pandas as pd
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, Union
+from datetime import datetime
 
 from deepbridge.auto.config import DistillationConfig
 from deepbridge.auto.metrics import MetricsEvaluator
+from deepbridge.auto.html_report_generator import HTMLReportGenerator
+
 
 class ReportGenerator:
     """
     Generates comprehensive reports for distillation experiments.
     
-    Creates markdown and text reports summarizing experiment results,
+    Creates markdown and HTML reports summarizing experiment results,
     best configurations, and performance metrics.
     """
     
@@ -52,6 +55,7 @@ class ReportGenerator:
         report.append(f"- Alpha values tested: {self.config.alphas}")
         report.append(f"- Total configurations: {self.config.get_total_configurations()}")
         report.append(f"- Valid results: {len(valid_results)}")
+        report.append(f"- Report date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         report.append("")
         
         # Add best configurations for each metric
@@ -140,20 +144,128 @@ class ReportGenerator:
         report.append("```")
         report.append("")
         
+        # Add summary and recommendations
+        report.append("## Summary and Recommendations")
+        
+        # Get best models for key metrics
+        try:
+            best_accuracy = self.metrics_evaluator.find_best_model(metric='test_accuracy')
+            best_kl = self.metrics_evaluator.find_best_model(metric='test_kl_divergence', minimize=True)
+            
+            report.append("### Key Findings")
+            report.append(f"- Best accuracy achieved by {best_accuracy['model_type']} with temperature={best_accuracy['temperature']} and alpha={best_accuracy['alpha']}")
+            report.append(f"- Best distribution matching achieved by {best_kl['model_type']} with temperature={best_kl['temperature']} and alpha={best_kl['alpha']}")
+            
+            # Find optimal temperatures and alphas
+            accuracy_metrics = ['test_accuracy', 'test_precision', 'test_recall', 'test_f1']
+            distribution_metrics = ['test_kl_divergence', 'test_ks_statistic', 'test_r2_score']
+            
+            acc_temps = []
+            acc_alphas = []
+            dist_temps = []
+            dist_alphas = []
+            
+            for metric in accuracy_metrics:
+                try:
+                    best = self.metrics_evaluator.find_best_model(metric=metric)
+                    acc_temps.append(best['temperature'])
+                    acc_alphas.append(best['alpha'])
+                except:
+                    pass
+                    
+            for metric in distribution_metrics:
+                try:
+                    minimize = metric != 'test_r2_score'
+                    best = self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
+                    dist_temps.append(best['temperature'])
+                    dist_alphas.append(best['alpha'])
+                except:
+                    pass
+            
+            avg_acc_temp = sum(acc_temps) / len(acc_temps) if acc_temps else 0
+            avg_acc_alpha = sum(acc_alphas) / len(acc_alphas) if acc_alphas else 0
+            avg_dist_temp = sum(dist_temps) / len(dist_temps) if dist_temps else 0
+            avg_dist_alpha = sum(dist_alphas) / len(dist_alphas) if dist_alphas else 0
+            
+            report.append(f"- For accuracy metrics, optimal temperature is around {avg_acc_temp:.1f} and alpha around {avg_acc_alpha:.1f}")
+            report.append(f"- For distribution matching, optimal temperature is around {avg_dist_temp:.1f} and alpha around {avg_dist_alpha:.1f}")
+            
+            # Determine if there's a trade-off
+            if abs(avg_acc_temp - avg_dist_temp) > 0.5 or abs(avg_acc_alpha - avg_dist_alpha) > 0.2:
+                report.append("- There appears to be a trade-off between accuracy and distribution matching")
+            
+            report.append("")
+            report.append("### Recommendations")
+            
+            # Determine the best overall model
+            if best_accuracy['model_type'] == best_kl['model_type']:
+                best_model = best_accuracy['model_type']
+            else:
+                # Use the model that appears most frequently in best results
+                model_counts = {}
+                for metric, minimize, _ in metrics:
+                    try:
+                        best = self.metrics_evaluator.find_best_model(metric=metric, minimize=minimize)
+                        model_type = best['model_type']
+                        model_counts[model_type] = model_counts.get(model_type, 0) + 1
+                    except:
+                        pass
+                        
+                if model_counts:
+                    best_model = max(model_counts.items(), key=lambda x: x[1])[0]
+                else:
+                    best_model = best_accuracy['model_type']
+            
+            # Choose recommended temperature and alpha
+            rec_temp = (avg_acc_temp + avg_dist_temp) / 2
+            rec_alpha = (avg_acc_alpha + avg_dist_alpha) / 2
+            
+            report.append(f"Based on the results, we recommend:")
+            report.append(f"- Model type: {best_model}")
+            report.append(f"- Temperature: {rec_temp:.1f}")
+            report.append(f"- Alpha: {rec_alpha:.1f}")
+            
+        except Exception as e:
+            report.append(f"Unable to generate recommendations: {str(e)}")
+        
         return '\n'.join(report)
     
-    def save_report(self):
-        """Generate and save the report to a file."""
-        report = self.generate_report()
+    def save_report(self, format='both', include_html=True):
+        """
+        Generate and save the report.
         
-        # Save report
-        report_path = os.path.join(self.config.output_dir, "distillation_report.md")
-        with open(report_path, 'w') as f:
-            f.write(report)
+        Args:
+            format: Report format ('md' for markdown, 'html' for HTML, 'both' for both)
+            include_html: Whether to include HTML reports with interactive visualizations
+            
+        Returns:
+            Path to the generated report(s)
+        """
+        reports = {}
         
-        self.config.log_info(f"Report saved to {report_path}")
+        # Generate markdown report if requested
+        if format in ['md', 'both']:
+            report = self.generate_report()
+            report_path = os.path.join(self.config.output_dir, "distillation_report.md")
+            with open(report_path, 'w') as f:
+                f.write(report)
+            reports['markdown'] = report_path
+            self.config.log_info(f"Markdown report saved to {report_path}")
         
-        return report_path
+        # Generate HTML reports if requested
+        if include_html or format in ['html', 'both']:
+            html_report_generator = HTMLReportGenerator(
+                results_df=self.results_df,
+                output_dir=self.config.output_dir,
+                metrics_evaluator=self.metrics_evaluator
+            )
+            html_reports = html_report_generator.generate_reports()
+            reports.update(html_reports)
+            
+            report_paths = ', '.join(html_reports.values())
+            self.config.log_info(f"HTML reports saved to: {report_paths}")
+        
+        return reports
     
     def generate_summary(self) -> str:
         """
@@ -166,7 +278,7 @@ class ReportGenerator:
         
         if valid_results.empty:
             return "No valid results to generate summary"
-        
+            
         try:
             best_accuracy = self.metrics_evaluator.find_best_model(metric='test_accuracy')
             best_precision = self.metrics_evaluator.find_best_model(metric='test_precision')

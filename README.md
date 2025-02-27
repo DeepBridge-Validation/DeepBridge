@@ -143,10 +143,10 @@ MIT License
 If you use DeepBridge in your research, please cite:
 
 ```bibtex
-@software{deepbridge2024,
+@software{deepbridge2025,
   title = {DeepBridge: Advanced Model Validation and Distillation Library},
-  author = {Gustavo Haase},
-  year = {2024},
+  author = {Gustavo Haase, Paulo Dourado},
+  year = {2025},
   url = {https://github.com/DeepBridge-Validation/DeepBridge}
 }
 ```
