@@ -83,13 +83,19 @@ class HTMLReportGenerator:
         # Load the template
         template = self.env.get_template('comparison_report_template.html')
         
+        # CHANGE THIS PART - Add distribution_data
+        
+        # Create placeholder distribution data
+        distribution_data = self._prepare_distribution_data(self._get_best_model())
+        
         # Render the template with the data
         html_content = template.render(
             title="Model Distillation - Best Models Comparison",
             date=datetime.now().strftime("%Y-%m-%d"),
             best_models=best_models_by_metric,
             model_comparison=model_comparison_data,
-            summary=self._generate_summary()
+            summary=self._generate_summary(),
+            distribution_data=distribution_data  # Add this line
         )
         
         # Save the rendered HTML to a file

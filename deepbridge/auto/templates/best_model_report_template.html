@@ -274,7 +274,7 @@
                         <td><strong>{{ metric.display_name }}</strong>{% if metric_name in ['kl_divergence', 'ks_statistic'] %} <small>(lower is better)</small>{% endif %}</td>
                         <td>{{ "%.3f"|format(metric.teacher_value) if metric.teacher_value is not none else 'N/A' }}</td>
                         <td>{{ "%.3f"|format(metric.value) }}</td>
-                        <td class="{% if metric_name in ['kl_divergence', 'ks_statistic'] %}{% if metric.difference > 0 %}negative-diff{% else %}positive-diff{% endif %}{% else %}{% if metric.difference >= 0 %}positive-diff{% else %}negative-diff{% endif %}{% endif %}">
+                        <td class="{% if metric_name in ['kl_divergence', 'ks_statistic'] %}{% if metric.difference is defined and metric.difference > 0 %}negative-diff{% elif metric.difference is defined and metric.difference <= 0 %}positive-diff{% else %}neutral-diff{% endif %}{% else %}{% if metric.difference is defined and metric.difference >= 0 %}positive-diff{% elif metric.difference is defined %}negative-diff{% else %}neutral-diff{% endif %}{% endif %}">
                             {% if metric.difference is defined and metric.teacher_value is not none %}
                                 {% if metric_name in ['kl_divergence', 'ks_statistic'] %}
                                     {{ "+%.3f"|format(metric.difference) if metric.difference > 0 else "%.3f"|format(metric.difference) }}
@@ -395,23 +395,31 @@
         const teacherErrors = {{ distribution_data.teacher_errors | tojson }};
         const studentErrors = {{ distribution_data.student_errors | tojson }};
         
-        // Render visualization when the page is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create probability distribution chart
-            createDistributionChart();
+        // Helper function to create histogram data
+        function createHistogram(data, binCount) {
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const binWidth = (max - min) / binCount;
             
-            // Create cumulative distribution chart
-            createCumulativeDistChart();
+            const bins = Array(binCount).fill(0).map((_, i) => {
+                return {
+                    x: min + i * binWidth,
+                    count: 0
+                };
+            });
             
-            // Create Q-Q plot
-            createQQPlot();
+            data.forEach(value => {
+                const binIndex = Math.min(
+                    Math.floor((value - min) / binWidth),
+                    binCount - 1
+                );
+                if (binIndex >= 0) {
+                    bins[binIndex].count++;
+                }
+            });
             
-            // Create error distribution chart
-            createErrorDistChart();
-            
-            // Create feature importance chart
-            createFeatureImportanceChart();
-        });
+            return bins;
+        }
         
         function createDistributionChart() {
             // Create histogram data
@@ -420,6 +428,234 @@
             const studentHist = createHistogram(studentProbabilities, binCount);
             
             const svg = d3.select("#probability-dist-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // X scale
+            const x = d3.scaleLinear()
+                .domain([0, 1])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleLinear()
+                .domain([0, Math.max(
+                    d3.max(teacherHist, d => d.count),
+                    d3.max(studentHist, d => d.count)
+                )])
+                .nice()
+                .range([height, 0]);
+                
+            // Line generators
+            const teacherLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.count));
+                
+            const studentLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.count));
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Probability Value");
+                
+            // Draw teacher line
+            g.append("path")
+                .datum(teacherHist)
+                .attr("fill", "none")
+                .attr("stroke", "#2b5876")
+                .attr("stroke-width", 2)
+                .attr("d", teacherLine);
+                
+            // Draw student line
+            g.append("path")
+                .datum(studentHist)
+                .attr("fill", "none")
+                .attr("stroke", "#4e4376")
+                .attr("stroke-width", 2)
+                .attr("d", studentLine);
+                
+            // Draw teacher area
+            g.append("path")
+                .datum(teacherHist)
+                .attr("fill", "#2b5876")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.count))
+                );
+                
+            // Draw student area
+            g.append("path")
+                .datum(studentHist)
+                .attr("fill", "#4e4376")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.count))
+                );
+        }
+        
+        function createCumulativeDistChart() {
+            const svg = d3.select("#cumulative-dist-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Sort and calculate CDF
+            const teacherSorted = [...teacherProbabilities].sort((a, b) => a - b);
+            const studentSorted = [...studentProbabilities].sort((a, b) => a - b);
+            
+            const teacherCdf = teacherSorted.map((val, idx) => ({
+                x: val,
+                y: (idx + 1) / teacherSorted.length
+            }));
+            
+            const studentCdf = studentSorted.map((val, idx) => ({
+                x: val,
+                y: (idx + 1) / studentSorted.length
+            }));
+            
+            // X scale
+            const x = d3.scaleLinear()
+                .domain([0, 1])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleLinear()
+                .domain([0, 1])
+                .range([height, 0]);
+                
+            // Line generators
+            const teacherLine = d3.line()
+                .x(d => x(d.x))
+                .y(d => y(d.y));
+                
+            const studentLine = d3.line()
+                .x(d => x(d.x))
+                .y(d => y(d.y));
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Probability Value");
+                
+            // Add Y axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height/2)
+                .text("Cumulative Probability");
+                
+            // Draw teacher line
+            g.append("path")
+                .datum(teacherCdf)
+                .attr("fill", "none")
+                .attr("stroke", "#2b5876")
+                .attr("stroke-width", 2)
+                .attr("d", teacherLine);
+                
+            // Draw student line
+            g.append("path")
+                .datum(studentCdf)
+                .attr("fill", "none")
+                .attr("stroke", "#4e4376")
+                .attr("stroke-width", 2)
+                .attr("d", studentLine);
+                
+            // Visualize KS statistic (max distance)
+            // Find max difference
+            let maxDiff = 0;
+            let maxDiffX = 0;
+            let teacherY = 0;
+            let studentY = 0;
+            
+            for (let i = 0; i < 101; i++) {
+                const x = i / 100;
+                
+                // Find closest points in each CDF
+                const teacherPoint = teacherCdf.reduce((prev, curr) => 
+                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
+                    
+                const studentPoint = studentCdf.reduce((prev, curr) => 
+                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
+                
+                const diff = Math.abs(teacherPoint.y - studentPoint.y);
+                
+                if (diff > maxDiff) {
+                    maxDiff = diff;
+                    maxDiffX = x;
+                    teacherY = teacherPoint.y;
+                    studentY = studentPoint.y;
+                }
+            }
+            
+            // Draw KS statistic line
+            g.append("line")
+                .attr("x1", x(maxDiffX))
+                .attr("y1", y(teacherY))
+                .attr("x2", x(maxDiffX))
+                .attr("y2", y(studentY))
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("stroke-dasharray", "4");
+                
+            g.append("text")
+                .attr("x", x(maxDiffX) + 5)
+                .attr("y", y((teacherY + studentY) / 2))
+                .attr("text-anchor", "start")
+                .attr("font-size", "12px")
+                .text(`KS: ${maxDiff.toFixed(3)}`);
+        }
+        
+        function createQQPlot() {
+            const svg = d3.select("#qq-plot")
                 .append("svg")
                 .attr("width", "100%")
                 .attr("height", "100%")
@@ -673,259 +909,23 @@
                 .text(d => d.importance.toFixed(2));
         }
         
-        // Helper function to create histogram data
-        function createHistogram(data, binCount) {
-            const min = Math.min(...data);
-            const max = Math.max(...data);
-            const binWidth = (max - min) / binCount;
+        // Render visualization when the page is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create probability distribution chart
+            createDistributionChart();
             
-            const bins = Array(binCount).fill(0).map((_, i) => {
-                return {
-                    x: min + i * binWidth,
-                    count: 0
-                };
-            });
+            // Create cumulative distribution chart
+            createCumulativeDistChart();
             
-            data.forEach(value => {
-                const binIndex = Math.min(
-                    Math.floor((value - min) / binWidth),
-                    binCount - 1
-                );
-                if (binIndex >= 0) {
-                    bins[binIndex].count++;
-                }
-            });
+            // Create Q-Q plot
+            createQQPlot();
             
-            return bins;
-        }
+            // Create error distribution chart
+            createErrorDistChart();
+            
+            // Create feature importance chart
+            createFeatureImportanceChart();
+        });
     </script>
 </body>
-</html>append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-                
-            // X scale
-            const x = d3.scaleLinear()
-                .domain([0, 1])
-                .range([0, width]);
-                
-            // Y scale
-            const y = d3.scaleLinear()
-                .domain([0, Math.max(
-                    d3.max(teacherHist, d => d.count),
-                    d3.max(studentHist, d => d.count)
-                )])
-                .nice()
-                .range([height, 0]);
-                
-            // Line generators
-            const teacherLine = d3.line()
-                .curve(d3.curveBasis)
-                .x(d => x(d.x))
-                .y(d => y(d.count));
-                
-            const studentLine = d3.line()
-                .curve(d3.curveBasis)
-                .x(d => x(d.x))
-                .y(d => y(d.count));
-                
-            // Add X axis
-            g.append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x));
-                
-            // Add Y axis
-            g.append("g")
-                .call(d3.axisLeft(y));
-                
-            // Add X axis label
-            g.append("text")
-                .attr("text-anchor", "middle")
-                .attr("x", width/2)
-                .attr("y", height + margin.top + 15)
-                .text("Probability Value");
-                
-            // Draw teacher line
-            g.append("path")
-                .datum(teacherHist)
-                .attr("fill", "none")
-                .attr("stroke", "#2b5876")
-                .attr("stroke-width", 2)
-                .attr("d", teacherLine);
-                
-            // Draw student line
-            g.append("path")
-                .datum(studentHist)
-                .attr("fill", "none")
-                .attr("stroke", "#4e4376")
-                .attr("stroke-width", 2)
-                .attr("d", studentLine);
-                
-            // Draw teacher area
-            g.append("path")
-                .datum(teacherHist)
-                .attr("fill", "#2b5876")
-                .attr("fill-opacity", 0.3)
-                .attr("d", d3.area()
-                    .curve(d3.curveBasis)
-                    .x(d => x(d.x))
-                    .y0(height)
-                    .y1(d => y(d.count))
-                );
-                
-            // Draw student area
-            g.append("path")
-                .datum(studentHist)
-                .attr("fill", "#4e4376")
-                .attr("fill-opacity", 0.3)
-                .attr("d", d3.area()
-                    .curve(d3.curveBasis)
-                    .x(d => x(d.x))
-                    .y0(height)
-                    .y1(d => y(d.count))
-                );
-        }
-        
-        function createCumulativeDistChart() {
-            const svg = d3.select("#cumulative-dist-chart")
-                .append("svg")
-                .attr("width", "100%")
-                .attr("height", "100%")
-                .attr("viewBox", "0 0 600 300");
-                
-            const margin = {top: 20, right: 30, bottom: 40, left: 40};
-            const width = 600 - margin.left - margin.right;
-            const height = 300 - margin.top - margin.bottom;
-            
-            const g = svg.append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-                
-            // Sort and calculate CDF
-            const teacherSorted = [...teacherProbabilities].sort((a, b) => a - b);
-            const studentSorted = [...studentProbabilities].sort((a, b) => a - b);
-            
-            const teacherCdf = teacherSorted.map((val, idx) => ({
-                x: val,
-                y: (idx + 1) / teacherSorted.length
-            }));
-            
-            const studentCdf = studentSorted.map((val, idx) => ({
-                x: val,
-                y: (idx + 1) / studentSorted.length
-            }));
-            
-            // X scale
-            const x = d3.scaleLinear()
-                .domain([0, 1])
-                .range([0, width]);
-                
-            // Y scale
-            const y = d3.scaleLinear()
-                .domain([0, 1])
-                .range([height, 0]);
-                
-            // Line generators
-            const teacherLine = d3.line()
-                .x(d => x(d.x))
-                .y(d => y(d.y));
-                
-            const studentLine = d3.line()
-                .x(d => x(d.x))
-                .y(d => y(d.y));
-                
-            // Add X axis
-            g.append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x));
-                
-            // Add Y axis
-            g.append("g")
-                .call(d3.axisLeft(y));
-                
-            // Add X axis label
-            g.append("text")
-                .attr("text-anchor", "middle")
-                .attr("x", width/2)
-                .attr("y", height + margin.top + 15)
-                .text("Probability Value");
-                
-            // Add Y axis label
-            g.append("text")
-                .attr("text-anchor", "middle")
-                .attr("transform", "rotate(-90)")
-                .attr("y", -margin.left + 15)
-                .attr("x", -height/2)
-                .text("Cumulative Probability");
-                
-            // Draw teacher line
-            g.append("path")
-                .datum(teacherCdf)
-                .attr("fill", "none")
-                .attr("stroke", "#2b5876")
-                .attr("stroke-width", 2)
-                .attr("d", teacherLine);
-                
-            // Draw student line
-            g.append("path")
-                .datum(studentCdf)
-                .attr("fill", "none")
-                .attr("stroke", "#4e4376")
-                .attr("stroke-width", 2)
-                .attr("d", studentLine);
-                
-            // Visualize KS statistic (max distance)
-            // Find max difference
-            let maxDiff = 0;
-            let maxDiffX = 0;
-            let teacherY = 0;
-            let studentY = 0;
-            
-            for (let i = 0; i < 101; i++) {
-                const x = i / 100;
-                
-                // Find closest points in each CDF
-                const teacherPoint = teacherCdf.reduce((prev, curr) => 
-                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
-                    
-                const studentPoint = studentCdf.reduce((prev, curr) => 
-                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
-                
-                const diff = Math.abs(teacherPoint.y - studentPoint.y);
-                
-                if (diff > maxDiff) {
-                    maxDiff = diff;
-                    maxDiffX = x;
-                    teacherY = teacherPoint.y;
-                    studentY = studentPoint.y;
-                }
-            }
-            
-            // Draw KS statistic line
-            g.append("line")
-                .attr("x1", x(maxDiffX))
-                .attr("y1", y(teacherY))
-                .attr("x2", x(maxDiffX))
-                .attr("y2", y(studentY))
-                .attr("stroke", "red")
-                .attr("stroke-width", 2)
-                .attr("stroke-dasharray", "4");
-                
-            g.append("text")
-                .attr("x", x(maxDiffX) + 5)
-                .attr("y", y((teacherY + studentY) / 2))
-                .attr("text-anchor", "start")
-                .attr("font-size", "12px")
-                .text(`KS: ${maxDiff.toFixed(3)}`);
-        }
-        
-        function createQQPlot() {
-            const svg = d3.select("#qq-plot")
-                .append("svg")
-                .attr("width", "100%")
-                .attr("height", "100%")
-                .attr("viewBox", "0 0 600 300");
-                
-            const margin = {top: 20, right: 30, bottom: 40, left: 40};
-            const width = 600 - margin.left - margin.right;
-            const height = 300 - margin.top - margin.bottom;
-            
-            const g = svg.
+</html>
