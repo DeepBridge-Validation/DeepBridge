@@ -18,7 +18,8 @@ class DistillationConfig:
         random_state: int = 42,
         n_trials: int = 10,
         validation_split: float = 0.2,
-        verbose: bool = True
+        verbose: bool = True,
+        distillation_method: str = "surrogate"
     ):
         """
         Initialize distillation configuration.
@@ -30,6 +31,7 @@ class DistillationConfig:
             n_trials: Number of Optuna trials for hyperparameter optimization
             validation_split: Fraction of data to use for validation during optimization
             verbose: Whether to show progress messages
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         """
         self.output_dir = output_dir
         self.test_size = test_size
@@ -37,6 +39,7 @@ class DistillationConfig:
         self.n_trials = n_trials
         self.validation_split = validation_split
         self.verbose = verbose
+        self.distillation_method = distillation_method
         
         # Set default configuration
         self._set_default_config()
@@ -69,7 +72,8 @@ class DistillationConfig:
         self,
         model_types: Optional[List[ModelType]] = None,
         temperatures: Optional[List[float]] = None,
-        alphas: Optional[List[float]] = None
+        alphas: Optional[List[float]] = None,
+        distillation_method: Optional[str] = None
     ):
         """
         Customize the configuration for distillation experiments.
@@ -78,6 +82,7 @@ class DistillationConfig:
             model_types: List of ModelType to test (defaults to standard list if None)
             temperatures: List of temperature values to test (defaults to [0.5, 1.0, 2.0] if None)
             alphas: List of alpha values to test (defaults to [0.3, 0.5, 0.7] if None)
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         """
         if model_types is not None:
             self.model_types = model_types
@@ -85,6 +90,8 @@ class DistillationConfig:
             self.temperatures = temperatures
         if alphas is not None:
             self.alphas = alphas
+        if distillation_method is not None:
+            self.distillation_method = distillation_method
     
     def get_total_configurations(self) -> int:
         """

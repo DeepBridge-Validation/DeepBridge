@@ -80,7 +80,8 @@ class AutoDistiller:
         self,
         model_types: Optional[List[ModelType]] = None,
         temperatures: Optional[List[float]] = None,
-        alphas: Optional[List[float]] = None
+        alphas: Optional[List[float]] = None,
+        distillation_method: Optional[str] = None
     ):
         """
         Customize the configuration for distillation experiments.
@@ -89,11 +90,13 @@ class AutoDistiller:
             model_types: List of ModelType to test (defaults to standard list if None)
             temperatures: List of temperature values to test (defaults to [0.5, 1.0, 2.0] if None)
             alphas: List of alpha values to test (defaults to [0.3, 0.5, 0.7] if None)
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         """
         self.config.customize(
             model_types=model_types,
             temperatures=temperatures,
-            alphas=alphas
+            alphas=alphas,
+            distillation_method=distillation_method
         )
     
     def original_metrics(self) -> Dict[str, Dict[str, float]]:
@@ -225,9 +228,10 @@ class AutoDistiller:
             sys.stdout = open(os.devnull, 'w')
         
         try:
-            # Run experiments
+            # Run experiments with o método configurado
             self.results_df = self.experiment_runner.run_experiments(
-                use_probabilities=use_probabilities
+                use_probabilities=use_probabilities,
+                distillation_method=self.config.distillation_method
             )
             
             # Save results
@@ -312,7 +316,13 @@ class AutoDistiller:
         
         return best_config
         
-    def get_trained_model(self, model_type: Union[ModelType, str], temperature: float, alpha: float):
+    def get_trained_model(
+        self, 
+        model_type: Union[ModelType, str], 
+        temperature: float, 
+        alpha: float,
+        distillation_method: Optional[str] = None
+    ):
         """
         Get a trained model with specific configuration.
         
@@ -320,10 +330,15 @@ class AutoDistiller:
             model_type: Type of model to train (ModelType enum or string)
             temperature: Temperature parameter
             alpha: Alpha parameter
+            distillation_method: Method to use for distillation 
+                                (uses config value if None)
         
         Returns:
             Trained distillation model
         """
+        # Use o método de distilação da configuração se não for especificado
+        method = distillation_method or self.config.distillation_method
+        
         # Convert string to ModelType if needed
         if isinstance(model_type, str):
             try:
@@ -340,7 +355,8 @@ class AutoDistiller:
         return self.experiment_runner.get_trained_model(
             model_type=model_type,
             temperature=temperature,
-            alpha=alpha
+            alpha=alpha,
+            distillation_method=method
         )
     
     def save_best_model(self, metric: str = 'test_accuracy', minimize: bool = False, 

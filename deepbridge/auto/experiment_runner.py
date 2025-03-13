@@ -48,12 +48,13 @@ class ExperimentRunner:
         # Initialize metrics calculator
         self.metrics_calculator = Classification()
     
-    def run_experiments(self, use_probabilities: bool = True) -> pd.DataFrame:
+    def run_experiments(self, use_probabilities: bool = True, distillation_method: str = "knowledge_distillation") -> pd.DataFrame:
         """
         Run distillation experiments for all configurations.
         
         Args:
             use_probabilities: Whether to use pre-calculated probabilities or teacher model
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         
         Returns:
             DataFrame containing results for all configurations
@@ -64,6 +65,7 @@ class ExperimentRunner:
         self.config.log_info(f"Starting experiments with {len(self.config.model_types)} models, "
                              f"{len(self.config.temperatures)} temperatures, and {len(self.config.alphas)} alpha values")
         self.config.log_info(f"Total configurations to test: {self.config.get_total_configurations()}")
+        self.config.log_info(f"Using distillation method: {distillation_method}")
         
         # Test all combinations
         for model_type in self.config.model_types:
@@ -75,7 +77,8 @@ class ExperimentRunner:
                         model_type=model_type,
                         temperature=temperature,
                         alpha=alpha,
-                        use_probabilities=use_probabilities
+                        use_probabilities=use_probabilities,
+                        distillation_method=distillation_method
                     )
                     self.results.append(result)
         
@@ -92,7 +95,8 @@ class ExperimentRunner:
         model_type: ModelType,
         temperature: float,
         alpha: float,
-        use_probabilities: bool
+        use_probabilities: bool,
+        distillation_method: str = "knowledge_distillation"
     ) -> Dict[str, Any]:
         """
         Run a single distillation experiment with specific parameters.
@@ -102,6 +106,7 @@ class ExperimentRunner:
             temperature: Temperature value for distillation
             alpha: Alpha value for distillation
             use_probabilities: Whether to use pre-calculated probabilities
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         
         Returns:
             Dictionary containing experiment results
@@ -114,7 +119,8 @@ class ExperimentRunner:
                 use_probabilities=use_probabilities,
                 n_trials=self.config.n_trials,
                 validation_split=self.config.validation_split,
-                verbose=False
+                verbose=False,
+                distillation_method=distillation_method
             )
             
             # Get metrics from experiment results
@@ -126,6 +132,7 @@ class ExperimentRunner:
                 'model_type': model_type.name,
                 'temperature': temperature,
                 'alpha': alpha,
+                'distillation_method': distillation_method,
                 'train_accuracy': train_metrics.get('accuracy', None),
                 'test_accuracy': test_metrics.get('accuracy', None),
                 'train_precision': train_metrics.get('precision', None),
@@ -150,6 +157,10 @@ class ExperimentRunner:
                 'best_params': str(test_metrics.get('best_params', {}))
             }
             
+            # Incluir informação sobre o método de distilação usado nos resultados
+            if 'distillation_method' in test_metrics:
+                result['distillation_class'] = test_metrics['distillation_method']
+            
             return result
             
         except Exception as e:
@@ -158,10 +169,17 @@ class ExperimentRunner:
                 'model_type': model_type.name,
                 'temperature': temperature,
                 'alpha': alpha,
+                'distillation_method': distillation_method,
                 'error': str(e)
             }
     
-    def get_trained_model(self, model_type: ModelType, temperature: float, alpha: float):
+    def get_trained_model(
+        self, 
+        model_type: ModelType, 
+        temperature: float, 
+        alpha: float, 
+        distillation_method: str = "knowledge_distillation"
+    ):
         """
         Get a trained model with specific configuration.
         
@@ -169,6 +187,7 @@ class ExperimentRunner:
             model_type: Type of model to train
             temperature: Temperature parameter
             alpha: Alpha parameter
+            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
         
         Returns:
             Trained distillation model
@@ -180,7 +199,8 @@ class ExperimentRunner:
             use_probabilities=True,
             n_trials=self.config.n_trials,
             validation_split=self.config.validation_split,
-            verbose=self.config.verbose
+            verbose=self.config.verbose,
+            distillation_method=distillation_method
         )
         
         return self.experiment.distillation_model
