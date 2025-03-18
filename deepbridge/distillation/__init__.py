@@ -1,10 +1,17 @@
 """
-Package containing pre-trained distilled models and their metadata.
-This directory is used for model persistence and loading.
+Model distillation components and algorithms.
 """
 
-from pathlib import Path
+from deepbridge.distillation.auto_distiller import AutoDistiller
+from deepbridge.distillation.experiment_runner import ExperimentRunner
+from deepbridge.distillation.techniques.knowledge_distillation import KnowledgeDistillation
+from deepbridge.distillation.techniques.surrogate import SurrogateModel
+from deepbridge.distillation.techniques.ensemble import EnsembleDistillation
 
-MODELS_DIR = Path(__file__).parent
-
-__all__ = ["MODELS_DIR"]
+__all__ = [
+    "AutoDistiller",
+    "ExperimentRunner",
+    "KnowledgeDistillation", 
+    "SurrogateModel",
+    "EnsembleDistillation"
+]

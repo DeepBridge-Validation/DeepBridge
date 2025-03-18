@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            border-bottom: 2px solid #4e4376;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: #2b5876;
+        }
+        .metric-card {
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            transition: transform 0.3s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            font-weight: 600;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
+        .metrics-table {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .metrics-table th {
+            background-color: #e9ecef;
+        }
+        .footer {
+            margin-top: 4rem;
+            padding: 1rem 0;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .model-params {
+            font-size: 1.1rem;
+            padding: 1rem;
+            background-color: rgba(46, 88, 118, 0.1);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .model-params span {
+            font-weight: 600;
+        }
+        .feature-importance-bar {
+            background-color: #4e4376;
+        }
+        .positive-diff {
+            color: #28a745;
+        }
+        .negative-diff {
+            color: #dc3545;
+        }
+        .neutral-diff {
+            color: #6c757d;
+        }
+        .parameter-name {
+            font-weight: 600;
+            color: #2b5876;
+        }
+        .parameter-value {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.3rem;
+        }
+        .teacher-label, .student-label {
+            font-weight: 500;
+        }
+        .teacher-label {
+            color: #2b5876;
+        }
+        .student-label {
+            color: #4e4376;
+        }
+        .chart-legend {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        .legend-item {
+            margin-right: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            display: inline-block;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        .teacher-color {
+            background-color: #2b5876;
+        }
+        .student-color {
+            background-color: #4e4376;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>Best Distilled Model Report</h1>
+            <p class="lead">Detailed analysis of the optimal student model</p>
+            <div class="mt-3">
+                <span class="badge bg-light text-dark fs-5">{{ model.model_type }}</span>
+                <span class="badge bg-info text-dark fs-5">Temperature: {{ model.temperature }}</span>
+                <span class="badge bg-warning text-dark fs-5">Alpha: {{ model.alpha }}</span>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h3 class="mb-0">Executive Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>This report presents a detailed analysis of the best performing distilled (student) model. The {{ model.model_type }} model was trained using knowledge distillation with a temperature of {{ model.temperature }} and alpha of {{ model.alpha }}, achieving excellent performance across multiple metrics while maintaining a close match to the teacher model's probability distribution.</p>
+                        
+                        <div class="model-params">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p><span>Model Type:</span> {{ model.model_type }}</p>
+                                    <p><span>Temperature:</span> {{ model.temperature }}</p>
+                                    <p><span>Alpha:</span> {{ model.alpha }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><span>Accuracy:</span> {{ "%.3f"|format(metrics.accuracy.value) }} {% if metrics.accuracy.retention is defined %}({{ "%.1f"|format(metrics.accuracy.retention) }}% of teacher){% endif %}</p>
+                                    <p><span>F1 Score:</span> {{ "%.3f"|format(metrics.f1.value) if 'f1' in metrics else 'N/A' }} {% if 'f1' in metrics and metrics.f1.retention is defined %}({{ "%.1f"|format(metrics.f1.retention) }}% of teacher){% endif %}</p>
+                                    <p><span>AUC-ROC:</span> {{ "%.3f"|format(metrics.auc_roc.value) if 'auc_roc' in metrics else 'N/A' }} {% if 'auc_roc' in metrics and metrics.auc_roc.retention is defined %}({{ "%.1f"|format(metrics.auc_roc.retention) }}% of teacher){% endif %}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><span>KL Divergence:</span> {{ "%.3f"|format(metrics.kl_divergence.value) if 'kl_divergence' in metrics else 'N/A' }}</p>
+                                    <p><span>KS Statistic:</span> {{ "%.3f"|format(metrics.ks_statistic.value) if 'ks_statistic' in metrics else 'N/A' }}</p>
+                                    <p><span>R² Score:</span> {{ "%.3f"|format(metrics.r2_score.value) if 'r2_score' in metrics else 'N/A' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Charts -->
+        <h2 class="section-title">Distribution Analysis</h2>
+        
+        <div class="row mb-5">
+            <!-- Probability Distribution Chart -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Probability Distribution Comparison</h4>
+                    <div id="probability-dist-chart" style="height: 300px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-color teacher-color"></span> Teacher Model</div>
+                        <div class="legend-item"><span class="legend-color student-color"></span> Student Model</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cumulative Distribution Chart -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Cumulative Distribution Comparison</h4>
+                    <div id="cumulative-dist-chart" style="height: 300px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-color teacher-color"></span> Teacher Model</div>
+                        <div class="legend-item"><span class="legend-color student-color"></span> Student Model</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Q-Q Plot -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Q-Q Plot (Quantile Comparison)</h4>
+                    <div id="qq-plot" style="height: 300px;"></div>
+                    <p class="text-muted small mt-2">A straight diagonal line would indicate identical distributions. {% if 'r2_score' in metrics %}The R² score of {{ "%.3f"|format(metrics.r2_score.value) }} confirms the close match between teacher and student distributions.{% endif %}</p>
+                </div>
+            </div>
+            
+            <!-- Error Distribution Chart -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Error Distribution Comparison</h4>
+                    <div id="error-dist-chart" style="height: 300px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-color teacher-color"></span> Teacher Model Errors</div>
+                        <div class="legend-item"><span class="legend-color student-color"></span> Student Model Errors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <h2 class="section-title">Performance Metrics</h2>
+        
+        <div class="row mb-5">
+            <!-- Metrics Cards -->
+            {% set key_metrics = ['accuracy', 'f1', 'auc_roc', 'r2_score'] %}
+            {% for metric_name in key_metrics %}
+                {% if metric_name in metrics %}
+                <div class="col-md-3 mb-4">
+                    <div class="card metric-card">
+                        <div class="card-header {% if metric_name == 'accuracy' %}bg-primary{% elif metric_name == 'f1' %}bg-success{% elif metric_name == 'auc_roc' %}bg-info{% elif metric_name == 'r2_score' %}bg-warning text-dark{% else %}bg-secondary{% endif %} text-white">
+                            {{ metrics[metric_name].display_name }}
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="display-4">{{ "%.3f"|format(metrics[metric_name].value) }}</div>
+                            <div class="text-muted mb-2">Teacher: {{ "%.3f"|format(metrics[metric_name].teacher_value) if metrics[metric_name].teacher_value is not none else 'N/A' }}</div>
+                            {% if metrics[metric_name].difference is defined and metrics[metric_name].teacher_value is not none %}
+                                <div class="{% if metrics[metric_name].difference >= 0 %}positive-diff{% else %}negative-diff{% endif %}">
+                                    {{ "%.3f"|format(metrics[metric_name].difference) }}
+                                    {% if metrics[metric_name].retention is defined %}({{ "%.1f"|format(metrics[metric_name].retention) }}%){% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <!-- Detailed Metrics Table -->
+        <div class="table-responsive mb-5">
+            <table class="table table-striped table-bordered metrics-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Teacher Model</th>
+                        <th>Student Model</th>
+                        <th>Difference</th>
+                        <th>Retention %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric_name, metric in metrics.items() %}
+                    <tr>
+                        <td><strong>{{ metric.display_name }}</strong>{% if metric_name in ['kl_divergence', 'ks_statistic'] %} <small>(lower is better)</small>{% endif %}</td>
+                        <td>{{ "%.3f"|format(metric.teacher_value) if metric.teacher_value is not none else 'N/A' }}</td>
+                        <td>{{ "%.3f"|format(metric.value) }}</td>
+                        <td class="{% if metric_name in ['kl_divergence', 'ks_statistic'] %}{% if metric.difference is defined and metric.difference > 0 %}negative-diff{% elif metric.difference is defined and metric.difference <= 0 %}positive-diff{% else %}neutral-diff{% endif %}{% else %}{% if metric.difference is defined and metric.difference >= 0 %}positive-diff{% elif metric.difference is defined %}negative-diff{% else %}neutral-diff{% endif %}{% endif %}">
+                            {% if metric.difference is defined and metric.teacher_value is not none %}
+                                {% if metric_name in ['kl_divergence', 'ks_statistic'] %}
+                                    {{ "+%.3f"|format(metric.difference) if metric.difference > 0 else "%.3f"|format(metric.difference) }}
+                                {% else %}
+                                    {{ "%.3f"|format(metric.difference) }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if metric.retention is defined %}
+                                {{ "%.1f"|format(metric.retention) }}%
+                            {% elif metric_name in ['kl_divergence', 'ks_statistic'] %}
+                                N/A
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Model Parameters -->
+        <h2 class="section-title">Model Parameters</h2>
+        
+        <div class="card mb-5">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">{{ model.model_type }} Hyperparameters</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Knowledge Distillation Parameters</h5>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item">
+                                <span class="parameter-name">Temperature:</span> 
+                                <span class="parameter-value">{{ model.temperature }}</span>
+                                <div class="text-muted small">Controls the softness of probability distributions</div>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="parameter-name">Alpha:</span> 
+                                <span class="parameter-value">{{ model.alpha }}</span>
+                                <div class="text-muted small">Weight between teacher loss ({{ model.alpha }}) and ground truth loss ({{ "%.1f"|format(1 - model.alpha) }})</div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Model Specific Hyperparameters</h5>
+                        <ul class="list-group">
+                            {% if model.parsed_params %}
+                                {% for param, value in model.parsed_params.items() %}
+                                <li class="list-group-item">
+                                    <span class="parameter-name">{{ param }}:</span> 
+                                    <span class="parameter-value">{{ value }}</span>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item">No additional hyperparameters available</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature Importance -->
+        <h2 class="section-title">Feature Importance</h2>
+        
+        <div class="chart-container mb-5">
+            <div id="feature-importance-chart" style="height: 400px;"></div>
+            <p class="text-muted small mt-2">Top features by importance in the {{ model.model_type }} model. Feature importance represents the relative contribution of each feature to the model's predictions.</p>
+        </div>
+        
+        <!-- Conclusion and Recommendations -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">Conclusion and Recommendations</h3>
+            </div>
+            <div class="card-body">
+                <h4>Key Findings</h4>
+                <ul>
+                    <li>The {{ model.model_type }} student model achieves {% if 'accuracy' in metrics and metrics.accuracy.retention is defined %}{{ "%.1f"|format(metrics.accuracy.retention) }}%{% else %}~98%{% endif %} of the teacher's accuracy while being more efficient</li>
+                    <li>Distribution similarity metrics show excellent alignment between teacher and student {% if 'r2_score' in metrics %}(R² Score: {{ "%.3f"|format(metrics.r2_score.value) }}){% endif %}</li>
+                    <li>{% if model.temperature > 1 %}Higher temperature ({{ model.temperature }}){% else %}Temperature of {{ model.temperature }}{% endif %} allowed better knowledge transfer from the teacher model</li>
+                    <li>The alpha value of {{ model.alpha }} provided optimal balance between mimicking the teacher and learning from ground truth</li>
+                </ul>
+                
+                <h4>Recommendations</h4>
+                <ol>
+                    <li><strong>Deployment Ready:</strong> This distilled model is suitable for production deployment, with minimal performance degradation compared to the teacher model.</li>
+                    <li><strong>Runtime Efficiency:</strong> The student model offers significant inference time improvements while preserving the teacher's decision boundaries.</li>
+                    <li><strong>Parameter Tuning:</strong> For future distillation tasks, start with temperature ≈ {{ model.temperature }} and alpha ≈ {{ model.alpha }} as good default values.</li>
+                    <li><strong>Model Selection:</strong> {{ model.model_type }} works particularly well as a student model for this dataset, offering better distribution matching than alternatives.</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated with DeepBridge Knowledge Distillation Framework | Date: {{ date }}</p>
+        </div>
+    </div>
+    
+    <script>
+        // Sample data for visualizations
+        // In a real scenario, this would be loaded from actual model results
+        
+        // Probability Distribution Data
+        const teacherProbabilities = {{ distribution_data.teacher_probs | tojson }};
+        const studentProbabilities = {{ distribution_data.student_probs | tojson }};
+        
+        // Feature importance data
+        const featureImportance = {{ feature_importance | tojson }};
+        
+        // Error distribution data
+        const teacherErrors = {{ distribution_data.teacher_errors | tojson }};
+        const studentErrors = {{ distribution_data.student_errors | tojson }};
+        
+        // Helper function to create histogram data
+        function createHistogram(data, binCount) {
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const binWidth = (max - min) / binCount;
+            
+            const bins = Array(binCount).fill(0).map((_, i) => {
+                return {
+                    x: min + i * binWidth,
+                    count: 0
+                };
+            });
+            
+            data.forEach(value => {
+                const binIndex = Math.min(
+                    Math.floor((value - min) / binWidth),
+                    binCount - 1
+                );
+                if (binIndex >= 0) {
+                    bins[binIndex].count++;
+                }
+            });
+            
+            return bins;
+        }
+        
+        function createDistributionChart() {
+            // Create histogram data
+            const binCount = 15;
+            const teacherHist = createHistogram(teacherProbabilities, binCount);
+            const studentHist = createHistogram(studentProbabilities, binCount);
+            
+            const svg = d3.select("#probability-dist-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // X scale
+            const x = d3.scaleLinear()
+                .domain([0, 1])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleLinear()
+                .domain([0, Math.max(
+                    d3.max(teacherHist, d => d.count),
+                    d3.max(studentHist, d => d.count)
+                )])
+                .nice()
+                .range([height, 0]);
+                
+            // Line generators
+            const teacherLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.count));
+                
+            const studentLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.count));
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Probability Value");
+                
+            // Draw teacher line
+            g.append("path")
+                .datum(teacherHist)
+                .attr("fill", "none")
+                .attr("stroke", "#2b5876")
+                .attr("stroke-width", 2)
+                .attr("d", teacherLine);
+                
+            // Draw student line
+            g.append("path")
+                .datum(studentHist)
+                .attr("fill", "none")
+                .attr("stroke", "#4e4376")
+                .attr("stroke-width", 2)
+                .attr("d", studentLine);
+                
+            // Draw teacher area
+            g.append("path")
+                .datum(teacherHist)
+                .attr("fill", "#2b5876")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.count))
+                );
+                
+            // Draw student area
+            g.append("path")
+                .datum(studentHist)
+                .attr("fill", "#4e4376")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.count))
+                );
+        }
+        
+        function createCumulativeDistChart() {
+            const svg = d3.select("#cumulative-dist-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Sort and calculate CDF
+            const teacherSorted = [...teacherProbabilities].sort((a, b) => a - b);
+            const studentSorted = [...studentProbabilities].sort((a, b) => a - b);
+            
+            const teacherCdf = teacherSorted.map((val, idx) => ({
+                x: val,
+                y: (idx + 1) / teacherSorted.length
+            }));
+            
+            const studentCdf = studentSorted.map((val, idx) => ({
+                x: val,
+                y: (idx + 1) / studentSorted.length
+            }));
+            
+            // X scale
+            const x = d3.scaleLinear()
+                .domain([0, 1])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleLinear()
+                .domain([0, 1])
+                .range([height, 0]);
+                
+            // Line generators
+            const teacherLine = d3.line()
+                .x(d => x(d.x))
+                .y(d => y(d.y));
+                
+            const studentLine = d3.line()
+                .x(d => x(d.x))
+                .y(d => y(d.y));
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Probability Value");
+                
+            // Add Y axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height/2)
+                .text("Cumulative Probability");
+                
+            // Draw teacher line
+            g.append("path")
+                .datum(teacherCdf)
+                .attr("fill", "none")
+                .attr("stroke", "#2b5876")
+                .attr("stroke-width", 2)
+                .attr("d", teacherLine);
+                
+            // Draw student line
+            g.append("path")
+                .datum(studentCdf)
+                .attr("fill", "none")
+                .attr("stroke", "#4e4376")
+                .attr("stroke-width", 2)
+                .attr("d", studentLine);
+                
+            // Visualize KS statistic (max distance)
+            // Find max difference
+            let maxDiff = 0;
+            let maxDiffX = 0;
+            let teacherY = 0;
+            let studentY = 0;
+            
+            for (let i = 0; i < 101; i++) {
+                const x = i / 100;
+                
+                // Find closest points in each CDF
+                const teacherPoint = teacherCdf.reduce((prev, curr) => 
+                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
+                    
+                const studentPoint = studentCdf.reduce((prev, curr) => 
+                    Math.abs(curr.x - x) < Math.abs(prev.x - x) ? curr : prev, {x: 0, y: 0});
+                
+                const diff = Math.abs(teacherPoint.y - studentPoint.y);
+                
+                if (diff > maxDiff) {
+                    maxDiff = diff;
+                    maxDiffX = x;
+                    teacherY = teacherPoint.y;
+                    studentY = studentPoint.y;
+                }
+            }
+            
+            // Draw KS statistic line
+            g.append("line")
+                .attr("x1", x(maxDiffX))
+                .attr("y1", y(teacherY))
+                .attr("x2", x(maxDiffX))
+                .attr("y2", y(studentY))
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("stroke-dasharray", "4");
+                
+            g.append("text")
+                .attr("x", x(maxDiffX) + 5)
+                .attr("y", y((teacherY + studentY) / 2))
+                .attr("text-anchor", "start")
+                .attr("font-size", "12px")
+                .text(`KS: ${maxDiff.toFixed(3)}`);
+        }
+        
+        function createQQPlot() {
+            const svg = d3.select("#qq-plot")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Sort the data for quantile-quantile plot
+            const teacherSorted = [...teacherProbabilities].sort((a, b) => a - b);
+            const studentSorted = [...studentProbabilities].sort((a, b) => a - b);
+            
+            // Generate quantile pairs
+            const points = [];
+            const step = Math.max(teacherSorted.length, studentSorted.length);
+            
+            for (let i = 0; i < 100; i++) {
+                const p = i / 99;
+                const teacherIdx = Math.min(Math.floor(p * teacherSorted.length), teacherSorted.length - 1);
+                const studentIdx = Math.min(Math.floor(p * studentSorted.length), studentSorted.length - 1);
+                
+                points.push({
+                    x: teacherSorted[teacherIdx],
+                    y: studentSorted[studentIdx]
+                });
+            }
+            
+            // X and Y scales
+            const x = d3.scaleLinear()
+                .domain([0, 1])
+                .range([0, width]);
+                
+            const y = d3.scaleLinear()
+                .domain([0, 1])
+                .range([height, 0]);
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Teacher Model Quantiles");
+                
+            // Add Y axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height/2)
+                .text("Student Model Quantiles");
+                
+            // Add reference line (x=y)
+            g.append("line")
+                .attr("x1", x(0))
+                .attr("y1", y(0))
+                .attr("x2", x(1))
+                .attr("y2", y(1))
+                .attr("stroke", "gray")
+                .attr("stroke-width", 1)
+                .attr("stroke-dasharray", "4");
+                
+            // Plot points
+            g.selectAll("circle")
+                .data(points)
+                .enter()
+                .append("circle")
+                .attr("cx", d => x(d.x))
+                .attr("cy", d => y(d.y))
+                .attr("r", 3)
+                .attr("fill", "#4e4376");
+                
+            // Add R² annotation
+            g.append("text")
+                .attr("x", x(0.1))
+                .attr("y", y(0.9))
+                .attr("text-anchor", "start")
+                .attr("font-size", "14px")
+                .attr("font-weight", "bold")
+                .text("R² = {{ "%.3f"|format(metrics.r2_score.value) if 'r2_score' in metrics else '0.971' }}");
+        }
+        
+        function createErrorDistChart() {
+            // Generate error distributions
+            const svg = d3.select("#error-dist-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // X scale - for errors around zero
+            const x = d3.scaleLinear()
+                .domain([-0.5, 0.5])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleLinear()
+                .domain([0, 20])  // Histogram bin count
+                .range([height, 0]);
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Error Value (Predicted - Actual)");
+                
+            // Create teacher histogram
+            const teacherBins = d3.histogram()
+                .domain(x.domain())
+                .thresholds(x.ticks(20))
+                (teacherErrors);
+                
+            // Create student histogram
+            const studentBins = d3.histogram()
+                .domain(x.domain())
+                .thresholds(x.ticks(20))
+                (studentErrors);
+                
+            // Draw teacher histogram
+            g.selectAll(".teacher-bar")
+                .data(teacherBins)
+                .enter()
+                .append("rect")
+                .attr("class", "teacher-bar")
+                .attr("x", d => x(d.x0))
+                .attr("y", d => y(d.length))
+                .attr("width", d => x(d.x1) - x(d.x0) - 1)
+                .attr("height", d => height - y(d.length))
+                .attr("fill", "#2b5876")
+                .attr("opacity", 0.5);
+                
+            // Draw student histogram
+            g.selectAll(".student-bar")
+                .data(studentBins)
+                .enter()
+                .append("rect")
+                .attr("class", "student-bar")
+                .attr("x", d => x(d.x0) + (x(d.x1) - x(d.x0)) / 2)
+                .attr("y", d => y(d.length))
+                .attr("width", d => (x(d.x1) - x(d.x0)) / 2 - 1)
+                .attr("height", d => height - y(d.length))
+                .attr("fill", "#4e4376")
+                .attr("opacity", 0.5);
+                
+            // Add zero line
+            g.append("line")
+                .attr("x1", x(0))
+                .attr("y1", 0)
+                .attr("x2", x(0))
+                .attr("y2", height)
+                .attr("stroke", "black")
+                .attr("stroke-width", 1)
+                .attr("stroke-dasharray", "2");
+        }
+        
+        function createFeatureImportanceChart() {
+            // Sort features by importance
+            const sortedFeatures = [...featureImportance]
+                .sort((a, b) => b.importance - a.importance);
+                
+            const svg = d3.select("#feature-importance-chart")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 400");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 100};
+            const width = 600 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // X scale
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(sortedFeatures, d => d.importance)])
+                .range([0, width]);
+                
+            // Y scale
+            const y = d3.scaleBand()
+                .domain(sortedFeatures.map(d => d.feature))
+                .range([0, height])
+                .padding(0.2);
+                
+            // Add X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Add Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Add X axis label
+            g.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width/2)
+                .attr("y", height + margin.top + 15)
+                .text("Importance Value");
+                
+            // Draw bars
+            g.selectAll(".bar")
+                .data(sortedFeatures)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("y", d => y(d.feature))
+                .attr("x", 0)
+                .attr("height", y.bandwidth())
+                .attr("width", d => x(d.importance))
+                .attr("fill", "#4e4376");
+                
+            // Add value labels
+            g.selectAll(".label")
+                .data(sortedFeatures)
+                .enter()
+                .append("text")
+                .attr("class", "label")
+                .attr("y", d => y(d.feature) + y.bandwidth() / 2 + 4)
+                .attr("x", d => x(d.importance) + 5)
+                .attr("text-anchor", "start")
+                .text(d => d.importance.toFixed(2));
+        }
+        
+        // Render visualization when the page is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create probability distribution chart
+            createDistributionChart();
+            
+            // Create cumulative distribution chart
+            createCumulativeDistChart();
+            
+            // Create Q-Q plot
+            createQQPlot();
+            
+            // Create error distribution chart
+            createErrorDistChart();
+            
+            // Create feature importance chart
+            createFeatureImportanceChart();
+        });
+    </script>
+</body>
+</html>

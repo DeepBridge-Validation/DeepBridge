@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #4a6fdc 0%, #6a5acd 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .metric-card {
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+            font-weight: 600;
+        }
+        .model-name {
+            font-weight: 700;
+            color: #4a6fdc;
+        }
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .metric-diff {
+            font-size: 0.9rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+        }
+        .metric-diff.positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .metric-diff.negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .metrics-table th {
+            background-color: #f8f9fa;
+        }
+        .teacher-value {
+            background-color: #e7f1ff;
+            font-weight: 500;
+        }
+        .student-value {
+            background-color: #ffeeba;
+            font-weight: 500;
+        }
+        .footer {
+            margin-top: 4rem;
+            padding: 1rem 0;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .better-lower {
+            color: #721c24;
+            font-size: 0.8rem;
+        }
+        .better-higher {
+            color: #155724;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>Model Distillation Report</h1>
+            <p class="lead">Comparison of Best Student Models by Metric</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <h4 class="alert-heading">About This Report</h4>
+                    <p>This report presents the best student models for each evaluation metric, comparing their performance with the teacher model. The report shows the optimal hyperparameters (model type, temperature, and alpha) for each metric.</p>
+                    <hr>
+                    <p class="mb-0">Models were trained using knowledge distillation to transfer knowledge from a complex teacher model to simpler, more efficient student models.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <h2 class="mb-4">Best Models by Metric</h2>
+        <div class="row mb-5">
+            {% for metric_key, model in best_models.items() %}
+            {% if metric_key in ['test_accuracy', 'test_kl_divergence', 'test_ks_statistic', 'test_r2_score', 'test_auc_roc', 'test_f1'] %}
+            <div class="col-md-4 mb-4">
+                <div class="card metric-card">
+                    <div class="card-header {% if metric_key == 'test_accuracy' %}bg-primary text-white{% elif metric_key == 'test_kl_divergence' %}bg-success text-white{% elif metric_key == 'test_ks_statistic' %}bg-warning text-dark{% elif metric_key == 'test_r2_score' %}bg-info text-white{% elif metric_key == 'test_auc_roc' %}bg-danger text-white{% else %}bg-secondary text-white{% endif %}">
+                        Best by {{ model.display_name }}
+                        {% if model.minimize %}
+                        <span class="better-lower">(lower is better)</span>
+                        {% elif metric_key == 'test_r2_score' %}
+                        <span class="better-higher">(higher is better)</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="model-name">{{ model.model_type }}</h5>
+                        <div class="mb-2">Temperature: <span class="badge bg-secondary">{{ model.temperature }}</span></div>
+                        <div class="mb-3">Alpha: <span class="badge bg-secondary">{{ model.alpha }}</span></div>
+                        <hr>
+                        <div>{{ model.display_name }}: <span class="metric-value">{{ "%.3f"|format(model.value) }}</span></div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Teacher: {{ "%.3f"|format(model.teacher_value) if model.teacher_value is not none else 'N/A' }}</span>
+                            {% if model.difference is defined and model.teacher_value is not none %}
+                                {% if model.minimize %}
+                                <span class="metric-diff negative">{{ "+%.3f"|format(model.difference) if model.difference > 0 else "%.3f"|format(model.difference) }}</span>
+                                {% else %}
+                                <span class="metric-diff {% if model.difference >= 0 %}positive{% else %}negative{% endif %}">
+                                    {{ "%.3f"|format(model.difference) }}
+                                    {% if model.retention is defined and model.retention is not none %}
+                                    ({{ "%.1f"|format(model.retention) }}%)
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Detailed Metrics Table -->
+        <h2 class="mb-4">Detailed Metrics Comparison</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered metrics-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Best Model Type</th>
+                        <th>Temp</th>
+                        <th>Alpha</th>
+                        <th>Teacher Value</th>
+                        <th>Student Value</th>
+                        <th>Difference</th>
+                        <th>Retention %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric_key, model in best_models.items() %}
+                    <tr>
+                        <td><strong>{{ model.display_name }}</strong>{% if model.minimize %} <span class="better-lower">(lower is better)</span>{% endif %}</td>
+                        <td>{{ model.model_type }}</td>
+                        <td>{{ model.temperature }}</td>
+                        <td>{{ model.alpha }}</td>
+                        <td class="teacher-value">{{ "%.3f"|format(model.teacher_value) if model.teacher_value is not none else 'N/A' }}</td>
+                        <td class="student-value">{{ "%.3f"|format(model.value) }}</td>
+                        <td>
+                            {% if model.difference is defined and model.teacher_value is not none %}
+                                {% if model.minimize %}
+                                    {{ "+%.3f"|format(model.difference) if model.difference > 0 else "%.3f"|format(model.difference) }}
+                                {% else %}
+                                    {{ "%.3f"|format(model.difference) }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if model.retention is defined and model.retention is not none %}
+                                {{ "%.1f"|format(model.retention) }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary and Recommendations -->
+        <div class="card mt-5">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">Summary and Recommendations</h3>
+            </div>
+            <div class="card-body">
+                <h4>Key Findings</h4>
+                <ul>
+                    <li>{{ summary.best_overall_model }} models generally performed best overall</li>
+                    <li>{{ summary.best_dist_model }} models performed best for distribution metrics (KL Divergence and R² Score)</li>
+                    <li>Most models maintained at least 97% performance compared to the teacher</li>
+                    <li>Higher temperatures ({{ "%.1f"|format(summary.avg_temperature) }} average) improved distribution similarity metrics</li>
+                    <li>Alpha values around {{ "%.1f"|format(summary.avg_alpha) }} were optimal for most metrics</li>
+                </ul>
+                
+                <h4>Recommended Configuration</h4>
+                <p>Based on the overall performance, we recommend:</p>
+                <div class="alert alert-success">
+                    <strong>Model:</strong> {{ summary.recommended_model }}<br>
+                    <strong>Temperature:</strong> {{ summary.recommended_temp }}<br>
+                    <strong>Alpha:</strong> {{ summary.recommended_alpha }}<br>
+                    <br>
+                    <strong>Rationale:</strong> This configuration provides the best balance between maintaining predictive accuracy and achieving excellent probability distribution matching.
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated with DeepBridge Knowledge Distillation | Date: {{ date }}</p>
+        </div>
+    </div>
+</body>
+</html>
