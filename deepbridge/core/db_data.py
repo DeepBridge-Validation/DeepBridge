@@ -1,13 +1,14 @@
 import typing as t
 from pathlib import Path
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 from deepbridge.utils.data_validator import DataValidator
 from deepbridge.utils.feature_manager import FeatureManager
 from deepbridge.utils.model_handler import ModelHandler
 from deepbridge.utils.dataset_formatter import DatasetFormatter
-from deepbridge.utils.synthetic_data import SyntheticDataGenerator
+# Don't import from synthetic directly to avoid circular imports
 
 class DBDataset:
     """
@@ -249,27 +250,36 @@ class DBDataset:
         """
         Generate synthetic data based on the original data distribution.
         Only generates data for the specified features and target column.
-        Uses the SyntheticDataGenerator for creating high-quality synthetic data.
+        Uses the GaussianCopulaGenerator from synthetic.methods.
         This method gets called when synthetic=True in the initialization.
         """
         try:
+            # Delayed import of GaussianCopulaGenerator to avoid circular imports
+            from deepbridge.synthetic.methods.gaussian_copula import GaussianCopulaGenerator
+            
             # Get only the relevant columns (features + target)
             relevant_columns = self._features + [self._target_column]
             data_for_synthetic = self._original_data[relevant_columns].copy()
             
-            # Create and fit the generator
-            generator = SyntheticDataGenerator(preserve_correlations=True)
+            # Create and fit the GaussianCopulaGenerator
+            generator = GaussianCopulaGenerator(
+                random_state=self._random_state,
+                preserve_dtypes=True,
+                preserve_constraints=True
+            )
+            
+            # Prepare categorical and numerical columns for the generator
             generator.fit(
                 data=data_for_synthetic,
                 target_column=self._target_column,
-                model=self._model_handler.model
+                categorical_columns=self._feature_manager.categorical_features,
+                numerical_columns=self._feature_manager.numerical_features
             )
             
             # Generate synthetic data with a fixed random seed for reproducibility
             random_seed = 42 if not hasattr(self, '_random_state') or self._random_state is None else self._random_state
             self._synthetic_data = generator.generate(
-                num_samples=self._synthetic_sample, 
-                random_state=random_seed
+                num_samples=self._synthetic_sample
             )
             
             # Add attribute to indicate synthetic data was generated
@@ -306,16 +316,74 @@ class DBDataset:
             
             # Evaluate synthetic data quality
             try:
-                quality_metrics = generator.evaluate_quality(
-                    real_data=data_for_synthetic,
-                    synthetic_data=self._synthetic_data
-                )
+                # We can't use the old evaluate_quality method as it's not available in GaussianCopulaGenerator
+                # We'll provide a simple quality assessment instead
+                print(f"Generated {len(self._synthetic_data)} synthetic samples for {len(self._features)} features and target column '{self._target_column}'")
+                
+                # Create a basic quality metrics dictionary
+                quality_metrics = {}
+                
+                # Calculate basic statistics for numerical columns
+                for col in self._feature_manager.numerical_features:
+                    if col in self._synthetic_data.columns:
+                        real_mean = data_for_synthetic[col].mean()
+                        synth_mean = self._synthetic_data[col].mean()
+                        real_std = data_for_synthetic[col].std()
+                        synth_std = self._synthetic_data[col].std()
+                        
+                        quality_metrics[col] = {
+                            'mean_real': real_mean,
+                            'mean_synthetic': synth_mean,
+                            'mean_diff': abs(real_mean - synth_mean),
+                            'std_real': real_std,
+                            'std_synthetic': synth_std,
+                            'std_diff': abs(real_std - synth_std),
+                        }
+                        
+                        # Perform KS test if we have enough samples
+                        if len(data_for_synthetic) >= 5 and len(self._synthetic_data) >= 5:
+                            try:
+                                from scipy import stats
+                                ks_stat, ks_pval = stats.ks_2samp(data_for_synthetic[col], self._synthetic_data[col])
+                                quality_metrics[col]['ks_statistic'] = ks_stat
+                                quality_metrics[col]['ks_pvalue'] = ks_pval
+                            except Exception:
+                                pass
+                
+                # Calculate distribution differences for categorical columns
+                for col in self._feature_manager.categorical_features:
+                    if col in self._synthetic_data.columns:
+                        real_dist = data_for_synthetic[col].value_counts(normalize=True).sort_index()
+                        synth_dist = self._synthetic_data[col].value_counts(normalize=True).sort_index()
+                        
+                        # Align distributions
+                        combined = pd.concat([real_dist, synth_dist], axis=1, keys=['real', 'synthetic']).fillna(0)
+                        
+                        quality_metrics[col] = {
+                            'distribution_difference': combined['real'].sub(combined['synthetic']).abs().mean(),
+                            'category_count_real': data_for_synthetic[col].nunique(),
+                            'category_count_synthetic': self._synthetic_data[col].nunique(),
+                        }
+                
+                # Overall metrics
+                if self._feature_manager.numerical_features:
+                    avg_mean_diff = sum(
+                        quality_metrics[col]['mean_diff'] for col in self._feature_manager.numerical_features
+                        if col in quality_metrics
+                    ) / len(self._feature_manager.numerical_features)
+                    
+                    avg_ks = sum(
+                        quality_metrics[col].get('ks_statistic', 0) for col in self._feature_manager.numerical_features
+                        if col in quality_metrics and 'ks_statistic' in quality_metrics[col]
+                    ) / len(self._feature_manager.numerical_features)
+                    
+                    quality_metrics['overall'] = {
+                        'avg_mean_diff': avg_mean_diff,
+                        'avg_ks_statistic': avg_ks
+                    }
                 
                 # Store quality metrics
                 self._synthetic_quality_metrics = quality_metrics
-                
-                # Print basic generation information
-                print(f"Generated {len(self._synthetic_data)} synthetic samples for {len(self._features)} features and target column '{self._target_column}'")
                 
                 # Print quality evaluation results
                 print("\nSynthetic Data Quality Evaluation:")
@@ -502,6 +570,55 @@ class DBDataset:
                     self._model_handler.generate_predictions(data_dict, self._features)
                 except Exception as e:
                     print(f"Warning: Could not generate predictions for the new model: {str(e)}")
+
+
+    def generate_synthetic_data(self, num_samples=100, method='gaussian', **kwargs):
+        """
+        Generate synthetic data based on this dataset.
+        
+        Args:
+            num_samples (int): Number of synthetic samples to generate
+            method (str): Method to use for generation ('gaussian' or 'ctgan')
+            **kwargs: Additional parameters for generation, including:
+                - similarity_threshold: Control uniqueness of generated data (0.0-1.0)
+                - return_quality_metrics: Whether to return quality metrics
+                - print_metrics: Whether to print quality metrics
+                - And any other parameters for the specific generator
+                
+        Returns:
+            DataFrame of generated synthetic data or
+            Tuple of (DataFrame, metrics_dict) if return_quality_metrics=True
+        """
+        from deepbridge.synthetic.synthesizer import synthesize
+        return synthesize(
+            dataset=self,
+            method=method,
+            num_samples=num_samples,
+            **kwargs
+        )
+
+    def generate_unique_data(self, num_samples=100, method='gaussian', similarity_threshold=0.8, **kwargs):
+        """
+        Generate synthetic data that's dissimilar from the original data.
+        
+        Args:
+            num_samples (int): Number of synthetic samples to generate
+            method (str): Method to use for generation ('gaussian' or 'ctgan')
+            similarity_threshold (float): Threshold for considering samples too similar (0.0-1.0)
+            **kwargs: Additional parameters for generation
+                
+        Returns:
+            DataFrame of generated unique synthetic data or
+            Tuple of (DataFrame, metrics_dict) if return_quality_metrics=True
+        """
+        from deepbridge.synthetic.synthesizer import synthesize
+        return synthesize(
+            dataset=self,
+            method=method,
+            num_samples=num_samples,
+            similarity_threshold=similarity_threshold,
+            **kwargs
+        )
 
     def __len__(self) -> int:
         """Return total number of samples."""
