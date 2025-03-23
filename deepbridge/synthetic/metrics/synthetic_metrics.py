@@ -5,6 +5,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import warnings
 
+# Import Dask
+import dask
+import dask.dataframe as dd
+import dask.array as da
+from dask.distributed import Client, wait
+
 # Import metrics from other modules
 from .statistical import evaluate_synthetic_quality, evaluate_numerical_column, evaluate_categorical_column
 from .similarity import calculate_similarity, filter_by_similarity
@@ -46,6 +52,9 @@ class SyntheticMetrics:
         sample_size: int = 10000,
         random_state: t.Optional[int] = None,
         verbose: bool = True,
+        use_dask: bool = False,
+        dask_client: t.Optional[Client] = None,
+        dask_partition_size: t.Optional[int] = None,
     ):
         """
         Initialize the synthetic data metrics evaluator.
@@ -60,6 +69,9 @@ class SyntheticMetrics:
             sample_size: Maximum number of samples to use for evaluation
             random_state: Random seed for reproducibility
             verbose: Whether to print progress and information
+            use_dask: Whether to use Dask for distributed computing
+            dask_client: Existing Dask client to use (if None, will create new one if use_dask=True)
+            dask_partition_size: Size of partitions for Dask DataFrames (if None, will be calculated automatically)
         """
         self.real_data = real_data
         self.synthetic_data = synthetic_data
@@ -67,6 +79,16 @@ class SyntheticMetrics:
         self.sample_size = sample_size
         self.random_state = random_state
         self.verbose = verbose
+        
+        # Dask configuration
+        self.use_dask = use_dask
+        self.dask_client = dask_client
+        self.dask_partition_size = dask_partition_size
+        self._dask_initialized = False
+        
+        # Initialize Dask if needed
+        if self.use_dask:
+            self._initialize_dask()
         
         # Sample data if it's too large
         if len(real_data) > sample_size:
@@ -106,6 +128,38 @@ class SyntheticMetrics:
         # Calculate all metrics on initialization
         self.calculate_all_metrics()
         
+        # Close Dask client if we created it
+        if self.use_dask and self._dask_initialized:
+            self._close_dask()
+    
+    def _initialize_dask(self):
+        """Initialize Dask for distributed computing."""
+        if self.dask_client is None:
+            try:
+                if self.verbose:
+                    print("Initializing Dask client for metrics calculation...")
+                self.dask_client = Client()
+                self._dask_initialized = True
+                if self.verbose:
+                    print(f"Dask client initialized: {self.dask_client.dashboard_link}")
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error initializing Dask client: {str(e)}. Falling back to non-Dask mode.")
+                self.use_dask = False
+                self.dask_client = None
+    
+    def _close_dask(self):
+        """Close Dask client if we initialized it."""
+        if self._dask_initialized and self.dask_client is not None:
+            try:
+                if self.verbose:
+                    print("Closing Dask client...")
+                self.dask_client.close()
+                self.dask_client = None
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error closing Dask client: {str(e)}")
+    
     def _infer_column_types(
         self, 
         categorical_columns: t.Optional[t.List[str]], 
@@ -190,6 +244,32 @@ class SyntheticMetrics:
         if self.verbose:
             print("Evaluating statistical metrics...")
         
+        if self.use_dask and self.dask_client is not None:
+            try:
+                # Convert to Dask DataFrames for distributed processing if large enough
+                if len(self.real_sample) > 10000 or len(self.synthetic_sample) > 10000:
+                    if self.verbose:
+                        print("Using Dask for statistical metrics calculation")
+                    
+                    # Determine partition size
+                    partition_size = self.dask_partition_size or 2000  # Default to 2000 rows per partition
+                    
+                    # Convert to Dask DataFrames
+                    real_dask = dd.from_pandas(self.real_sample, npartitions=max(1, len(self.real_sample) // partition_size))
+                    synth_dask = dd.from_pandas(self.synthetic_sample, npartitions=max(1, len(self.synthetic_sample) // partition_size))
+                    
+                    # For statistical evaluation, we can use a modified version of evaluate_synthetic_quality
+                    # that works with Dask DataFrames, or we can compute necessary statistics in a distributed manner
+                    
+                    # For simplicity, we'll fall back to pandas for now as the statistical metrics implementations
+                    # would need significant changes to fully support Dask
+                    
+                    if self.verbose:
+                        print("Falling back to pandas for statistical metrics (Dask implementation pending)")
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error using Dask for statistical metrics: {str(e)}. Falling back to standard method.")
+        
         # Use the evaluate_synthetic_quality function from statistical.py
         statistical_metrics = evaluate_synthetic_quality(
             real_data=self.real_sample,
@@ -212,7 +292,29 @@ class SyntheticMetrics:
             print("Evaluating privacy metrics...")
         
         try:
-            # Calculate k-anonymity privacy risk
+            # Determine which method to use (Dask or standard)
+            use_dask_for_privacy = self.use_dask and self.dask_client is not None and len(self.real_sample) > 5000
+            
+            if use_dask_for_privacy:
+                if self.verbose:
+                    print("Using Dask for privacy metrics calculation")
+                
+                # K-anonymity metrics with Dask
+                # For full Dask implementation, privacy assessment functions would need to be modified
+                # For now, we'll use the standard functions but prepare data using Dask when possible
+                
+                # For example, preprocessing steps could be done with Dask:
+                # 1. Standardize numerical data in parallel
+                # 2. Calculate nearest neighbors for k-anonymity in chunks
+                
+                # Preprocess data with Dask if needed, then call standard functions
+                # (implementation details omitted for brevity)
+                
+                # For now, fall back to standard implementation
+                if self.verbose:
+                    print("Falling back to standard privacy metrics (Dask implementation pending)")
+                
+            # Calculate k-anonymity privacy risk (standard method)
             k_metrics = assess_k_anonymity(
                 real_data=self.real_sample, 
                 synthetic_data=self.synthetic_sample,
@@ -248,7 +350,7 @@ class SyntheticMetrics:
             print("Evaluating utility metrics...")
         
         # For now, we'll derive utility metrics from statistical metrics
-        # In a full implementation, additional utility-specific tests could be added
+        # In a full implementation, additional utility-specific tests could be added using Dask
         
         # Calculate utility score based on statistical similarity
         utility_components = []

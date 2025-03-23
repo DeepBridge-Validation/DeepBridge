@@ -10,6 +10,212 @@ from sklearn.compose import ColumnTransformer
 from sklearn.neighbors import NearestNeighbors
 import gc
 
+# Import Dask modules
+import dask
+import dask.dataframe as dd
+import dask.array as da
+from dask.distributed import Client, wait, progress
+
+# Define standalone functions for Dask compatibility
+
+def _create_preprocessor(
+    numerical_columns: t.List[str], 
+    categorical_columns: t.List[str]
+) -> ColumnTransformer:
+    """
+    Create column transformer for preprocessing data.
+    
+    Args:
+        numerical_columns: List of numerical column names
+        categorical_columns: List of categorical column names
+        
+    Returns:
+        ColumnTransformer for preprocessing
+    """
+    transformers = []
+    
+    if numerical_columns:
+        transformers.append(('num', StandardScaler(), numerical_columns))
+        
+    if categorical_columns:
+        transformers.append(('cat', OneHotEncoder(handle_unknown='ignore'), categorical_columns))
+    
+    return ColumnTransformer(transformers=transformers, remainder='drop')
+
+def _preprocess_data(
+    data: pd.DataFrame, 
+    preprocessor: ColumnTransformer
+) -> np.ndarray:
+    """
+    Preprocess data using a fitted transformer.
+    
+    Args:
+        data: DataFrame to preprocess
+        preprocessor: Fitted ColumnTransformer
+        
+    Returns:
+        Preprocessed data array
+    """
+    # Transform data
+    transformed = preprocessor.transform(data)
+    
+    # Handle sparse matrices
+    if hasattr(transformed, 'toarray'):
+        transformed = transformed.toarray()
+    
+    return transformed
+
+def _compute_nn_distances(
+    original_transformed: np.ndarray,
+    synthetic_transformed: np.ndarray,
+    metric: str = 'euclidean',
+    n_neighbors: int = 5,
+    n_jobs: int = -1
+) -> np.ndarray:
+    """
+    Compute nearest neighbor distances.
+    
+    Args:
+        original_transformed: Preprocessed original data
+        synthetic_transformed: Preprocessed synthetic data
+        metric: Distance metric
+        n_neighbors: Number of neighbors
+        n_jobs: Number of parallel jobs
+        
+    Returns:
+        Distances array
+    """
+    nn_model = NearestNeighbors(
+        n_neighbors=min(n_neighbors, len(original_transformed)),
+        metric=metric,
+        n_jobs=n_jobs
+    )
+    nn_model.fit(original_transformed)
+    distances, _ = nn_model.kneighbors(synthetic_transformed)
+    return distances
+
+def _calculate_similarity_scores(
+    distances: np.ndarray
+) -> np.ndarray:
+    """
+    Calculate similarity scores from distances.
+    
+    Args:
+        distances: Array of distances to nearest neighbors
+        
+    Returns:
+        Array of similarity scores
+    """
+    if len(distances) == 0:
+        return np.array([])
+    
+    max_dist = np.max(distances)
+    if max_dist > 0:
+        normalized_distances = distances / max_dist
+        similarities = 1 - normalized_distances.mean(axis=1)
+    else:
+        similarities = np.ones(len(distances))
+    
+    return similarities
+
+def _process_similarity_chunk(
+    original_data: pd.DataFrame,
+    synthetic_chunk: pd.DataFrame,
+    categorical_columns: t.List[str],
+    numerical_columns: t.List[str],
+    metric: str = 'euclidean',
+    n_neighbors: int = 5,
+    chunk_id: int = 0,
+    verbose: bool = False
+) -> t.Tuple[pd.Index, np.ndarray]:
+    """
+    Process a single chunk for similarity calculation.
+    
+    Args:
+        original_data: Original dataset
+        synthetic_chunk: Chunk of synthetic data
+        categorical_columns: List of categorical columns
+        numerical_columns: List of numerical columns
+        metric: Distance metric
+        n_neighbors: Number of neighbors
+        chunk_id: ID of the chunk
+        verbose: Whether to show verbose output
+        
+    Returns:
+        Tuple of (chunk_indices, similarity_scores)
+    """
+    if verbose:
+        print(f"Processing chunk {chunk_id} with {len(synthetic_chunk)} samples")
+    
+    # Create and fit preprocessor
+    preprocessor = _create_preprocessor(numerical_columns, categorical_columns)
+    preprocessor.fit(original_data)
+    
+    # Preprocess data
+    original_transformed = _preprocess_data(original_data, preprocessor)
+    synthetic_transformed = _preprocess_data(synthetic_chunk, preprocessor)
+    
+    # Compute distances
+    distances = _compute_nn_distances(
+        original_transformed,
+        synthetic_transformed,
+        metric=metric,
+        n_neighbors=n_neighbors,
+        n_jobs=1  # Use single thread within each Dask task
+    )
+    
+    # Calculate similarity scores
+    similarity_scores = _calculate_similarity_scores(distances)
+    
+    # Return indices and scores
+    return synthetic_chunk.index, similarity_scores
+
+def _filter_chunk_by_similarity(
+    original_data: pd.DataFrame,
+    synthetic_chunk: pd.DataFrame,
+    threshold: float,
+    categorical_columns: t.List[str],
+    numerical_columns: t.List[str],
+    metric: str = 'euclidean',
+    n_neighbors: int = 5,
+    chunk_id: int = 0,
+    verbose: bool = False
+) -> t.List:
+    """
+    Filter a chunk based on similarity threshold.
+    
+    Args:
+        original_data: Original dataset
+        synthetic_chunk: Chunk of synthetic data
+        threshold: Similarity threshold
+        categorical_columns: List of categorical columns
+        numerical_columns: List of numerical columns
+        metric: Distance metric
+        n_neighbors: Number of neighbors
+        chunk_id: ID of the chunk
+        verbose: Whether to show verbose output
+        
+    Returns:
+        List of indices to keep
+    """
+    # Get chunk indices and similarity scores
+    chunk_indices, similarity_scores = _process_similarity_chunk(
+        original_data,
+        synthetic_chunk,
+        categorical_columns,
+        numerical_columns,
+        metric,
+        n_neighbors,
+        chunk_id,
+        verbose
+    )
+    
+    # Filter based on threshold
+    keep_mask = similarity_scores < threshold
+    keep_indices = chunk_indices[keep_mask].tolist()
+    
+    return keep_indices
+
 def calculate_similarity(
     original_data: pd.DataFrame,
     synthetic_data: pd.DataFrame,
@@ -21,6 +227,8 @@ def calculate_similarity(
     random_state: t.Optional[int] = None,
     n_jobs: int = -1,
     verbose: bool = False,
+    use_dask: bool = False,
+    dask_client: t.Optional[Client] = None,
     **kwargs
 ) -> pd.Series:
     """
@@ -37,6 +245,8 @@ def calculate_similarity(
         random_state: Random seed for sampling
         n_jobs: Number of parallel jobs to use
         verbose: Whether to print progress information
+        use_dask: Whether to use Dask for distributed computation
+        dask_client: Existing Dask client to use (if None, will not use Dask even if use_dask=True)
         **kwargs: Additional parameters
         
     Returns:
@@ -81,25 +291,82 @@ def calculate_similarity(
     elif numerical_columns is None:
         numerical_columns = [col for col in common_columns if col not in categorical_columns]
     
-    # Create preprocessor
-    transformers = []
+    # Check if we should use Dask
+    should_use_dask = use_dask and dask_client is not None and (len(original_sample) > 5000 or len(synthetic_sample) > 5000)
     
-    if numerical_columns:
-        transformers.append(('num', StandardScaler(), numerical_columns))
-        
-    if categorical_columns:
-        transformers.append(('cat', OneHotEncoder(handle_unknown='ignore'), categorical_columns))
+    if should_use_dask:
+        try:
+            if verbose:
+                print("Using Dask for distributed similarity calculation")
+                
+            # Determine optimal chunk size
+            n_workers = len(dask_client.scheduler_info()['workers'])
+            chunk_size = max(100, min(1000, len(synthetic_sample) // (n_workers * 2)))
+            n_chunks = (len(synthetic_sample) + chunk_size - 1) // chunk_size
+            
+            if verbose:
+                print(f"Processing data in {n_chunks} chunks of size ~{chunk_size}")
+            
+            # Process in chunks
+            all_indices = []
+            all_scores = []
+            
+            # Create tasks for each chunk
+            tasks = []
+            for i in range(n_chunks):
+                start = i * chunk_size
+                end = min(start + chunk_size, len(synthetic_sample))
+                chunk = synthetic_sample.iloc[start:end]
+                
+                # Create a delayed task
+                task = dask.delayed(_process_similarity_chunk)(
+                    original_sample,
+                    chunk,
+                    categorical_columns,
+                    numerical_columns,
+                    metric,
+                    n_neighbors,
+                    i,
+                    verbose
+                )
+                tasks.append(task)
+            
+            # Compute all tasks
+            results = dask_client.compute(tasks)
+            
+            # Process results
+            for chunk_indices, chunk_scores in results:
+                all_indices.extend(chunk_indices)
+                all_scores.extend(chunk_scores)
+            
+            # Create Series with results
+            return pd.Series(all_scores, index=all_indices)
+            
+        except Exception as e:
+            if verbose:
+                print(f"Error using Dask for similarity calculation: {str(e)}")
+                print("Falling back to standard method")
     
-    if not transformers:
-        raise ValueError("No valid columns for preprocessing")
-    
-    preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
-    
-    # Transform data
+    # Standard approach (non-Dask)
     try:
         if verbose:
-            print("Preprocessing data...")
+            print("Using standard approach for similarity calculation")
             
+        # Create preprocessing pipeline
+        transformers = []
+        
+        if numerical_columns:
+            transformers.append(('num', StandardScaler(), numerical_columns))
+            
+        if categorical_columns:
+            transformers.append(('cat', OneHotEncoder(handle_unknown='ignore'), categorical_columns))
+        
+        if not transformers:
+            raise ValueError("No valid columns for preprocessing")
+            
+        preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
+        
+        # Transform data
         original_transformed = preprocessor.fit_transform(original_sample)
         synthetic_transformed = preprocessor.transform(synthetic_sample)
         
@@ -108,55 +375,55 @@ def calculate_similarity(
             original_transformed = original_transformed.toarray()
         if hasattr(synthetic_transformed, 'toarray'):
             synthetic_transformed = synthetic_transformed.toarray()
-            
+        
+        # Calculate distances
+        distances = _compute_nn_distances(
+            original_transformed,
+            synthetic_transformed,
+            metric=metric,
+            n_neighbors=n_neighbors,
+            n_jobs=n_jobs
+        )
+        
+        # Calculate similarities
+        similarities = _calculate_similarity_scores(distances)
+        
+        return pd.Series(similarities, index=synthetic_sample.index)
+        
     except Exception as e:
         if verbose:
-            print(f"Error in data transformation: {str(e)}")
-            print("Falling back to numerical columns only")
+            print(f"Error in similarity calculation: {str(e)}")
             
-        # Fallback to simple imputation and scaling for numerical data only
-        if not numerical_columns:
-            raise ValueError("No numerical columns available for fallback transformation")
+        # Try fallback method with only numerical columns
+        if len(numerical_columns) > 0:
+            if verbose:
+                print("Falling back to numerical-only similarity calculation")
+                
+            # Process only numerical columns
+            numerical_data_original = original_sample[numerical_columns].fillna(0).values
+            numerical_data_synthetic = synthetic_sample[numerical_columns].fillna(0).values
             
-        numerical_data_original = original_sample[numerical_columns].fillna(0).values
-        numerical_data_synthetic = synthetic_sample[numerical_columns].fillna(0).values
-        
-        # Scale numerical data
-        scaler = StandardScaler()
-        numerical_data_original = scaler.fit_transform(numerical_data_original)
-        numerical_data_synthetic = scaler.transform(numerical_data_synthetic)
-        
-        # Use only numerical data for similarity
-        original_transformed = numerical_data_original
-        synthetic_transformed = numerical_data_synthetic
-    
-    # Initialize and fit nearest neighbors model
-    if verbose:
-        print(f"Finding {n_neighbors} nearest neighbors...")
-        
-    nn_model = NearestNeighbors(n_neighbors=min(n_neighbors, len(original_transformed)), 
-                               metric=metric, n_jobs=n_jobs)
-    nn_model.fit(original_transformed)
-    
-    # Calculate distances to nearest neighbors
-    distances, indices = nn_model.kneighbors(synthetic_transformed)
-    
-    # Calculate similarity score (inversely related to distance)
-    # Normalize distances to [0, 1] range, then invert
-    if len(distances) > 0:
-        max_dist = np.max(distances)
-        if max_dist > 0:
-            normalized_distances = distances / max_dist
-            similarities = 1 - normalized_distances.mean(axis=1)
+            # Scale numerical data
+            scaler = StandardScaler()
+            numerical_data_original = scaler.fit_transform(numerical_data_original)
+            numerical_data_synthetic = scaler.transform(numerical_data_synthetic)
+            
+            # Calculate distances
+            distances = _compute_nn_distances(
+                numerical_data_original,
+                numerical_data_synthetic,
+                metric=metric,
+                n_neighbors=n_neighbors,
+                n_jobs=n_jobs
+            )
+            
+            # Calculate similarities
+            similarities = _calculate_similarity_scores(distances)
+            
+            return pd.Series(similarities, index=synthetic_sample.index)
         else:
-            similarities = np.ones(len(distances))
-    else:
-        similarities = np.array([])
-        
-    if verbose:
-        print(f"Similarity calculation complete. Average similarity: {similarities.mean():.4f}")
-    
-    return pd.Series(similarities, index=synthetic_sample.index)
+            # No fallback possible
+            raise ValueError("Could not calculate similarity with available columns") from e
 
 def filter_by_similarity(
     original_data: pd.DataFrame,
@@ -168,12 +435,14 @@ def filter_by_similarity(
     n_jobs: int = -1,
     random_state: t.Optional[int] = None,
     verbose: bool = True,
+    use_dask: bool = False,
+    dask_client: t.Optional[Client] = None,
     **kwargs
 ) -> pd.DataFrame:
     """
     Filter synthetic data to remove samples that are too similar to original data.
     
-    Memory-efficient implementation that processes data in batches.
+    Memory-efficient implementation that processes data in batches with optional Dask support.
     
     Args:
         original_data: Original real dataset
@@ -185,6 +454,8 @@ def filter_by_similarity(
         n_jobs: Number of parallel jobs
         random_state: Random seed for sampling
         verbose: Whether to print progress information
+        use_dask: Whether to use Dask for distributed computation
+        dask_client: Existing Dask client to use
         **kwargs: Additional parameters
         
     Returns:
@@ -192,6 +463,98 @@ def filter_by_similarity(
     """
     if verbose:
         print(f"Filtering synthetic data with similarity threshold: {threshold}")
+    
+    # Determine if we should use Dask
+    should_use_dask = use_dask and dask_client is not None and len(synthetic_data) > 10000
+    
+    # Ensure columns match between datasets
+    common_columns = list(set(original_data.columns) & set(synthetic_data.columns))
+    original_data_common = original_data[common_columns]
+    
+    # Infer column types if not provided
+    if categorical_columns is None and numerical_columns is None:
+        categorical_columns = []
+        numerical_columns = []
+        
+        for col in common_columns:
+            if pd.api.types.is_numeric_dtype(original_data[col]) and \
+               original_data[col].nunique() > 10:
+                numerical_columns.append(col)
+            else:
+                categorical_columns.append(col)
+                
+        if verbose:
+            print(f"Inferred {len(numerical_columns)} numerical columns and {len(categorical_columns)} categorical columns")
+            
+    elif categorical_columns is None:
+        categorical_columns = [col for col in common_columns if col not in numerical_columns]
+    elif numerical_columns is None:
+        numerical_columns = [col for col in common_columns if col not in categorical_columns]
+    
+    if should_use_dask:
+        try:
+            if verbose:
+                print(f"Using Dask for distributed similarity filtering")
+                
+            # Calculate optimal batch size based on available memory and workers
+            n_workers = len(dask_client.scheduler_info()['workers'])
+            optimal_batch_size = min(batch_size, max(1000, len(synthetic_data) // (n_workers * 2)))
+            
+            if verbose:
+                print(f"Using {n_workers} Dask workers with batch size {optimal_batch_size}")
+                
+            # Calculate the number of batches
+            n_batches = (len(synthetic_data) + optimal_batch_size - 1) // optimal_batch_size
+            
+            if verbose:
+                print(f"Processing {n_batches} batches in parallel")
+                
+            # Create tasks for batch processing
+            tasks = []
+            for i in range(n_batches):
+                start_idx = i * optimal_batch_size
+                end_idx = min((i + 1) * optimal_batch_size, len(synthetic_data))
+                batch = synthetic_data.iloc[start_idx:end_idx]
+                
+                # Create a delayed task
+                task = dask.delayed(_filter_chunk_by_similarity)(
+                    original_data_common,
+                    batch,
+                    threshold,
+                    categorical_columns,
+                    numerical_columns,
+                    'euclidean',
+                    5,
+                    i,
+                    False
+                )
+                tasks.append(task)
+                
+            # Compute all tasks
+            if verbose:
+                print("Computing tasks...")
+                
+            all_keep_indices = dask_client.compute(tasks)
+            
+            # Flatten the list of lists
+            keep_indices = []
+            for indices in all_keep_indices:
+                keep_indices.extend(indices)
+                
+            # Create filtered dataframe
+            filtered_data = synthetic_data.loc[keep_indices]
+            
+            if verbose:
+                removed_count = len(synthetic_data) - len(filtered_data)
+                removed_percentage = removed_count / len(synthetic_data) * 100 if len(synthetic_data) > 0 else 0
+                print(f"Removed {removed_count} samples ({removed_percentage:.2f}%) with similarity ≥ {threshold}")
+                
+            return filtered_data
+            
+        except Exception as e:
+            if verbose:
+                print(f"Error using Dask for similarity filtering: {str(e)}")
+                print("Falling back to standard method")
     
     # Process in batches for memory efficiency
     if len(synthetic_data) > batch_size:

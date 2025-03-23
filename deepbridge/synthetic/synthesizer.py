@@ -8,6 +8,11 @@ import warnings
 from datetime import datetime
 import traceback
 
+# Import Dask
+import dask
+import dask.dataframe as dd
+from dask.distributed import Client, progress, wait
+
 class Synthesize:
     """
     A unified interface for generating synthetic data based on real datasets.
@@ -155,6 +160,10 @@ class Synthesize:
         fit_sample_size: int = 5000,
         n_jobs: int = -1,
         memory_limit_percentage: float = 70.0,
+        use_dask: bool = True,
+        dask_temp_directory: t.Optional[str] = None,
+        dask_n_workers: t.Optional[int] = None,
+        dask_threads_per_worker: int = 2,
         **kwargs
     ):
         """
@@ -175,6 +184,10 @@ class Synthesize:
             fit_sample_size: Maximum number of samples to use for fitting the model
             n_jobs: Number of parallel jobs (-1 uses all cores)
             memory_limit_percentage: Maximum memory usage percentage
+            use_dask: Whether to use Dask for distributed processing
+            dask_temp_directory: Directory for Dask to store temporary files
+            dask_n_workers: Number of Dask workers (None = auto)
+            dask_threads_per_worker: Number of threads per Dask worker
             **kwargs: Additional parameters for the specific generator
         """
         self.dataset = dataset
@@ -193,6 +206,13 @@ class Synthesize:
         self.memory_limit_percentage = memory_limit_percentage
         self.kwargs = kwargs
         
+        # Dask configuration
+        self.use_dask = use_dask
+        self.dask_temp_directory = dask_temp_directory
+        self.dask_n_workers = dask_n_workers
+        self.dask_threads_per_worker = dask_threads_per_worker
+        self._dask_client = None
+        
         # Memory management
         self._total_system_memory = psutil.virtual_memory().total
         self._memory_limit = (self.memory_limit_percentage / 100.0) * self._total_system_memory
@@ -200,12 +220,18 @@ class Synthesize:
         if self.verbose:
             print(f"System memory: {self._total_system_memory / (1024**3):.2f} GB")
             print(f"Memory limit: {self._memory_limit / (1024**3):.2f} GB ({memory_limit_percentage}%)")
+            if self.use_dask:
+                print(f"Dask enabled with {dask_n_workers or 'auto'} workers, {dask_threads_per_worker} threads per worker")
         
         # Initialize metrics and data placeholders
         self.metrics = None
         self.metrics_calculator = None
         self.report_file = None
         self.data = pd.DataFrame()  # Initialize with empty DataFrame
+        
+        # Initialize Dask client if using Dask
+        if self.use_dask:
+            self._initialize_dask_client()
         
         # Generate the synthetic data
         try:
@@ -215,6 +241,48 @@ class Synthesize:
             print(traceback.format_exc())
             # Data remains as empty DataFrame
             raise
+        finally:
+            # Close Dask client if it was created
+            self._close_dask_client()
+            
+    def _initialize_dask_client(self):
+        """Initialize the Dask client for distributed computing."""
+        if self.use_dask:
+            try:
+                self.log("Initializing Dask client...")
+                
+                # Configure client parameters
+                client_kwargs = {
+                    "processes": True,
+                    "threads_per_worker": self.dask_threads_per_worker,
+                    "memory_limit": f"{int(self._memory_limit / (self.dask_n_workers or 4))}B"
+                }
+                
+                if self.dask_n_workers is not None:
+                    client_kwargs["n_workers"] = self.dask_n_workers
+                    
+                if self.dask_temp_directory:
+                    client_kwargs["local_directory"] = self.dask_temp_directory
+                
+                # Create client
+                self._dask_client = Client(**client_kwargs)
+                
+                self.log(f"Dask client initialized: {self._dask_client.dashboard_link}")
+                
+            except Exception as e:
+                self.log(f"Error initializing Dask client: {str(e)}. Falling back to non-Dask mode.")
+                self.use_dask = False
+                self._dask_client = None
+    
+    def _close_dask_client(self):
+        """Close the Dask client if it exists."""
+        if hasattr(self, '_dask_client') and self._dask_client is not None:
+            try:
+                self.log("Closing Dask client...")
+                self._dask_client.close()
+                self._dask_client = None
+            except Exception as e:
+                self.log(f"Error closing Dask client: {str(e)}")
             
     def log(self, message: str) -> None:
         """Print message if verbose mode is enabled."""
@@ -274,7 +342,11 @@ class Synthesize:
                 verbose=self.verbose,
                 fit_sample_size=self.fit_sample_size,
                 n_jobs=self.n_jobs,
-                memory_limit_percentage=self.memory_limit_percentage
+                memory_limit_percentage=self.memory_limit_percentage,
+                use_dask=self.use_dask,
+                dask_temp_directory=self.dask_temp_directory,
+                dask_n_workers=self.dask_n_workers,
+                dask_threads_per_worker=self.dask_threads_per_worker
             )
         # Add other methods as they are implemented
         # elif self.method.lower() == 'ctgan':
@@ -290,14 +362,53 @@ class Synthesize:
         self.log(f"Filtering synthetic data with similarity threshold: {self.similarity_threshold}")
         
         original_count = len(synthetic_data)
-        filtered_data = filter_by_similarity(
-            original_data=original_data,
-            synthetic_data=synthetic_data,
-            threshold=self.similarity_threshold,
-            random_state=self.random_state,
-            n_jobs=self.n_jobs,
-            verbose=self.verbose
-        )
+        
+        # If using Dask and the datasets are large, convert to Dask DataFrames
+        if self.use_dask and len(original_data) > 10000 and len(synthetic_data) > 10000:
+            # Convert to Dask DataFrames for more efficient processing
+            try:
+                self.log("Using Dask for similarity filtering")
+                
+                # Calculate optimal partition size (aim for ~100MB per partition)
+                orig_memory_per_row = original_data.memory_usage(deep=True).sum() / len(original_data)
+                partition_size = max(int(100 * 1024 * 1024 / orig_memory_per_row), 1000)
+                
+                # Convert to Dask DataFrames
+                orig_dask = dd.from_pandas(original_data, npartitions=max(1, len(original_data) // partition_size))
+                synth_dask = dd.from_pandas(synthetic_data, npartitions=max(1, len(synthetic_data) // partition_size))
+                
+                # Compute similarity with Dask
+                filtered_data = filter_by_similarity(
+                    original_data=original_data,  # Keep original as pandas for reference calculations
+                    synthetic_data=synthetic_data,  # Keep synthetic as pandas for filtering logic
+                    threshold=self.similarity_threshold,
+                    random_state=self.random_state,
+                    n_jobs=self.n_jobs,
+                    verbose=self.verbose,
+                    use_dask=True,
+                    dask_client=self._dask_client
+                )
+                
+            except Exception as e:
+                self.log(f"Error using Dask for similarity filtering: {str(e)}. Falling back to standard method.")
+                filtered_data = filter_by_similarity(
+                    original_data=original_data,
+                    synthetic_data=synthetic_data,
+                    threshold=self.similarity_threshold,
+                    random_state=self.random_state,
+                    n_jobs=self.n_jobs,
+                    verbose=self.verbose
+                )
+        else:
+            # Use standard similarity filtering
+            filtered_data = filter_by_similarity(
+                original_data=original_data,
+                synthetic_data=synthetic_data,
+                threshold=self.similarity_threshold,
+                random_state=self.random_state,
+                n_jobs=self.n_jobs,
+                verbose=self.verbose
+            )
         
         removed_count = original_count - len(filtered_data)
         removed_percentage = removed_count / original_count * 100 if original_count > 0 else 0
@@ -328,7 +439,9 @@ class Synthesize:
                 target_column=generator.target_column,
                 sample_size=max_metrics_samples,
                 random_state=self.random_state,
-                verbose=self.verbose
+                verbose=self.verbose,
+                use_dask=self.use_dask,
+                dask_client=self._dask_client if hasattr(self, '_dask_client') else None
             )
             
             # Store the metrics instance and get the metrics dictionary
@@ -394,6 +507,25 @@ class Synthesize:
         
         # Store original data for metrics calculation
         self.original_data = data
+        
+        # If using Dask, convert original data to Dask DataFrame for large datasets
+        if self.use_dask and len(data) > 100000 and self._dask_client is not None:
+            try:
+                # Calculate optimal partition size (aim for ~100MB per partition)
+                memory_per_row = data.memory_usage(deep=True).sum() / len(data)
+                partition_size = max(int(100 * 1024 * 1024 / memory_per_row), 1000)
+                
+                self.log(f"Converting large dataset to Dask DataFrame with {max(1, len(data) // partition_size)} partitions")
+                
+                # Convert to Dask DataFrame for more efficient processing
+                dask_data = dd.from_pandas(data, npartitions=max(1, len(data) // partition_size))
+                
+                # We'll keep the original pandas DataFrame for operations where it's needed
+                # but use dask_data where possible for memory efficiency
+                
+                self.log(f"Dataset converted to Dask DataFrame")
+            except Exception as e:
+                self.log(f"Error converting to Dask DataFrame: {str(e)}. Continuing with pandas DataFrame.")
         
         # Check if we need to dynamically determine chunk size
         if self.chunk_size is None:

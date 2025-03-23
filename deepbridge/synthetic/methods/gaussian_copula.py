@@ -2,10 +2,15 @@ import numpy as np
 import pandas as pd
 import typing as t
 import gc
-from joblib import Parallel, delayed
 import psutil
 import warnings
 from tqdm.auto import tqdm
+
+# Import Dask for parallel processing
+import dask
+import dask.dataframe as dd
+import dask.array as da
+from dask.distributed import Client, wait, progress
 
 # Import GaussianMultivariate from copulas
 from copulas.multivariate import GaussianMultivariate
@@ -21,7 +26,7 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
     capturing the dependence structure using Gaussian functions.
     
     Uses the copulas.multivariate.GaussianMultivariate implementation with optimized
-    memory management for better performance and scalability with large datasets.
+    memory management and Dask for better performance and scalability with large datasets.
     """
     
     def __init__(
@@ -32,7 +37,11 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         verbose: bool = True,
         fit_sample_size: int = 10000,
         n_jobs: int = -1,
-        memory_limit_percentage: float = 70.0
+        memory_limit_percentage: float = 70.0,
+        use_dask: bool = True,
+        dask_temp_directory: t.Optional[str] = None,
+        dask_n_workers: t.Optional[int] = None,
+        dask_threads_per_worker: int = 2
     ):
         """
         Initialize the Gaussian Copula generator.
@@ -45,12 +54,21 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
             fit_sample_size: Maximum number of samples to use for fitting the model
             n_jobs: Number of parallel jobs for processing chunks (-1 uses all cores)
             memory_limit_percentage: Maximum memory usage as percentage of system memory
+            use_dask: Whether to use Dask for distributed computing
+            dask_temp_directory: Directory for Dask to store temporary files
+            dask_n_workers: Number of Dask workers to use (None = auto)
+            dask_threads_per_worker: Number of threads per Dask worker
         """
         super().__init__(
             random_state=random_state,
             preserve_dtypes=preserve_dtypes,
             preserve_constraints=preserve_constraints,
-            verbose=verbose
+            verbose=verbose,
+            use_dask=use_dask,
+            dask_temp_directory=dask_temp_directory,
+            dask_n_workers=dask_n_workers,
+            dask_threads_per_worker=dask_threads_per_worker,
+            memory_limit_percentage=memory_limit_percentage
         )
         self.fit_sample_size = fit_sample_size
         self.original_data_sample = None
@@ -58,14 +76,29 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         self.dtypes = {}
         self.n_jobs = n_jobs
         self.memory_limit_percentage = memory_limit_percentage
+
+    # This function is extracted from _generate_with_dask for serialization
+    def _process_chunk_for_dask(self, size, chunk_id):
+        """
+        Generate and process a chunk of synthetic data.
         
-        # Initialize memory tracking
-        self._total_system_memory = psutil.virtual_memory().total
-        self._memory_limit = (self.memory_limit_percentage / 100.0) * self._total_system_memory
+        Args:
+            size: Size of the chunk
+            chunk_id: ID of the chunk
+            
+        Returns:
+            Processed chunk of synthetic data
+        """
+        if self.verbose:
+            print(f"Generating chunk {chunk_id+1} with {size} samples")
         
-        if verbose:
-            self.log(f"System memory: {self._total_system_memory / (1024**3):.2f} GB")
-            self.log(f"Memory limit: {self._memory_limit / (1024**3):.2f} GB ({memory_limit_percentage}%)")
+        # Generate samples for this chunk
+        chunk_df = self._generate_copula_samples(size)
+        
+        # Apply post-processing
+        chunk_df = self._post_process_chunk(chunk_df)
+        
+        return chunk_df
     
     def fit(
         self,
@@ -235,10 +268,81 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                 del test_data
                 gc.collect()
             
-            return self._generate_in_chunks(num_samples, chunk_size)
+            # Check if we should use Dask
+            if self.use_dask and self._dask_client is not None:
+                try:
+                    return self._generate_with_dask(num_samples, chunk_size)
+                except Exception as e:
+                    self.log(f"Error using Dask for generation: {str(e)}")
+                    self.log("Falling back to standard chunk processing")
+                    return self._generate_in_chunks(num_samples, chunk_size)
+            else:
+                # Use standard chunk processing
+                return self._generate_in_chunks(num_samples, chunk_size)
         else:
             # Generate all data at once
             return self._generate_batch(num_samples)
+    
+    def _generate_with_dask(self, num_samples: int, chunk_size: int) -> pd.DataFrame:
+        """
+        Generate synthetic data using Dask for distributed computing.
+        
+        Args:
+            num_samples: Total number of samples to generate
+            chunk_size: Size of each chunk
+            
+        Returns:
+            DataFrame with generated synthetic data
+        """
+        # Calculate chunk sizes
+        chunk_sizes = []
+        remaining = num_samples
+        
+        while remaining > 0:
+            size = min(chunk_size, remaining)
+            chunk_sizes.append(size)
+            remaining -= size
+        
+        self.log(f"Generating {len(chunk_sizes)} chunks with sizes: {chunk_sizes}")
+        
+        # Create list of tasks by using pure function (not method)
+        tasks = []
+        for i, size in enumerate(chunk_sizes):
+            # Pass only the necessary arguments to the worker-friendly function
+            tasks.append(dask.delayed(self._process_chunk_for_dask)(size, i))
+        
+        # Compute chunks in parallel
+        self.log("Computing chunks in parallel with Dask...")
+        
+        # Use progress visualization if in verbose mode
+        if self.verbose:
+            # Create a progress bar
+            with tqdm(total=len(chunk_sizes), desc="Generating chunks") as pbar:
+                # Compute all tasks and gather results
+                chunks = dask.compute(*tasks)
+                # Update progress bar after completion
+                pbar.update(len(chunk_sizes))
+        else:
+            # Compute without progress visualization
+            chunks = dask.compute(*tasks)
+        
+        # Combine all chunks
+        try:
+            # Use pandas concat for combining the results
+            result = pd.concat(chunks, ignore_index=True)
+        except Exception as e:
+            self.log(f"Error combining chunks: {str(e)}")
+            # Attempt alternative approach if the first fails
+            result = pd.DataFrame()
+            for chunk in chunks:
+                result = pd.concat([result, chunk], ignore_index=True)
+        
+        # Clean up to free memory
+        del chunks
+        gc.collect()
+        
+        self.log(f"Successfully generated {len(result)} samples using Dask")
+        return result
     
     def _generate_in_chunks(self, num_samples: int, chunk_size: int) -> pd.DataFrame:
         """
@@ -266,19 +370,8 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         use_parallel = self.n_jobs != 1 and len(chunk_sizes) > 1
         
         if use_parallel:
+            from joblib import Parallel, delayed
             self.log(f"Using parallel processing with {self.n_jobs} jobs")
-            
-            # Define a function to generate a single chunk
-            def process_chunk(size, chunk_id):
-                if self.verbose:
-                    print(f"Generating chunk {chunk_id+1}/{len(chunk_sizes)} with {size} samples")
-                
-                chunk_df = self._generate_copula_samples(size)
-                
-                # Apply post-processing based on selected method
-                chunk_df = self._post_process_chunk(chunk_df)
-                
-                return chunk_df
             
             # Process chunks in parallel
             try:
@@ -286,14 +379,11 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                 
                 # Create a progress bar
                 with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
-                    # Define a callback to update progress bar
-                    def update_progress(*args):
-                        pbar.update(1)
-                    
                     # Generate chunks in parallel with progress tracking
                     chunks = Parallel(n_jobs=n_jobs, backend="loky", verbose=0)(
-                        delayed(process_chunk)(size, i) for i, size in enumerate(chunk_sizes)
+                        delayed(self._process_chunk_for_dask)(size, i) for i, size in enumerate(chunk_sizes)
                     )
+                    pbar.update(len(chunk_sizes))
                 
                 # Combine all chunks
                 result = pd.concat(chunks, ignore_index=True)
