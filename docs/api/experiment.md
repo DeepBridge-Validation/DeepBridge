@@ -1,1 +1,1 @@
-::: experiment
+::: core.experiment

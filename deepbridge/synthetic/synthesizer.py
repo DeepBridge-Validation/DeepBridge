@@ -1,707 +1,477 @@
-"""
-Unified interface for synthetic data generation.
-
-This module provides a simplified interface for generating synthetic data
-from DeepBridge datasets using different generation methods, with options
-for controlling similarity to the original data.
-"""
-
 import pandas as pd
-import warnings
 import numpy as np
-from typing import Union, Optional, Dict, Any, List, Tuple
+import typing as t
+from pathlib import Path
+import gc
+import psutil
+import warnings
+from datetime import datetime
+import traceback
 
-def synthesize(
-    dataset,
-    method: str = "gaussian",
-    num_samples: int = 500,
-    random_state: int = 42,
-    preserve_dtypes: bool = True,
-    return_quality_metrics: bool = True,
-    print_metrics: bool = True,
-    suppress_warnings: bool = True,
-    similarity_threshold: float = 1.0,
-    max_iterations: int = 10,
-    **kwargs
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Dict]]:
+class Synthesize:
     """
-    Generate synthetic data from a DBDataset using the specified method.
+    A unified interface for generating synthetic data based on real datasets.
     
-    If similarity_threshold < 1.0, it will generate unique synthetic data
-    that is dissimilar from the original dataset, with the similarity being
-    controlled by the similarity_threshold parameter.
+    This class provides a simple interface to the synthetic data generation
+    functionality, with configurable parameters for different generation methods,
+    quality metrics, and memory optimization.
     
-    Args:
-        dataset: A DBDataset instance containing the data to synthesize
-        method: Generation method ('gaussian' or 'ctgan')
-        num_samples: Number of samples to generate
-        random_state: Random seed for reproducibility
-        preserve_dtypes: Whether to preserve data types of original data
-        return_quality_metrics: Whether to return quality evaluation metrics
-        print_metrics: Whether to print quality evaluation metrics
-        suppress_warnings: Whether to suppress SDV deprecation warnings
-        similarity_threshold: Threshold for considering samples too similar (0.0-1.0)
-            - If 1.0 (default): Regular synthesis without uniqueness check
-            - If < 1.0: Generate unique samples (lower values = more unique)
-        max_iterations: Maximum number of iterations for unique data generation
-        **kwargs: Additional parameters to pass to the specific generator
-    
-    Returns:
-        If return_quality_metrics is True:
-            tuple: (synthetic_data, quality_metrics)
-                - synthetic_data (pd.DataFrame): Synthetic data with the same structure as the original data
-                - quality_metrics (dict): Dictionary containing quality evaluation metrics
-        Else:
-            pd.DataFrame: Synthetic data with the same structure as the original data
-    
-    Raises:
-        ValueError: If an invalid method is specified or required data is missing
-    
-    Examples:
-        >>> from deepbridge.core.db_data import DBDataset
-        >>> from deepbridge.synthetic import synthesize
-        >>> 
-        >>> # Create a DBDataset with your data and model
-        >>> dataset = DBDataset(data=df, target_column='target', model=model)
-        >>> 
-        >>> # Generate regular synthetic data using Gaussian Copula with quality metrics
-        >>> synthetic_data, quality_metrics = synthesize(dataset, num_samples=500)
-        >>> 
-        >>> # Generate unique synthetic data (different from original dataset)
-        >>> unique_synthetic_data, quality_metrics = synthesize(
-        ...     dataset, 
-        ...     method="gaussian",
-        ...     num_samples=1000,
-        ...     similarity_threshold=0.8,  # Lower values mean more unique data
-        ...     return_quality_metrics=True
-        ... )
-    """
-    # Validate method
-    valid_methods = ['gaussian', 'ctgan']
-    if method.lower() not in valid_methods:
-        raise ValueError(f"Method must be one of {valid_methods}, got '{method}'")
-    
-    # Validate dataset
-    if not hasattr(dataset, '_original_data'):
-        raise ValueError("Dataset must be a DBDataset with _original_data attribute")
-    
-    # Extract data and metadata from dataset
-    data = dataset._original_data
-    
-    # Get categorical features if available
-    if hasattr(dataset, 'categorical_features'):
-        categorical_columns = dataset.categorical_features
-    else:
-        categorical_columns = None
-    
-    # Get target column if available
-    if hasattr(dataset, 'target_name'):
-        target_column = dataset.target_name
-    else:
-        target_column = None
-    
-    # Suppress specific warnings if requested
-    original_filter_action = None
-    if suppress_warnings:
-        # Save original warning filter action
-        original_filter_action = warnings.filters[0] if warnings.filters else None
+    Example:
+        from synthetic import Synthesize
         
-        # Filter out specific SDV warnings
-        warnings.filterwarnings("ignore", category=FutureWarning, 
-                               message="The 'SingleTableMetadata' is deprecated")
-        warnings.filterwarnings("ignore", category=UserWarning, 
-                               message="We strongly recommend saving the metadata")
-    
-    try:
-        # Check if we need to generate unique data (similarity_threshold < 1.0)
-        if similarity_threshold < 1.0:
-            return _generate_unique_data(
-                dataset=dataset,
-                num_samples=num_samples,
-                method=method,
-                similarity_threshold=similarity_threshold,
-                max_iterations=max_iterations,
-                random_state=random_state,
-                return_quality_metrics=return_quality_metrics,
-                print_metrics=print_metrics,
-                **kwargs
-            )
-            
-        # Otherwise, regular synthetic data generation
-        # Import appropriate generator based on method
-        if method.lower() == 'gaussian':
-            from deepbridge.synthetic.methods import GaussianCopulaGenerator
-            
-            # Set default parameters for Gaussian Copula
-            default_params = {
-                'enforce_min_max_values': True
-            }
-            
-            # Update with any user-provided parameters
-            default_params.update(kwargs)
-            
-            # Create generator
-            generator = GaussianCopulaGenerator(
-                random_state=random_state,
-                preserve_dtypes=preserve_dtypes,
-                **default_params
-            )
-        else:  # method == 'ctgan'
-            from deepbridge.synthetic.methods import CTGANGenerator
-            
-            # Set default parameters for CTGAN
-            default_params = {
-                'epochs': 300,
-                'batch_size': 500,
-                'verbose': False
-            }
-            
-            # Update with any user-provided parameters
-            default_params.update(kwargs)
-            
-            # Create generator
-            generator = CTGANGenerator(
-                random_state=random_state,
-                preserve_dtypes=preserve_dtypes,
-                **default_params
-            )
-        
-        # Generate synthetic data
-        synthetic_data = generator.fit_generate(
-            data=data,
-            num_samples=num_samples,
-            target_column=target_column,
-            categorical_columns=categorical_columns
+        # Generate synthetic data with default parameters
+        synthetic_df = Synthesize(
+            dataset=my_dataset,
+            method='gaussian',
+            num_samples=1000,
+            random_state=42,
+            print_metrics=True
         )
         
-        # Evaluate quality if requested
-        if return_quality_metrics or print_metrics:
-            # Check if the generator has an evaluate_quality method
-            if hasattr(generator, 'evaluate_quality') and callable(getattr(generator, 'evaluate_quality')):
-                # Use the generator's built-in evaluate_quality method
-                quality_metrics = generator.evaluate_quality(
-                    real_data=data,
-                    synthetic_data=synthetic_data
-                )
-            else:
-                # Use our own quality evaluation implementation directly
-                # without trying to instantiate BaseSyntheticGenerator (which is abstract)
-                quality_metrics = _evaluate_synthetic_quality(
-                    real_data=data,
-                    synthetic_data=synthetic_data,
-                    categorical_columns=categorical_columns
-                )
-            
-            # Print quality metrics if requested
-            if print_metrics:
-                _print_quality_metrics(quality_metrics, categorical_columns, target_column)
-            
-            # Return data with quality metrics if requested
-            if return_quality_metrics:
-                return synthetic_data, quality_metrics
-        
-        # Return just the data if quality metrics not requested
-        return synthetic_data
-    
-    finally:
-        # Restore original warning filters if we modified them
-        if suppress_warnings and original_filter_action:
-            warnings.filters[0] = original_filter_action
-
-
-def _generate_unique_data(
-    dataset,
-    num_samples: int = 100,
-    method: str = "gaussian",
-    similarity_threshold: float = 0.8,
-    max_iterations: int = 10,
-    random_state: Optional[int] = None,
-    return_quality_metrics: bool = True,
-    print_metrics: bool = False,
-    **kwargs
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Dict]]:
+        # Access the synthetic data and quality metrics
+        synthetic_data = synthetic_df.data
+        quality_metrics = synthetic_df.metrics
     """
-    Generate synthetic data that is distinct from the original dataset.
     
-    This function creates synthetic data samples that are not too similar to 
-    any samples in the original dataset. It uses a combined approach of checking
-    for exact duplicates and measuring similarity between samples.
-    
-    Args:
-        dataset: A DBDataset instance containing the original data
-        num_samples: Number of unique samples to generate
-        method: Generator method ('gaussian' or 'ctgan')
-        similarity_threshold: Threshold for considering samples too similar (0.0-1.0)
-        max_iterations: Maximum number of iterations to attempt generating unique samples
-        random_state: Random seed for reproducibility
-        return_quality_metrics: Whether to return quality evaluation metrics
-        print_metrics: Whether to print quality evaluation metrics
-        **kwargs: Additional parameters to pass to the generator
+    def save_report(self, output_path: t.Union[str, Path], **kwargs) -> str:
+        """
+        Generate and save an HTML report analyzing the synthetic data quality.
         
-    Returns:
-        Same as synthesize function
-    """
-    # Ensure we have the original data
-    if not hasattr(dataset, '_original_data'):
-        raise ValueError("Dataset must be a DBDataset with _original_data attribute")
-    
-    # Get the original data
-    original_data = dataset._original_data
-    
-    # Initial batch size - generate more samples than needed to account for duplicates
-    batch_size = min(num_samples * 2, num_samples + 1000)
-    
-    # Get categorical and numerical features
-    categorical_features = getattr(dataset, 'categorical_features', [])
-    numerical_features = getattr(dataset, 'numerical_features', [])
-    
-    # If neither is available, infer them
-    if not categorical_features and not numerical_features:
-        categorical_features = [col for col in original_data.columns 
-                               if original_data[col].dtype == 'object' 
-                               or original_data[col].dtype == 'category'
-                               or (original_data[col].dtype == 'int64' and original_data[col].nunique() < 20)]
-        numerical_features = [col for col in original_data.columns if col not in categorical_features]
-    
-    # Track unique samples
-    unique_samples = pd.DataFrame(columns=original_data.columns)
-    
-    # Set random seed if provided
-    if random_state is not None:
-        np.random.seed(random_state)
-    
-    # Try to generate unique samples
-    for iteration in range(max_iterations):
-        # Generate synthetic samples
-        current_batch_size = min(batch_size, num_samples * 3)  # Increase batch size in later iterations
-        synthetic_batch = synthesize(
-            dataset, 
-            method=method, 
-            num_samples=current_batch_size,
-            random_state=random_state + iteration if random_state is not None else None,
-            return_quality_metrics=False,
-            print_metrics=False,
+        Args:
+            output_path: Path where the HTML report should be saved
+            **kwargs: Additional parameters for report customization
+            
+        Returns:
+            Path to the generated HTML report
+        """
+        if not hasattr(self, 'data') or len(self.data) == 0:
+            raise ValueError("No synthetic data available to generate report")
+        
+        # Import report generator here to avoid circular imports
+        from .reports.report_generator import generate_quality_report
+        
+        # Create generator info
+        generator_info = f"Method: {self.method}, Samples: {self.num_samples}, Random State: {self.random_state}"
+        
+        # Generate the report
+        report_path = generate_quality_report(
+            real_data=self.original_data,
+            synthetic_data=self.data,
+            quality_metrics=self.metrics if hasattr(self, 'metrics') and self.metrics else {},
+            report_path=output_path,
+            generator_info=generator_info,
+            include_data_samples=kwargs.get('include_data_samples', True),
+            report_format='html',
+            include_visualizations=kwargs.get('include_visualizations', True),
             **kwargs
         )
         
-        # Remove exact duplicates within synthetic data
-        synthetic_batch = synthetic_batch.drop_duplicates().reset_index(drop=True)
-        
-        # Remove samples that are identical to any in the original data
-        synthetic_batch = _remove_exact_duplicates(synthetic_batch, original_data)
-        
-        # Remove samples that are too similar to the original data
-        synthetic_batch = _remove_similar_samples(
-            synthetic_batch, 
-            original_data, 
-            categorical_features, 
-            numerical_features, 
-            similarity_threshold
-        )
-        
-        # Add the new unique samples to our collection
-        unique_samples = pd.concat([unique_samples, synthetic_batch], ignore_index=True)
-        
-        # Remove any duplicates that might have been added
-        unique_samples = unique_samples.drop_duplicates().reset_index(drop=True)
-        
-        # Check if we have enough samples
-        if len(unique_samples) >= num_samples:
-            # Return exactly the number of samples requested
-            unique_samples = unique_samples.head(num_samples)
-
-            # Calculate quality metrics if requested
-            if return_quality_metrics or print_metrics:
-                quality_metrics = _evaluate_synthetic_quality(
-                    real_data=original_data,
-                    synthetic_data=unique_samples,
-                    categorical_columns=categorical_features
-                )
-                
-                # Print quality metrics if requested
-                if print_metrics:
-                    _print_quality_metrics(quality_metrics, categorical_features, 
-                                          getattr(dataset, 'target_name', None))
-                
-                # Return data with quality metrics if requested
-                if return_quality_metrics:
-                    return unique_samples, quality_metrics
-                
-            return unique_samples
-        
-        # Increase batch size for next iteration
-        batch_size = int(batch_size * 1.5)
+        return report_path
     
-    # If we get here, we couldn't generate enough unique samples
-    if len(unique_samples) > 0:
-        print(f"Warning: Could only generate {len(unique_samples)} unique samples out of {num_samples} requested")
-
-        # Calculate quality metrics if requested
-        if return_quality_metrics:
-            quality_metrics = _evaluate_synthetic_quality(
-                real_data=original_data,
-                synthetic_data=unique_samples,
-                categorical_columns=categorical_features
-            )
-            return unique_samples, quality_metrics
+    def overall_quality(self) -> float:
+        """
+        Get the overall quality score of the synthetic data.
         
-        return unique_samples
-    else:
-        raise ValueError(f"Failed to generate unique samples after {max_iterations} iterations")
-
-
-def _print_quality_metrics(quality_metrics: Dict, categorical_columns: List[str], target_column: Optional[str] = None) -> None:
-    """
-    Print quality metrics in a formatted way.
-    
-    Args:
-        quality_metrics: Dictionary with quality metrics
-        categorical_columns: List of categorical column names
-        target_column: Name of the target column
-    """
-    print("\nSynthetic Data Quality Evaluation:")
-    
-    # Print overall metrics if available
-    if 'overall' in quality_metrics:
-        overall = quality_metrics['overall']
-        print(f"Overall metrics:")
-        for metric, value in overall.items():
-            print(f"  - {metric}: {value:.4f}")
-    
-    # Extract numerical and categorical features
-    if categorical_columns:
-        numerical_columns = [col for col in quality_metrics if col not in categorical_columns 
-                           and col != 'overall' and col != target_column]
-        if target_column and target_column not in categorical_columns:
-            numerical_columns.append(target_column)
-    else:
-        numerical_columns = [col for col in quality_metrics if col != 'overall' 
-                           and isinstance(quality_metrics[col].get('mean_diff'), (int, float))]
-        
-    # Print metrics for numerical features
-    numerical_metrics = {k: v for k, v in quality_metrics.items() 
-                       if k in numerical_columns}
-    if numerical_metrics:
-        print("\nNumerical features:")
-        for feature, metrics in numerical_metrics.items():
-            print(f"  {feature}:")
-            print(f"    - mean diff: {metrics.get('mean_diff', 'N/A'):.4f}")
-            print(f"    - std diff: {metrics.get('std_diff', 'N/A'):.4f}")
-            if 'ks_statistic' in metrics:
-                print(f"    - KS statistic: {metrics['ks_statistic']:.4f}")
-    
-    # Print metrics for categorical features
-    if categorical_columns:
-        categorical_metrics = {k: v for k, v in quality_metrics.items() 
-                            if k in categorical_columns}
-        if categorical_metrics:
-            print("\nCategorical features:")
-            for feature, metrics in categorical_metrics.items():
-                print(f"  {feature}:")
-                print(f"    - distribution difference: {metrics.get('distribution_difference', 'N/A'):.4f}")
-                print(f"    - category count real: {metrics.get('category_count_real', 'N/A')}")
-                print(f"    - category count synthetic: {metrics.get('category_count_synthetic', 'N/A')}")
-
-
-def _remove_exact_duplicates(synthetic_data: pd.DataFrame, original_data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove synthetic samples that exactly match any sample in the original data.
-    
-    Args:
-        synthetic_data: DataFrame of synthetic samples
-        original_data: DataFrame of original data
-        
-    Returns:
-        DataFrame with duplicates removed
-    """
-    # For categorical data: convert to tuples and use set operations
-    synthetic_tuples = set(map(tuple, synthetic_data.values))
-    original_tuples = set(map(tuple, original_data.values))
-    
-    # Remove any exact duplicates
-    unique_tuples = synthetic_tuples - original_tuples
-    
-    # Convert back to DataFrame
-    if not unique_tuples:
-        return pd.DataFrame(columns=synthetic_data.columns)
-    
-    return pd.DataFrame(list(unique_tuples), columns=synthetic_data.columns)
-
-
-def _remove_similar_samples(
-    synthetic_data: pd.DataFrame, 
-    original_data: pd.DataFrame,
-    categorical_features: List[str],
-    numerical_features: List[str],
-    similarity_threshold: float
-) -> pd.DataFrame:
-    """
-    Remove synthetic samples that are too similar to any sample in the original data.
-    
-    Args:
-        synthetic_data: DataFrame of synthetic samples
-        original_data: DataFrame of original data
-        categorical_features: List of categorical feature names
-        numerical_features: List of numerical feature names
-        similarity_threshold: Threshold for considering samples too similar (0.0-1.0)
-        
-    Returns:
-        DataFrame with too-similar samples removed
-    """
-    if synthetic_data.empty:
-        return synthetic_data
-    
-    # If we have too many rows, use a sampling approach for efficiency
-    max_comparisons = 10000
-    if len(synthetic_data) * len(original_data) > max_comparisons:
-        # Sample some rows from both datasets for comparison
-        sample_size_original = min(len(original_data), int(np.sqrt(max_comparisons)))
-        sample_size_synthetic = min(len(synthetic_data), int(max_comparisons / sample_size_original))
-        
-        original_sample = original_data.sample(n=sample_size_original)
-        too_similar_indices = []
-        
-        # Check similarity in batches
-        batch_size = min(sample_size_synthetic, 1000)
-        for i in range(0, len(synthetic_data), batch_size):
-            synthetic_batch = synthetic_data.iloc[i:i+batch_size]
-            similar_in_batch = []
-            
-            for j, row in synthetic_batch.iterrows():
-                # Check similarity with samples from original data
-                if _is_too_similar(row, original_sample, categorical_features, numerical_features, similarity_threshold):
-                    similar_in_batch.append(j)
-            
-            too_similar_indices.extend(similar_in_batch)
-        
-        # Remove too similar samples
-        return synthetic_data.drop(too_similar_indices).reset_index(drop=True)
-    else:
-        # For smaller datasets, check every combination
-        unique_indices = []
-        
-        for i, row in synthetic_data.iterrows():
-            if not _is_too_similar(row, original_data, categorical_features, numerical_features, similarity_threshold):
-                unique_indices.append(i)
-        
-        return synthetic_data.loc[unique_indices].reset_index(drop=True)
-
-
-def _is_too_similar(
-    sample: pd.Series, 
-    dataset: pd.DataFrame,
-    categorical_features: List[str],
-    numerical_features: List[str],
-    threshold: float
-) -> bool:
-    """
-    Check if a sample is too similar to any sample in a dataset.
-    
-    Args:
-        sample: Series representing a data sample
-        dataset: DataFrame to compare against
-        categorical_features: List of categorical feature names
-        numerical_features: List of numerical feature names
-        threshold: Similarity threshold (0.0-1.0)
-        
-    Returns:
-        bool: True if the sample is too similar to any sample in the dataset
-    """
-    # For very small datasets, use a more precise approach
-    if len(dataset) < 100:
-        # Calculate similarity for each row
-        for _, row in dataset.iterrows():
-            similarity = _calculate_similarity(sample, row, categorical_features, numerical_features)
-            if similarity >= threshold:
-                return True
-        return False
-    else:
-        # For larger datasets, use a faster approach with vectorized operations
-        
-        # Compare categorical features
-        cat_similarity = 0.0
-        if categorical_features:
-            # Count matching categorical values for each row
-            cat_matches = 0
-            cat_count = len(categorical_features)
-            
-            if cat_count > 0:
-                for feature in categorical_features:
-                    if feature in sample and feature in dataset:
-                        cat_matches += (dataset[feature] == sample[feature]).mean()
-                
-                cat_similarity = cat_matches / cat_count
-        
-        # Compare numerical features
-        num_similarity = 0.0
-        if numerical_features:
-            # Calculate similarity based on normalized differences for numerical features
-            num_diffs = 0
-            num_count = len(numerical_features)
-            
-            if num_count > 0:
-                for feature in numerical_features:
-                    if feature in sample and feature in dataset:
-                        # Get feature range
-                        feature_min = dataset[feature].min()
-                        feature_max = dataset[feature].max()
-                        feature_range = max(feature_max - feature_min, 1e-10)  # Avoid division by zero
-                        
-                        # Calculate normalized differences
-                        normalized_diffs = (1 - abs(dataset[feature] - sample[feature]) / feature_range)
-                        # Clip values to [0, 1] range
-                        normalized_diffs = normalized_diffs.clip(0, 1)
-                        # Take maximum similarity with any sample
-                        num_diffs += normalized_diffs.max()
-                
-                num_similarity = num_diffs / num_count
-        
-        # Combine similarities
-        total_features = len(categorical_features) + len(numerical_features)
-        if total_features > 0:
-            overall_similarity = (
-                (len(categorical_features) * cat_similarity + 
-                 len(numerical_features) * num_similarity) / 
-                total_features
-            )
-            
-            return overall_similarity >= threshold
-        else:
-            return False
-
-
-def _calculate_similarity(
-    sample1: pd.Series, 
-    sample2: pd.Series,
-    categorical_features: List[str],
-    numerical_features: List[str]
-) -> float:
-    """
-    Calculate similarity between two samples.
-    
-    Args:
-        sample1: First sample
-        sample2: Second sample
-        categorical_features: List of categorical feature names
-        numerical_features: List of numerical feature names
-        
-    Returns:
-        float: Similarity score (0.0-1.0)
-    """
-    total_features = len(categorical_features) + len(numerical_features)
-    if total_features == 0:
+        Returns:
+            Float between 0 and 1, where higher indicates better quality
+        """
+        if hasattr(self, 'metrics_calculator') and self.metrics_calculator is not None:
+            return self.metrics_calculator.overall_quality()
+        elif hasattr(self, 'metrics') and self.metrics and 'overall' in self.metrics:
+            return self.metrics['overall'].get('quality_score', 0.0)
         return 0.0
     
-    similarity = 0.0
-    
-    # Check categorical features - exact match is 1.0, otherwise 0.0
-    for feature in categorical_features:
-        if feature in sample1 and feature in sample2:
-            if sample1[feature] == sample2[feature]:
-                similarity += 1.0
-    
-    # Check numerical features - normalized similarity
-    for feature in numerical_features:
-        if feature in sample1 and feature in sample2:
-            # Get feature range from global stats
-            feature_range = 1.0  # Default to 1.0 if no range info
-            
-            # Calculate similarity as 1 - normalized difference
-            diff = abs(float(sample1[feature]) - float(sample2[feature])) / feature_range
-            feature_similarity = max(0.0, 1.0 - diff)
-            similarity += feature_similarity
-    
-    # Return average similarity
-    return similarity / total_features
-
-
-def _evaluate_synthetic_quality(
-    real_data: pd.DataFrame,
-    synthetic_data: pd.DataFrame,
-    categorical_columns: Optional[List[str]] = None
-) -> Dict:
-    """
-    Evaluate the quality of synthetic data compared to real data.
-    
-    This is a fallback method when the generator doesn't have its own evaluate_quality method.
-    
-    Args:
-        real_data: Original data
-        synthetic_data: Synthetic data
-        categorical_columns: List of categorical column names
-    
-    Returns:
-        Dict: Quality metrics
-    """
-    import numpy as np
-    from scipy import stats
-    
-    metrics = {}
-    
-    # Identify column types if not provided
-    if categorical_columns is None:
-        categorical_columns = []
-        for col in real_data.columns:
-            if real_data[col].dtype == 'object' or real_data[col].dtype == 'category':
-                categorical_columns.append(col)
-    
-    numerical_columns = [col for col in real_data.columns if col not in categorical_columns]
-    
-    # Compare basic statistics for numerical columns
-    for col in numerical_columns:
-        if col in synthetic_data.columns and col in real_data.columns:
-            real_mean = real_data[col].mean()
-            synth_mean = synthetic_data[col].mean()
-            real_std = real_data[col].std()
-            synth_std = synthetic_data[col].std()
-            
-            metrics[col] = {
-                'mean_real': real_mean,
-                'mean_synthetic': synth_mean,
-                'mean_diff': abs(real_mean - synth_mean),
-                'mean_diff_pct': abs(real_mean - synth_mean) / (abs(real_mean) + 1e-10) * 100,
-                'std_real': real_std,
-                'std_synthetic': synth_std,
-                'std_diff': abs(real_std - synth_std),
-            }
-            
-            # Perform KS test if we have enough samples
-            if len(real_data) >= 5 and len(synthetic_data) >= 5:
-                try:
-                    ks_stat, ks_pval = stats.ks_2samp(real_data[col].dropna(), synthetic_data[col].dropna())
-                    metrics[col]['ks_statistic'] = ks_stat
-                    metrics[col]['ks_pvalue'] = ks_pval
-                except Exception:
-                    pass
+    def resample(self, num_samples: int = None, **kwargs) -> pd.DataFrame:
+        """
+        Generate a new batch of synthetic data without refitting the model.
         
-    # Compare distributions for categorical columns
-    for col in categorical_columns:
-        if col in synthetic_data.columns and col in real_data.columns:
-            real_dist = real_data[col].value_counts(normalize=True).sort_index()
-            synth_dist = synthetic_data[col].value_counts(normalize=True).sort_index()
+        Args:
+            num_samples: Number of samples to generate (defaults to original amount)
+            **kwargs: Additional generation parameters
             
-            # Align distributions
-            combined = pd.concat([real_dist, synth_dist], axis=1, keys=['real', 'synthetic']).fillna(0)
+        Returns:
+            DataFrame with newly generated synthetic data
+        """
+        if not hasattr(self, 'original_data') or self.original_data is None:
+            raise ValueError("No original data available for resampling")
             
-            metrics[col] = {
-                'distribution_difference': np.mean(abs(combined['real'] - combined['synthetic'])),
-                'category_count_real': real_data[col].nunique(),
-                'category_count_synthetic': synthetic_data[col].nunique(),
-            }
+        # Use original number of samples if not specified
+        if num_samples is None:
+            num_samples = self.num_samples
+            
+        self.log(f"Resampling {num_samples} synthetic samples...")
+        
+        # Initialize a new generator with the same parameters
+        generator = self._initialize_generator()
+        
+        # Get original target and features
+        data, target_column, categorical_features, numerical_features = self._process_dataset()
+        
+        # Fit the generator
+        generator.fit(
+            data=data,
+            target_column=target_column,
+            categorical_columns=categorical_features,
+            numerical_columns=numerical_features,
+            max_fit_samples=self.fit_sample_size,
+            **self.kwargs
+        )
+        
+        # Generate new synthetic data
+        synthetic_data = generator.generate(
+            num_samples=num_samples,
+            chunk_size=self.chunk_size,
+            memory_efficient=True,
+            dynamic_chunk_sizing=True,
+            **kwargs
+        )
+        
+        # Apply similarity filtering if needed
+        if self.similarity_threshold is not None:
+            synthetic_data = self._apply_similarity_filtering(data, synthetic_data)
+            
+        return synthetic_data
     
-    # Overall metrics
-    if len(numerical_columns) > 0:
-        metrics['overall'] = {
-            'avg_mean_diff_pct': np.mean([
-                metrics[col]['mean_diff_pct'] 
-                for col in numerical_columns 
-                if col in metrics
-            ]),
-            'avg_ks_statistic': np.mean([
-                metrics[col].get('ks_statistic', 0) 
-                for col in numerical_columns 
-                if col in metrics and 'ks_statistic' in metrics[col]
-            ]),
-        }
+    def __repr__(self):
+        """String representation of the object."""
+        status = "completed" if hasattr(self, 'data') and len(self.data) > 0 else "not completed"
+        sample_count = len(self.data) if hasattr(self, 'data') else 0
+        quality_score = f", quality={self.overall_quality():.4f}" if hasattr(self, 'metrics') else ""
+        return f"Synthesize(method='{self.method}', samples={sample_count}{quality_score}, {status})"
+        
+    def __init__(
+        self,
+        dataset: t.Any,
+        method: str = 'gaussian',
+        num_samples: int = 1000,
+        random_state: t.Optional[int] = None,
+        chunk_size: t.Optional[int] = None,
+        similarity_threshold: t.Optional[float] = None,
+        return_quality_metrics: bool = False,
+        print_metrics: bool = True,
+        verbose: bool = True,
+        generate_report: bool = False,
+        report_path: t.Optional[t.Union[str, Path]] = None,
+        fit_sample_size: int = 5000,
+        n_jobs: int = -1,
+        memory_limit_percentage: float = 70.0,
+        **kwargs
+    ):
+        """
+        Initialize and run the synthetic data generation process.
+        
+        Args:
+            dataset: A DBDataset or a pandas DataFrame
+            method: Method to use for generation ('gaussian', 'ctgan', etc.)
+            num_samples: Number of synthetic samples to generate
+            random_state: Seed for reproducibility
+            chunk_size: Size of chunks for memory-efficient generation
+            similarity_threshold: Threshold for filtering similar samples (0.0-1.0)
+            return_quality_metrics: Whether to calculate and return quality metrics
+            print_metrics: Whether to print quality metrics summary
+            verbose: Whether to print progress information
+            generate_report: Whether to generate a detailed quality report
+            report_path: Path to save the generated report
+            fit_sample_size: Maximum number of samples to use for fitting the model
+            n_jobs: Number of parallel jobs (-1 uses all cores)
+            memory_limit_percentage: Maximum memory usage percentage
+            **kwargs: Additional parameters for the specific generator
+        """
+        self.dataset = dataset
+        self.method = method
+        self.num_samples = num_samples
+        self.random_state = random_state
+        self.chunk_size = chunk_size
+        self.similarity_threshold = similarity_threshold
+        self.return_quality_metrics = return_quality_metrics
+        self.print_metrics = print_metrics
+        self.verbose = verbose
+        self.generate_report = generate_report
+        self.report_path = report_path
+        self.fit_sample_size = fit_sample_size
+        self.n_jobs = n_jobs
+        self.memory_limit_percentage = memory_limit_percentage
+        self.kwargs = kwargs
+        
+        # Memory management
+        self._total_system_memory = psutil.virtual_memory().total
+        self._memory_limit = (self.memory_limit_percentage / 100.0) * self._total_system_memory
+        
+        if self.verbose:
+            print(f"System memory: {self._total_system_memory / (1024**3):.2f} GB")
+            print(f"Memory limit: {self._memory_limit / (1024**3):.2f} GB ({memory_limit_percentage}%)")
+        
+        # Initialize metrics and data placeholders
+        self.metrics = None
+        self.metrics_calculator = None
+        self.report_file = None
+        self.data = pd.DataFrame()  # Initialize with empty DataFrame
+        
+        # Generate the synthetic data
+        try:
+            self._generate()
+        except Exception as e:
+            print(f"Error during synthetic data generation: {str(e)}")
+            print(traceback.format_exc())
+            # Data remains as empty DataFrame
+            raise
+            
+    def log(self, message: str) -> None:
+        """Print message if verbose mode is enabled."""
+        if self.verbose:
+            print(message)
+        
+    def _process_dataset(self):
+        """Process the input dataset to extract necessary information."""
+        # Handle input dataset - could be DBDataset or pandas DataFrame
+        if hasattr(self.dataset, 'X') and hasattr(self.dataset, 'target') and hasattr(self.dataset, 'target_name'):
+            # This is a DBDataset
+            self.log("Using DBDataset as input")
+            
+            data = pd.concat([
+                self.dataset.X, 
+                self.dataset.target.to_frame(name=self.dataset.target_name)
+            ], axis=1)
+            
+            target_column = self.dataset.target_name
+            categorical_features = (self.dataset.categorical_features 
+                                  if hasattr(self.dataset, 'categorical_features') else None)
+            numerical_features = (self.dataset.numerical_features 
+                                if hasattr(self.dataset, 'numerical_features') else None)
+        
+        elif isinstance(self.dataset, pd.DataFrame):
+            # This is a pandas DataFrame
+            self.log("Using pandas DataFrame as input")
+            
+            data = self.dataset
+            target_column = self.kwargs.get('target_column')
+            categorical_features = self.kwargs.get('categorical_features')
+            numerical_features = self.kwargs.get('numerical_features')
+        
+        else:
+            raise ValueError("Dataset must be either a DBDataset or a pandas DataFrame")
+            
+        # Log dataset information
+        self.log(f"Dataset shape: {data.shape}")
+        self.log(f"Target column: {target_column}")
+        self.log(f"Missing values: {data.isna().sum().sum()} ({data.isna().sum().sum() / data.size:.2%})")
+        
+        # Ensure categorical and numerical features are valid
+        if categorical_features is None and numerical_features is None:
+            self.log("No feature types specified. Will be inferred by the generator.")
+        
+        return data, target_column, categorical_features, numerical_features
     
-    return metrics
+    def _initialize_generator(self):
+        """Initialize the appropriate generator based on the chosen method."""
+        from .methods.gaussian_copula import GaussianCopulaGenerator
+        
+        if self.method.lower() == 'gaussian':
+            return GaussianCopulaGenerator(
+                random_state=self.random_state,
+                preserve_dtypes=self.kwargs.get('preserve_dtypes', True),
+                preserve_constraints=self.kwargs.get('preserve_constraints', True),
+                verbose=self.verbose,
+                fit_sample_size=self.fit_sample_size,
+                n_jobs=self.n_jobs,
+                memory_limit_percentage=self.memory_limit_percentage
+            )
+        # Add other methods as they are implemented
+        # elif self.method.lower() == 'ctgan':
+        #     from .methods.future_methods.ctgan import CTGANGenerator
+        #     return CTGANGenerator(...)
+        else:
+            raise ValueError(f"Unknown method: {self.method}. Supported methods: 'gaussian'")
+    
+    def _apply_similarity_filtering(self, original_data, synthetic_data):
+        """Apply similarity filtering to remove too-similar samples."""
+        from .metrics.similarity import filter_by_similarity
+        
+        self.log(f"Filtering synthetic data with similarity threshold: {self.similarity_threshold}")
+        
+        original_count = len(synthetic_data)
+        filtered_data = filter_by_similarity(
+            original_data=original_data,
+            synthetic_data=synthetic_data,
+            threshold=self.similarity_threshold,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose
+        )
+        
+        removed_count = original_count - len(filtered_data)
+        removed_percentage = removed_count / original_count * 100 if original_count > 0 else 0
+        self.log(f"Removed {removed_count} samples ({removed_percentage:.2f}%) with similarity ≥ {self.similarity_threshold}")
+        
+        return filtered_data
+    
+    def _calculate_quality_metrics(self, original_data, synthetic_data, generator):
+        """Calculate quality metrics for the synthetic data."""
+        from .metrics.synthetic_metrics import SyntheticMetrics
+        
+        self.log("Calculating quality metrics...")
+        
+        # Check memory before metrics calculation
+        pre_metrics_memory = psutil.Process().memory_info().rss
+        self.log(f"Memory usage before metrics calculation: {pre_metrics_memory / (1024**3):.2f} GB")
+        
+        try:
+            # Limit sample size for metrics calculation to avoid memory issues
+            max_metrics_samples = min(5000, len(original_data), len(synthetic_data))
+            
+            # Use SyntheticMetrics class to calculate comprehensive metrics
+            metrics_calculator = SyntheticMetrics(
+                real_data=original_data,
+                synthetic_data=synthetic_data,
+                numerical_columns=generator.numerical_columns,
+                categorical_columns=generator.categorical_columns,
+                target_column=generator.target_column,
+                sample_size=max_metrics_samples,
+                random_state=self.random_state,
+                verbose=self.verbose
+            )
+            
+            # Store the metrics instance and get the metrics dictionary
+            self.metrics_calculator = metrics_calculator
+            self.metrics = metrics_calculator.get_metrics()
+            
+            # Print metrics if requested
+            if self.print_metrics:
+                metrics_calculator.print_summary()
+            
+            # Generate report if requested
+            if self.generate_report:
+                self._generate_quality_report(original_data, synthetic_data, metrics_calculator, generator)
+                
+            # Check memory after metrics calculation
+            post_metrics_memory = psutil.Process().memory_info().rss
+            self.log(f"Memory usage after metrics calculation: {post_metrics_memory / (1024**3):.2f} GB")
+            self.log(f"Memory increase: {(post_metrics_memory - pre_metrics_memory) / (1024**3):.2f} GB")
+            
+        except Exception as e:
+            self.log(f"Error calculating quality metrics: {str(e)}")
+            self.log(traceback.format_exc())
+            self.metrics = {"error": str(e)}
+    
+    def _generate_quality_report(self, original_data, synthetic_data, metrics_calculator, generator):
+        """Generate a quality report for the synthetic data."""
+        from .reports.report_generator import generate_quality_report
+        
+        self.log("Generating quality report...")
+        
+        try:
+            report_file = generate_quality_report(
+                real_data=original_data,
+                synthetic_data=synthetic_data,
+                quality_metrics=metrics_calculator.get_metrics(),
+                report_path=self.report_path,
+                generator_info=generator.__repr__(),
+                include_data_samples=self.kwargs.get('include_data_samples', True),
+                report_format=self.kwargs.get('report_format', 'html'),
+                include_visualizations=self.kwargs.get('include_visualizations', True),
+                **self.kwargs
+            )
+            
+            # Store the report path
+            self.report_file = report_file
+            
+            self.log(f"Quality report generated: {report_file}")
+        except Exception as e:
+            self.log(f"Error generating quality report: {str(e)}")
+            self.log(traceback.format_exc())
+    
+    def _generate(self):
+        """Run the synthetic data generation process with memory monitoring."""
+        self.log(f"Starting synthetic data generation using {self.method} method")
+        self.log(f"Generating {self.num_samples} synthetic samples")
+        
+        # Monitor initial memory usage
+        initial_memory = psutil.Process().memory_info().rss
+        self.log(f"Initial memory usage: {initial_memory / (1024**3):.2f} GB")
+        
+        # Process input dataset - could be DBDataset or pandas DataFrame
+        data, target_column, categorical_features, numerical_features = self._process_dataset()
+        
+        # Store original data for metrics calculation
+        self.original_data = data
+        
+        # Check if we need to dynamically determine chunk size
+        if self.chunk_size is None:
+            estimated_row_size = data.memory_usage(deep=True).sum() / len(data)
+            available_memory = 0.6 * self._memory_limit  # Use 60% of memory limit
+            suggested_chunk_size = int(available_memory / estimated_row_size / 2)  # Divide by 2 for safety
+            
+            # Set a reasonable min/max
+            self.chunk_size = max(min(suggested_chunk_size, 10000), 500)
+            self.log(f"Dynamically set chunk size to {self.chunk_size} based on available memory")
+        
+        # Initialize the generator based on the chosen method
+        generator = self._initialize_generator()
+        
+        # Fit the generator
+        self.log("Fitting the generator...")
+        
+        try:
+            # Clear memory before fitting
+            gc.collect()
+            
+            # Fit the model
+            generator.fit(
+                data=data,
+                target_column=target_column,
+                categorical_columns=categorical_features,
+                numerical_columns=numerical_features,
+                max_fit_samples=self.fit_sample_size,
+                **self.kwargs
+            )
+        except Exception as e:
+            self.log(f"Error during model fitting: {str(e)}")
+            raise RuntimeError(f"Failed to fit model: {str(e)}")
+        
+        # Generate synthetic data
+        self.log("Generating synthetic data...")
+        
+        try:
+            # Monitor memory before generation
+            pre_gen_memory = psutil.Process().memory_info().rss
+            self.log(f"Memory usage before generation: {pre_gen_memory / (1024**3):.2f} GB")
+            
+            # Generate data with memory-efficient options
+            synthetic_data = generator.generate(
+                num_samples=self.num_samples,
+                chunk_size=self.chunk_size,
+                memory_efficient=True,
+                dynamic_chunk_sizing=True,
+                post_process_method='enhanced',
+                **self.kwargs
+            )
+            
+            # Apply similarity filtering if threshold is provided
+            if self.similarity_threshold is not None:
+                pre_filter_count = len(synthetic_data)
+                synthetic_data = self._apply_similarity_filtering(data, synthetic_data)
+                self.log(f"Applied similarity filtering: {pre_filter_count} → {len(synthetic_data)} samples")
+            
+            # Monitor memory after generation
+            post_gen_memory = psutil.Process().memory_info().rss
+            self.log(f"Memory usage after generation: {post_gen_memory / (1024**3):.2f} GB")
+            self.log(f"Memory increase: {(post_gen_memory - pre_gen_memory) / (1024**3):.2f} GB")
+            
+            self.log(f"Generated {len(synthetic_data)} synthetic samples")
+            
+            # Store the generated synthetic data
+            self.data = synthetic_data
+            
+            # Calculate quality metrics if requested
+            if self.return_quality_metrics or self.print_metrics or self.generate_report:
+                self._calculate_quality_metrics(data, synthetic_data, generator)
+                
+            # Clean up to free memory
+            gc.collect()
+            
+            self.log("Synthetic data generation completed successfully")
+        
+        except Exception as e:
+            self.log(f"Error during synthetic data generation: {str(e)}")
+            self.log(traceback.format_exc())
+            raise

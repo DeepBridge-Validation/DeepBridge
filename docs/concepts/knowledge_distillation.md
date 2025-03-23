@@ -1,1 +1,1 @@
-::: deepbridge.distillation.classification.knowledge_distillation
+::: distillation.techniques.knowledge_distillation

@@ -1,15 +1,12 @@
 """
 Synthetic data generation methods.
 
-This subpackage contains implementations of different synthetic data
-generation techniques that can be used with DeepBridge.
+This module contains various methods for generating synthetic data,
+each with different strengths and characteristics.
+
+Available methods:
+- Gaussian Copula: Models dependencies using multivariate Gaussian distributions
+- (More methods to be added in future versions)
 """
 
-from deepbridge.synthetic.methods.gaussian_copula import GaussianCopulaGenerator
-from deepbridge.synthetic.methods.ctgan import CTGANGenerator
-
-
-__all__ = [
-    'GaussianCopulaGenerator',
-    'CTGANGenerator'
-]
+from .gaussian_copula import GaussianCopulaGenerator

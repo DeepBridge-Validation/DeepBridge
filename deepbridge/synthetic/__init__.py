@@ -1,38 +1,31 @@
 """
-DeepBridge Synthetic Data Generation
+DeepBridge Synthetic Data Generation Package
+===========================================
 
-This package provides tools for generating synthetic data using various techniques,
-including methods for adversarial examples and novel pattern generation.
+This package provides tools for generating high-quality synthetic data
+based on real datasets, with a focus on preserving statistical properties
+and relationships between variables.
+
+Main components:
+- Methods: Different synthetic data generation techniques
+- Metrics: Quality evaluation and privacy assessment
+- Reports: Detailed quality reports generation
+- Visualization: Tools for comparing real and synthetic data
 """
 
-# Import the main synthesize function which serves as the primary API
-from deepbridge.synthetic.synthesizer import synthesize
+# Importar e aplicar filtros de avisos
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, 
+                       message="The iteration is not making good progress")
+warnings.filterwarnings("ignore", category=RuntimeWarning, 
+                       message="invalid value encountered in")
+warnings.filterwarnings("ignore", category=RuntimeWarning, 
+                       message="divide by zero encountered in")
+warnings.filterwarnings("ignore", category=RuntimeWarning, 
+                       module="scipy.optimize")
+warnings.filterwarnings("ignore", category=RuntimeWarning, 
+                       module="scipy.stats._continuous_distns")
 
-# Import generator classes and specific generator implementations
-from deepbridge.synthetic.generator import SyntheticDataGenerator
-from deepbridge.synthetic.generator import _add_method_to_class 
-from deepbridge.synthetic.base import BaseSyntheticGenerator, SequentialSyntheticGenerator
-from deepbridge.synthetic.methods import (
-    GaussianCopulaGenerator,
-    CTGANGenerator
-)
+__version__ = '0.1.0'
 
-try:
-    from deepbridge.core.db_data import DBDataset
-    _add_method_to_class(DBDataset)  # Use the correct name with underscore
-except ImportError:
-    pass  # DBDataset not available, skip adding the method
-
-__all__ = [
-    # Main API
-    'synthesize',
-    
-    # Generator classes
-    'SyntheticDataGenerator',
-    'BaseSyntheticGenerator',
-    'SequentialSyntheticGenerator',
-    
-    # Generator implementations
-    'GaussianCopulaGenerator',
-    'CTGANGenerator'
-]
+from .synthesizer import Synthesize

@@ -1,431 +1,569 @@
-"""
-Gaussian Copula synthetic data generation.
-
-This module implements a Gaussian Copula-based synthetic data generator
-that uses SDV's GaussianCopulaSynthesizer under the hood.
-"""
-
-import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Union, Any
+import pandas as pd
+import typing as t
+import gc
+from joblib import Parallel, delayed
+import psutil
+import warnings
+from tqdm.auto import tqdm
 
-from deepbridge.synthetic.base import BaseSyntheticGenerator
+# Import GaussianMultivariate from copulas
+from copulas.multivariate import GaussianMultivariate
+
+from ..base import BaseSyntheticGenerator
 
 class GaussianCopulaGenerator(BaseSyntheticGenerator):
     """
-    Gaussian Copula-based synthetic data generator.
+    Synthetic data generator using Gaussian Copula method.
     
-    This generator uses a statistical approach based on Gaussian Copulas
-    to model the dependencies between variables and generate synthetic data.
-    It relies on SDV's GaussianCopulaSynthesizer for the implementation.
+    This generator models the dependencies between variables using a Gaussian copula,
+    which is a statistical model that represents a multivariate distribution by
+    capturing the dependence structure using Gaussian functions.
+    
+    Uses the copulas.multivariate.GaussianMultivariate implementation with optimized
+    memory management for better performance and scalability with large datasets.
     """
     
     def __init__(
         self,
-        random_state: Optional[int] = None,
+        random_state: t.Optional[int] = None,
         preserve_dtypes: bool = True,
         preserve_constraints: bool = True,
-        default_distribution: str = 'gaussian_kde',
-        numerical_distributions: Optional[Dict[str, str]] = None,
-        categorical_sdtypes: Optional[Dict[str, str]] = None,
-        enforce_min_max_values: bool = True,
-        **kwargs
+        verbose: bool = True,
+        fit_sample_size: int = 10000,
+        n_jobs: int = -1,
+        memory_limit_percentage: float = 70.0
     ):
         """
         Initialize the Gaussian Copula generator.
         
         Args:
-            random_state: Random seed for reproducibility
-            preserve_dtypes: Whether to preserve data types of original data
-            preserve_constraints: Whether to preserve constraints (e.g., min/max values)
-            default_distribution: Default distribution for numerical columns
-            numerical_distributions: Dictionary mapping column names to distributions
-            categorical_sdtypes: Dictionary mapping categorical columns to SDV types
-            enforce_min_max_values: Whether to enforce min/max values from the original data
-            **kwargs: Additional parameters for SDV's GaussianCopulaSynthesizer
+            random_state: Seed for random number generation to ensure reproducibility
+            preserve_dtypes: Whether to preserve the original data types in synthetic data
+            preserve_constraints: Whether to enforce constraints from original data
+            verbose: Whether to print progress and information during processing
+            fit_sample_size: Maximum number of samples to use for fitting the model
+            n_jobs: Number of parallel jobs for processing chunks (-1 uses all cores)
+            memory_limit_percentage: Maximum memory usage as percentage of system memory
         """
-        super().__init__(random_state, preserve_dtypes, preserve_constraints)
-        self.default_distribution = default_distribution
-        self.numerical_distributions = numerical_distributions or {}
-        self.categorical_sdtypes = categorical_sdtypes or {}
-        self.enforce_min_max_values = enforce_min_max_values
-        self.sdv_kwargs = kwargs
-        self.synthesizer = None
+        super().__init__(
+            random_state=random_state,
+            preserve_dtypes=preserve_dtypes,
+            preserve_constraints=preserve_constraints,
+            verbose=verbose
+        )
+        self.fit_sample_size = fit_sample_size
+        self.original_data_sample = None
+        self.copula_model = None
+        self.dtypes = {}
+        self.n_jobs = n_jobs
+        self.memory_limit_percentage = memory_limit_percentage
         
-        # Ensure SDV is installed
-        try:
-            import sdv
-        except ImportError:
-            raise ImportError(
-                "The 'sdv' package is required for GaussianCopulaGenerator. "
-                "Please install it with 'pip install sdv'."
-            )
+        # Initialize memory tracking
+        self._total_system_memory = psutil.virtual_memory().total
+        self._memory_limit = (self.memory_limit_percentage / 100.0) * self._total_system_memory
+        
+        if verbose:
+            self.log(f"System memory: {self._total_system_memory / (1024**3):.2f} GB")
+            self.log(f"Memory limit: {self._memory_limit / (1024**3):.2f} GB ({memory_limit_percentage}%)")
     
     def fit(
-        self, 
-        data: pd.DataFrame, 
-        target_column: Optional[str] = None,
-        categorical_columns: Optional[List[str]] = None,
-        numerical_columns: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None,
-        **kwargs
-    ) -> 'GaussianCopulaGenerator':
-        """
-        Fit the Gaussian Copula generator to the input data.
-        
-        Args:
-            data: Input DataFrame
-            target_column: Name of the target column
-            categorical_columns: List of categorical columns
-            numerical_columns: List of numerical columns
-            metadata: Optional metadata dictionary with additional information
-            **kwargs: Additional parameters for SDV's GaussianCopulaSynthesizer
-            
-        Returns:
-            self: The fitted generator instance
-        """
-        # Import SDV components
-        from sdv.metadata import SingleTableMetadata
-        from sdv.single_table import GaussianCopulaSynthesizer
-        
-        # Validate and infer column types
-        categorical_cols, numerical_cols = self._validate_columns(
-            data, categorical_columns, numerical_columns
-        )
-
-import pandas as pd
-import numpy as np
-from typing import Dict, List, Optional, Union, Any
-
-from deepbridge.synthetic.base import BaseSyntheticGenerator
-
-class GaussianCopulaGenerator(BaseSyntheticGenerator):
-    """
-    Gaussian Copula-based synthetic data generator.
-    
-    This generator uses a statistical approach based on Gaussian Copulas
-    to model the dependencies between variables and generate synthetic data.
-    It relies on SDV's GaussianCopulaSynthesizer for the implementation.
-    """
-    
-    def __init__(
         self,
-        random_state: Optional[int] = None,
-        preserve_dtypes: bool = True,
-        preserve_constraints: bool = True,
-        default_distribution: str = 'gaussian_kde',
-        numerical_distributions: Optional[Dict[str, str]] = None,
-        categorical_sdtypes: Optional[Dict[str, str]] = None,
-        enforce_min_max_values: bool = True,
+        data: pd.DataFrame,
+        target_column: t.Optional[str] = None,
+        categorical_columns: t.Optional[t.List[str]] = None,
+        numerical_columns: t.Optional[t.List[str]] = None,
         **kwargs
-    ):
-        """
-        Initialize the Gaussian Copula generator.
-        
-        Args:
-            random_state: Random seed for reproducibility
-            preserve_dtypes: Whether to preserve data types of original data
-            preserve_constraints: Whether to preserve constraints (e.g., min/max values)
-            default_distribution: Default distribution for numerical columns
-            numerical_distributions: Dictionary mapping column names to distributions
-            categorical_sdtypes: Dictionary mapping categorical columns to SDV types
-            enforce_min_max_values: Whether to enforce min/max values from the original data
-            **kwargs: Additional parameters for SDV's GaussianCopulaSynthesizer
-        """
-        super().__init__(random_state, preserve_dtypes, preserve_constraints)
-        self.default_distribution = default_distribution
-        self.numerical_distributions = numerical_distributions or {}
-        self.categorical_sdtypes = categorical_sdtypes or {}
-        self.enforce_min_max_values = enforce_min_max_values
-        self.sdv_kwargs = kwargs
-        self.synthesizer = None
-        
-        # Ensure SDV is installed
-        try:
-            import sdv
-        except ImportError:
-            raise ImportError(
-                "The 'sdv' package is required for GaussianCopulaGenerator. "
-                "Please install it with 'pip install sdv'."
-            )
-    
-    def fit(
-        self, 
-        data: pd.DataFrame, 
-        target_column: Optional[str] = None,
-        categorical_columns: Optional[List[str]] = None,
-        numerical_columns: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None,
-        **kwargs
-    ) -> 'GaussianCopulaGenerator':
+    ) -> None:
         """
         Fit the Gaussian Copula generator to the input data.
         
         Args:
-            data: Input DataFrame
-            target_column: Name of the target column
-            categorical_columns: List of categorical columns
-            numerical_columns: List of numerical columns
-            metadata: Optional metadata dictionary with additional information
-            **kwargs: Additional parameters for SDV's GaussianCopulaSynthesizer
-            
-        Returns:
-            self: The fitted generator instance
+            data: The dataset to fit the generator on
+            target_column: The name of the target variable column
+            categorical_columns: List of categorical column names
+            numerical_columns: List of numerical column names
+            **kwargs: Additional parameters specific to the implementation
+                - max_fit_samples: Maximum number of samples to use for fitting (default: self.fit_sample_size)
+                - stratify_by: Column to use for stratified sampling during fitting
         """
-        # Import SDV components
-        from sdv.metadata import SingleTableMetadata
-        from sdv.single_table import GaussianCopulaSynthesizer
+        self.log(f"Fitting Gaussian Copula generator on dataset with {len(data)} rows...")
         
-        # Validate and infer column types
-        categorical_cols, numerical_cols = self._validate_columns(
-            data, categorical_columns, numerical_columns
-        )
+        # Store target column name
+        self.target_column = target_column
         
-        # Collect metadata
-        self._metadata, self._column_stats = self._collect_metadata(
-            data, categorical_cols, numerical_cols, target_column
-        )
+        # Get stratification column if provided
+        stratify_by = kwargs.get('stratify_by', None)
+        stratify = data[stratify_by] if stratify_by and stratify_by in data.columns else None
         
-        # Create SDV metadata
-        sdv_metadata = SingleTableMetadata()
-        
-        # Define column types for SDV
-        for col in data.columns:
-            if col in categorical_cols:
-                # Check if we have a specific sdtype defined
-                if col in self.categorical_sdtypes:
-                    sdtype = self.categorical_sdtypes[col]
-                else:
-                    # Set a default sdtype based on column name and content
-                    if 'id' in col.lower() or 'key' in col.lower():
-                        sdtype = 'id'
-                    elif 'email' in col.lower():
-                        sdtype = 'email'
-                    elif 'phone' in col.lower() or 'telephone' in col.lower():
-                        sdtype = 'phone_number'
-                    elif 'address' in col.lower():
-                        sdtype = 'address'
-                    elif 'name' in col.lower():
-                        sdtype = 'name'
-                    elif 'date' in col.lower() or 'time' in col.lower():
-                        sdtype = 'datetime'
-                    else:
-                        sdtype = 'categorical'
-                        
-                sdv_metadata.add_column(col, sdtype=sdtype)
+        # Determine the number of samples to use for fitting
+        max_fit_samples = kwargs.get('max_fit_samples', self.fit_sample_size)
+        if len(data) > max_fit_samples:
+            self.log(f"Dataset is large ({len(data)} rows). Using {max_fit_samples} samples for fitting.")
+            if stratify is not None:
+                self.log(f"Using stratified sampling by column: {stratify_by}")
+                fit_data = data.sample(max_fit_samples, random_state=self.random_state, stratify=stratify)
             else:
-                # Numerical column
-                sdv_metadata.add_column(col, sdtype='numerical')
+                fit_data = data.sample(max_fit_samples, random_state=self.random_state)
+        else:
+            fit_data = data
         
-        # Set primary key if it exists in metadata
-        if metadata and 'primary_key' in metadata:
-            sdv_metadata.set_primary_key(metadata['primary_key'])
+        # Store a small sample of original data for validation and constraint enforcement
+        sample_size = min(1000, len(data))
+        self.original_data_sample = data.sample(sample_size, random_state=self.random_state)
         
-        # Customize distributions for numerical columns
-        distributions = {}
-        
-        # Set default distribution for all numerical columns
-        for col in numerical_cols:
-            distributions[col] = self.numerical_distributions.get(col, self.default_distribution)
-        
-        # Create the synthesizer
-        self.synthesizer = GaussianCopulaSynthesizer(
-            metadata=sdv_metadata,
-            enforce_min_max_values=self.enforce_min_max_values,
-            numerical_distributions=distributions,
-            default_distribution=self.default_distribution,
-            **self.sdv_kwargs
+        # Validate and infer column types
+        self.categorical_columns, self.numerical_columns = self._validate_columns(
+            fit_data, categorical_columns, numerical_columns
         )
         
-        # Fit the synthesizer
-        self.synthesizer.fit(data)
-        self.fitted = True
+        self.log(f"Identified {len(self.categorical_columns)} categorical columns and {len(self.numerical_columns)} numerical columns")
         
-        return self
+        # Store original data types and ranges
+        self.dtypes = {col: fit_data[col].dtype for col in fit_data.columns}
+        
+        # Store distribution parameters for numerical columns to use in post-processing
+        self.num_column_stats = {}
+        for col in self.numerical_columns:
+            if col in fit_data.columns:
+                col_data = fit_data[col].dropna()
+                if len(col_data) > 0:
+                    self.num_column_stats[col] = {
+                        'min': col_data.min(),
+                        'max': col_data.max(),
+                        'mean': col_data.mean(),
+                        'std': col_data.std(),
+                        'median': col_data.median(),
+                        'q1': col_data.quantile(0.25),
+                        'q3': col_data.quantile(0.75)
+                    }
+        
+        # Store categorical value distributions for post-processing
+        self.cat_column_stats = {}
+        for col in self.categorical_columns:
+            if col in fit_data.columns:
+                value_counts = fit_data[col].value_counts(normalize=True)
+                self.cat_column_stats[col] = {
+                    'values': value_counts.index.tolist(),
+                    'frequencies': value_counts.values.tolist()
+                }
+        
+        # Handle categorical features by encoding them
+        encoded_data = self._encode_categorical_features(fit_data)
+        
+        try:
+            # Clear memory before fitting
+            gc.collect()
+            
+            # Initialize the copula model
+            self.log("Initializing GaussianMultivariate copula model...")
+            self.copula_model = GaussianMultivariate(random_state=self.random_state)
+            
+            # Fit the copula model
+            self.log("Fitting copula model to data...")
+            self.copula_model.fit(encoded_data)
+            
+            self.log("Copula model fitting completed successfully")
+            
+            # Clean up to free memory
+            del encoded_data
+            gc.collect()
+            
+        except Exception as e:
+            self.log(f"Error fitting copula model: {str(e)}")
+            raise RuntimeError(f"Failed to fit copula model: {str(e)}")
+        
+        self._is_fitted = True
+        self.log("Gaussian Copula model fitting completed successfully")
     
     def generate(
         self, 
-        num_samples: int, 
-        conditions: Optional[Dict] = None,
+        num_samples: int = 1000,
+        chunk_size: t.Optional[int] = None,
         **kwargs
     ) -> pd.DataFrame:
         """
-        Generate synthetic data using the fitted Gaussian Copula model.
+        Generate synthetic data based on the fitted Gaussian Copula model.
         
         Args:
             num_samples: Number of synthetic samples to generate
-            conditions: Optional conditions to apply during generation
-            **kwargs: Additional parameters for sampling
+            chunk_size: Size of chunks to use when generating large datasets
+            **kwargs: Additional parameters
+                - memory_efficient: Whether to use memory-efficient generation (default: True)
+                - dynamic_chunk_sizing: Adjust chunk size based on available memory (default: True)
+                - post_process_method: How to post-process data ('standard', 'enhanced', or 'minimal')
             
         Returns:
-            DataFrame of generated synthetic data
+            DataFrame containing the generated synthetic data
         """
-        if not self.fitted:
-            raise ValueError("Generator must be fitted before generating data.")
+        if not self._is_fitted:
+            raise ValueError("Generator must be fitted before generating data")
         
-        # Generate synthetic data
-        if conditions:
-            # Convert conditions to SDV format if needed
-            from sdv.sampling import Condition
+        self.log(f"Generating {num_samples} synthetic samples...")
+        
+        # Determine post-processing method
+        self.post_process_method = kwargs.get('post_process_method', 'enhanced')
+        
+        # Determine chunk size for memory-efficient generation
+        memory_efficient = kwargs.get('memory_efficient', True)
+        dynamic_chunk_sizing = kwargs.get('dynamic_chunk_sizing', True)
+        
+        if memory_efficient:
+            # If no chunk size is provided or dynamic sizing is requested
+            if chunk_size is None or dynamic_chunk_sizing:
+                # Estimate memory per sample
+                test_samples = min(100, num_samples)
+                test_data = self._generate_copula_samples(test_samples)
+                memory_per_sample = test_data.memory_usage(deep=True).sum() / test_samples
+                
+                # Calculate safe chunk size based on available memory
+                available_memory = max(0.5 * self._memory_limit - psutil.virtual_memory().used, 
+                                     0.2 * self._memory_limit)  # At least 20% of limit
+                
+                # Use at most 50% of available memory for chunk generation
+                safe_chunk_size = int(0.5 * available_memory / memory_per_sample)
+                
+                # Set a reasonable minimum and maximum
+                safe_chunk_size = max(min(safe_chunk_size, 10000), 100)
+                
+                if chunk_size is None or (dynamic_chunk_sizing and safe_chunk_size < chunk_size):
+                    chunk_size = safe_chunk_size
+                    
+                self.log(f"Dynamically determined chunk size: {chunk_size} samples")
+                
+                # Clean up test data
+                del test_data
+                gc.collect()
             
-            sdv_conditions = []
-            for condition_dict in conditions if isinstance(conditions, list) else [conditions]:
-                column_values = condition_dict.get('column_values', {})
-                num_rows = condition_dict.get('num_rows', num_samples)
-                sdv_conditions.append(Condition(column_values=column_values, num_rows=num_rows))
-            
-            synthetic_data = self.synthesizer.sample_from_conditions(conditions=sdv_conditions)
+            return self._generate_in_chunks(num_samples, chunk_size)
         else:
-            synthetic_data = self.synthesizer.sample(num_rows=num_samples)
+            # Generate all data at once
+            return self._generate_batch(num_samples)
+    
+    def _generate_in_chunks(self, num_samples: int, chunk_size: int) -> pd.DataFrame:
+        """
+        Generate synthetic data in chunks to optimize memory usage.
         
-        # Apply formatting to match original data types
-        synthetic_data = self._format_output(synthetic_data)
+        Args:
+            num_samples: Total number of samples to generate
+            chunk_size: Size of each chunk
+            
+        Returns:
+            DataFrame with generated synthetic data
+        """
+        # Calculate chunk sizes
+        chunk_sizes = []
+        remaining = num_samples
+        
+        while remaining > 0:
+            size = min(chunk_size, remaining)
+            chunk_sizes.append(size)
+            remaining -= size
+        
+        self.log(f"Generating {len(chunk_sizes)} chunks with sizes: {chunk_sizes}")
+        
+        # Check if we can use parallel processing
+        use_parallel = self.n_jobs != 1 and len(chunk_sizes) > 1
+        
+        if use_parallel:
+            self.log(f"Using parallel processing with {self.n_jobs} jobs")
+            
+            # Define a function to generate a single chunk
+            def process_chunk(size, chunk_id):
+                if self.verbose:
+                    print(f"Generating chunk {chunk_id+1}/{len(chunk_sizes)} with {size} samples")
+                
+                chunk_df = self._generate_copula_samples(size)
+                
+                # Apply post-processing based on selected method
+                chunk_df = self._post_process_chunk(chunk_df)
+                
+                return chunk_df
+            
+            # Process chunks in parallel
+            try:
+                n_jobs = self.n_jobs if self.n_jobs > 0 else None  # None means all cores
+                
+                # Create a progress bar
+                with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
+                    # Define a callback to update progress bar
+                    def update_progress(*args):
+                        pbar.update(1)
+                    
+                    # Generate chunks in parallel with progress tracking
+                    chunks = Parallel(n_jobs=n_jobs, backend="loky", verbose=0)(
+                        delayed(process_chunk)(size, i) for i, size in enumerate(chunk_sizes)
+                    )
+                
+                # Combine all chunks
+                result = pd.concat(chunks, ignore_index=True)
+                
+                # Clean up to free memory
+                del chunks
+                gc.collect()
+                
+                self.log(f"Successfully generated {len(result)} samples using parallel processing")
+                return result
+                
+            except Exception as e:
+                self.log(f"Error in parallel processing: {str(e)}")
+                self.log("Falling back to sequential processing")
+                use_parallel = False
+        
+        if not use_parallel:
+            # Process chunks sequentially
+            all_chunks = []
+            
+            with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
+                for i, size in enumerate(chunk_sizes):
+                    self.log(f"Generating chunk {i+1}/{len(chunk_sizes)} with {size} samples")
+                    
+                    chunk_df = self._generate_copula_samples(size)
+                    
+                    # Apply post-processing
+                    chunk_df = self._post_process_chunk(chunk_df)
+                    
+                    all_chunks.append(chunk_df)
+                    
+                    # Clean up to free memory after each chunk
+                    gc.collect()
+                    
+                    pbar.update(1)
+            
+            # Combine all chunks
+            result = pd.concat(all_chunks, ignore_index=True)
+            
+            # Clean up to free memory
+            del all_chunks
+            gc.collect()
+            
+            self.log(f"Successfully generated {len(result)} samples using sequential processing")
+            return result
+    
+    def _post_process_chunk(self, chunk_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply post-processing to a generated chunk based on the selected method.
+        
+        Args:
+            chunk_df: Generated data chunk
+            
+        Returns:
+            Post-processed data chunk
+        """
+        # Apply constraints if required
+        if self.preserve_constraints:
+            chunk_df = self._enforce_constraints(chunk_df, self.original_data_sample)
+        
+        # Enhanced post-processing to improve data quality
+        if self.post_process_method == 'enhanced':
+            # Adjust numerical columns to better match original distributions
+            for col in self.numerical_columns:
+                if col in chunk_df.columns and col in self.num_column_stats:
+                    stats = self.num_column_stats[col]
+                    
+                    # Handle outliers by clipping to a reasonable range
+                    iqr = stats['q3'] - stats['q1']
+                    lower_bound = stats['q1'] - 1.5 * iqr
+                    upper_bound = stats['q3'] + 1.5 * iqr
+                    
+                    # Clip values but keep some variability
+                    chunk_df[col] = chunk_df[col].clip(
+                        lower=max(lower_bound, stats['min']),
+                        upper=min(upper_bound, stats['max'])
+                    )
+            
+            # Correct categorical distributions
+            for col in self.categorical_columns:
+                if col in chunk_df.columns and col in self.cat_column_stats:
+                    # Only apply if current distribution deviates significantly
+                    synth_dist = chunk_df[col].value_counts(normalize=True)
+                    orig_dist = pd.Series(
+                        self.cat_column_stats[col]['frequencies'],
+                        index=self.cat_column_stats[col]['values']
+                    )
+                    
+                    # Measure distribution difference
+                    common_cats = set(synth_dist.index) & set(orig_dist.index)
+                    if len(common_cats) > 0:
+                        common_synth = synth_dist.loc[list(common_cats)]
+                        common_orig = orig_dist.loc[list(common_cats)]
+                        dist_diff = np.abs(common_synth - common_orig).mean()
+                        
+                        # If difference is significant, adjust the distribution
+                        if dist_diff > 0.1:  # threshold for adjustment
+                            self._adjust_categorical_distribution(chunk_df, col, orig_dist)
+        
+        # Convert dtypes back to original if required
+        if self.preserve_dtypes:
+            for col, dtype in self.dtypes.items():
+                if col in chunk_df.columns:
+                    try:
+                        chunk_df[col] = chunk_df[col].astype(dtype)
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep as is
+                        pass
+        
+        # Optimize memory usage
+        chunk_df = self._memory_optimize(chunk_df)
+        
+        return chunk_df
+    
+    def _adjust_categorical_distribution(self, df: pd.DataFrame, column: str, target_dist: pd.Series) -> None:
+        """
+        Adjust categorical distribution to match target distribution.
+        
+        Args:
+            df: DataFrame to adjust
+            column: Column to adjust
+            target_dist: Target distribution
+        """
+        current_dist = df[column].value_counts(normalize=True)
+        
+        # For each category that needs adjustment
+        for cat, target_freq in target_dist.items():
+            if cat in current_dist.index:
+                current_freq = current_dist[cat]
+                
+                # Calculate how many values need to change
+                diff = target_freq - current_freq
+                if abs(diff) < 0.01:  # Skip small adjustments
+                    continue
+                
+                n_samples = len(df)
+                n_changes = int(abs(diff) * n_samples)
+                
+                if diff > 0:  # Need to increase this category
+                    # Find other categories to decrease
+                    other_cats = [c for c in current_dist.index if current_dist[c] > target_dist.get(c, 0)]
+                    if not other_cats:
+                        continue
+                        
+                    # Select random samples from other categories to change
+                    for _ in range(min(n_changes, 100)):  # Limit changes to avoid overfitting
+                        other_cat = np.random.choice(other_cats)
+                        idx = df[df[column] == other_cat].index
+                        if len(idx) > 0:
+                            change_idx = np.random.choice(idx)
+                            df.loc[change_idx, column] = cat
+                
+                elif diff < 0:  # Need to decrease this category
+                    # Find other categories to increase
+                    other_cats = [c for c in target_dist.index 
+                                if c in current_dist.index and current_dist[c] < target_dist[c]]
+                    if not other_cats:
+                        continue
+                        
+                    # Select random samples from this category to change
+                    idx = df[df[column] == cat].index
+                    for _ in range(min(n_changes, 100)):  # Limit changes to avoid overfitting
+                        if len(idx) > 0:
+                            change_idx = np.random.choice(idx)
+                            other_cat = np.random.choice(other_cats)
+                            df.loc[change_idx, column] = other_cat
+    
+    def _generate_batch(self, num_samples: int) -> pd.DataFrame:
+        """
+        Generate a batch of synthetic data.
+        
+        Args:
+            num_samples: Number of samples to generate
+            
+        Returns:
+            DataFrame with generated synthetic data
+        """
+        # Generate samples using the copula model
+        synthetic_data = self._generate_copula_samples(num_samples)
+        
+        # Apply post-processing
+        synthetic_data = self._post_process_chunk(synthetic_data)
         
         return synthetic_data
     
-    def generate_adversarial(
-        self, 
-        model,
-        num_samples: int,
-        target_value: Optional[Any] = None,
-        **kwargs
-    ) -> pd.DataFrame:
+    def _generate_copula_samples(self, num_samples: int) -> pd.DataFrame:
         """
-        Generate synthetic adversarial examples that perform poorly on the given model.
+        Generate samples using the fitted copula model.
         
         Args:
-            model: The model to generate adversarial examples for
-            num_samples: Number of adversarial samples to generate
-            target_value: Optional target value to fool the model into predicting
-            **kwargs: Additional parameters for generation
+            num_samples: Number of samples to generate
             
         Returns:
-            DataFrame of generated adversarial examples
+            DataFrame with generated samples
         """
-        if not self.fitted:
-            raise ValueError("Generator must be fitted before generating adversarial data.")
-        
-        # Start by generating a larger pool of synthetic samples
-        pool_size = num_samples * 10
-        synthetic_pool = self.generate(num_samples=pool_size)
-        
-        # Remove any target column
-        target_col = self._metadata.get('target_column')
-        X_pool = synthetic_pool.drop(columns=[target_col]) if target_col in synthetic_pool.columns else synthetic_pool
-        
-        # Get predictions from the model
         try:
-            if hasattr(model, 'predict_proba'):
-                y_pred = model.predict_proba(X_pool)
-                
-                # For classification, find samples with highest uncertainty
-                if y_pred.shape[1] == 2:  # Binary classification
-                    uncertainty = np.abs(y_pred[:, 1] - 0.5)  # Distance from decision boundary
-                else:  # Multi-class
-                    uncertainty = 1.0 - np.max(y_pred, axis=1)  # 1 - max probability
-                    
-                # If target_value is provided, filter for that specific class
-                if target_value is not None:
-                    # For binary classification
-                    if y_pred.shape[1] == 2:
-                        if target_value == 1:
-                            # Want model to predict 1, but it's predicting 0
-                            scores = 1.0 - y_pred[:, 1]
-                        else:
-                            # Want model to predict 0, but it's predicting 1
-                            scores = y_pred[:, 1]
-                    else:
-                        # For multi-class, want model to predict target_value
-                        scores = 1.0 - y_pred[:, target_value]
-                else:
-                    # Without a target, just use uncertainty
-                    scores = uncertainty
-            else:
-                # For regression or other models, use random selection
-                scores = np.random.rand(len(X_pool))
+            # Use the copula model to generate samples
+            synthetic_data = self.copula_model.sample(num_samples)
+            return synthetic_data
         except Exception as e:
-            print(f"Error getting predictions from model: {e}")
-            # Fallback to random selection
-            scores = np.random.rand(len(X_pool))
-        
-        # Select the samples with highest scores (most adversarial)
-        indices = np.argsort(scores)[-num_samples:]
-        adversarial_samples = synthetic_pool.iloc[indices].reset_index(drop=True)
-        
-        return adversarial_samples
+            self.log(f"Error generating samples: {str(e)}")
+            raise RuntimeError(f"Failed to generate samples: {str(e)}")
     
-    def generate_novel(
-        self, 
-        num_samples: int,
-        novelty_degree: float = 0.5,
-        **kwargs
-    ) -> pd.DataFrame:
+    def _encode_categorical_features(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Generate synthetic data with novel patterns not present in training data.
+        Encode categorical features to numerical values for copula fitting.
         
         Args:
-            num_samples: Number of novel samples to generate
-            novelty_degree: Degree of novelty (0.0 to 1.0, higher means more novel)
-            **kwargs: Additional parameters for generation
+            data: DataFrame with categorical and numerical features
             
         Returns:
-            DataFrame of generated novel examples
+            DataFrame with all features encoded as numerical
         """
-        if not self.fitted:
-            raise ValueError("Generator must be fitted before generating novel data.")
+        # Create a copy to avoid modifying the original data
+        encoded_data = data.copy()
         
-        # Clamp novelty degree to valid range
-        novelty_degree = max(0.0, min(1.0, novelty_degree))
+        for col in self.categorical_columns:
+            if col in encoded_data.columns:
+                # For categorical features, use improved encoding method
+                # Frequency-based encoding can better preserve distribution
+                value_counts = encoded_data[col].value_counts(normalize=True)
+                
+                # Map categories to their frequency (preserves distribution better)
+                freq_map = value_counts.to_dict()
+                encoded_data[col] = encoded_data[col].map(freq_map).fillna(0)
+                
+                # Add small random noise to avoid identical values
+                np.random.seed(self.random_state)
+                encoded_data[col] += np.random.normal(0, 0.01, len(encoded_data))
+                
+                # Normalize to [0, 1] range
+                min_val = encoded_data[col].min()
+                max_val = encoded_data[col].max()
+                if max_val > min_val:
+                    encoded_data[col] = (encoded_data[col] - min_val) / (max_val - min_val)
         
-        # Start by generating standard synthetic data
-        synthetic_data = self.synthesizer.sample(num_rows=num_samples * 2)
-        
-        # Create a modified synthesizer with more flexible constraints
-        from sdv.single_table import GaussianCopulaSynthesizer
-        from sdv.metadata import SingleTableMetadata
-        
-        # Copy the metadata
-        meta_dict = self.synthesizer.get_metadata().to_dict()
-        modified_metadata = SingleTableMetadata.load_from_dict(meta_dict)
-        
-        # Create modified synthesizer with more exploration
-        novel_synthesizer = GaussianCopulaSynthesizer(
-            metadata=modified_metadata,
-            enforce_min_max_values=False,  # Allow values outside the original range
-            default_distribution=self.default_distribution,
-            numerical_distributions=self.numerical_distributions
-        )
-        
-        # Train on original + synthetic data with randomization
-        augmented_data = synthetic_data.copy()
-        for col in self._metadata['numerical_columns']:
-            if col in augmented_data.columns:
-                # Add noise to numerical columns based on novelty degree
-                stats = self._column_stats[col]
-                noise_scale = stats['std'] * novelty_degree * 2
-                noise = np.random.normal(0, noise_scale, size=len(augmented_data))
-                augmented_data[col] = augmented_data[col] + noise
-        
-        # Fit modified synthesizer on augmented data
-        novel_synthesizer.fit(augmented_data)
-        
-        # Generate novel data
-        novel_data = novel_synthesizer.sample(num_rows=num_samples)
-        
-        # Format and return
-        novel_data = self._format_output(novel_data)
-        
-        return novel_data
+        return encoded_data
     
-    def get_learned_distributions(self) -> Dict:
+    def get_feature_importance(self) -> pd.DataFrame:
         """
-        Get the distributions learned by the synthesizer.
+        Calculate feature importance based on correlation structure.
         
         Returns:
-            Dictionary of learned distributions for each column
+            DataFrame with feature importance scores
         """
-        if not self.fitted:
-            raise ValueError("Generator must be fitted to get learned distributions.")
+        if not self._is_fitted:
+            raise ValueError("Generator must be fitted before calculating feature importance")
         
-        # Get distributions from the SDV synthesizer
-        return self.synthesizer.get_parameters()
+        try:
+            # Get correlation matrix from the fitted model
+            corr_matrix = self.copula_model.covariance
+            
+            # Convert to DataFrame with column names
+            columns = list(self.dtypes.keys())
+            corr_df = pd.DataFrame(corr_matrix, index=columns, columns=columns)
+            
+            # Calculate importance as the sum of absolute correlations for each feature
+            importance = corr_df.abs().sum() / (len(columns) - 1)
+            
+            # Normalize to 0-100 scale
+            importance = 100 * importance / importance.max()
+            
+            # Create result DataFrame
+            result = pd.DataFrame({
+                'feature': importance.index,
+                'importance': importance.values
+            }).sort_values('importance', ascending=False)
+            
+            return result
+            
+        except Exception as e:
+            self.log(f"Error calculating feature importance: {str(e)}")
+            return pd.DataFrame(columns=['feature', 'importance'])

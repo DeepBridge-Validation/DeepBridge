@@ -1,11 +1,15 @@
 import os
 import pandas as pd
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, TYPE_CHECKING
 from datetime import datetime
 
 from deepbridge.config.settings import DistillationConfig
 from deepbridge.metrics.evaluator import MetricsEvaluator
 from deepbridge.utils.report_generator import HTMLReportGenerator
+
+
+if TYPE_CHECKING:
+    from deepbridge.metrics.evaluator import MetricsEvaluator
 
 
 class ReportGenerator:
@@ -20,7 +24,7 @@ class ReportGenerator:
         self,
         results_df: pd.DataFrame,
         config: DistillationConfig,
-        metrics_evaluator: MetricsEvaluator
+        metrics_evaluator: "MetricsEvaluator"
     ):
         """
         Initialize the report generator.
