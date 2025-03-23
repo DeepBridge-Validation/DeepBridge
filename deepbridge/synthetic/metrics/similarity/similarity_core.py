@@ -118,22 +118,23 @@ def _calculate_similarity_scores(
     
     return similarities
 
-def _process_similarity_chunk(
-    original_data: pd.DataFrame,
-    synthetic_chunk: pd.DataFrame,
+# Standalone function for Dask serialization
+def process_similarity_chunk_standalone(
+    original_data_dict: dict,
+    synthetic_chunk_dict: dict,
     categorical_columns: t.List[str],
     numerical_columns: t.List[str],
     metric: str = 'euclidean',
     n_neighbors: int = 5,
     chunk_id: int = 0,
     verbose: bool = False
-) -> t.Tuple[pd.Index, np.ndarray]:
+) -> t.Tuple[list, list]:
     """
-    Process a single chunk for similarity calculation.
+    Process a single chunk for similarity calculation - Standalone version for Dask.
     
     Args:
-        original_data: Original dataset
-        synthetic_chunk: Chunk of synthetic data
+        original_data_dict: Dictionary representation of original data
+        synthetic_chunk_dict: Dictionary representation of synthetic chunk
         categorical_columns: List of categorical columns
         numerical_columns: List of numerical columns
         metric: Distance metric
@@ -145,7 +146,11 @@ def _process_similarity_chunk(
         Tuple of (chunk_indices, similarity_scores)
     """
     if verbose:
-        print(f"Processing chunk {chunk_id} with {len(synthetic_chunk)} samples")
+        print(f"Processing chunk {chunk_id} with {len(synthetic_chunk_dict)} samples")
+    
+    # Convert dictionaries back to DataFrames
+    original_data = pd.DataFrame.from_dict(original_data_dict)
+    synthetic_chunk = pd.DataFrame.from_dict(synthetic_chunk_dict)
     
     # Create and fit preprocessor
     preprocessor = _create_preprocessor(numerical_columns, categorical_columns)
@@ -167,12 +172,13 @@ def _process_similarity_chunk(
     # Calculate similarity scores
     similarity_scores = _calculate_similarity_scores(distances)
     
-    # Return indices and scores
-    return synthetic_chunk.index, similarity_scores
+    # Return indices and scores as lists for serialization
+    return synthetic_chunk.index.tolist(), similarity_scores.tolist()
 
-def _filter_chunk_by_similarity(
-    original_data: pd.DataFrame,
-    synthetic_chunk: pd.DataFrame,
+# Standalone function for Dask similarity filtering
+def filter_chunk_by_similarity_standalone(
+    original_data_dict: dict,
+    synthetic_chunk_dict: dict,
     threshold: float,
     categorical_columns: t.List[str],
     numerical_columns: t.List[str],
@@ -180,13 +186,13 @@ def _filter_chunk_by_similarity(
     n_neighbors: int = 5,
     chunk_id: int = 0,
     verbose: bool = False
-) -> t.List:
+) -> list:
     """
-    Filter a chunk based on similarity threshold.
+    Filter a chunk based on similarity threshold - Standalone version for Dask.
     
     Args:
-        original_data: Original dataset
-        synthetic_chunk: Chunk of synthetic data
+        original_data_dict: Dictionary representation of original data
+        synthetic_chunk_dict: Dictionary representation of synthetic chunk
         threshold: Similarity threshold
         categorical_columns: List of categorical columns
         numerical_columns: List of numerical columns
@@ -198,10 +204,14 @@ def _filter_chunk_by_similarity(
     Returns:
         List of indices to keep
     """
+    # Convert dictionaries back to DataFrames
+    original_data = pd.DataFrame.from_dict(original_data_dict)
+    synthetic_chunk = pd.DataFrame.from_dict(synthetic_chunk_dict)
+    
     # Get chunk indices and similarity scores
-    chunk_indices, similarity_scores = _process_similarity_chunk(
-        original_data,
-        synthetic_chunk,
+    chunk_indices, similarity_scores = process_similarity_chunk_standalone(
+        original_data_dict,
+        synthetic_chunk_dict,
         categorical_columns,
         numerical_columns,
         metric,
@@ -209,6 +219,10 @@ def _filter_chunk_by_similarity(
         chunk_id,
         verbose
     )
+    
+    # Convert back to numpy arrays
+    chunk_indices = np.array(chunk_indices)
+    similarity_scores = np.array(similarity_scores)
     
     # Filter based on threshold
     keep_mask = similarity_scores < threshold
@@ -307,6 +321,9 @@ def calculate_similarity(
             if verbose:
                 print(f"Processing data in {n_chunks} chunks of size ~{chunk_size}")
             
+            # Convert DataFrames to dictionaries for serialization
+            original_data_dict = original_sample.to_dict()
+            
             # Process in chunks
             all_indices = []
             all_scores = []
@@ -318,10 +335,13 @@ def calculate_similarity(
                 end = min(start + chunk_size, len(synthetic_sample))
                 chunk = synthetic_sample.iloc[start:end]
                 
-                # Create a delayed task
-                task = dask.delayed(_process_similarity_chunk)(
-                    original_sample,
-                    chunk,
+                # Convert chunk to dictionary for serialization
+                synthetic_chunk_dict = chunk.to_dict()
+                
+                # Create a delayed task with standalone function
+                task = dask.delayed(process_similarity_chunk_standalone)(
+                    original_data_dict,
+                    synthetic_chunk_dict,
                     categorical_columns,
                     numerical_columns,
                     metric,
@@ -508,6 +528,9 @@ def filter_by_similarity(
             
             if verbose:
                 print(f"Processing {n_batches} batches in parallel")
+            
+            # Convert original data to dictionary for serialization
+            original_data_dict = original_data_common.to_dict()
                 
             # Create tasks for batch processing
             tasks = []
@@ -516,10 +539,13 @@ def filter_by_similarity(
                 end_idx = min((i + 1) * optimal_batch_size, len(synthetic_data))
                 batch = synthetic_data.iloc[start_idx:end_idx]
                 
-                # Create a delayed task
-                task = dask.delayed(_filter_chunk_by_similarity)(
-                    original_data_common,
-                    batch,
+                # Convert batch to dictionary for serialization
+                synthetic_chunk_dict = batch.to_dict()
+                
+                # Create a delayed task with standalone function
+                task = dask.delayed(filter_chunk_by_similarity_standalone)(
+                    original_data_dict,
+                    synthetic_chunk_dict,
                     threshold,
                     categorical_columns,
                     numerical_columns,

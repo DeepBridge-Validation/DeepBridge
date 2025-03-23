@@ -17,6 +17,199 @@ from copulas.multivariate import GaussianMultivariate
 
 from ..base import BaseSyntheticGenerator
 
+# Define a standalone function for Dask serialization
+def _process_chunk_for_dask_standalone(
+    size: int,
+    chunk_id: int,
+    random_state: int,
+    scaler_fit_data: np.ndarray,
+    copula_model_params: dict,
+    categorical_columns: list,
+    numerical_columns: list,
+    dtypes: dict,
+    column_constraints: dict,
+    preserve_dtypes: bool,
+    preserve_constraints: bool,
+    original_data_sample_dict: dict,
+    post_process_method: str,
+    num_column_stats: dict,
+    cat_column_stats: dict
+):
+    """
+    Generate and process a chunk of synthetic data - Standalone function for Dask compatibility.
+    
+    Args:
+        size: Size of the chunk
+        chunk_id: ID of the chunk
+        random_state: Random seed
+        scaler_fit_data: Scaled data used to fit the copula
+        copula_model_params: Parameters of the fitted copula model
+        categorical_columns: List of categorical column names
+        numerical_columns: List of numerical column names
+        dtypes: Dictionary of column data types
+        column_constraints: Dictionary of column constraints
+        preserve_dtypes: Whether to preserve original data types
+        preserve_constraints: Whether to enforce constraints
+        original_data_sample_dict: Dictionary version of original data sample
+        post_process_method: Method for post-processing
+        num_column_stats: Statistics for numerical columns
+        cat_column_stats: Statistics for categorical columns
+        
+    Returns:
+        Processed chunk of synthetic data
+    """
+    # Set random seed for reproducibility
+    np.random.seed(random_state + chunk_id)
+    
+    # Fixed code:
+    if random_state is not None:
+        np.random.seed(random_state + chunk_id)
+    else:
+        np.random.seed(chunk_id)  # Use just chunk_id if random_state is None
+
+    # Print message
+    print(f"Generating chunk {chunk_id+1} with {size} samples")
+    
+    # Recreate copula model from parameters
+    copula_model = GaussianMultivariate(random_state=random_state)
+    
+    # Restore model from parameters
+    copula_model.covariance = copula_model_params.get('covariance')
+    copula_model.columns = copula_model_params.get('columns')
+    copula_model.univariates = copula_model_params.get('univariates')
+    
+    # Generate samples
+    synthetic_data = copula_model.sample(size)
+    
+    # Convert original data sample back from dict
+    original_data_sample = pd.DataFrame.from_dict(original_data_sample_dict)
+    
+    # Post-process the chunk
+    # Apply constraints if required
+    if preserve_constraints:
+        # Enforce constraints from original data
+        for col in numerical_columns:
+            if col in synthetic_data.columns and col in column_constraints:
+                constraints = column_constraints[col]
+                # Clip values to enforce range constraints
+                synthetic_data[col] = synthetic_data[col].clip(
+                    constraints.get('min'), 
+                    constraints.get('max')
+                )
+        
+        # Handle categorical values
+        for col in categorical_columns:
+            if col in synthetic_data.columns and col in column_constraints:
+                # Get allowed values from constraints
+                allowed_values = column_constraints[col].get('values', [])
+                
+                # Map values outside of the allowed set to values within the set
+                mask = ~synthetic_data[col].isin(allowed_values)
+                if mask.any():
+                    # Replace with random values from allowed set
+                    replacement_values = np.random.choice(
+                        allowed_values, 
+                        size=mask.sum(),
+                        replace=True
+                    )
+                    synthetic_data.loc[mask, col] = replacement_values
+    
+    # Enhanced post-processing to improve data quality
+    if post_process_method == 'enhanced':
+        # Adjust numerical columns to better match original distributions
+        for col in numerical_columns:
+            if col in synthetic_data.columns and col in num_column_stats:
+                stats = num_column_stats[col]
+                
+                # Handle outliers by clipping to a reasonable range
+                if 'q1' in stats and 'q3' in stats:
+                    iqr = stats['q3'] - stats['q1']
+                    lower_bound = stats['q1'] - 1.5 * iqr
+                    upper_bound = stats['q3'] + 1.5 * iqr
+                    
+                    # Clip values but keep some variability
+                    synthetic_data[col] = synthetic_data[col].clip(
+                        lower=max(lower_bound, stats.get('min', lower_bound)),
+                        upper=min(upper_bound, stats.get('max', upper_bound))
+                    )
+        
+        # Correct categorical distributions
+        for col in categorical_columns:
+            if col in synthetic_data.columns and col in cat_column_stats:
+                # Only apply if current distribution deviates significantly
+                synth_dist = synthetic_data[col].value_counts(normalize=True)
+                
+                cat_stats = cat_column_stats[col]
+                if 'values' in cat_stats and 'frequencies' in cat_stats:
+                    orig_dist = pd.Series(
+                        cat_stats['frequencies'],
+                        index=cat_stats['values']
+                    )
+                    
+                    # Measure distribution difference
+                    common_cats = set(synth_dist.index) & set(orig_dist.index)
+                    if len(common_cats) > 0:
+                        common_synth = synth_dist.loc[list(common_cats)]
+                        common_orig = orig_dist.loc[list(common_cats)]
+                        dist_diff = np.abs(common_synth - common_orig).mean()
+                        
+                        # If difference is significant, adjust the distribution
+                        if dist_diff > 0.1:  # threshold for adjustment
+                            # For each category that needs adjustment
+                            for cat, target_freq in orig_dist.items():
+                                if cat in synth_dist.index:
+                                    current_freq = synth_dist[cat]
+                                    
+                                    # Calculate how many values need to change
+                                    diff = target_freq - current_freq
+                                    if abs(diff) < 0.01:  # Skip small adjustments
+                                        continue
+                                    
+                                    n_samples = len(synthetic_data)
+                                    n_changes = int(abs(diff) * n_samples)
+                                    
+                                    if diff > 0:  # Need to increase this category
+                                        # Find other categories to decrease
+                                        other_cats = [c for c in synth_dist.index if synth_dist[c] > orig_dist.get(c, 0)]
+                                        if not other_cats:
+                                            continue
+                                            
+                                        # Select random samples from other categories to change
+                                        for _ in range(min(n_changes, 100)):  # Limit changes to avoid overfitting
+                                            other_cat = np.random.choice(other_cats)
+                                            idx = synthetic_data[synthetic_data[col] == other_cat].index
+                                            if len(idx) > 0:
+                                                change_idx = np.random.choice(idx)
+                                                synthetic_data.loc[change_idx, col] = cat
+                                    
+                                    elif diff < 0:  # Need to decrease this category
+                                        # Find other categories to increase
+                                        other_cats = [c for c in orig_dist.index 
+                                                    if c in synth_dist.index and synth_dist[c] < orig_dist[c]]
+                                        if not other_cats:
+                                            continue
+                                            
+                                        # Select random samples from this category to change
+                                        idx = synthetic_data[synthetic_data[col] == cat].index
+                                        for _ in range(min(n_changes, 100)):  # Limit changes to avoid overfitting
+                                            if len(idx) > 0:
+                                                change_idx = np.random.choice(idx)
+                                                other_cat = np.random.choice(other_cats)
+                                                synthetic_data.loc[change_idx, col] = other_cat
+    
+    # Convert dtypes back to original if required
+    if preserve_dtypes:
+        for col, dtype in dtypes.items():
+            if col in synthetic_data.columns:
+                try:
+                    synthetic_data[col] = synthetic_data[col].astype(dtype)
+                except (ValueError, TypeError):
+                    # If conversion fails, keep as is
+                    pass
+    
+    return synthetic_data
+
+
 class GaussianCopulaGenerator(BaseSyntheticGenerator):
     """
     Synthetic data generator using Gaussian Copula method.
@@ -76,29 +269,125 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         self.dtypes = {}
         self.n_jobs = n_jobs
         self.memory_limit_percentage = memory_limit_percentage
+        # Store column constraints
+        self.column_constraints = {}
+        self.num_column_stats = {}
+        self.cat_column_stats = {}
+        self.post_process_method = 'standard'
 
-    # This function is extracted from _generate_with_dask for serialization
-    def _process_chunk_for_dask(self, size, chunk_id):
+    def _generate_copula_samples(self, num_samples: int) -> pd.DataFrame:
         """
-        Generate and process a chunk of synthetic data.
+        Generate samples using the fitted copula model.
+        
+        Args:
+            num_samples: Number of samples to generate
+            
+        Returns:
+            DataFrame with generated samples
+        """
+        try:
+            # Use the copula model to generate samples
+            synthetic_data = self.copula_model.sample(num_samples)
+            return synthetic_data
+        except Exception as e:
+            self.log(f"Error generating samples: {str(e)}")
+            raise RuntimeError(f"Failed to generate samples: {str(e)}")
+
+    def _encode_categorical_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Encode categorical features to numerical values for copula fitting.
+        
+        Args:
+            data: DataFrame with categorical and numerical features
+            
+        Returns:
+            DataFrame with all features encoded as numerical
+        """
+        # Create a copy to avoid modifying the original data
+        encoded_data = data.copy()
+        
+        for col in self.categorical_columns:
+            if col in encoded_data.columns:
+                # For categorical features, use improved encoding method
+                # Frequency-based encoding can better preserve distribution
+                value_counts = encoded_data[col].value_counts(normalize=True)
+                
+                # Map categories to their frequency (preserves distribution better)
+                freq_map = value_counts.to_dict()
+                encoded_data[col] = encoded_data[col].map(freq_map).fillna(0)
+                
+                # Add small random noise to avoid identical values
+                np.random.seed(self.random_state)
+                encoded_data[col] += np.random.normal(0, 0.01, len(encoded_data))
+                
+                # Normalize to [0, 1] range
+                min_val = encoded_data[col].min()
+                max_val = encoded_data[col].max()
+                if max_val > min_val:
+                    encoded_data[col] = (encoded_data[col] - min_val) / (max_val - min_val)
+        
+        return encoded_data
+    
+    # This is now a method that prepares parameters for the standalone function
+    def _prepare_chunk_data(self, size, chunk_id):
+        """
+        Prepare data needed for chunk processing
         
         Args:
             size: Size of the chunk
             chunk_id: ID of the chunk
             
         Returns:
-            Processed chunk of synthetic data
+            Dictionary with parameters for standalone processing
         """
         if self.verbose:
-            print(f"Generating chunk {chunk_id+1} with {size} samples")
+            print(f"Preparing data for chunk {chunk_id+1} with {size} samples")
         
-        # Generate samples for this chunk
-        chunk_df = self._generate_copula_samples(size)
+        # Extract model parameters that can be serialized
+        copula_model_params = {
+            'covariance': self.copula_model.covariance if hasattr(self.copula_model, 'covariance') else None,
+            'columns': self.copula_model.columns if hasattr(self.copula_model, 'columns') else None,
+            'univariates': self.copula_model.univariates if hasattr(self.copula_model, 'univariates') else None,
+        }
         
-        # Apply post-processing
-        chunk_df = self._post_process_chunk(chunk_df)
+        # Prepare original data sample as dict for serialization
+        original_data_sample_dict = self.original_data_sample.to_dict() if self.original_data_sample is not None else {}
         
-        return chunk_df
+        # Extract column constraints
+        column_constraints = {}
+        
+        # For numerical columns
+        for col in self.numerical_columns:
+            if col in self.num_column_stats:
+                column_constraints[col] = {
+                    'min': self.num_column_stats[col].get('min'),
+                    'max': self.num_column_stats[col].get('max')
+                }
+        
+        # For categorical columns
+        for col in self.categorical_columns:
+            if col in self.cat_column_stats:
+                column_constraints[col] = {
+                    'values': self.cat_column_stats[col].get('values', [])
+                }
+        
+        return dict(
+            size=size,
+            chunk_id=chunk_id,
+            random_state=self.random_state,
+            scaler_fit_data=None,  # This would be too large, omit it
+            copula_model_params=copula_model_params,
+            categorical_columns=self.categorical_columns,
+            numerical_columns=self.numerical_columns,
+            dtypes=self.dtypes,
+            column_constraints=column_constraints,
+            preserve_dtypes=self.preserve_dtypes,
+            preserve_constraints=self.preserve_constraints,
+            original_data_sample_dict=original_data_sample_dict,
+            post_process_method=self.post_process_method,
+            num_column_stats=self.num_column_stats,
+            cat_column_stats=self.cat_column_stats
+        )
     
     def fit(
         self,
@@ -117,8 +406,6 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
             categorical_columns: List of categorical column names
             numerical_columns: List of numerical column names
             **kwargs: Additional parameters specific to the implementation
-                - max_fit_samples: Maximum number of samples to use for fitting (default: self.fit_sample_size)
-                - stratify_by: Column to use for stratified sampling during fitting
         """
         self.log(f"Fitting Gaussian Copula generator on dataset with {len(data)} rows...")
         
@@ -305,11 +592,15 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         
         self.log(f"Generating {len(chunk_sizes)} chunks with sizes: {chunk_sizes}")
         
-        # Create list of tasks by using pure function (not method)
+        # Create list of tasks using standalone function
         tasks = []
         for i, size in enumerate(chunk_sizes):
-            # Pass only the necessary arguments to the worker-friendly function
-            tasks.append(dask.delayed(self._process_chunk_for_dask)(size, i))
+            # Prepare parameters
+            params = self._prepare_chunk_data(size, i)
+            
+            # Create a delayed task with the standalone function
+            task = dask.delayed(_process_chunk_for_dask_standalone)(**params)
+            tasks.append(task)
         
         # Compute chunks in parallel
         self.log("Computing chunks in parallel with Dask...")
@@ -366,69 +657,35 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
         
         self.log(f"Generating {len(chunk_sizes)} chunks with sizes: {chunk_sizes}")
         
-        # Check if we can use parallel processing
-        use_parallel = self.n_jobs != 1 and len(chunk_sizes) > 1
+        # Process chunks sequentially
+        all_chunks = []
         
-        if use_parallel:
-            from joblib import Parallel, delayed
-            self.log(f"Using parallel processing with {self.n_jobs} jobs")
-            
-            # Process chunks in parallel
-            try:
-                n_jobs = self.n_jobs if self.n_jobs > 0 else None  # None means all cores
+        with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
+            for i, size in enumerate(chunk_sizes):
+                self.log(f"Generating chunk {i+1}/{len(chunk_sizes)} with {size} samples")
                 
-                # Create a progress bar
-                with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
-                    # Generate chunks in parallel with progress tracking
-                    chunks = Parallel(n_jobs=n_jobs, backend="loky", verbose=0)(
-                        delayed(self._process_chunk_for_dask)(size, i) for i, size in enumerate(chunk_sizes)
-                    )
-                    pbar.update(len(chunk_sizes))
+                # Generate samples using the copula model
+                chunk_df = self._generate_copula_samples(size)
                 
-                # Combine all chunks
-                result = pd.concat(chunks, ignore_index=True)
+                # Apply post-processing
+                chunk_df = self._post_process_chunk(chunk_df)
                 
-                # Clean up to free memory
-                del chunks
+                all_chunks.append(chunk_df)
+                
+                # Clean up to free memory after each chunk
                 gc.collect()
                 
-                self.log(f"Successfully generated {len(result)} samples using parallel processing")
-                return result
-                
-            except Exception as e:
-                self.log(f"Error in parallel processing: {str(e)}")
-                self.log("Falling back to sequential processing")
-                use_parallel = False
+                pbar.update(1)
         
-        if not use_parallel:
-            # Process chunks sequentially
-            all_chunks = []
-            
-            with tqdm(total=len(chunk_sizes), desc="Generating chunks", disable=not self.verbose) as pbar:
-                for i, size in enumerate(chunk_sizes):
-                    self.log(f"Generating chunk {i+1}/{len(chunk_sizes)} with {size} samples")
-                    
-                    chunk_df = self._generate_copula_samples(size)
-                    
-                    # Apply post-processing
-                    chunk_df = self._post_process_chunk(chunk_df)
-                    
-                    all_chunks.append(chunk_df)
-                    
-                    # Clean up to free memory after each chunk
-                    gc.collect()
-                    
-                    pbar.update(1)
-            
-            # Combine all chunks
-            result = pd.concat(all_chunks, ignore_index=True)
-            
-            # Clean up to free memory
-            del all_chunks
-            gc.collect()
-            
-            self.log(f"Successfully generated {len(result)} samples using sequential processing")
-            return result
+        # Combine all chunks
+        result = pd.concat(all_chunks, ignore_index=True)
+        
+        # Clean up to free memory
+        del all_chunks
+        gc.collect()
+        
+        self.log(f"Successfully generated {len(result)} samples using sequential processing")
+        return result
     
     def _post_process_chunk(self, chunk_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -551,109 +808,199 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                             other_cat = np.random.choice(other_cats)
                             df.loc[change_idx, column] = other_cat
     
-    def _generate_batch(self, num_samples: int) -> pd.DataFrame:
+    def save_model(self, path: str) -> None:
         """
-        Generate a batch of synthetic data.
+        Save the fitted model to disk.
         
         Args:
-            num_samples: Number of samples to generate
-            
-        Returns:
-            DataFrame with generated synthetic data
-        """
-        # Generate samples using the copula model
-        synthetic_data = self._generate_copula_samples(num_samples)
-        
-        # Apply post-processing
-        synthetic_data = self._post_process_chunk(synthetic_data)
-        
-        return synthetic_data
-    
-    def _generate_copula_samples(self, num_samples: int) -> pd.DataFrame:
-        """
-        Generate samples using the fitted copula model.
-        
-        Args:
-            num_samples: Number of samples to generate
-            
-        Returns:
-            DataFrame with generated samples
-        """
-        try:
-            # Use the copula model to generate samples
-            synthetic_data = self.copula_model.sample(num_samples)
-            return synthetic_data
-        except Exception as e:
-            self.log(f"Error generating samples: {str(e)}")
-            raise RuntimeError(f"Failed to generate samples: {str(e)}")
-    
-    def _encode_categorical_features(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Encode categorical features to numerical values for copula fitting.
-        
-        Args:
-            data: DataFrame with categorical and numerical features
-            
-        Returns:
-            DataFrame with all features encoded as numerical
-        """
-        # Create a copy to avoid modifying the original data
-        encoded_data = data.copy()
-        
-        for col in self.categorical_columns:
-            if col in encoded_data.columns:
-                # For categorical features, use improved encoding method
-                # Frequency-based encoding can better preserve distribution
-                value_counts = encoded_data[col].value_counts(normalize=True)
-                
-                # Map categories to their frequency (preserves distribution better)
-                freq_map = value_counts.to_dict()
-                encoded_data[col] = encoded_data[col].map(freq_map).fillna(0)
-                
-                # Add small random noise to avoid identical values
-                np.random.seed(self.random_state)
-                encoded_data[col] += np.random.normal(0, 0.01, len(encoded_data))
-                
-                # Normalize to [0, 1] range
-                min_val = encoded_data[col].min()
-                max_val = encoded_data[col].max()
-                if max_val > min_val:
-                    encoded_data[col] = (encoded_data[col] - min_val) / (max_val - min_val)
-        
-        return encoded_data
-    
-    def get_feature_importance(self) -> pd.DataFrame:
-        """
-        Calculate feature importance based on correlation structure.
-        
-        Returns:
-            DataFrame with feature importance scores
+            path: Path to save the model
         """
         if not self._is_fitted:
-            raise ValueError("Generator must be fitted before calculating feature importance")
+            raise ValueError("Generator must be fitted before saving")
         
-        try:
-            # Get correlation matrix from the fitted model
-            corr_matrix = self.copula_model.covariance
+        import pickle
+        import os
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        
+        # Prepare model data for serialization
+        model_data = {
+            'copula_parameters': {
+                'covariance': self.copula_model.covariance if hasattr(self.copula_model, 'covariance') else None,
+                'columns': self.copula_model.columns if hasattr(self.copula_model, 'columns') else None,
+                'univariates': self.copula_model.univariates if hasattr(self.copula_model, 'univariates') else None,
+            },
+            'categorical_columns': self.categorical_columns,
+            'numerical_columns': self.numerical_columns,
+            'dtypes': self.dtypes,
+            'num_column_stats': self.num_column_stats,
+            'cat_column_stats': self.cat_column_stats,
+            'random_state': self.random_state,
+            'version': '0.2.0'  # Add version info for compatibility checks
+        }
+        
+        # Save to file
+        with open(path, 'wb') as f:
+            pickle.dump(model_data, f)
             
-            # Convert to DataFrame with column names
-            columns = list(self.dtypes.keys())
-            corr_df = pd.DataFrame(corr_matrix, index=columns, columns=columns)
+        self.log(f"Model saved to {path}")
+    
+    def load_model(self, path: str) -> None:
+        """
+        Load a saved model from disk.
+        
+        Args:
+            path: Path to the saved model
+        """
+        import pickle
+        
+        # Load from file
+        with open(path, 'rb') as f:
+            model_data = pickle.load(f)
             
-            # Calculate importance as the sum of absolute correlations for each feature
-            importance = corr_df.abs().sum() / (len(columns) - 1)
+        # Check version compatibility
+        if 'version' not in model_data:
+            self.log("Warning: Loading model saved with an older version")
+        
+        # Restore model parameters
+        self.categorical_columns = model_data.get('categorical_columns', [])
+        self.numerical_columns = model_data.get('numerical_columns', [])
+        self.dtypes = model_data.get('dtypes', {})
+        self.num_column_stats = model_data.get('num_column_stats', {})
+        self.cat_column_stats = model_data.get('cat_column_stats', {})
+        
+        # Initialize the copula model
+        from copulas.multivariate import GaussianMultivariate
+        self.copula_model = GaussianMultivariate(random_state=self.random_state)
+        
+        # Restore copula parameters
+        copula_params = model_data.get('copula_parameters', {})
+        self.copula_model.covariance = copula_params.get('covariance')
+        self.copula_model.columns = copula_params.get('columns')
+        self.copula_model.univariates = copula_params.get('univariates')
+        
+        self._is_fitted = True
+        self.log(f"Model loaded from {path}")
+    
+    def evaluate_quality(self, real_data: pd.DataFrame, synthetic_data: pd.DataFrame = None) -> dict:
+        """
+        Evaluate the quality of synthetic data compared to real data.
+        
+        Args:
+            real_data: Original real dataset
+            synthetic_data: Generated synthetic dataset (if None, uses self-generated data)
             
-            # Normalize to 0-100 scale
-            importance = 100 * importance / importance.max()
+        Returns:
+            Dictionary with quality metrics
+        """
+        # If synthetic data is not provided, generate it
+        if synthetic_data is None:
+            if not hasattr(self, 'data') or len(self.data) == 0:
+                synthetic_data = self.generate(len(real_data))
+            else:
+                synthetic_data = self.data
+        
+        # Import evaluation function
+        from ..metrics.statistical import evaluate_synthetic_quality
+        
+        # Evaluate quality
+        metrics = evaluate_synthetic_quality(
+            real_data=real_data,
+            synthetic_data=synthetic_data,
+            numerical_columns=self.numerical_columns,
+            categorical_columns=self.categorical_columns,
+            target_column=self.target_column,
+            verbose=self.verbose
+        )
+        
+        return metrics
+    
+    def plot_comparison(self, real_data: pd.DataFrame, synthetic_data: pd.DataFrame = None,
+                       columns: t.List[str] = None, save_path: str = None) -> None:
+        """
+        Plot comparison visualizations between real and synthetic data.
+        
+        Args:
+            real_data: Original real dataset
+            synthetic_data: Generated synthetic dataset (if None, uses self-generated data)
+            columns: Columns to include in the visualization (if None, selects automatically)
+            save_path: Path to save the visualization (if None, displays it)
+        """
+        # If synthetic data is not provided, generate it
+        if synthetic_data is None:
+            if not hasattr(self, 'data') or len(self.data) == 0:
+                synthetic_data = self.generate(len(real_data))
+            else:
+                synthetic_data = self.data
+        
+        # Import visualization functions
+        from ..visualization.comparison import plot_distributions
+        
+        # If columns are not specified, select some
+        if columns is None:
+            # Get common columns
+            common_cols = list(set(real_data.columns) & set(synthetic_data.columns))
             
-            # Create result DataFrame
-            result = pd.DataFrame({
-                'feature': importance.index,
-                'importance': importance.values
-            }).sort_values('importance', ascending=False)
+            # Prioritize specified categorical and numerical columns
+            priority_cols = list(set(self.categorical_columns + self.numerical_columns) & set(common_cols))
             
-            return result
+            # Limit to 10 columns
+            if len(priority_cols) > 10:
+                columns = priority_cols[:10]
+            else:
+                columns = priority_cols
+        
+        # Create visualization
+        fig = plot_distributions(
+            real_data=real_data,
+            synthetic_data=synthetic_data,
+            columns=columns,
+            numerical_columns=self.numerical_columns,
+            categorical_columns=self.categorical_columns,
+            save_path=save_path
+        )
+        
+        # Display if not saving
+        if save_path is None and fig is not None:
+            import matplotlib.pyplot as plt
+            plt.show()
+    
+    def generate_report(self, real_data: pd.DataFrame, synthetic_data: pd.DataFrame = None,
+                        report_path: str = None) -> str:
+        """
+        Generate a detailed quality report for synthetic data.
+        
+        Args:
+            real_data: Original real dataset
+            synthetic_data: Generated synthetic dataset (if None, uses self-generated data)
+            report_path: Path to save the report (if None, uses default)
             
-        except Exception as e:
-            self.log(f"Error calculating feature importance: {str(e)}")
-            return pd.DataFrame(columns=['feature', 'importance'])
+        Returns:
+            Path to the generated report
+        """
+        # If synthetic data is not provided, generate it
+        if synthetic_data is None:
+            if not hasattr(self, 'data') or len(self.data) == 0:
+                synthetic_data = self.generate(len(real_data))
+            else:
+                synthetic_data = self.data
+        
+        # Import report generator
+        from ..reports.report_generator import generate_quality_report
+        
+        # Evaluate quality metrics
+        metrics = self.evaluate_quality(real_data, synthetic_data)
+        
+        # Generate report
+        generator_info = f"GaussianCopulaGenerator(random_state={self.random_state})"
+        report_file = generate_quality_report(
+            real_data=real_data,
+            synthetic_data=synthetic_data,
+            quality_metrics=metrics,
+            generator_info=generator_info,
+            report_path=report_path
+        )
+        
+        return report_file
+    
