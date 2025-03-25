@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.14"
+version = "0.1.15"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
@@ -38,7 +38,7 @@ setuptools = "^76.0.0"
 plotly = "^6.0.0"
 ipywidgets = "^8.1.5"
 statsmodels = "^0.14.4"
-dask = {extras = ["dataframe"], version = "^2025.2.0"}
+dask = {extras = ["distributed"], version = "^2025.3.0"}
 
 
 [tool.poetry.group.dev.dependencies]
