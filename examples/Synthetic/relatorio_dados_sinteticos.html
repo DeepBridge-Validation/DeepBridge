@@ -116,7 +116,7 @@
             <div class="header">
                 <h1>Synthetic Data Quality Report</h1>
                 <p>This report evaluates the quality of synthetic data compared to real data.</p>
-                <p class="timestamp">Generated on: 2025-03-22 23:33:39</p>
+                <p class="timestamp">Generated on: 2025-03-25 08:19:51</p>
             </div>
     
             <div class="section">
@@ -129,23 +129,23 @@
                     </tr>
                     <tr>
                         <td>Number of rows</td>
-                        <td>1000000</td>
-                        <td>10000</td>
+                        <td>569</td>
+                        <td>1000</td>
                     </tr>
                     <tr>
                         <td>Number of columns</td>
-                        <td>21</td>
-                        <td>21</td>
+                        <td>31</td>
+                        <td>31</td>
                     </tr>
                     <tr>
                         <td>Memory usage</td>
-                        <td>160.22 MB</td>
-                        <td>1.60 MB</td>
+                        <td>0.13 MB</td>
+                        <td>0.24 MB</td>
                     </tr>
                 </table>
                 
                 <h3>Generator Information</h3>
-                <pre>Method: gaussian, Samples: 10000, Random State: None</pre>
+                <pre>Method: gaussian, Samples: 1000, Random State: None</pre>
             </div>
     
             <div class="section">
@@ -159,13 +159,13 @@
     
                         <tr>
                             <td>real_data_size</td>
-                            <td class="metric-medium">5000.0000</td>
+                            <td class="metric-medium">569.0000</td>
                             <td>Acceptable</td>
                         </tr>
                 
                         <tr>
                             <td>synthetic_data_size</td>
-                            <td class="metric-medium">5000.0000</td>
+                            <td class="metric-medium">569.0000</td>
                             <td>Acceptable</td>
                         </tr>
                 
@@ -177,7 +177,7 @@
                 
                         <tr>
                             <td>num_numerical_columns</td>
-                            <td class="metric-medium">20.0000</td>
+                            <td class="metric-medium">30.0000</td>
                             <td>Acceptable</td>
                         </tr>
                 
@@ -189,38 +189,38 @@
                 
                         <tr>
                             <td>avg_ks_statistic</td>
-                            <td class="metric-good">0.0192</td>
+                            <td class="metric-good">0.0561</td>
                             <td>Distributions are very similar</td>
                         </tr>
                 
                         <tr>
                             <td>avg_jensen_shannon_dist</td>
-                            <td class="metric-medium">0.0557</td>
+                            <td class="metric-medium">0.1563</td>
                             <td>Acceptable</td>
                         </tr>
                 
                         <tr>
                             <td>avg_mean_relative_error</td>
-                            <td class="metric-poor">5.6006</td>
-                            <td>Poor</td>
-                        </tr>
-                
-                        <tr>
-                            <td>avg_std_relative_error</td>
-                            <td class="metric-good">0.0151</td>
+                            <td class="metric-good">0.0296</td>
                             <td>Excellent</td>
                         </tr>
                 
                         <tr>
+                            <td>avg_std_relative_error</td>
+                            <td class="metric-good">0.1230</td>
+                            <td>Good</td>
+                        </tr>
+                
+                        <tr>
                             <td>correlation_mean_difference</td>
-                            <td class="metric-good">0.0172</td>
+                            <td class="metric-good">0.0512</td>
                             <td>Excellent</td>
                         </tr>
                 
                         <tr>
                             <td>correlation_max_difference</td>
-                            <td class="metric-good">0.0701</td>
-                            <td>Excellent</td>
+                            <td class="metric-medium">0.2141</td>
+                            <td>Acceptable</td>
                         </tr>
                 
                         <tr>
@@ -231,13 +231,13 @@
                 
                         <tr>
                             <td>utility_score</td>
-                            <td class="metric-good">0.9818</td>
+                            <td class="metric-good">0.9463</td>
                             <td>Excellent</td>
                         </tr>
                 
                         <tr>
                             <td>statistical_similarity</td>
-                            <td class="metric-medium">0.9818</td>
+                            <td class="metric-medium">0.9463</td>
                             <td>Acceptable</td>
                         </tr>
                 
@@ -249,7 +249,7 @@
                 
                         <tr>
                             <td>quality_score</td>
-                            <td class="metric-good">0.9863</td>
+                            <td class="metric-good">0.9598</td>
                             <td>Excellent</td>
                         </tr>
                 
@@ -259,7 +259,7 @@
             <div class="section">
                 <h2>Numerical Column Metrics</h2>
         
-                <h3>Column: feature_1</h3>
+                <h3>Column: mean radius</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -268,71 +268,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.9717</td>
+                                <td>14.1273</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>0.9789</td>
+                                <td>13.9363</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0074</td>
+                                <td>0.0135</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9967</td>
+                                <td>3.5240</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0143</td>
+                                <td>3.4597</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0177</td>
+                                <td>0.0182</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-2.5786</td>
+                                <td>6.9810</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-1.7390</td>
+                                <td>6.9810</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>4.2878</td>
+                                <td>28.1100</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>3.7336</td>
+                                <td>21.9000</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0134</td>
+                            <td class="metric-good">0.0422</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.7605</td>
+                            <td>0.6926</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0524</td>
+                            <td class="metric-medium">0.1567</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_2</h3>
+                <h3>Column: mean texture</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -341,71 +341,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>1.9901</td>
+                                <td>19.2896</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>2.0071</td>
+                                <td>19.0616</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0085</td>
+                                <td>0.0118</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9912</td>
+                                <td>4.3010</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9944</td>
+                                <td>4.4728</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0032</td>
+                                <td>0.0399</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-1.9455</td>
+                                <td>9.7100</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-0.6859</td>
+                                <td>9.7100</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>5.6112</td>
+                                <td>39.2800</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>4.7259</td>
+                                <td>30.2450</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0204</td>
+                            <td class="metric-good">0.0650</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.2492</td>
+                            <td>0.1803</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0553</td>
+                            <td class="metric-medium">0.1278</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_3</h3>
+                <h3>Column: mean perimeter</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -414,71 +414,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>3.0130</td>
+                                <td>91.9690</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>2.9919</td>
+                                <td>90.6887</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0070</td>
+                                <td>0.0139</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9947</td>
+                                <td>24.2990</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9992</td>
+                                <td>23.8860</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0045</td>
+                                <td>0.0170</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-0.2723</td>
+                                <td>43.7900</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>0.3188</td>
+                                <td>43.7900</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>6.8455</td>
+                                <td>188.5000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>5.6938</td>
+                                <td>147.4950</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0178</td>
+                            <td class="metric-good">0.0492</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.4067</td>
+                            <td>0.4965</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0592</td>
+                            <td class="metric-medium">0.1660</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_4</h3>
+                <h3>Column: mean area</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -487,71 +487,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>4.0224</td>
+                                <td>654.8891</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>3.9981</td>
+                                <td>628.5184</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0060</td>
+                                <td>0.0403</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0034</td>
+                                <td>351.9141</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9995</td>
+                                <td>310.7239</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0039</td>
+                                <td>0.1170</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>0.3759</td>
+                                <td>143.5000</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>1.3138</td>
+                                <td>143.5000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>7.3936</td>
+                                <td>2501.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>6.6923</td>
+                                <td>1326.3000</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0154</td>
+                            <td class="metric-good">0.0580</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.5937</td>
+                            <td>0.2943</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0577</td>
+                            <td class="metric-medium">0.1930</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_5</h3>
+                <h3>Column: mean smoothness</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -560,71 +560,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>4.9906</td>
+                                <td>0.0964</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>5.0086</td>
+                                <td>0.0965</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0036</td>
+                                <td>0.0013</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0068</td>
+                                <td>0.0141</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9653</td>
+                                <td>0.0137</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0412</td>
+                                <td>0.0252</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>1.6042</td>
+                                <td>0.0526</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>2.3246</td>
+                                <td>0.0580</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>9.2165</td>
+                                <td>0.1634</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>7.6307</td>
+                                <td>0.1337</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0172</td>
+                            <td class="metric-good">0.0281</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.4503</td>
+                            <td>0.9782</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0559</td>
+                            <td class="metric-good">0.0955</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_6</h3>
+                <h3>Column: mean compactness</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -633,71 +633,144 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>6.0254</td>
+                                <td>0.1043</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>6.0243</td>
+                                <td>0.1028</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0002</td>
+                                <td>0.0150</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9939</td>
+                                <td>0.0528</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9946</td>
+                                <td>0.0476</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
+                                <td>0.0995</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0194</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0244</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>0.3454</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.2286</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0527</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.4080</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1543</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: mean concavity</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.0888</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.0878</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0117</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.0797</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.0718</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0993</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
                                 <td>0.0007</td>
                             </tr>
                         
                             <tr>
-                                <td>min_real</td>
-                                <td>2.7014</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>min_synthetic</td>
-                                <td>3.3184</td>
-                            </tr>
-                        
-                            <tr>
                                 <td>max_real</td>
-                                <td>10.1417</td>
+                                <td>0.4268</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>8.7029</td>
+                                <td>0.2824</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0158</td>
+                            <td class="metric-good">0.0703</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.5605</td>
+                            <td>0.1202</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0520</td>
+                            <td class="metric-medium">0.1735</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_7</h3>
+                <h3>Column: mean concave points</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -706,71 +779,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>7.0115</td>
+                                <td>0.0489</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>6.9740</td>
+                                <td>0.0482</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0053</td>
+                                <td>0.0146</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0022</td>
+                                <td>0.0388</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0018</td>
+                                <td>0.0382</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0005</td>
+                                <td>0.0147</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>3.1024</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>4.2162</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>10.6979</td>
+                                <td>0.2012</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>9.7744</td>
+                                <td>0.1545</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0288</td>
+                            <td class="metric-good">0.0791</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.0316</td>
+                            <td>0.0569</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0517</td>
+                            <td class="metric-medium">0.1664</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_8</h3>
+                <h3>Column: mean symmetry</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -779,12 +852,12 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>7.9959</td>
+                                <td>0.1812</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>7.9827</td>
+                                <td>0.1814</td>
                             </tr>
                         
                             <tr>
@@ -794,56 +867,56 @@
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9906</td>
+                                <td>0.0274</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9659</td>
+                                <td>0.0266</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0249</td>
+                                <td>0.0279</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>4.2825</td>
+                                <td>0.1060</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>5.2969</td>
+                                <td>0.1112</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>11.9002</td>
+                                <td>0.3040</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>10.6791</td>
+                                <td>0.2464</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0182</td>
+                            <td class="metric-good">0.0439</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.3791</td>
+                            <td>0.6426</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0450</td>
+                            <td class="metric-medium">0.1497</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_9</h3>
+                <h3>Column: mean fractal dimension</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -852,71 +925,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>9.0207</td>
+                                <td>0.0628</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>8.9866</td>
+                                <td>0.0628</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0038</td>
+                                <td>0.0004</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0034</td>
+                                <td>0.0071</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0208</td>
+                                <td>0.0065</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0173</td>
+                                <td>0.0767</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>5.6525</td>
+                                <td>0.0500</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>6.2222</td>
+                                <td>0.0500</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>12.4294</td>
+                                <td>0.0974</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>11.7521</td>
+                                <td>0.0787</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0240</td>
+                            <td class="metric-good">0.0457</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.1123</td>
+                            <td>0.5928</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0644</td>
+                            <td class="metric-medium">0.1312</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_10</h3>
+                <h3>Column: radius error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -925,71 +998,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>10.0203</td>
+                                <td>0.4052</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>9.9956</td>
+                                <td>0.3600</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.0025</td>
+                                <td>0.1114</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0093</td>
+                                <td>0.2773</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9918</td>
+                                <td>0.1820</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0173</td>
+                                <td>0.3438</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>6.1168</td>
+                                <td>0.1115</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>7.2814</td>
+                                <td>0.1115</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>13.8784</td>
+                                <td>2.8730</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>12.6963</td>
+                                <td>0.8487</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0158</td>
+                            <td class="metric-good">0.0756</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.5605</td>
+                            <td>0.0776</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0549</td>
+                            <td class="metric-medium">0.1797</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_11</h3>
+                <h3>Column: texture error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -998,71 +1071,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0131</td>
+                                <td>1.2169</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>-0.0403</td>
+                                <td>1.1748</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>4.0817</td>
+                                <td>0.0346</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0088</td>
+                                <td>0.5516</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9881</td>
+                                <td>0.4963</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0205</td>
+                                <td>0.1003</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.8683</td>
+                                <td>0.3602</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.6968</td>
+                                <td>0.3602</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.2510</td>
+                                <td>4.8850</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.6769</td>
+                                <td>2.4341</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0360</td>
+                            <td class="metric-good">0.0475</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.0031</td>
+                            <td>0.5439</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0600</td>
+                            <td class="metric-medium">0.1413</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_12</h3>
+                <h3>Column: perimeter error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1071,71 +1144,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0129</td>
+                                <td>2.8661</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>0.0202</td>
+                                <td>2.6140</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.5672</td>
+                                <td>0.0880</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0099</td>
+                                <td>2.0219</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0105</td>
+                                <td>1.3496</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0007</td>
+                                <td>0.3325</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.4255</td>
+                                <td>0.7570</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.7126</td>
+                                <td>0.7581</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.4021</td>
+                                <td>21.9800</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.7599</td>
+                                <td>5.9835</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0134</td>
+                            <td class="metric-good">0.0668</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.7605</td>
+                            <td>0.1581</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0562</td>
+                            <td class="metric-medium">0.1884</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_13</h3>
+                <h3>Column: area error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1144,71 +1217,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>-0.0019</td>
+                                <td>40.3371</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>-0.0321</td>
+                                <td>29.5441</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>16.0374</td>
+                                <td>0.2676</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9973</td>
+                                <td>45.4910</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0259</td>
+                                <td>19.7354</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0286</td>
+                                <td>0.5662</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.6632</td>
+                                <td>6.8020</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.7960</td>
+                                <td>6.8020</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>4.2726</td>
+                                <td>542.2000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.7337</td>
+                                <td>86.2000</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0328</td>
+                            <td class="metric-medium">0.1142</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.0092</td>
+                            <td>0.0012</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0610</td>
+                            <td class="metric-medium">0.1910</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_14</h3>
+                <h3>Column: smoothness error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1217,80 +1290,7 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0155</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>mean_synthetic</td>
-                                <td>0.0010</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>mean_relative_error</td>
-                                <td>0.9341</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>std_real</td>
-                                <td>0.9987</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>std_synthetic</td>
-                                <td>0.9958</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>std_relative_error</td>
-                                <td>0.0029</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>min_real</td>
-                                <td>-3.4405</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>min_synthetic</td>
-                                <td>-2.7057</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>max_real</td>
-                                <td>3.6965</td>
-                            </tr>
-                        
-                            <tr>
-                                <td>max_synthetic</td>
-                                <td>2.7233</td>
-                            </tr>
-                        
-                        <tr>
-                            <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0128</td>
-                        </tr>
-                        <tr>
-                            <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.8074</td>
-                        </tr>
-                    
-                        <tr>
-                            <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0557</td>
-                        </tr>
-                    
-                </table>
-            
-                <h3>Column: feature_15</h3>
-                <table>
-                    <tr>
-                        <th>Metric</th>
-                        <th>Value</th>
-                    </tr>
-            
-                            <tr>
-                                <td>mean_real</td>
-                                <td>0.0010</td>
+                                <td>0.0070</td>
                             </tr>
                         
                             <tr>
@@ -1300,61 +1300,61 @@
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>5.9945</td>
+                                <td>0.0197</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9848</td>
+                                <td>0.0030</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0065</td>
+                                <td>0.0025</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0220</td>
+                                <td>0.1689</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.6556</td>
+                                <td>0.0017</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.6638</td>
+                                <td>0.0022</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>4.4089</td>
+                                <td>0.0311</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.6703</td>
+                                <td>0.0126</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0162</td>
+                            <td class="metric-good">0.0527</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.5280</td>
+                            <td>0.4080</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0561</td>
+                            <td class="metric-medium">0.1474</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_16</h3>
+                <h3>Column: compactness error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1363,71 +1363,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0003</td>
+                                <td>0.0255</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>-0.0098</td>
+                                <td>0.0248</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>35.0750</td>
+                                <td>0.0280</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9960</td>
+                                <td>0.0179</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9741</td>
+                                <td>0.0148</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0221</td>
+                                <td>0.1720</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.7539</td>
+                                <td>0.0023</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.6225</td>
+                                <td>0.0030</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.6084</td>
+                                <td>0.1354</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.5992</td>
+                                <td>0.0615</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0112</td>
+                            <td class="metric-good">0.0633</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.9125</td>
+                            <td>0.2049</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0511</td>
+                            <td class="metric-medium">0.1727</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_17</h3>
+                <h3>Column: concavity error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1436,71 +1436,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0085</td>
+                                <td>0.0319</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>0.0066</td>
+                                <td>0.0306</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>0.2206</td>
+                                <td>0.0405</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9947</td>
+                                <td>0.0302</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9994</td>
+                                <td>0.0223</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0047</td>
+                                <td>0.2601</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.1876</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.7124</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>4.4081</td>
+                                <td>0.3960</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.7318</td>
+                                <td>0.0825</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0128</td>
+                            <td class="metric-good">0.0808</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.8074</td>
+                            <td>0.0485</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0593</td>
+                            <td class="metric-medium">0.1469</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_18</h3>
+                <h3>Column: concave points error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1509,71 +1509,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>-0.0067</td>
+                                <td>0.0118</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>-0.0260</td>
+                                <td>0.0116</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>2.9014</td>
+                                <td>0.0179</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>0.9976</td>
+                                <td>0.0062</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>1.0082</td>
+                                <td>0.0057</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0106</td>
+                                <td>0.0793</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.7725</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.7050</td>
+                                <td>0.0000</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.1869</td>
+                                <td>0.0528</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.6714</td>
+                                <td>0.0253</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0206</td>
+                            <td class="metric-good">0.0404</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.2392</td>
+                            <td>0.7418</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0540</td>
+                            <td class="metric-medium">0.1314</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_19</h3>
+                <h3>Column: symmetry error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1582,71 +1582,71 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0016</td>
+                                <td>0.0205</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>0.0387</td>
+                                <td>0.0200</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>23.9050</td>
+                                <td>0.0257</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0091</td>
+                                <td>0.0083</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9852</td>
+                                <td>0.0069</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0237</td>
+                                <td>0.1710</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-3.7512</td>
+                                <td>0.0079</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.7028</td>
+                                <td>0.0079</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.8878</td>
+                                <td>0.0790</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.7607</td>
+                                <td>0.0360</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0236</td>
+                            <td class="metric-good">0.0475</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.1235</td>
+                            <td>0.5439</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0552</td>
+                            <td class="metric-medium">0.1685</td>
                         </tr>
                     
                 </table>
             
-                <h3>Column: feature_20</h3>
+                <h3>Column: fractal dimension error</h3>
                 <table>
                     <tr>
                         <th>Metric</th>
@@ -1655,66 +1655,796 @@
             
                             <tr>
                                 <td>mean_real</td>
-                                <td>0.0008</td>
+                                <td>0.0038</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_synthetic</td>
-                                <td>0.0193</td>
+                                <td>0.0037</td>
                             </tr>
                         
                             <tr>
                                 <td>mean_relative_error</td>
-                                <td>22.2491</td>
+                                <td>0.0289</td>
                             </tr>
                         
                             <tr>
                                 <td>std_real</td>
-                                <td>1.0140</td>
+                                <td>0.0026</td>
                             </tr>
                         
                             <tr>
                                 <td>std_synthetic</td>
-                                <td>0.9782</td>
+                                <td>0.0018</td>
                             </tr>
                         
                             <tr>
                                 <td>std_relative_error</td>
-                                <td>0.0353</td>
+                                <td>0.3018</td>
                             </tr>
                         
                             <tr>
                                 <td>min_real</td>
-                                <td>-4.5474</td>
+                                <td>0.0009</td>
                             </tr>
                         
                             <tr>
                                 <td>min_synthetic</td>
-                                <td>-2.6596</td>
+                                <td>0.0009</td>
                             </tr>
                         
                             <tr>
                                 <td>max_real</td>
-                                <td>3.5867</td>
+                                <td>0.0298</td>
                             </tr>
                         
                             <tr>
                                 <td>max_synthetic</td>
-                                <td>2.6764</td>
+                                <td>0.0080</td>
                             </tr>
                         
                         <tr>
                             <td>Kolmogorov-Smirnov statistic</td>
-                            <td class="metric-good">0.0182</td>
+                            <td class="metric-good">0.0562</td>
                         </tr>
                         <tr>
                             <td>Kolmogorov-Smirnov p-value</td>
-                            <td>0.3791</td>
+                            <td>0.3294</td>
                         </tr>
                     
                         <tr>
                             <td>Jensen-Shannon distance</td>
-                            <td class="metric-good">0.0565</td>
+                            <td class="metric-medium">0.1581</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst radius</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>16.2692</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>16.0843</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0114</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>4.8332</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>4.7685</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0134</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>7.9300</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>7.9300</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>36.0400</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>27.4600</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0475</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.5439</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1930</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst texture</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>25.6772</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>25.4452</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0090</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>6.1463</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>6.6703</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0853</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>12.0200</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>12.0200</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>49.5400</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>42.6800</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0510</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.4511</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1264</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst perimeter</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>107.2612</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>105.9981</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0118</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>33.6025</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>33.2375</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0109</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>50.4100</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>50.4100</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>251.2000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>187.3350</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0545</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.3674</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1699</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst area</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>880.5831</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>842.3807</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0434</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>569.3570</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>486.7671</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.1451</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>185.2000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>185.2000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>4254.0000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>1937.0500</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0721</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.1042</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-poor">0.2107</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst smoothness</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.1324</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.1328</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0031</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.0228</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.0214</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0609</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0712</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0725</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>0.2226</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.1901</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0404</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.7418</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1272</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst compactness</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.2543</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.2515</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0108</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.1573</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.1437</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0867</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0273</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0361</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>1.0580</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.6270</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0351</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.8740</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1583</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst concavity</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.2722</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.2712</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0035</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.2086</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.1998</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0421</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0002</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>1.2520</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.7855</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0369</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.8336</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1334</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst concave points</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.1146</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.1148</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0019</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.0657</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.0677</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0300</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0000</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>0.2910</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.2910</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0580</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.2943</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1488</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst symmetry</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.2901</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.2916</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0051</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.0619</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.0569</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.0795</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.1565</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.1565</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>0.6638</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.4192</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0650</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.1803</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1517</td>
+                        </tr>
+                    
+                </table>
+            
+                <h3>Column: worst fractal dimension</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+            
+                            <tr>
+                                <td>mean_real</td>
+                                <td>0.0839</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_synthetic</td>
+                                <td>0.0838</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>mean_relative_error</td>
+                                <td>0.0020</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_real</td>
+                                <td>0.0181</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_synthetic</td>
+                                <td>0.0162</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>std_relative_error</td>
+                                <td>0.1057</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_real</td>
+                                <td>0.0550</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>min_synthetic</td>
+                                <td>0.0550</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_real</td>
+                                <td>0.2075</td>
+                            </tr>
+                        
+                            <tr>
+                                <td>max_synthetic</td>
+                                <td>0.1230</td>
+                            </tr>
+                        
+                        <tr>
+                            <td>Kolmogorov-Smirnov statistic</td>
+                            <td class="metric-good">0.0422</td>
+                        </tr>
+                        <tr>
+                            <td>Kolmogorov-Smirnov p-value</td>
+                            <td>0.6926</td>
+                        </tr>
+                    
+                        <tr>
+                            <td>Jensen-Shannon distance</td>
+                            <td class="metric-medium">0.1301</td>
                         </tr>
                     
                 </table>
@@ -1725,10 +2455,10 @@
                 <h2>Data Visualizations</h2>
         
                 <h3>Distributions Comparison</h3>
-                <img src="visualizations/distributions_20250322_233231.png" alt="Distribution comparison">
+                <img src="visualizations/distributions_20250325_081949.png" alt="Distribution comparison">
             
                 <h3>Correlation Matrix Comparison</h3>
-                <img src="visualizations/correlations_20250322_233231.png" alt="Correlation comparison">
+                <img src="visualizations/correlations_20250325_081949.png" alt="Correlation comparison">
             
             </div>
         
@@ -1739,143 +2469,203 @@
         <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
-      <th>feature_1</th>
-      <th>feature_2</th>
-      <th>feature_3</th>
-      <th>feature_4</th>
-      <th>feature_5</th>
-      <th>feature_6</th>
-      <th>feature_7</th>
-      <th>feature_8</th>
-      <th>feature_9</th>
-      <th>feature_10</th>
-      <th>feature_11</th>
-      <th>feature_12</th>
-      <th>feature_13</th>
-      <th>feature_14</th>
-      <th>feature_15</th>
-      <th>feature_16</th>
-      <th>feature_17</th>
-      <th>feature_18</th>
-      <th>feature_19</th>
-      <th>feature_20</th>
+      <th>mean radius</th>
+      <th>mean texture</th>
+      <th>mean perimeter</th>
+      <th>mean area</th>
+      <th>mean smoothness</th>
+      <th>mean compactness</th>
+      <th>mean concavity</th>
+      <th>mean concave points</th>
+      <th>mean symmetry</th>
+      <th>mean fractal dimension</th>
+      <th>radius error</th>
+      <th>texture error</th>
+      <th>perimeter error</th>
+      <th>area error</th>
+      <th>smoothness error</th>
+      <th>compactness error</th>
+      <th>concavity error</th>
+      <th>concave points error</th>
+      <th>symmetry error</th>
+      <th>fractal dimension error</th>
+      <th>worst radius</th>
+      <th>worst texture</th>
+      <th>worst perimeter</th>
+      <th>worst area</th>
+      <th>worst smoothness</th>
+      <th>worst compactness</th>
+      <th>worst concavity</th>
+      <th>worst concave points</th>
+      <th>worst symmetry</th>
+      <th>worst fractal dimension</th>
       <th>target</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>1.496714</td>
-      <td>2.169172</td>
-      <td>4.064722</td>
-      <td>2.892840</td>
-      <td>4.815994</td>
-      <td>5.797254</td>
-      <td>7.166571</td>
-      <td>8.017076</td>
-      <td>9.170982</td>
-      <td>11.224528</td>
-      <td>-1.482041</td>
-      <td>-1.018500</td>
-      <td>-0.932771</td>
-      <td>-0.826353</td>
-      <td>-1.723592</td>
-      <td>-0.125932</td>
-      <td>-0.617163</td>
-      <td>1.539637</td>
-      <td>-1.087963</td>
-      <td>0.088477</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <td>0.861736</td>
-      <td>1.878495</td>
-      <td>2.503287</td>
-      <td>2.230638</td>
-      <td>5.043793</td>
-      <td>6.910803</td>
-      <td>4.794584</td>
-      <td>6.620612</td>
-      <td>7.282231</td>
-      <td>11.759238</td>
-      <td>0.204001</td>
-      <td>-0.111976</td>
-      <td>-0.407683</td>
-      <td>0.350853</td>
-      <td>0.671728</td>
-      <td>-0.570390</td>
-      <td>0.361864</td>
-      <td>1.152902</td>
-      <td>-0.922906</td>
-      <td>1.886183</td>
+      <td>13.74</td>
+      <td>17.91</td>
+      <td>88.12</td>
+      <td>585.0</td>
+      <td>0.07944</td>
+      <td>0.06376</td>
+      <td>0.02881</td>
+      <td>0.01329</td>
+      <td>0.1473</td>
+      <td>0.05580</td>
+      <td>0.2500</td>
+      <td>0.7574</td>
+      <td>1.573</td>
+      <td>21.47</td>
+      <td>0.002838</td>
+      <td>0.01592</td>
+      <td>0.01780</td>
+      <td>0.005828</td>
+      <td>0.01329</td>
+      <td>0.001976</td>
+      <td>15.34</td>
+      <td>22.46</td>
+      <td>97.19</td>
+      <td>725.9</td>
+      <td>0.09711</td>
+      <td>0.1824</td>
+      <td>0.1564</td>
+      <td>0.06019</td>
+      <td>0.2350</td>
+      <td>0.07014</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>1.647689</td>
-      <td>3.156625</td>
-      <td>3.129260</td>
-      <td>3.662192</td>
-      <td>6.182518</td>
-      <td>7.041890</td>
-      <td>8.527111</td>
-      <td>7.457036</td>
-      <td>7.331238</td>
-      <td>9.905432</td>
-      <td>-0.015285</td>
-      <td>0.004666</td>
-      <td>0.338182</td>
-      <td>0.361589</td>
-      <td>0.869578</td>
-      <td>0.064401</td>
-      <td>1.061850</td>
-      <td>0.279334</td>
-      <td>-1.163943</td>
-      <td>0.194942</td>
+      <td>13.37</td>
+      <td>16.39</td>
+      <td>86.10</td>
+      <td>553.5</td>
+      <td>0.07115</td>
+      <td>0.07325</td>
+      <td>0.08092</td>
+      <td>0.02800</td>
+      <td>0.1422</td>
+      <td>0.05823</td>
+      <td>0.1639</td>
+      <td>1.1400</td>
+      <td>1.223</td>
+      <td>14.66</td>
+      <td>0.005919</td>
+      <td>0.03270</td>
+      <td>0.04957</td>
+      <td>0.010380</td>
+      <td>0.01208</td>
+      <td>0.004076</td>
+      <td>14.26</td>
+      <td>22.75</td>
+      <td>91.99</td>
+      <td>632.1</td>
+      <td>0.10250</td>
+      <td>0.2531</td>
+      <td>0.3308</td>
+      <td>0.08978</td>
+      <td>0.2048</td>
+      <td>0.07628</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>2.523030</td>
-      <td>2.200086</td>
-      <td>1.520307</td>
-      <td>4.502378</td>
-      <td>4.715680</td>
-      <td>6.397202</td>
-      <td>7.509416</td>
-      <td>6.864638</td>
-      <td>7.684778</td>
-      <td>9.924350</td>
-      <td>-0.912439</td>
-      <td>0.697829</td>
-      <td>0.555014</td>
-      <td>-0.317531</td>
-      <td>-1.301193</td>
-      <td>0.845784</td>
-      <td>0.861390</td>
-      <td>0.887796</td>
-      <td>0.854134</td>
-      <td>1.632714</td>
+      <td>14.69</td>
+      <td>13.98</td>
+      <td>98.22</td>
+      <td>656.1</td>
+      <td>0.10310</td>
+      <td>0.18360</td>
+      <td>0.14500</td>
+      <td>0.06300</td>
+      <td>0.2086</td>
+      <td>0.07406</td>
+      <td>0.5462</td>
+      <td>1.5110</td>
+      <td>4.795</td>
+      <td>49.45</td>
+      <td>0.009976</td>
+      <td>0.05244</td>
+      <td>0.05278</td>
+      <td>0.015800</td>
+      <td>0.02653</td>
+      <td>0.005444</td>
+      <td>16.46</td>
+      <td>18.34</td>
+      <td>114.10</td>
+      <td>809.2</td>
+      <td>0.13120</td>
+      <td>0.3635</td>
+      <td>0.3219</td>
+      <td>0.11080</td>
+      <td>0.2827</td>
+      <td>0.09208</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>0.765847</td>
-      <td>2.864611</td>
-      <td>2.690153</td>
-      <td>4.443503</td>
-      <td>4.674846</td>
-      <td>6.360989</td>
-      <td>5.466305</td>
-      <td>7.387519</td>
-      <td>9.681952</td>
-      <td>9.737077</td>
-      <td>-3.065458</td>
-      <td>0.371964</td>
-      <td>-0.300118</td>
-      <td>-2.014426</td>
-      <td>1.635533</td>
-      <td>0.322967</td>
-      <td>1.448205</td>
-      <td>0.973339</td>
-      <td>0.975959</td>
-      <td>1.455579</td>
+      <td>12.91</td>
+      <td>16.33</td>
+      <td>82.53</td>
+      <td>516.4</td>
+      <td>0.07941</td>
+      <td>0.05366</td>
+      <td>0.03873</td>
+      <td>0.02377</td>
+      <td>0.1829</td>
+      <td>0.05667</td>
+      <td>0.1942</td>
+      <td>0.9086</td>
+      <td>1.493</td>
+      <td>15.75</td>
+      <td>0.005298</td>
+      <td>0.01587</td>
+      <td>0.02321</td>
+      <td>0.008420</td>
+      <td>0.01853</td>
+      <td>0.002152</td>
+      <td>13.88</td>
+      <td>22.00</td>
+      <td>90.81</td>
+      <td>600.6</td>
+      <td>0.10970</td>
+      <td>0.1506</td>
+      <td>0.1764</td>
+      <td>0.08235</td>
+      <td>0.3024</td>
+      <td>0.06949</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>13.62</td>
+      <td>23.23</td>
+      <td>87.19</td>
+      <td>573.2</td>
+      <td>0.09246</td>
+      <td>0.06747</td>
+      <td>0.02974</td>
+      <td>0.02443</td>
+      <td>0.1664</td>
+      <td>0.05801</td>
+      <td>0.3460</td>
+      <td>1.3360</td>
+      <td>2.066</td>
+      <td>31.24</td>
+      <td>0.005868</td>
+      <td>0.02099</td>
+      <td>0.02021</td>
+      <td>0.009064</td>
+      <td>0.02087</td>
+      <td>0.002583</td>
+      <td>15.35</td>
+      <td>29.09</td>
+      <td>97.58</td>
+      <td>729.8</td>
+      <td>0.12160</td>
+      <td>0.1517</td>
+      <td>0.1049</td>
+      <td>0.07174</td>
+      <td>0.2642</td>
+      <td>0.06953</td>
       <td>1</td>
     </tr>
   </tbody>
@@ -1884,143 +2674,203 @@
         <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
-      <th>feature_1</th>
-      <th>feature_2</th>
-      <th>feature_3</th>
-      <th>feature_4</th>
-      <th>feature_5</th>
-      <th>feature_6</th>
-      <th>feature_7</th>
-      <th>feature_8</th>
-      <th>feature_9</th>
-      <th>feature_10</th>
-      <th>feature_11</th>
-      <th>feature_12</th>
-      <th>feature_13</th>
-      <th>feature_14</th>
-      <th>feature_15</th>
-      <th>feature_16</th>
-      <th>feature_17</th>
-      <th>feature_18</th>
-      <th>feature_19</th>
-      <th>feature_20</th>
+      <th>mean radius</th>
+      <th>mean texture</th>
+      <th>mean perimeter</th>
+      <th>mean area</th>
+      <th>mean smoothness</th>
+      <th>mean compactness</th>
+      <th>mean concavity</th>
+      <th>mean concave points</th>
+      <th>mean symmetry</th>
+      <th>mean fractal dimension</th>
+      <th>radius error</th>
+      <th>texture error</th>
+      <th>perimeter error</th>
+      <th>area error</th>
+      <th>smoothness error</th>
+      <th>compactness error</th>
+      <th>concavity error</th>
+      <th>concave points error</th>
+      <th>symmetry error</th>
+      <th>fractal dimension error</th>
+      <th>worst radius</th>
+      <th>worst texture</th>
+      <th>worst perimeter</th>
+      <th>worst area</th>
+      <th>worst smoothness</th>
+      <th>worst compactness</th>
+      <th>worst concavity</th>
+      <th>worst concave points</th>
+      <th>worst symmetry</th>
+      <th>worst fractal dimension</th>
       <th>target</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>0.782764</td>
-      <td>3.425290</td>
-      <td>4.911049</td>
-      <td>3.220174</td>
-      <td>3.298884</td>
-      <td>6.100122</td>
-      <td>6.424310</td>
-      <td>9.439858</td>
-      <td>10.285211</td>
-      <td>9.602132</td>
-      <td>0.523404</td>
-      <td>0.297864</td>
-      <td>1.321582</td>
-      <td>1.044050</td>
-      <td>0.559514</td>
-      <td>-0.460912</td>
-      <td>0.453406</td>
-      <td>-1.339517</td>
-      <td>-1.235711</td>
-      <td>0.268960</td>
+      <td>13.303514</td>
+      <td>18.115289</td>
+      <td>86.680505</td>
+      <td>546.752645</td>
+      <td>0.085083</td>
+      <td>0.133063</td>
+      <td>0.081532</td>
+      <td>0.045253</td>
+      <td>0.195549</td>
+      <td>0.065498</td>
+      <td>0.380533</td>
+      <td>0.526769</td>
+      <td>3.597473</td>
+      <td>28.516493</td>
+      <td>0.004115</td>
+      <td>0.027497</td>
+      <td>0.043945</td>
+      <td>0.012740</td>
+      <td>0.020128</td>
+      <td>0.005702</td>
+      <td>14.826810</td>
+      <td>19.253560</td>
+      <td>99.677850</td>
+      <td>695.939650</td>
+      <td>0.117977</td>
+      <td>0.325351</td>
+      <td>0.300273</td>
+      <td>0.109380</td>
+      <td>0.324322</td>
+      <td>0.099081</td>
       <td>0</td>
     </tr>
     <tr>
-      <td>1.628672</td>
-      <td>3.132601</td>
-      <td>0.932206</td>
-      <td>5.881102</td>
-      <td>4.401531</td>
-      <td>6.071843</td>
-      <td>6.481811</td>
-      <td>8.165206</td>
-      <td>9.401413</td>
-      <td>9.826841</td>
-      <td>0.256193</td>
-      <td>2.110490</td>
-      <td>2.006661</td>
-      <td>0.893336</td>
-      <td>-0.810779</td>
-      <td>-0.814300</td>
-      <td>0.268846</td>
-      <td>-0.946554</td>
-      <td>-0.865625</td>
-      <td>0.396562</td>
+      <td>10.441422</td>
+      <td>14.233560</td>
+      <td>66.069675</td>
+      <td>298.676928</td>
+      <td>0.110560</td>
+      <td>0.055847</td>
+      <td>0.024937</td>
+      <td>0.019233</td>
+      <td>0.162454</td>
+      <td>0.059984</td>
+      <td>0.297552</td>
+      <td>1.304733</td>
+      <td>1.926448</td>
+      <td>17.708303</td>
+      <td>0.005674</td>
+      <td>0.006323</td>
+      <td>0.003391</td>
+      <td>0.007699</td>
+      <td>0.028012</td>
+      <td>0.001558</td>
+      <td>11.460256</td>
+      <td>20.382131</td>
+      <td>71.816422</td>
+      <td>339.234031</td>
+      <td>0.139760</td>
+      <td>0.088670</td>
+      <td>0.082727</td>
+      <td>0.069512</td>
+      <td>0.263446</td>
+      <td>0.064852</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>0.493173</td>
-      <td>2.822770</td>
-      <td>5.156891</td>
-      <td>3.887798</td>
-      <td>6.626448</td>
-      <td>5.916679</td>
-      <td>7.254666</td>
-      <td>8.806672</td>
-      <td>7.828680</td>
-      <td>11.609481</td>
-      <td>-0.537850</td>
-      <td>-0.062186</td>
-      <td>-0.188381</td>
-      <td>0.752655</td>
-      <td>-0.204301</td>
-      <td>0.382061</td>
-      <td>0.292382</td>
-      <td>1.064328</td>
-      <td>-0.468851</td>
-      <td>0.238880</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <td>1.774660</td>
-      <td>2.483114</td>
-      <td>1.515545</td>
-      <td>3.025567</td>
-      <td>5.981232</td>
-      <td>6.197490</td>
-      <td>6.039721</td>
-      <td>9.709990</td>
-      <td>8.807611</td>
-      <td>10.746716</td>
-      <td>0.490611</td>
-      <td>-0.084324</td>
-      <td>-0.819989</td>
-      <td>1.152839</td>
-      <td>-0.024666</td>
-      <td>0.447140</td>
-      <td>1.235419</td>
-      <td>-2.325683</td>
-      <td>-0.532545</td>
-      <td>-0.475251</td>
+      <td>9.705687</td>
+      <td>17.687744</td>
+      <td>61.669814</td>
+      <td>271.218482</td>
+      <td>0.082412</td>
+      <td>0.044074</td>
+      <td>0.024483</td>
+      <td>0.007150</td>
+      <td>0.165962</td>
+      <td>0.062434</td>
+      <td>0.111500</td>
+      <td>1.028969</td>
+      <td>0.816901</td>
+      <td>6.802000</td>
+      <td>0.003913</td>
+      <td>0.006247</td>
+      <td>0.007326</td>
+      <td>0.003993</td>
+      <td>0.016032</td>
+      <td>0.001750</td>
+      <td>10.085570</td>
+      <td>25.158981</td>
+      <td>64.714436</td>
+      <td>286.534635</td>
+      <td>0.114134</td>
+      <td>0.116897</td>
+      <td>0.178190</td>
+      <td>0.055743</td>
+      <td>0.308127</td>
+      <td>0.080504</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>0.517113</td>
-      <td>1.792275</td>
-      <td>2.370332</td>
-      <td>1.997819</td>
-      <td>4.618419</td>
-      <td>5.488645</td>
-      <td>8.731098</td>
-      <td>8.771383</td>
-      <td>8.352443</td>
-      <td>11.787353</td>
-      <td>0.052672</td>
-      <td>-0.664251</td>
-      <td>-0.768746</td>
-      <td>-0.968798</td>
-      <td>0.402036</td>
-      <td>0.884361</td>
-      <td>0.614879</td>
-      <td>0.987804</td>
-      <td>-1.891001</td>
-      <td>-0.436951</td>
+      <td>7.125484</td>
+      <td>13.120192</td>
+      <td>44.028358</td>
+      <td>143.500000</td>
+      <td>0.082233</td>
+      <td>0.038159</td>
+      <td>0.010480</td>
+      <td>0.000000</td>
+      <td>0.111200</td>
+      <td>0.073876</td>
+      <td>0.111500</td>
+      <td>0.882755</td>
+      <td>0.885557</td>
+      <td>6.802000</td>
+      <td>0.005420</td>
+      <td>0.009669</td>
+      <td>0.013627</td>
+      <td>0.001995</td>
+      <td>0.017244</td>
+      <td>0.003659</td>
+      <td>7.930000</td>
+      <td>18.066200</td>
+      <td>50.410000</td>
+      <td>185.200000</td>
+      <td>0.112703</td>
+      <td>0.094195</td>
+      <td>0.068878</td>
+      <td>0.000000</td>
+      <td>0.211667</td>
+      <td>0.089147</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>21.900000</td>
+      <td>22.935152</td>
+      <td>147.495000</td>
+      <td>1326.300000</td>
+      <td>0.093887</td>
+      <td>0.139548</td>
+      <td>0.180998</td>
+      <td>0.141404</td>
+      <td>0.233274</td>
+      <td>0.057252</td>
+      <td>0.501224</td>
+      <td>0.919973</td>
+      <td>5.983500</td>
+      <td>86.200000</td>
+      <td>0.003978</td>
+      <td>0.016478</td>
+      <td>0.043431</td>
+      <td>0.014664</td>
+      <td>0.011667</td>
+      <td>0.002550</td>
+      <td>27.460000</td>
+      <td>30.062807</td>
+      <td>187.335000</td>
+      <td>1937.050000</td>
+      <td>0.119824</td>
+      <td>0.331926</td>
+      <td>0.489350</td>
+      <td>0.229319</td>
+      <td>0.329644</td>
+      <td>0.080560</td>
       <td>0</td>
     </tr>
   </tbody>

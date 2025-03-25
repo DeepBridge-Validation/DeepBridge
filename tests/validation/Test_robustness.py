@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import make_classification
 
-from deepbridge.validation import RobustnessTest, RobustnessScore
+from DeepBridge.deepbridge.validation import RobustnessTest, RobustnessScore
 from deepbridge.visualization import RobustnessViz
 from deepbridge.utils.robustness_report_generator import RobustnessReportGenerator
 from deepbridge.utils import generate_robustness_report
