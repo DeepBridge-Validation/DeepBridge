@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge - Model Validation</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3a6ea5;
+            --secondary-color: #004e8f;
+            --accent-color: #ff6b6b;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+            --text-color: #343a40;
+            --light-text: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --tab-active-bg: #ffffff;
+            --tab-inactive-bg: #e9ecef;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+            padding-bottom: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            padding: 2rem 0;
+            margin-bottom: 0; /* Changed from 2rem to connect with tabs */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin-top: 1.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            opacity: 0.8;
+        }
+
+        /* Tabs styling */
+        .tabs-container {
+            margin: 0 auto;
+            background-color: var(--tab-inactive-bg);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tabs {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        .tab-item {
+            flex: 0 0 auto;
+        }
+
+        .tab-link {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .tab-link.active {
+            background-color: var(--tab-active-bg);
+            border-bottom: 3px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Card styling for summary metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .metric-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .metric-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Chart container adjustments */
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;  /* Reduced from 1.5rem */
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;  /* Prevent overflow */
+        }
+
+        .chart-title {
+            font-size: 1.125rem;  /* Reduced from 1.25rem */
+            margin-bottom: 0.75rem;  /* Reduced from 1rem */
+            color: var(--secondary-color);
+        }
+
+        .chart {
+            width: 100%;
+            height: 380px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            position: relative;
+            overflow: visible !important; /* Changed from 'hidden' to allow y-axis to show fully */
+        }
+
+        /* Make Plotly responsive within container */
+        .js-plotly-plot, .plot-container {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .main-svg {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Add scrollbar for tables if they overflow */
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+
+        /* Add responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .chart {
+                height: 300px;  /* Smaller height on mobile */
+            }
+            
+            .chart-container {
+                padding: 0.75rem;  /* Even smaller padding on mobile */
+            }
+            
+            .chart-title {
+                font-size: 1rem;  /* Smaller title on mobile */
+            }
+        }
+
+        /* Add responsive styling for Plotly legends */
+        .legend {
+            font-size: 10px !important;
+        }
+
+        .legendtext {
+            font-size: 10px !important;
+        }
+
+        /* Ensure tooltip text is readable */
+        .hovertext text {
+            font-size: 10px !important;
+        }
+
+        /* Reduce font size of axis labels */
+        .xtitle, .ytitle {
+            font-size: 12px !important;
+        }
+
+        /* Reduce font size of axis tick labels */
+        .xtick text, .ytick text {
+            font-size: 10px !important;
+        }
+
+        .ytick text {
+            font-size: 10px !important;
+            font-family: 'Segoe UI', sans-serif !important;
+        }
+
+        /* Garantir que os ticks numéricos sejam exibidos corretamente */
+        .js-plotly-plot .plotly .ytick text {
+            text-rendering: geometricPrecision !important;
+        }
+        
+        /* Add styling for loading states */
+        .chart-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .chart-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(58, 110, 165, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: chart-spinner 1s ease-in-out infinite;
+        }
+
+        @keyframes chart-spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Add styles for error states */
+        .chart-error {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            z-index: 10;
+            padding: 1rem;
+        }
+
+        .chart-error-icon {
+            color: var(--danger-color);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-error-message {
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .chart-error-retry {
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .chart-error-retry:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* Add styles for empty state */
+        .chart-empty {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f9f9f9;
+            color: #888;
+            font-style: italic;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        /* Adjust styles for chart tooltips */
+        .plotly-tooltip {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+            padding: 8px !important;
+            font-size: 0.8rem !important;
+        }
+
+        /* Add styles for chart legends */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 0.5rem;
+        }
+
+        /* Add custom scrollbar for chart containers */
+        .chart-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .chart-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .chart-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .chart-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+
+        /* Add support for dark mode if needed */
+        @media (prefers-color-scheme: dark) {
+            .chart-container {
+                background-color: #2d3748;
+            }
+            
+            .chart {
+                border-color: #4a5568;
+            }
+            
+            .chart-empty {
+                background-color: #2d3748;
+                color: #a0aec0;
+            }
+            
+            .chart-loading {
+                background-color: rgba(45, 55, 72, 0.8);
+            }
+            
+            .chart-loading-spinner {
+                border-color: rgba(58, 110, 165, 0.2);
+                border-top-color: var(--primary-color);
+            }
+            
+            .plotly-tooltip {
+                background-color: rgba(45, 55, 72, 0.95) !important;
+                border-color: #4a5568 !important;
+                color: #e2e8f0 !important;
+            }
+        }
+
+        /* Add zoom controls styling */
+        .chart-zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 5;
+        }
+
+        .chart-zoom-button {
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-zoom-button:hover {
+            background-color: #f5f5f5;
+        }
+
+        .chart-zoom-button:active {
+            background-color: #e9e9e9;
+        }
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 2rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #e9f3ff;
+        }
+
+        /* Recommendations */
+        .recommendation-section {
+            margin: 2rem 0;
+        }
+
+        .recommendation-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .recommendation-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .recommendation-icon {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .recommendation-content {
+            color: #555;
+        }
+
+        /* Feature impact */
+        .feature-impact-container {
+            margin: 2rem 0;
+        }
+
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-name {
+            width: 150px;
+            text-align: right;
+            padding-right: 1rem;
+            font-weight: 500;
+        }
+
+        .feature-bar-container {
+            flex-grow: 1;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feature-bar-value {
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 1s ease-in-out;
+        }
+
+        .feature-bar-value.negative {
+            background-color: var(--accent-color);
+        }
+
+        .feature-impact-value {
+            width: 50px;
+            text-align: right;
+            padding-left: 0.5rem;
+        }
+
+        /* Summary section */
+        .summary-section {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+        
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .overview-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .overview-card h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .model-comparison-score {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: 600;
+        }
+
+        .score-high {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .score-medium {
+            background-color: var(--warning-color);
+            color: #333;
+        }
+
+        .score-low {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid, .overview-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 0 0.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            h3 {
+                font-size: 1.25rem;
+            }
+            
+            .tab-link {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+            /* Collapsible panel styles */
+        .collapsible-panel {
+            margin-bottom: 1rem;
+        }
+        
+        .collapsible-header {
+            background-color: #f8f9fa;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .collapsible-header:hover {
+            background-color: #e9ecef;
+        }
+        
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            color: var(--secondary-color);
+        }
+        
+        .collapsible-toggle {
+            display: flex;
+            align-items: center;
+            color: var(--secondary-color);
+            font-size: 0.875rem;
+        }
+        
+        .collapsible-toggle-icon {
+            margin-left: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsible-toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .collapsible-content {
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            padding: 1rem;
+            display: none;
+            background-color: white;
+            overflow: hidden;
+        }
+        
+        .collapsible-content.expanded {
+            display: block;
+        }
+        
+        .collapsible-header.expanded {
+            border-radius: 6px 6px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>DeepBridge - Model Validation</h1>
+            <p class="subtitle">Comprehensive analysis of model performance, robustness, and reliability</p>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <div class="container">
+            <ul class="tabs">
+                <li class="tab-item"><a class="tab-link active" onclick="openTab(event, 'summary-tab')">Summary</a></li>
+                <li class="tab-item"><a class="tab-link" onclick="openTab(event, 'robustness-tab')">Robustness</a></li>
+                <li class="tab-item"><a class="tab-link" onclick="openTab(event, 'hyperparameter-tab')">Hyperparameter Importance</a></li>
+                <li class="tab-item"><a class="tab-link" onclick="openTab(event, 'uncertainty-tab')">Uncertainty</a></li>
+                <li class="tab-item"><a class="tab-link" onclick="openTab(event, 'resilience-tab')">Resilience</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary Tab -->
+        <div id="summary-tab" class="tab-content active">
+            <div class="summary-section">
+                <h2>Executive Summary</h2>
+                <p><strong>Date of Analysis:</strong> {{ report_date }}</p>
+                <p><strong>Models Evaluated:</strong> {{ models_evaluated }}</p>
+                <p><strong>Key Finding:</strong> {{ key_finding }}</p>
+                <p>{{ summary_text }}</p>
+            </div>
+            
+            <h2>Validation Overview</h2>
+            <p>This comprehensive validation report evaluates multiple aspects of model performance and reliability. Below is a summary of the key findings from each test category.</p>
+            
+            <div class="overview-grid">
+                <div class="overview-card">
+                    <h3>Robustness Assessment</h3>
+                    <p><strong>Best Model:</strong> {{ best_model }}</p>
+                    <p><strong>Robustness Index:</strong> {{ model_metrics[0].robustness_index | string }}</p>
+                    <p><strong>Finding:</strong> The model maintains consistent performance under data perturbations up to {{ perturbation_levels[-2] }}.</p>
+                    <p><a onclick="openTab(null, 'robustness-tab')">View detailed robustness analysis →</a></p>
+                </div>
+                
+                <div class="overview-card">
+                    <h3>Hyperparameter Importance</h3>
+                    <p><strong>Critical Parameters:</strong> Learning rate, max depth</p>
+                    <p><strong>Sensitivity:</strong> Model performance is most sensitive to learning rate changes</p>
+                    <p><a onclick="openTab(null, 'hyperparameter-tab')">View hyperparameter analysis →</a></p>
+                </div>
+                
+                <div class="overview-card">
+                    <h3>Uncertainty Quantification</h3>
+                    <p><strong>Calibration Error:</strong> 0.082</p>
+                    <p><strong>Reliability:</strong> Model predictions are well-calibrated with slight overconfidence in mid-range probabilities</p>
+                    <p><a onclick="openTab(null, 'uncertainty-tab')">View uncertainty analysis →</a></p>
+                </div>
+                
+                <div class="overview-card">
+                    <h3>Resilience Testing</h3>
+                    <p><strong>Data Shift Resilience:</strong> Moderate</p>
+                    <p><strong>Critical Threshold:</strong> Performance degrades significantly under 15% distribution shift</p>
+                    <p><a onclick="openTab(null, 'resilience-tab')">View resilience analysis →</a></p>
+                </div>
+            </div>
+            
+            <h2>Top Recommendations</h2>
+            <div class="recommendation-section">
+                {% for recommendation in recommendations %}
+                {% if loop.index <= a %}
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        {{ recommendation.title }}
+                    </div>
+                    <div class="recommendation-content">
+                        {{ recommendation.content }}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Implement Monitoring for Model Drift
+                    </div>
+                    <div class="recommendation-content">
+                        Based on the uncertainty and resilience analysis, we recommend implementing a monitoring system to detect distribution shifts in production data. This will help maintain model reliability over time as data patterns evolve.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Robustness Tab -->
+        <div id="robustness-tab" class="tab-content">
+            <h2>Model Robustness Analysis</h2>
+            <p>This analysis evaluates the performance stability of multiple models under various levels of data perturbation. A robust model maintains consistent performance when input data contains noise or variations.</p>
+
+            <div class="metrics-grid">
+                {% for model in model_metrics %}
+                <div class="metric-card">
+                    <div class="metric-title">{{ model.name }}</div>
+                    <div class="metric-value" style="color: {{ model.color }};">{{ model.robustness_index }}</div>
+                    <div class="metric-description">
+                        <p><strong>Baseline Perf.:</strong> {{ model.baseline }}</p>
+                        <p><strong>Under 50% Perturbation:</strong> {{ model.perturbed }}</p>
+                        <p><strong>Performance Drop:</strong> {{ model.drop }}%</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h3>Comparative Analysis</h3>
+            
+            <div class="chart-container">
+                <div class="collapsible-panel">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <h3 class="chart-title">Performance Distribution for {{ best_model }}</h3>
+                        <div class="collapsible-toggle">
+                            <span class="toggle-text">Expand</span>
+                            <span class="collapsible-toggle-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="chart">
+                            <div id="boxplot_chart" class="chart"></div>
+                        </div>
+                        <p>Boxplot showing the distribution of performance metrics across multiple perturbation trials. Smaller boxes indicate more consistent performance.</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <h3>Feature Impact Analysis</h3>
+            <p>Understanding which features contribute most to model robustness can help prioritize data quality efforts and identify potential vulnerabilities.</p>
+
+            <div class="chart-container">
+                <h3 class="chart-title">Feature Importance for Robustness</h3>
+                <div class="chart">
+                    <div id="feature_importance_chart" class="chart"></div>
+                </div>
+            </div>
+
+            <div class="feature-impact-container">
+                <h3>Top 5 Features Impacting Robustness</h3>
+                
+                {% for feature in top_features %}
+                <div class="feature-bar">
+                    <div class="feature-name">{{ feature.name }}</div>
+                    <div class="feature-bar-container">
+                        <div class="feature-bar-value {% if feature.value < 0 %}negative{% endif %}" style="width: {{ feature.percentage }}%;"></div>
+                    </div>
+                    <div class="feature-impact-value">{{ feature.value }}</div>
+                </div>
+                {% endfor %}
+                
+                <p class="metric-description">Features with higher positive values indicate greater sensitivity to perturbation, which may indicate potential vulnerabilities.</p>
+            </div>
+
+            <h3>Perturbation Method Comparison</h3>
+            <p>Different types of perturbation can affect models in varying ways. This analysis helps understand which types of noise or variation your model is most sensitive to.</p>
+
+            <div class="chart-container">
+                <h3 class="chart-title">Performance Under Different Perturbation Methods</h3>
+                <div class="chart">
+                    <div id="perturbation_methods_chart" class="chart"></div>
+                </div>
+                <p>This chart compares how the model responds to different types of perturbation methods at various intensity levels.</p>
+            </div>
+
+            <h3>Detailed Results</h3>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Robustness Index</th>
+                            {% for level in perturbation_levels %}
+                            <th>Perturb {{ level }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in model_detailed_results %}
+                        <tr>
+                            <td>{{ model.name }}</td>
+                            <td>{{ model.robustness_index }}</td>
+                            {% for score in model.scores %}
+                            <td>{{ score }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                {% for recommendation in recommendations %}
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        {{ recommendation.title }}
+                    </div>
+                    <div class="recommendation-content">
+                        {{ recommendation.content }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Hyperparameter Importance Tab -->
+        <div id="hyperparameter-tab" class="tab-content">
+            <h2>Hyperparameter Importance Analysis</h2>
+            <p>This section analyzes how model hyperparameters affect overall performance and identifies the most critical parameters to tune.</p>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Hyperparameter Sensitivity Analysis</h3>
+                <div class="chart">
+                    <!-- Placeholder for hyperparameter sensitivity chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Hyperparameter sensitivity visualization will appear here
+                    </div>
+                </div>
+                <p>This chart shows the relative importance of each hyperparameter on model performance. Longer bars indicate parameters with higher impact.</p>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Parameter Interaction Effects</h3>
+                <div class="chart">
+                    <!-- Placeholder for parameter interaction chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Parameter interaction visualization will appear here
+                    </div>
+                </div>
+                <p>This heatmap visualizes how parameters interact with each other, revealing potential dependencies between hyperparameters.</p>
+            </div>
+            
+            <h3>Optimal Parameter Ranges</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Optimal Range</th>
+                            <th>Sensitivity</th>
+                            <th>Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Learning Rate</td>
+                            <td>0.01 - 0.1</td>
+                            <td>High</td>
+                            <td>Fine-tune within the optimal range</td>
+                        </tr>
+                        <tr>
+                            <td>Max Depth</td>
+                            <td>4 - 7</td>
+                            <td>Medium</td>
+                            <td>Balance between complexity and performance</td>
+                        </tr>
+                        <tr>
+                            <td>Min Sample Split</td>
+                            <td>10 - 30</td>
+                            <td>Low</td>
+                            <td>Default value is adequate</td>
+                        </tr>
+                        <tr>
+                            <td>n_estimators</td>
+                            <td>100 - 300</td>
+                            <td>Medium</td>
+                            <td>Higher values improve performance with diminishing returns</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Prioritize Learning Rate Tuning
+                    </div>
+                    <div class="recommendation-content">
+                        Learning rate shows the highest sensitivity score (0.85). We recommend implementing a learning rate scheduler or fine-tuning this parameter first when optimizing model performance.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Consider Parameter Interactions
+                    </div>
+                    <div class="recommendation-content">
+                        Strong interaction detected between max_depth and min_samples_split. These parameters should be tuned together rather than independently to achieve optimal results.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uncertainty Tab -->
+        <div id="uncertainty-tab" class="tab-content">
+            <h2>Uncertainty Quantification Analysis</h2>
+            <p>This section evaluates how well the model's predicted probabilities correspond to the actual likelihood of correctness, a property known as calibration.</p>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Reliability Diagram</h3>
+                <div class="chart">
+                    <!-- Placeholder for reliability diagram -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Reliability diagram will appear here
+                    </div>
+                </div>
+                <p>This diagram shows how well the predicted probabilities match the actual frequencies. Perfect calibration would follow the diagonal line.</p>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Expected Calibration Error</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.082</div>
+                    <div class="metric-description">
+                        <p>Measure of difference between predicted probability and actual accuracy</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Maximum Calibration Error</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.145</div>
+                    <div class="metric-description">
+                        <p>Maximum discrepancy in any probability bin</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Brier Score</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.176</div>
+                    <div class="metric-description">
+                        <p>Mean squared error of probability predictions</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Calibration Slope</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.921</div>
+                    <div class="metric-description">
+                        <p>Slope of reliability curve (1.0 is ideal)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Confidence Distribution</h3>
+                <div class="chart">
+                    <!-- Placeholder for confidence distribution -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Confidence distribution histogram will appear here
+                    </div>
+                </div>
+                <p>This histogram shows the distribution of predicted probabilities, revealing any potential issues with over or under-confidence.</p>
+            </div>
+            
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Apply Temperature Scaling
+                    </div>
+                    <div class="recommendation-content">
+                        The model shows slight overconfidence. Applying temperature scaling with T=1.15 can improve probability calibration without affecting classification accuracy.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Implement Uncertainty Thresholds
+                    </div>
+                    <div class="recommendation-content">
+                        For predictions with confidence between 0.4-0.6, consider implementing a "defer to human" policy or request additional information before making critical decisions.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resilience Tab -->
+        <div id="resilience-tab" class="tab-content">
+            <h2>Model Resilience Analysis</h2>
+            <p>This section evaluates how well the model performance holds up under various data distribution shifts and challenging conditions.</p>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Performance Under Distribution Shift</h3>
+                <div class="chart">
+                    <!-- Placeholder for distribution shift chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Distribution shift performance chart will appear here
+                    </div>
+                </div>
+                <p>This chart illustrates how model performance changes under different types of distribution shifts, such as temporal, geographical, or demographic variations.</p>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Covariate Shift Resilience</div>
+                    <div class="metric-value" style="color: #28a745;">0.78</div>
+                    <div class="metric-description">
+                        <p>Model's ability to handle changes in feature distributions</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Label Shift Resilience</div>
+                    <div class="metric-value" style="color: #ffc107;">0.62</div>
+                    <div class="metric-description">
+                        <p>Model's ability to handle changes in class distributions</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Concept Drift Resilience</div>
+                    <div class="metric-value" style="color: #dc3545;">0.45</div>
+                    <div class="metric-description">
+                        <p>Model's ability to handle changes in feature-target relationships</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Overall Shift Tolerance</div>
+                    <div class="metric-value" style="color: #ffc107;">0.61</div>
+                    <div class="metric-description">
+                        <p>Combined score across all distribution shift types</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Feature Stability Analysis</h3>
+                <div class="chart">
+                    <!-- Placeholder for feature stability chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Feature stability analysis chart will appear here
+                    </div>
+                </div>
+                <p>This chart shows how each feature's importance and impact changes under different distribution shifts.</p>
+            </div>
+            
+            <h3>Critical Failure Points</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Distribution Shift Type</th>
+                            <th>Critical Threshold</th>
+                            <th>Performance Drop</th>
+                            <th>Affected Features</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Temporal Shift</td>
+                            <td>+6 months</td>
+                            <td>32%</td>
+                            <td>feature_2, feature_7, feature_9</td>
+                        </tr>
+                        <tr>
+                            <td>Demographic Shift</td>
+                            <td>15% change</td>
+                            <td>45%</td>
+                            <td>feature_1, feature_3</td>
+                        </tr>
+                        <tr>
+                            <td>Missing Features</td>
+                            <td>3+ features</td>
+                            <td>28%</td>
+                            <td>feature_5, feature_8</td>
+                        </tr>
+                        <tr>
+                            <td>Data Quality Degradation</td>
+                            <td>20% noise</td>
+                            <td>38%</td>
+                            <td>feature_4, feature_6</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Adversarial Example Sensitivity</h3>
+                <div class="chart">
+                    <!-- Placeholder for adversarial examples chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Adversarial examples sensitivity chart will appear here
+                    </div>
+                </div>
+                <p>This visualization shows how sensitive the model is to adversarial examples with different perturbation magnitudes.</p>
+            </div>
+            
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Implement Concept Drift Detection
+                    </div>
+                    <div class="recommendation-content">
+                        Due to low concept drift resilience (0.45), we recommend implementing an automated detection system that monitors changes in feature-target relationships in production data and triggers alerts when significant drift is detected.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Augment Training Data
+                    </div>
+                    <div class="recommendation-content">
+                        The model shows sensitivity to demographic shifts. Augmenting the training data with more diverse demographic samples could improve resilience to these types of shifts.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Implement Feature Redundancy
+                    </div>
+                    <div class="recommendation-content">
+                        For critical features (feature_5, feature_8) that cause significant performance drops when missing, implement redundant feature calculation paths or fallback features to maintain performance under partial data availability.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Regular Retraining Schedule
+                    </div>
+                    <div class="recommendation-content">
+                        Based on the temporal shift analysis, we recommend retraining the model at least every 3 months to prevent significant performance degradation due to natural data evolution.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hyperparameter Importance Tab -->
+        <div id="hyperparameter-tab" class="tab-content">
+            <h2>Hyperparameter Importance Analysis</h2>
+            <p>This section analyzes how model hyperparameters affect overall performance and identifies the most critical parameters to tune.</p>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Hyperparameter Sensitivity Analysis</h3>
+                <div class="chart">
+                    <!-- Placeholder for hyperparameter sensitivity chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Hyperparameter sensitivity visualization will appear here
+                    </div>
+                </div>
+                <p>This chart shows the relative importance of each hyperparameter on model performance. Longer bars indicate parameters with higher impact.</p>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Parameter Interaction Effects</h3>
+                <div class="chart">
+                    <!-- Placeholder for parameter interaction chart -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Parameter interaction visualization will appear here
+                    </div>
+                </div>
+                <p>This heatmap visualizes how parameters interact with each other, revealing potential dependencies between hyperparameters.</p>
+            </div>
+            
+            <h3>Optimal Parameter Ranges</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Optimal Range</th>
+                            <th>Sensitivity</th>
+                            <th>Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Learning Rate</td>
+                            <td>0.01 - 0.1</td>
+                            <td>High</td>
+                            <td>Fine-tune within the optimal range</td>
+                        </tr>
+                        <tr>
+                            <td>Max Depth</td>
+                            <td>4 - 7</td>
+                            <td>Medium</td>
+                            <td>Balance between complexity and performance</td>
+                        </tr>
+                        <tr>
+                            <td>Min Sample Split</td>
+                            <td>10 - 30</td>
+                            <td>Low</td>
+                            <td>Default value is adequate</td>
+                        </tr>
+                        <tr>
+                            <td>n_estimators</td>
+                            <td>100 - 300</td>
+                            <td>Medium</td>
+                            <td>Higher values improve performance with diminishing returns</td>
+                        </tr>
+                        <tr>
+                            <td>Subsample</td>
+                            <td>0.7 - 0.9</td>
+                            <td>Medium</td>
+                            <td>Values below 0.7 reduce model performance significantly</td>
+                        </tr>
+                        <tr>
+                            <td>colsample_bytree</td>
+                            <td>0.6 - 0.8</td>
+                            <td>Low</td>
+                            <td>Minimal impact on performance</td>
+                        </tr>
+                        <tr>
+                            <td>reg_alpha</td>
+                            <td>0.01 - 1.0</td>
+                            <td>Low</td>
+                            <td>Only important for preventing overfitting</td>
+                        </tr>
+                        <tr>
+                            <td>reg_lambda</td>
+                            <td>0.5 - 2.0</td>
+                            <td>Low</td>
+                            <td>Only important for preventing overfitting</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Hyperparameter Response Curves</h3>
+                <div class="chart">
+                    <!-- Placeholder for hyperparameter response curves -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Hyperparameter response curves will appear here
+                    </div>
+                </div>
+                <p>These curves show how model performance changes across different values of key hyperparameters, helping identify optimal settings and sensitivity ranges.</p>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Hyperparameter Optimization History</h3>
+                <div class="chart">
+                    <!-- Placeholder for optimization history -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Hyperparameter optimization history will appear here
+                    </div>
+                </div>
+                <p>This visualization shows the optimization trajectory through the hyperparameter space, helping identify promising regions for further exploration.</p>
+            </div>
+            
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Prioritize Learning Rate Tuning
+                    </div>
+                    <div class="recommendation-content">
+                        Learning rate shows the highest sensitivity score (0.85). We recommend implementing a learning rate scheduler or fine-tuning this parameter first when optimizing model performance.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Consider Parameter Interactions
+                    </div>
+                    <div class="recommendation-content">
+                        Strong interaction detected between max_depth and min_samples_split. These parameters should be tuned together rather than independently to achieve optimal results.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Use Bayesian Optimization
+                    </div>
+                    <div class="recommendation-content">
+                        For future hyperparameter tuning, we recommend Bayesian optimization instead of random or grid search. This approach showed faster convergence to optimal values in our analysis, especially for the key parameters identified.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Regularization Parameters
+                    </div>
+                    <div class="recommendation-content">
+                        The regularization parameters (reg_alpha, reg_lambda) show minimal impact on standard performance metrics but are important for model generalization. Consider tuning these parameters if overfitting is observed in production.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uncertainty Tab -->
+        <div id="uncertainty-tab" class="tab-content">
+            <h2>Uncertainty Quantification Analysis</h2>
+            <p>This section evaluates how well the model's predicted probabilities correspond to the actual likelihood of correctness, a property known as calibration.</p>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Reliability Diagram</h3>
+                <div class="chart">
+                    <!-- Placeholder for reliability diagram -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Reliability diagram will appear here
+                    </div>
+                </div>
+                <p>This diagram shows how well the predicted probabilities match the actual frequencies. Perfect calibration would follow the diagonal line.</p>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Expected Calibration Error</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.082</div>
+                    <div class="metric-description">
+                        <p>Measure of difference between predicted probability and actual accuracy</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Maximum Calibration Error</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.145</div>
+                    <div class="metric-description">
+                        <p>Maximum discrepancy in any probability bin</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Brier Score</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.176</div>
+                    <div class="metric-description">
+                        <p>Mean squared error of probability predictions</p>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Calibration Slope</div>
+                    <div class="metric-value" style="color: #17a2b8;">0.921</div>
+                    <div class="metric-description">
+                        <p>Slope of reliability curve (1.0 is ideal)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Confidence Distribution</h3>
+                <div class="chart">
+                    <!-- Placeholder for confidence distribution -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Confidence distribution histogram will appear here
+                    </div>
+                </div>
+                <p>This histogram shows the distribution of predicted probabilities, revealing any potential issues with over or under-confidence.</p>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Calibration by Feature Value</h3>
+                <div class="chart">
+                    <!-- Placeholder for calibration by feature -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Calibration by feature value chart will appear here
+                    </div>
+                </div>
+                <p>This chart shows how calibration quality varies across different feature values, helping identify segments where the model might be poorly calibrated.</p>
+            </div>
+            
+            <h3>Calibration Analysis by Data Segment</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data Segment</th>
+                            <th>Samples</th>
+                            <th>Calibration Error</th>
+                            <th>Confidence</th>
+                            <th>Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>High feature_1 values (>0.75)</td>
+                            <td>328</td>
+                            <td>0.057</td>
+                            <td>0.83</td>
+                            <td>0.79</td>
+                        </tr>
+                        <tr>
+                            <td>Low feature_1 values (<0.25)</td>
+                            <td>412</td>
+                            <td>0.124</td>
+                            <td>0.67</td>
+                            <td>0.54</td>
+                        </tr>
+                        <tr>
+                            <td>High feature_3 values (>0.8)</td>
+                            <td>276</td>
+                            <td>0.098</td>
+                            <td>0.92</td>
+                            <td>0.82</td>
+                        </tr>
+                        <tr>
+                            <td>feature_2 = 1 & feature_5 = 0</td>
+                            <td>195</td>
+                            <td>0.178</td>
+                            <td>0.77</td>
+                            <td>0.59</td>
+                        </tr>
+                        <tr>
+                            <td>Rare combinations (<5% of data)</td>
+                            <td>87</td>
+                            <td>0.223</td>
+                            <td>0.81</td>
+                            <td>0.58</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Uncertainty Calibration Methods Comparison</h3>
+                <div class="chart">
+                    <!-- Placeholder for calibration methods comparison -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa; color: #6c757d; font-style: italic;">
+                        Calibration methods comparison chart will appear here
+                    </div>
+                </div>
+                <p>This chart compares different calibration methods (Platt scaling, isotonic regression, temperature scaling) and their impact on model calibration.</p>
+            </div>
+            
+            <h3>Recommendations</h3>
+            <div class="recommendation-section">
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Apply Temperature Scaling
+                    </div>
+                    <div class="recommendation-content">
+                        The model shows slight overconfidence. Applying temperature scaling with T=1.15 can improve probability calibration without affecting classification accuracy.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Implement Uncertainty Thresholds
+                    </div>
+                    <div class="recommendation-content">
+                        For predictions with confidence between 0.4-0.6, consider implementing a "defer to human" policy or request additional information before making critical decisions.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Segment-Specific Calibration
+                    </div>
+                    <div class="recommendation-content">
+                        For the segment with 'feature_2 = 1 & feature_5 = 0', which shows poor calibration (error=0.178), consider training a separate calibration model specific to this segment.
+                    </div>
+                </div>
+                <div class="recommendation-card">
+                    <div class="recommendation-title">
+                        <span class="recommendation-icon">🔍</span>
+                        Monitor Confidence Distribution
+                    </div>
+                    <div class="recommendation-content">
+                        Implement monitoring of the confidence distribution in production. Shifts in this distribution can indicate concept drift even before actual performance degradation is observed.
+                    </div>
+                </div>
+                <footer>
+                    <p>Generated by DeepBridge - Model Validation | {{ report_date }}</p>
+                    <p>© 2025 DeepBridge | <a href="https://github.com/DeepBridge-Validation/DeepBridge">GitHub Repository</a></p>
+                </footer>
+            </div>
+        </div>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        console.log("DOM carregado - Iniciando renderização dos gráficos");
+        
+        // Função para renderizar gráficos com segurança
+        function safelyRenderPlot(elementId, chartData, chartName) {
+            console.log(`Tentando renderizar ${chartName || elementId}`);
+            
+            if (!chartData || typeof chartData !== 'object') {
+                console.warn(`Dados inválidos para o gráfico ${chartName || elementId}:`, chartData);
+                return;
+            }
+            
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.error(`Elemento DOM não encontrado: #${elementId}`);
+                return;
+            }
+            
+            try {
+                console.log(`Renderizando ${chartName || elementId} com Plotly.newPlot`);
+                Plotly.newPlot(elementId, chartData.data, chartData.layout, {responsive: true});
+                console.log(`${chartName || elementId} renderizado com sucesso`);
+            } catch (error) {
+                console.error(`Erro ao renderizar ${chartName || elementId}:`, error);
+            }
+        }
+
+        // Chart initialization com tratamento de erros
+        try {
+            console.log("Processando boxplot_chart");
+            const boxplot_chart = JSON.parse('{{ boxplot_chart | safe }}');
+            
+            // Garantir que as configurações de eixo y sejam mantidas
+            if (boxplot_chart && boxplot_chart.layout) {
+                // Garantir que cada eixo y tenha o formato correto
+                for (let i = 1; i <= Object.keys(boxplot_chart.layout).filter(k => k.startsWith('yaxis')).length; i++) {
+                    const yaxisKey = i === 1 ? 'yaxis' : `yaxis${i}`;
+                    
+                    if (!boxplot_chart.layout[yaxisKey]) {
+                        boxplot_chart.layout[yaxisKey] = {};
+                    }
+                    
+                    // Definir configurações específicas para o eixo y
+                    boxplot_chart.layout[yaxisKey].tickformat = '.2f';
+                    boxplot_chart.layout[yaxisKey].dtick = 0.05;
+                    boxplot_chart.layout[yaxisKey].range = [0.5, 1.0];
+                }
+            }
+            
+            safelyRenderPlot('boxplot_chart', boxplot_chart, "Boxplot de Performance");
+        } catch (e) {
+            console.error("Erro ao processar boxplot_chart:", e);
+        }
+
+        try {
+            console.log("Processando boxplot_chart");
+            const boxplot_chart = JSON.parse('{{ boxplot_chart | safe }}');
+            safelyRenderPlot('boxplot_chart', boxplot_chart, "Boxplot de Performance");
+        } catch (e) {
+            console.error("Erro ao processar boxplot_chart:", e);
+        }
+
+        try {
+            console.log("Processando feature_importance_chart");
+            var feature_importance_chart = {{ feature_importance_chart | safe }};
+            safelyRenderPlot('feature_importance_chart', feature_importance_chart, "Importância das Features");
+        } catch (e) {
+            console.error("Erro ao processar feature_importance_chart:", e);
+        }
+
+        {% if perturbation_methods_chart %}
+        try {
+            console.log("Processando perturbation_methods_chart");
+            var perturbation_methods_chart = {{ perturbation_methods_chart | safe }};
+            safelyRenderPlot('perturbation_methods_chart', perturbation_methods_chart, "Métodos de Perturbação");
+        } catch (e) {
+            console.error("Erro ao processar perturbation_methods_chart:", e);
+        }
+        {% endif %}
+        
+        // Teste simples para verificar se o Plotly está funcionando
+        try {
+            if (document.getElementById('test-chart')) {
+                console.log("Criando gráfico de teste para verificar o Plotly");
+                Plotly.newPlot('test-chart', 
+                    [{x: [1, 2, 3], y: [1, 2, 3], type: 'scatter', name: 'Teste'}], 
+                    {title: 'Gráfico de Teste'}, 
+                    {responsive: true}
+                );
+                console.log("Gráfico de teste criado com sucesso");
+            }
+        } catch (e) {
+            console.error("Erro ao criar gráfico de teste:", e);
+        }
+        
+        // Add event listener for window resize to make sure charts are responsive
+        window.addEventListener('resize', function() {
+            // Resize all Plotly charts
+            document.querySelectorAll('.chart [id^="plotly"]').forEach(function(chart) {
+                if (window.Plotly && chart.classList.contains('js-plotly-plot')) {
+                    try {
+                        Plotly.relayout(chart.id, {});
+                    } catch (e) {
+                        console.warn("Erro ao redimensionar gráfico:", e);
+                    }
+                }
+            });
+        });
+        
+        // Check URL hash and navigate to that tab
+        if (window.location.hash) {
+            const tabName = window.location.hash.substring(1);
+            const tabElement = document.getElementById(tabName);
+            if (tabElement && tabElement.classList.contains('tab-content')) {
+                openTab(null, tabName);
+            }
+        }
+        
+        // Add click handlers for all summary cards that link to other tabs
+        const tabLinks = document.querySelectorAll('.overview-card a');
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const tabNameMatch = this.getAttribute('onclick').match(/openTab\(null, '(.+?)'\)/);
+                if (tabNameMatch && tabNameMatch[1]) {
+                    navigateToTab(tabNameMatch[1]);
+                }
+            });
+        });
+    });
+
+    function openTab(evt, tabName) {
+        console.log("Abrindo aba:", tabName);
+        // Declare variables
+        var i, tabcontent, tablinks;
+
+        // Get all elements with class="tab-content" and hide them
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+
+        // Get all elements with class="tab-link" and remove the class "active"
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        var currentTab = document.getElementById(tabName);
+        if (currentTab) {
+            currentTab.style.display = "block";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                // Find the tab link with this tab name and make it active
+                for (i = 0; i < tablinks.length; i++) {
+                    var onclick = tablinks[i].getAttribute("onclick");
+                    if (onclick && onclick.includes(tabName)) {
+                        tablinks[i].className += " active";
+                        break;
+                    }
+                }
+            }
+        } else {
+            console.error("Aba não encontrada:", tabName);
+        }
+    }
+
+        // Function to handle cross-tab navigation from Summary tab
+        function navigateToTab(tabName) {
+            console.log("Navegando para aba:", tabName);
+            // Simulate a click on the tab
+            openTab(null, tabName);
+            
+            // Scroll to the top of the tab
+            var tabsContainer = document.querySelector('.tabs-container');
+            if (tabsContainer) {
+                window.scrollTo(0, tabsContainer.offsetTop);
+            }
+        }
+
+        function toggleCollapsible(element) {
+        console.log("Alternando painel colapsável");
+        if (!element) {
+            console.error("Elemento colapsável não fornecido");
+            return;
+        }
+        
+        try {
+            // Toggle the content visibility
+            const content = element.nextElementSibling;
+            if (!content) {
+                console.error("Conteúdo colapsável não encontrado");
+                return;
+            }
+            
+            content.classList.toggle('expanded');
+            
+            // Toggle the header styles
+            element.classList.toggle('expanded');
+            
+            // Update the toggle text and icon
+            const toggleText = element.querySelector('.toggle-text');
+            const toggleIcon = element.querySelector('.collapsible-toggle-icon');
+            
+            if (content.classList.contains('expanded')) {
+                if (toggleText) toggleText.textContent = 'Collapse';
+                if (toggleIcon) toggleIcon.classList.add('expanded');
+                
+                // Ensure the Plotly chart is properly sized when expanded
+                const chartDiv = content.querySelector('[id$="_chart"]');
+                if (chartDiv && window.Plotly) {
+                    console.log("Redimensionando gráfico em painel expandido:", chartDiv.id);
+                    setTimeout(function() {
+                        Plotly.relayout(chartDiv.id, {
+                            autosize: true,
+                            // Garantir que as configurações de eixo y sejam mantidas
+                            'yaxis.tickformat': '.2f',
+                            'yaxis.dtick': 0.05,
+                            'yaxis.range': [0.5, 1.0]
+                        });
+                    }, 100);
+                }
+            } else {
+                if (toggleText) toggleText.textContent = 'Expand';
+                if (toggleIcon) toggleIcon.classList.remove('expanded');
+            }
+        } catch (e) {
+            console.error("Erro ao alternar painel colapsável:", e);
+        }
+    }
+
+    function fixYAxisFormat(chartId) {
+        const chartDiv = document.getElementById(chartId);
+        if (!chartDiv || !window.Plotly) return;
+        
+        // Obter layout atual
+        const currentLayout = {};
+        
+        // Para cada eixo y possível (em caso de múltiplos subplots)
+        for (let i = 1; i <= 10; i++) { // Assumindo um máximo de 10 subplots
+            const yaxisKey = i === 1 ? 'yaxis' : `yaxis${i}`;
+            currentLayout[`${yaxisKey}.tickformat`] = '.2f';
+            currentLayout[`${yaxisKey}.dtick`] = 0.05;
+            currentLayout[`${yaxisKey}.range`] = [0.5, 1.0];
+        }
+        
+        // Aplicar layout
+        Plotly.relayout(chartId, currentLayout);
+        console.log("Formato do eixo y corrigido para", chartId);
+    }
+
+    // Chamar esta função após o carregamento inicial e quando o painel for expandido
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(() => fixYAxisFormat('boxplot_chart'), 200);
+    });
+
+
+    function inspectChart(chartId) {
+        const chartDiv = document.getElementById(chartId);
+        if (chartDiv) {
+            console.log("Chart element:", chartDiv);
+            console.log("Chart dimensions:", 
+                chartDiv.offsetWidth, 
+                chartDiv.offsetHeight,
+                chartDiv.style.width,
+                chartDiv.style.height
+            );
+            
+            // Get the Plotly data
+            const plotlyInstance = chartDiv._fullLayout;
+            if (plotlyInstance) {
+                console.log("Plotly layout:", plotlyInstance);
+            }
+        }
+    }
+
+    // Call this function after rendering
+    setTimeout(function() { 
+        inspectChart('boxplot_chart'); 
+    }, 1000);
+    
+    // Adiciona div de teste, apenas para depuração
+    if (!document.getElementById('test-chart')) {
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("Adicionando div de teste para o Plotly");
+            const testDiv = document.createElement('div');
+            testDiv.id = 'test-chart';
+            testDiv.className = 'chart';
+            testDiv.style.width = '100%';
+            testDiv.style.height = '200px';
+            testDiv.style.border = '1px dashed #ccc';
+            testDiv.style.marginTop = '20px';
+            
+            // Adiciona ao final do container antes do footer
+            const container = document.querySelector('.container');
+            if (container) {
+                const footer = container.querySelector('footer');
+                if (footer) {
+                    container.insertBefore(testDiv, footer);
+                } else {
+                    container.appendChild(testDiv);
+                }
+                console.log("Div de teste adicionada ao DOM");
+            }
+        });
+    }
+
+    try {
+        console.log("Processing boxplot_chart");
+        const boxplotChartData = JSON.parse('{{ boxplot_chart | safe }}');
+        
+        // Check for required properties
+        if (!boxplotChartData || !boxplotChartData.data || !boxplotChartData.layout) {
+            console.error("Invalid boxplot chart data:", boxplotChartData);
+        } else {
+            // Ensure layout contains all necessary properties
+            boxplotChartData.layout.autosize = true;
+            boxplotChartData.layout.height = 380;  // Match container height
+            
+            Plotly.newPlot('boxplot_chart', 
+                boxplotChartData.data, 
+                boxplotChartData.layout, 
+                {responsive: true, displayModeBar: true}
+            );
+            console.log("Boxplot chart rendered successfully");
+        }
+    } catch (e) {
+        console.error("Error processing boxplot_chart:", e);
+    }
+</script>

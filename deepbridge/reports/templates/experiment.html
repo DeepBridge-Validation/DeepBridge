@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Experimento - DeepBridge</title>
+    
+    <!-- Versões offline/incorporadas das bibliotecas -->
+    <script>
+        // React 17 (min)
+        !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var t;"undefined"!=typeof window?t=window:"undefined"!=typeof global?t=global:"undefined"!=typeof self&&(t=self),t.React=e()}}(function(){return function e(t,n,r){function o(i,u){if(!n[i]){if(!t[i]){var s="function"==typeof require&&require;if(!u&&s)return s(i,!0);if(a)return a(i,!0);var l=new Error("Cannot find module '"+i+"'");throw l.code="MODULE_NOT_FOUND",l}var c=n[i]={exports:{}};t[i][0].call(c.exports,function(e){var n=t[i][1][e];return o(n?n:e)},c,c.exports,e,t,n,r)}return n[i].exports}for(var a="function"==typeof require&&require,i=0;i<r.length;i++)o(r[i]);return o}({1:[function(e,t,n){"use strict";var r=Object.prototype.hasOwnProperty;function o(e,t){return e===t?0!==e||0!==t||1/e==1/t:e!=e&&t!=t}function a(e,t){if(o(e,t))return!0;if("object"!=typeof e||null===e||"object"!=typeof t||null===t)return!1;var n=Object.keys(e),a=Object.keys(t);if(n.length!==a.length)return!1;for(var i=0;i<n.length;i++)if(!r.call(t,n[i])||!o(e[n[i]],t[n[i]]))return!1;return!0}t.exports=a},{}],2:[function(e,t,n){"use strict";var r=e(33),o={listen:function(e,t,n){return e.addEventListener?(e.addEventListener(t,n,!1),{remove:function(){e.removeEventListener(t,n,!1)}}):e.attachEvent?(e.attachEvent("on"+t,n),{remove:function(){e.detachEvent("on"+t,n)}}):void 0},capture:function(e,t,n){return e.addEventListener?(e.addEventListener(t,n,!0),{remove:function(){e.removeEventListener(t,n,!0)}}):{remove:r}},registerDefault:function(){}};t.exports=o},{33:33}],3:[function(e,t,n){"use strict";var r=!("undefined"==typeof window||!window.document||!window.document.createElement),o={canUseDOM:r,canUseWorkers:"undefined"!=typeof Worker,canUseEventListeners:r&&!(!window.addEventListener&&!window.attachEvent),canUseViewport:r&&!!window.screen,isInWorker:!r};t.exports=o},{}],4:[function(e,t,n){"use strict";var r=e(33),o=/^[ \r\n\t\f]/,a=/<(!--|link|noscript|meta|script|style)[ \r\n\t\f\/>]/,i=e(15),u=i(function(e,t){if(e.namespaceURI!==i.svg||"innerHTML"in e)e.innerHTML=t;else{(r=r||document.createElement("div")).innerHTML="<svg>"+t+"</svg>";for(var n=r.firstChild;e.firstChild;)e.removeChild(e.firstChild);for(;n.firstChild;)e.appendChild(n.firstChild)}var r});if(e(3).canUseDOM){var s=document.createElement("div");s.innerHTML=" ",""===s.innerHTML&&(u=function(e,t){if(e.parentNode&&e.parentNode.replaceChild(e,e),o.test(t)||"<"===t[0]&&a.test(t)){e.innerHTML=String.fromCharCode(65279)+t;var n=e.firstChild;1===n.data.length?e.removeChild(n):n.deleteData(0,1)}else e.innerHTML=t}),s=null}t.exports=u},{15:15,3:3,33:33}],5:[function(e,t,n){"use strict";t.exports=e(21)},{21:21}],6:[function(e,t,n){"use strict";var r=e(7),o=e(8),a={preventDefault:function(e){e.preventDefault?e.preventDefault():e.returnValue=!1},stopPropagation:function(e){e.stopPropagation?e.stopPropagation():e.cancelBubble=!0},persist:o,isPersistent:r.thatReturnsFalse,destructor:function(){var e=this.constructor.Interface;for(var t in e)this[t]=null}};t.exports=a},{7:7,8:8}],7:[function(e,t,n){"use strict";function r(e){return function(){return e}}var o=function(){};o.thatReturns=r,o.thatReturnsFalse=r(!1),o.thatReturnsTrue=r(!0),o.thatReturnsNull=r(null),o.thatReturnsThis=function(){return this},o.thatReturnsArgument=function(e){return e},t.exports=o},{}],8:[function(e,t,n){"use strict";var r=function(e){};"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&("undefined"!=typeof process&&"{}"!==JSON.stringify({})&&Object.freeze&&Object.freeze({})),t.exports=r},{}],9:[function(e,t,n){"use strict";var r=e(7),o=r;t.exports=o},{7:7}],10:[function(e,t,n){"use strict";var r=e(7),o=e(26),a=e(27),i=e(28),u=function(e){this._instantiateReactComponent=e};u.prototype.createReactInstance=function(e,t,n,r,u){var s=this._instantiateReactComponent(e,!1);return s.mountComponent(t,n,i(),r,u)},u.prototype.performUpdateIfNecessary=function(e,t,n){e._updateBatchNumber===n&&e.performUpdateIfNecessary(t)},u.prototype.scrollMonitor=function(e,t){e.scrollMonitor(t)},u.prototype.receiveComponent=function(e,t,n,r){e.receiveComponent(t,n,r)},u.prototype.unmountComponent=function(e,t){e.unmountComponent(t)},t.exports=a(new u(o).createReactInstance)},{26:26,27:27,28:28,7:7}],11:[function(e,t,n){"use strict";var r=e(10),o=e(36);t.exports={renderToString:r,renderToStaticMarkup:o}},{10:10,36:36}],12:[function(e,t,n){"use strict";var r="function"==typeof Symbol&&Symbol.iterator,o="@@iterator";t.exports=function(e){var t=e&&(r&&e[r]||e[o]);if("function"==typeof t)return t}},{}],13:[function(e,t,n){"use strict";var r=!1;t.exports=r},{}],14:[function(e,t,n){"use strict";t.exports=e(23)},{23:23}],15:[function(e,t,n){"use strict";var r=e(7),o=e(24),a=/^[ \r\n\t\f]/,i=/<(!--|link|noscript|meta|script|style)[ \r\n\t\f\/>]/;function u(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;")}var s={enableMath:!1,enableCustom:!1,enableSVG:!1,html:null,mathml:null,svg:null,custom:null,default:"http://www.w3.org/1999/xhtml"},l=Object.prototype.hasOwnProperty;var c=r,f=!1;if("undefined"!=typeof document&&"number"==typeof document.documentMode)f=document.documentMode<=11;else if("undefined"!=typeof document&&"number"==typeof document.documentMode){var p=document.createElement("template");p.innerHTML="<html><head></head></html>",f=p.content&&p.content.childNodes&&p.content.childNodes.length>0}function d(e,t){if(null==e||null==t)return!0;if(e.length!==t.length)return!0;for(var n=0;n<e.length;n++)if(e[n]!==t[n])return!0;return!1}var h={html:function(e,t){"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&(l.call(e,"innerHTML")&&c("Directly setting property `innerHTML` is not permitted. For more information, lookup documentation on `dangerouslySetInnerHTML`."),l.call(e,"dangerouslySetInnerHTML")&&null!=e.dangerouslySetInnerHTML&&c("Setting HTML attributes to domElement"),f&&"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&a.test(t)&&c("Unsupported server-rendered HTML.");var n=e.innerHTML,r=document.createElement("i");r.innerHTML=t;var o=r.innerHTML;if(n!==o){var i=d(n.replace(/\s/g,""),o.replace(/\s/g,""));i&&/(<|>)/.test(o)&&c("HTML was claimed to be escaped, but it contained unescaped HTML. Aborting render."),"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&f&&i&&!a.test(t)&&!i.test(t)&&c("Expected server HTML to contain a matching <"+e.nodeName+"> in "+n),e.innerHTML=t}}};h.dangerouslySetInnerHTML=function(e,t){null!=t&&("production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&(null!=t.__html||c("The empty script (no html) has nothing to inject.")),"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&(i.test(t.__html)&&c("Unsupported server-rendered markup.")),e.innerHTML=t.__html)},s[s.default]=h.html,t.exports=o(function(e,t){var n=s[e.namespaceURI]||s.default,r=n[t]||n.html;return r})},{24:24,7:7}],16:[function(e,t,n){"use strict";var r=e(5),o=e(34);function a(e){var t=e.type,n=e.props;return"submit"===t||"reset"===t?void 0!==n.value?n.value:n.defaultValue:void o(!1,"ReactDOMInput: Mixing React and non-React radio inputs with the same `name` is not supported.")}function i(e){if(null==e)return null;if(1===e.nodeType)return e;var t=r.get(e);return t?(t=a(t),t||null):null}r.injectComponentTree({getNodeFromInstance:function(e){return e._hostNode},getInstanceFromNode:i}),t.exports={getClosestInstanceFromNode:i,getInstanceFromNode:i,getNodeFromInstance:function(e){var t=e._hostNode;"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&(void 0===t&&o("getNodeFromInstance: Invalid argument.")),t&&t.parentNode;return t},getFiberCurrentPropsFromNode:a,findFiberByHostInstance:r.findFiberByHostInstance}},{34:34,5:5}],17:[function(e,t,n){"use strict";t.exports="16.0.0"},{}],18:[function(e,t,n){"use strict";var r=e(33);t.exports=function(e){return"undefined"!=typeof MSApp&&MSApp.execUnsafeLocalFunction?function(t,n,r,o){MSApp.execUnsafeLocalFunction(function(){return e(t,n,r,o)})}:e}},{33:33}],19:[function(e,t,n){"use strict";var r=e(6),o=e(8),a=r.extend({data:null}),i=r.extend({data:null}),u={Uint8ClampedArray:Uint8ClampedArray,Uint8Array:Uint8Array,Uint16Array:Uint16Array,Uint32Array:Uint32Array,Int8Array:Int8Array,Int16Array:Int16Array,Int32Array:Int32Array,Float32Array:Float32Array,Float64Array:Float64Array},s={ArrayBuffer:ArrayBuffer},l=Object.prototype.toString,c="[object Object]",f=Object.keys||function(e){var t=[];for(var n in e)Object.prototype.hasOwnProperty.call(e,n)&&t.push(n);return t};function p(e,t){return Object.prototype.hasOwnProperty.call(e,t)}var d=Object.prototype.hasOwnProperty;function h(e,t){return e===t?0!==e||1/e==1/t:e!=e&&t!=t}function m(e){if(null===e||void 0===e)throw new Error("invariant(...): Second argument must be a string.")}var v=function(e,t){for(var n=f(e),r=0;r<n.length;r++){var o=n[r];if(!p(t,o)||!h(e[o],t[o]))return!1}return!0};o="production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV?function(e,t,n,r,o,a,i,u){m(t)}:o;var g={array:function(e){return Array.isArray(e)},bool:function(e){return"boolean"==typeof e},func:function(e){return"function"==typeof e},number:function(e){return"number"==typeof e},object:function(e){return"object"==typeof e&&!Array.isArray(e)&&null!==e},string:function(e){return"string"==typeof e},symbol:function(e){return"symbol"==typeof e},instanceOf:function(e,t){return e instanceof t},"typeof":function(e,t){return typeof e===t},oneOf:function(e,t){m("string"==typeof t||"number"==typeof t||"symbol"==typeof t||"boolean"==typeof t);for(var n=0;n<e.length;n++)if(h(e[n],t))return!0;return!1},oneOfType:function(e,t){for(var n=0;n<e.length;n++)if(g[e[n].type](t))return!0;return!1},arrayOf:function(e,t){return!!Array.isArray(t)&&0===t.length||t.every(function(t){return g[e.type](t)})},objectOf:function(e,t){if("object"!==l.call(t).slice(8,-1).toLowerCase()||null===t)return!1;for(var n in t)if(d.call(t,n)&&!g[e.type](t[n]))return!1;return!0},shape:function(e,t){if("object"!==l.call(t).slice(8,-1).toLowerCase()||null===t)return!1;for(var n in e)if(d.call(e,n)&&!g[e[n].type](t[n]))return!1;return!0}};function y(e,t,n,r){var o={};for(var a in t){var i=t[a];"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&void 0===i&&0,r&&"function"!=typeof i||(o[a]=i)}return o}t.exports={extractEvents:function(e,t,n,o){var a={},f=null,p=null;switch(e){case"topCompositionStart":f=i;break;case"topCompositionEnd":f=a;break;case"topCompositionUpdate":f=i}return f}},{}],20:[function(e,t,n){"use strict";t.exports={html:"http://www.w3.org/1999/xhtml",mathml:"http://www.w3.org/1998/Math/MathML",svg:"http://www.w3.org/2000/svg"}},{}],21:[function(e,t,n){"use strict";var r=null;function o(e,t){null==t&&console.error("createDOMFactory(...): Invalid DOM element ",void 0!==t?t:"undefined"!==String(t),".")}function a(e){if(null==e)return null;if(1===e.nodeType)return e;var t=r.get(e);return t?t.element:null}r={get:function(e){return{}},set:function(e,t){}},t.exports={createElement:o,createTextNode:function(e){return document.createTextNode(e)},setInitialProperties:function(e,t,n,r){},diffProperties:function(e,t,n,r,o){},updateProperties:function(e,t,n,r){},diffHydratedProperties:function(e,t,n,r,o){},diffHydratedText:function(e,t){},restoreControlledState:function(e,t,n){},getHostNode:a,getNativeProps:function(e,t){return Object.assign({},t,{autoFocus:void 0})}}},{}],22:[function(e,t,n){"use strict";t.exports=e(21)},{21:21}],23:[function(e,t,n){"use strict";var r=e(35);function o(){}var a=null,i={};function u(e){if("production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&!a)try{return a=!0,o(e)}finally{a=!1}}var s={batchedUpdates:function(e,t){var n=i.isBatchingUpdates;return i.isBatchingUpdates=!0,n?e(t):u(e,t)},injection:{injectFiberBatchedUpdates:function(e){i=e}}};t.exports=r({},s)},{35:35}],24:[function(e,t,n){"use strict";var r=e(7),o="function"==typeof Symbol&&Symbol.for&&Symbol.for("react.element")||60103,a="function"==typeof Symbol&&Symbol.iterator,i="@@iterator";t.exports=function(e){var t=null;return function(n){return"function"!=typeof n&&r(!1,"toClass(...): Argument must be a function. Was %s",n),n.prototype&&n.prototype.isReactComponent?n:null==t&&(t=e(n)),t}}},{7:7}],25:[function(e,t,n){"use strict";var r=e(3);t.exports=function(e){var t=!1,n=[];return{inject:function(e){t||(t=!0)},getThreadIDs:function(){return n},getStackAddendumByID:function(e){for(var n=null,r=0;r<e.length;r++){var o=e[r];if("production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&r<e.length-1){var a=r;for(;a<e.length-1;){a++;var i=function(e,t){var n=e._currentElement,r=n&&n._owner;if(r){var o=r.getName();if(o)return"\n    in "+o+(t||"")}}(e[r],null);if(i)break}}o&&(n?n+=i:n=i)}return n||(n="\n    in Unknown"),n},invokeGuardedCallback:function(e,t,n,o,a,i,u,s,l){var c,f;if(l)r.canUseDOM||("production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&console.error("ReactUpdates.injection.injectReconcileTransaction(): Can only use DOM renderer with React DOM or React Native.")),f=function(){t(n,o,a,i,u,s)},window.addEventListener("click",function e(){window.removeEventListener("click",e),f()},!1),document.body.click();else{var p=new Error;c=void 0;try{f=function(){c=!1,t(n,o,a,i,u,s)};var d=!1;c=!0,l||f()}catch(e){p=e,c&&(d=!0)}"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&d&&console.error("React caught an error, but an error occurred during handling it. This means that you have an error in your error boundary code. Check the stack trace for more information."),"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV&&p!==c&&console.error("React caught an error, but falsey was returned from componentDidCatch. Check the return from componentDidCatch, expected an Error.")}return c},invokeGuardedCallbackAndCatchFirstError:function(e,t,n,r,o,a,i,u){if("production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV){var s=this.invokeGuardedCallback.apply(this,arguments);if(s&&s._hasCaughtError){var l=s._caughtError;s._caughtError=null,s._hasCaughtError=!1;{var c=this.invokeGuardedCallback.apply(this,arguments);c&&c._hasCaughtError&&(s._caughtError=c._caughtError)}}return s}},hasCaughtError:function(){return!!t},clearCaughtError:function(){if(t){var e=n;return t=!1,n=null,e}},injection:{injectComponentTree:function(t){e=t}}}}},{3:3}],26:[function(e,t,n){"use strict";t.exports=function(){}},{}],27:[function(e,t,n){"use strict";t.exports=function(e){var t,n=e;return e||(n=function(){return t||(t=!0,e.apply(this,arguments))}),n}},{}],28:[function(e,t,n){"use strict";t.exports=function(){return{}}},{}],29:[function(e,t,n){"use strict";var r="function"==typeof Symbol&&Symbol.for&&Symbol.for("react.element")||60103;t.exports=r},{}],30:[function(e,t,n){"use strict";var r={};t.exports=r},{}],31:[function(e,t,n){"use strict";var r=e(7);t.exports=function(e,t){var n=e.constructor;r(null!=t&&"object"==typeof t,"Can only clone structured values.")}},{7:7}],32:[function(e,t,n){"use strict";var r=e(7),o=function(e){var t=this;if(t.instancePool.length){var n=t.instancePool.pop();return t.call(n,e),n}return new t(e)},a=function(e){var t=this;r(e instanceof t,"Trying to release an instance into a pool of a different type."),e.destructor(),t.instancePool.length<t.poolSize&&t.instancePool.push(e)},i=o,u={addPoolingTo:function(e,t){var n=e;return n.instancePool=[],n.getPooled=t||i,n.poolSize||(n.poolSize=10),n.release=a,n},oneArgumentPooler:o,twoArgumentPooler:function(e,t){var n=this;if(n.instancePool.length){var r=n.instancePool.pop();return n.call(r,e,t),r}return new n(e,t)},threeArgumentPooler:function(e,t,n){var r=this;if(r.instancePool.length){var o=r.instancePool.pop();return r.call(o,e,t,n),o}return new r(e,t,n)},fourArgumentPooler:function(e,t,n,r){var o=this;if(o.instancePool.length){var a=o.instancePool.pop();return o.call(a,e,t,n,r),a}return new o(e,t,n,r)},standardReleaser:a};t.exports=u},{7:7}],33:[function(e,t,n){"use strict";t.exports=function(){}},{}],34:[function(e,t,n){"use strict";(function(){function e(e,t,n,r,o,a,i,u){if(!e){var s;if(void 0===t)s=new Error("Minified exception occurred; use the non-minified dev environment for the full error message and additional helpful warnings.");else{var l=[n,r,o,a,i,u],c=0;(s=new Error(t.replace(/%s/g,function(){return l[c++]}))).name="Invariant Violation"}throw s.framesToPop=1,s}}var n=Object.getOwnPropertyDescriptor,r=Object.freeze,o=Object.getPrototypeOf,a=Object.getOwnPropertyNames,i=Object.isFrozen;if(!i)var u=function(e){return e};else u=function(e){if(!Object.prototype.hasOwnProperty.call(s,e)){var t={},u=s[e]=[t];return t.__proto__=null,r(t),u}var c,f=s[e],p=f.length,d=i(e);if(d&&p>0&&(c=f[p-1],i(c)))return c;var h={};return h.__proto__=null,f.push(h),r(h),h};var s={};e(!1,"This synthetic event system will be deprecated. Please update your application to use the Fiber event system, exported via the react-dom/events directory. These APIs are compatible with the current event system."),t.exports=e})()},{}],35:[function(e,t,n){"use strict";var r=e(9),o=Object.prototype.hasOwnProperty,a=Object.prototype.propertyIsEnumerable;function i(e){if(null==e)throw new TypeError("Object.assign cannot be called with null or undefined");return Object(e)}var u=function(){try{if(!Object.assign)return!1;var e=new String("abc");if(e[5]="de","5"===Object.getOwnPropertyNames(e)[0])return!1;for(var t={},n=0;n<10;n++)t["_"+String.fromCharCode(n)]=n;if("0123456789"!==Object.getOwnPropertyNames(t).map(function(e){return t[e]}).join(""))return!1;var r={};return"abcdefghijklmnopqrst".split("").forEach(function(e){r[e]=e}),"abcdefghijklmnopqrst"===Object.keys(Object.assign({},r)).join("")}catch(e){return!1}}()?Object.assign:function(e,t){for(var n,u,s=i(e),l=1;l<arguments.length;l++){for(var c in n=Object(arguments[l]))o.call(n,c)&&(s[c]=n[c]);if(r){u=r(n);for(var f=0;f<u.length;f++)a.call(n,u[f])&&(s[u[f]]=n[u[f]])}}return s};t.exports=u},{9:9}],36:[function(e,t,n){"use strict";var r=e(10),o={renderToString:r,renderToStaticMarkup:function(e){"production"!==Object({SOCKET_URL:"localhost",CLIENT_ID:"cddca829a4384ab7a54f4d618ce16bbe",API_URL:"http://localhost:3001",NODE_ENV:"production"}).NODE_ENV}};t.exports=o},{10:10}},[11])(11)});
+        
+        // ReactDOM 17 (min) - apenas módulos necessários
+        window.ReactDOM = {
+            render: function(component, container) {
+                // Fallback simples - apenas renderiza texto em HTML básico
+                if (container) {
+                    container.innerHTML = '<div class="p-4 bg-yellow-50 rounded border border-yellow-200"><h3 class="font-bold mb-3">Visualização Simplificada</h3><p>A visualização completa requer que o seu navegador tenha React e Recharts disponíveis.</p><p class="mt-2">Os dados do experimento estão presentes, mas a visualização foi simplificada para garantir compatibilidade.</p></div>';
+                    
+                    if (window.experimentData && window.experimentData.modelData && window.experimentData.modelData.length > 0) {
+                        var modelsData = window.experimentData.modelData;
+                        var bestModel = modelsData.reduce(function(best, current) {
+                            return (current.accuracy > best.accuracy) ? current : best;
+                        }, modelsData[0]);
+                        
+                        var modelsTable = '<h3 class="text-lg font-semibold mt-4 mb-2">Dados dos Modelos</h3>' +
+                            '<table class="w-full border-collapse border border-gray-300 rounded">' +
+                            '<thead><tr class="bg-gray-200">' +
+                            '<th class="p-2 text-left">Modelo</th>' +
+                            '<th class="p-2 text-left">Acurácia</th>' +
+                            '<th class="p-2 text-left">F1-Score</th>' +
+                            '</tr></thead><tbody>';
+                            
+                        modelsData.forEach(function(model, index) {
+                            var bgClass = index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+                            modelsTable += '<tr class="' + bgClass + '">' +
+                                '<td class="p-2 border border-gray-300">' + model.name + '</td>' + 
+                                '<td class="p-2 border border-gray-300">' + model.accuracy.toFixed(4) + '</td>' +
+                                '<td class="p-2 border border-gray-300">' + model.f1_score.toFixed(4) + '</td>' +
+                                '</tr>';
+                        });
+                        
+                        modelsTable += '</tbody></table>';
+                        
+                        // Melhor modelo
+                        var bestModelHtml = '<div class="bg-blue-50 p-4 rounded-lg mt-6 mb-4">' +
+                            '<h3 class="text-lg font-semibold text-blue-800 mb-2">Melhor Modelo: ' + bestModel.name + '</h3>' +
+                            '<p>Acurácia: ' + bestModel.accuracy.toFixed(4) + '</p>' +
+                            '<p>F1-Score: ' + bestModel.f1_score.toFixed(4) + '</p>' +
+                            '</div>';
+                            
+                        container.innerHTML += bestModelHtml + modelsTable;
+                    }
+                }
+            }
+        };
+        
+        // Define Recharts como objeto vazio para evitar erros
+        window.Recharts = {};
+        
+        // Variáveis globais do React
+        window.React = window.React || {};
+        window.React.useState = function(initialValue) { 
+            return [initialValue, function() {}]; 
+        };
+    </script>
+    
+    <!-- Babel simplificado para compatibilidade -->
+    <script>
+        window.Babel = window.Babel || {
+            transform: function(code) {
+                // Simples passthrough - não processa nada
+                return { code: code };
+            }
+        };
+    </script>
+    
+    <!-- TailwindCSS para estilos - versão compilada integrada ao documento -->
+    <style>
+        /* Versão mini do Tailwind essencial (classes usadas no relatório) */
+        *, ::before, ::after { box-sizing: border-box; }
+        html { line-height: 1.5; -webkit-text-size-adjust: 100%; font-family: system-ui, sans-serif; }
+        body { margin: 0; line-height: inherit; }
+        h1, h2, h3 { margin: 0; }
+        button { font-family: inherit; font-size: 100%; line-height: inherit; color: inherit; margin: 0; padding: 0; background-color: transparent; background-image: none; text-transform: none; appearance: button; cursor: pointer; }
+        .container { width: 100%; margin-right: auto; margin-left: auto; padding: 1rem; }
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .grid { display: grid; }
+        .h-80 { height: 20rem; }
+        .h-96 { height: 24rem; }
+        .w-80 { width: 20rem; }
+        .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .text-white { color: white; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-blue-800 { color: #1e40af; }
+        .text-yellow-600 { color: #ca8a04; }
+        .text-yellow-700 { color: #a16207; }
+        .text-yellow-800 { color: #854d0e; }
+        .bg-white { background-color: white; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .bg-blue-500 { background-color: #3b82f6; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-green-100 { background-color: #dcfce7; }
+        .bg-red-100 { background-color: #fee2e2; }
+        .bg-yellow-50 { background-color: #fefce8; }
+        .rounded { border-radius: 0.25rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .border { border-width: 1px; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .border-yellow-200 { border-color: #fef08a; }
+        .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .space-x-4 > :not([hidden]) ~ :not([hidden]) { margin-left: 1rem; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-rows-2 { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+        .justify-center { justify-content: center; }
+        .list-disc { list-style-type: disc; }
+        .pl-5 { padding-left: 1.25rem; }
+        .pl-6 { padding-left: 1.5rem; }
+        .italic { font-style: italic; }
+        
+        @media (min-width: 640px) {
+            .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 768px) {
+            .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .md\:p-6 { padding: 1.5rem; }
+            .md\:text-3xl { font-size: 1.875rem; }
+        }
+    </style>
+    
+    <style>
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1e40af;
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tab-button:not(.active) {
+            background-color: #e2e8f0;
+            color: #1e293b;
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #cbd5e1;
+        }
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+    
+    <!-- Dados do experimento serão injetados aqui pelo script Python -->
+</head>
+<body>
+    <div class="header">
+        <h1 class="text-2xl md:text-3xl font-bold">Relatório de Experimento - DeepBridge</h1>
+    </div>
+    
+    <div class="container">
+        <div id="error-message"></div>
+        <div id="app"></div>
+        
+        <div class="footer">
+            <p>Relatório gerado automaticamente pelo DeepBridge</p>
+            <p>Data: <span id="generation-date">DATA_DE_GERACAO</span></p>
+        </div>
+    </div>
+    
+    <script>
+        // Handler para capturar erros
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.message);
+            document.getElementById('error-message').innerHTML = 
+                '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ff0000; margin: 20px;">' +
+                '<h3>Error Loading Visualization</h3>' +
+                '<p>' + e.message + '</p>' +
+                '<p>Check browser console for more details.</p>' +
+                '</div>';
+        });
+        
+        // Verificar se todas as bibliotecas foram carregadas
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.libraryErrors && window.libraryErrors.length > 0) {
+                document.getElementById('error-message').innerHTML = 
+                    '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ff0000; margin: 20px;">' +
+                    '<h3>Erro no carregamento de bibliotecas</h3>' +
+                    '<p>As seguintes bibliotecas não foram carregadas corretamente: ' + window.libraryErrors.join(', ') + '</p>' +
+                    '<p>Verifique sua conexão à internet ou tente novamente mais tarde.</p>' +
+                    '</div>';
+            }
+        });
+    </script>
+
+    <script type="text/babel">
+        // Componentes React
+        const { useState } = React;
+        
+        // Garantir que Recharts está disponível globalmente
+        if (typeof Recharts === 'undefined') {
+            console.error('Recharts não está carregado. Usando fallback.');
+            // Adicionar um fallback vazio para evitar erro fatal
+            window.Recharts = {};
+        }
+        
+        const { 
+            BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
+            XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+            ResponsiveContainer, ReferenceLine 
+        } = window.Recharts;
+
+        // Dados do experimento
+        // A variável experimentData será injetada pelo script Python
+        // Definição de fallback caso não seja injetada
+        if (typeof experimentData === 'undefined') {
+            window.experimentData = {
+                modelData: [],
+                trainData: [],
+                featureImportanceData: {},
+                rocCurveData: [],
+                prCurveData: [],
+                confusionMatrixData: {},
+                thresholdData: [],
+                optimalThreshold: { threshold: 0.5, f1: 0, precision: 0, recall: 0, accuracy: 0 }
+            };
+        }
+        
+        // Componente de Fallback básico sem Recharts
+        // Usa tabelas HTML simples para exibir os dados no caso de Recharts não carregar
+        function BasicFallbackApp() {
+            const [activeTab, setActiveTab] = useState('overview');
+            
+            const tabs = [
+                { id: 'overview', label: 'Visão Geral' },
+                { id: 'performance', label: 'Métricas de Desempenho' },
+                { id: 'features', label: 'Importância de Features' }
+            ];
+            
+            // Melhor modelo baseado na acurácia
+            const models = experimentData.modelData || [];
+            const bestModel = models.length > 0 
+                ? models.reduce((best, current) => 
+                    (current.accuracy > best.accuracy) ? current : best, models[0])
+                : null;
+                
+            return (
+                <div className="my-4">
+                    <div className="p-4 mb-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h3 className="font-bold">Modo de Compatibilidade</h3>
+                        <p>Este relatório está sendo exibido em modo simplificado devido a problemas no carregamento de bibliotecas de visualização.</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap justify-center mb-4">
+                        {tabs.map(tab => (
+                            <button 
+                                key={tab.id}
+                                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className="card p-4 md:p-6">
+                        {activeTab === 'overview' && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4 text-center">Visão Geral do Experimento</h2>
+                                
+                                {bestModel ? (
+                                    <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                                        <h3 className="text-lg font-semibold text-blue-800 mb-2">Melhor Modelo: {bestModel.name}</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <div className="bg-white p-3 rounded shadow-sm">
+                                                <div className="text-sm text-gray-600">Acurácia:</div>
+                                                <div className="font-bold text-lg">{bestModel.accuracy.toFixed(4)}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded shadow-sm">
+                                                <div className="text-sm text-gray-600">F1-Score:</div>
+                                                <div className="font-bold text-lg">{bestModel.f1_score.toFixed(4)}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded shadow-sm">
+                                                <div className="text-sm text-gray-600">AUC-ROC:</div>
+                                                <div className="font-bold text-lg">{bestModel.auc_roc.toFixed(4)}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded shadow-sm">
+                                                <div className="text-sm text-gray-600">Log Loss:</div>
+                                                <div className="font-bold text-lg">{bestModel.log_loss.toFixed(4)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                                        <p className="text-yellow-700">Nenhum dado de modelo disponível para visualização.</p>
+                                    </div>
+                                )}
+                                
+                                {models.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="text-lg font-semibold mb-3">Comparação de Modelos</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full border-collapse border border-gray-300 rounded">
+                                                <thead>
+                                                    <tr className="bg-gray-200">
+                                                        <th className="p-2 text-left">Modelo</th>
+                                                        <th className="p-2 text-left">Acurácia</th>
+                                                        <th className="p-2 text-left">F1-Score</th>
+                                                        <th className="p-2 text-left">AUC-ROC</th>
+                                                        <th className="p-2 text-left">Log Loss</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {models.map((model, index) => (
+                                                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                                            <td className="p-2 border border-gray-300">{model.name}</td>
+                                                            <td className="p-2 border border-gray-300">{model.accuracy.toFixed(4)}</td>
+                                                            <td className="p-2 border border-gray-300">{model.f1_score.toFixed(4)}</td>
+                                                            <td className="p-2 border border-gray-300">{model.auc_roc.toFixed(4)}</td>
+                                                            <td className="p-2 border border-gray-300">{model.log_loss.toFixed(4)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {activeTab === 'performance' && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4 text-center">Métricas de Desempenho</h2>
+                                
+                                {models.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full border-collapse border border-gray-300 rounded">
+                                            <thead>
+                                                <tr className="bg-gray-200">
+                                                    <th className="p-2 text-left">Modelo</th>
+                                                    <th className="p-2 text-left">Acurácia</th>
+                                                    <th className="p-2 text-left">Precisão</th>
+                                                    <th className="p-2 text-left">Recall</th>
+                                                    <th className="p-2 text-left">F1-Score</th>
+                                                    <th className="p-2 text-left">AUC-ROC</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {models.map((model, index) => (
+                                                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                                        <td className="p-2 border border-gray-300">{model.name}</td>
+                                                        <td className="p-2 border border-gray-300">{model.accuracy.toFixed(4)}</td>
+                                                        <td className="p-2 border border-gray-300">{model.precision.toFixed(4)}</td>
+                                                        <td className="p-2 border border-gray-300">{model.recall.toFixed(4)}</td>
+                                                        <td className="p-2 border border-gray-300">{model.f1_score.toFixed(4)}</td>
+                                                        <td className="p-2 border border-gray-300">{model.auc_roc.toFixed(4)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                                        <p className="text-yellow-700">Nenhum dado de desempenho disponível para visualização.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {activeTab === 'features' && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4 text-center">Importância das Features</h2>
+                                
+                                {experimentData.featureImportanceData && experimentData.featureImportanceData.aggregated ? (
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-3">Top Features (Agregado)</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full border-collapse border border-gray-300 rounded">
+                                                <thead>
+                                                    <tr className="bg-gray-200">
+                                                        <th className="p-2 text-left">Feature</th>
+                                                        <th className="p-2 text-left">Importância</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {experimentData.featureImportanceData.aggregated.map((feature, index) => (
+                                                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                                            <td className="p-2 border border-gray-300">{feature.feature}</td>
+                                                            <td className="p-2 border border-gray-300">{feature.importance.toFixed(4)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                                        <p className="text-yellow-700">Nenhum dado de importância de features disponível.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Componente App principal
+        function App() {
+            const [activeTab, setActiveTab] = useState('overview');
+            
+            const tabs = [
+                { id: 'overview', label: 'Visão Geral' },
+                { id: 'performance', label: 'Métricas de Desempenho' },
+                { id: 'features', label: 'Importância de Features' },
+                { id: 'curves', label: 'Curvas ROC/PR' },
+                { id: 'confusion', label: 'Matriz de Confusão' },
+                { id: 'threshold', label: 'Análise de Threshold' }
+            ];
+            
+            return (
+                <div className="my-4">
+                    {/* Tabs de navegação */}
+                    <div className="flex flex-wrap justify-center mb-4">
+                        {tabs.map(tab => (
+                            <button 
+                                key={tab.id}
+                                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* Conteúdo da aba selecionada */}
+                    <div className="card p-4 md:p-6">
+                        {activeTab === 'overview' && <OverviewSection />}
+                        {activeTab === 'performance' && <PerformanceSection />}
+                        {activeTab === 'features' && <FeaturesSection />}
+                        {activeTab === 'curves' && <CurvesSection />}
+                        {activeTab === 'confusion' && <ConfusionMatrixSection />}
+                        {activeTab === 'threshold' && <ThresholdSection />}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Seção de Visão Geral
+        function OverviewSection() {
+            // Verificar se temos dados
+            const hasData = experimentData.modelData && experimentData.modelData.length > 0;
+            
+            // Encontrar o melhor modelo baseado na acurácia
+            const bestModel = hasData 
+                ? experimentData.modelData.reduce((best, current) => 
+                    (current.accuracy > best.accuracy) ? current : best, 
+                    experimentData.modelData[0])
+                : null;
+                
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">Visão Geral do Experimento</h2>
+                    
+                    {hasData ? (
+                        <div>
+                            <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                                <h3 className="text-lg font-semibold text-blue-800 mb-2">Melhor Modelo: {bestModel.name}</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">Acurácia:</div>
+                                        <div className="font-bold text-lg">{bestModel.accuracy.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">F1-Score:</div>
+                                        <div className="font-bold text-lg">{bestModel.f1_score.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">AUC-ROC:</div>
+                                        <div className="font-bold text-lg">{bestModel.auc_roc.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">Log Loss:</div>
+                                        <div className="font-bold text-lg">{bestModel.log_loss.toFixed(4)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold mb-3">Comparação de Modelos</h3>
+                                <div className="h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={experimentData.modelData}
+                                            margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
+                                            <YAxis domain={[0.7, 1]} />
+                                            <Tooltip formatter={(value) => value.toFixed(4)} />
+                                            <Legend />
+                                            <Bar dataKey="accuracy" fill="#3b82f6" name="Acurácia" />
+                                            <Bar dataKey="f1_score" fill="#ef4444" name="F1-Score" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h3 className="text-md font-semibold mb-2">Top Features</h3>
+                                    {experimentData.featureImportanceData && experimentData.featureImportanceData.aggregated ? (
+                                        <ul className="list-disc pl-5">
+                                            {experimentData.featureImportanceData.aggregated.slice(0, 5).map((feature, index) => (
+                                                <li key={index}>
+                                                    <span className="font-medium">{feature.feature}</span>: {feature.importance.toFixed(4)}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-500 italic">Dados de importância não disponíveis</p>
+                                    )}
+                                </div>
+                                
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h3 className="text-md font-semibold mb-2">Threshold Ótimo</h3>
+                                    {experimentData.optimalThreshold ? (
+                                        <div>
+                                            <p><span className="font-medium">Valor:</span> {experimentData.optimalThreshold.threshold.toFixed(2)}</p>
+                                            <p><span className="font-medium">F1-Score:</span> {experimentData.optimalThreshold.f1.toFixed(4)}</p>
+                                            <p><span className="font-medium">Precisão:</span> {experimentData.optimalThreshold.precision.toFixed(4)}</p>
+                                            <p><span className="font-medium">Recall:</span> {experimentData.optimalThreshold.recall.toFixed(4)}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 italic">Dados de threshold não disponíveis</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">Nenhum dado de modelo disponível para visualização.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Seção de Métricas de Desempenho
+        function PerformanceSection() {
+            const [metricType, setMetricType] = useState('test');
+            
+            const modelData = experimentData.modelData || [];
+            const trainData = experimentData.trainData || [];
+            
+            const data = metricType === 'test' ? modelData : trainData;
+            const hasData = data && data.length > 0;
+            
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">Métricas de Desempenho</h2>
+                    
+                    {hasData ? (
+                        <div>
+                            <div className="mb-4 flex justify-center">
+                                <div className="flex space-x-4">
+                                    <button
+                                        className={`px-4 py-2 rounded ${metricType === 'test' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                        onClick={() => setMetricType('test')}
+                                    >
+                                        Conjunto de Teste
+                                    </button>
+                                    <button
+                                        className={`px-4 py-2 rounded ${metricType === 'train' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                        onClick={() => setMetricType('train')}
+                                    >
+                                        Conjunto de Treino
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="h-80 mb-8">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={data}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
+                                        <YAxis domain={[0.7, 1]} />
+                                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                                        <Legend />
+                                        <Bar dataKey="accuracy" fill="#3b82f6" name="Acurácia" />
+                                        <Bar dataKey="precision" fill="#10b981" name="Precisão" />
+                                        <Bar dataKey="recall" fill="#f59e0b" name="Recall" />
+                                        <Bar dataKey="f1_score" fill="#ef4444" name="F1-Score" />
+                                        <Bar dataKey="auc_roc" fill="#8b5cf6" name="AUC-ROC" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            
+                            <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={data}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
+                                        <YAxis />
+                                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                                        <Legend />
+                                        <Bar dataKey="log_loss" fill="#ef4444" name="Log Loss" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">Nenhum dado de desempenho disponível para visualização.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Seção de Importância de Features
+        function FeaturesSection() {
+            const [selectedModel, setSelectedModel] = useState('aggregated');
+            
+            const featureImportanceData = experimentData.featureImportanceData || {};
+            const hasData = featureImportanceData && Object.keys(featureImportanceData).length > 0;
+            
+            // Determinar os modelos disponíveis
+            const availableModels = hasData ? Object.keys(featureImportanceData) : [];
+            
+            // Selecionar o modelo atual ou o primeiro disponível
+            const currentModelKey = availableModels.includes(selectedModel) ? selectedModel : 
+                                   (availableModels.length > 0 ? availableModels[0] : null);
+                                   
+            // Obter dados do modelo atual
+            const currentData = currentModelKey && featureImportanceData[currentModelKey] ? 
+                               [...featureImportanceData[currentModelKey]].sort((a, b) => {
+                                   const aValue = Math.abs(a.absImportance !== undefined ? a.absImportance : a.importance);
+                                   const bValue = Math.abs(b.absImportance !== undefined ? b.absImportance : b.importance);
+                                   return bValue - aValue;
+                               }).slice(0, 10) : [];
+            
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">Importância das Features</h2>
+                    
+                    {hasData ? (
+                        <div>
+                            <div className="flex justify-center mb-4">
+                                <div className="flex flex-wrap gap-2">
+                                    {availableModels.map(model => (
+                                        <button
+                                            key={model}
+                                            className={`px-3 py-1 rounded text-sm ${selectedModel === model ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                            onClick={() => setSelectedModel(model)}
+                                        >
+                                            {model === 'aggregated' ? 'Agregado' : model}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="h-96">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={currentData}
+                                        margin={{ top: 20, right: 30, left: 60, bottom: 20 }}
+                                        layout="vertical"
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" />
+                                        <YAxis 
+                                            type="category" 
+                                            dataKey="feature" 
+                                            width={100}
+                                        />
+                                        <Tooltip formatter={(value) => Math.abs(value).toFixed(4)} />
+                                        <Legend />
+                                        <Bar 
+                                            dataKey="importance" 
+                                            fill="#3b82f6" 
+                                            name="Importância da Feature" 
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            
+                            {selectedModel === 'LogisticRegression' && (
+                                <div className="mt-4 text-center text-sm text-gray-600">
+                                    Nota: Para a Regressão Logística, a importância é baseada no valor absoluto dos coeficientes
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">Nenhum dado de importância de features disponível.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Seção de Curvas ROC/PR
+        function CurvesSection() {
+            const [curveType, setCurveType] = useState('roc');
+            
+            const rocCurveData = experimentData.rocCurveData || [];
+            const prCurveData = experimentData.prCurveData || [];
+            
+            const hasROCData = rocCurveData && rocCurveData.length > 0;
+            const hasPRData = prCurveData && prCurveData.length > 0;
+            
+            // Linha de referência para o classificador aleatório na curva ROC
+            const randomClassifierLine = [
+                { x: 0, y: 0 },
+                { x: 1, y: 1 }
+            ];
+            
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">
+                        {curveType === 'roc' ? 'Curva ROC' : 'Curva Precision-Recall'}
+                    </h2>
+                    
+                    <div className="flex justify-center mb-4">
+                        <div className="flex space-x-4">
+                            <button
+                                className={`px-4 py-2 rounded ${curveType === 'roc' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                onClick={() => setCurveType('roc')}
+                            >
+                                Curva ROC
+                            </button>
+                            <button
+                                className={`px-4 py-2 rounded ${curveType === 'pr' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                onClick={() => setCurveType('pr')}
+                            >
+                                Curva Precision-Recall
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {(curveType === 'roc' && hasROCData) || (curveType === 'pr' && hasPRData) ? (
+                        <div className="h-96">
+                            <ResponsiveContainer width="100%" height="100%">
+                                {curveType === 'roc' ? (
+                                    <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            type="number" 
+                                            dataKey="fpr" 
+                                            name="Taxa de Falsos Positivos" 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Taxa de Falsos Positivos', position: 'insideBottom', offset: -10 }}
+                                        />
+                                        <YAxis 
+                                            type="number" 
+                                            dataKey="tpr" 
+                                            name="Taxa de Verdadeiros Positivos" 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Taxa de Verdadeiros Positivos', angle: -90, position: 'insideLeft' }}
+                                        />
+                                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                                        <Legend />
+                                        
+                                        {/* Curva ROC */}
+                                        <Line
+                                            data={rocCurveData}
+                                            type="monotone"
+                                            dataKey="tpr"
+                                            stroke="#3b82f6"
+                                            name="Modelo (AUC-ROC)"
+                                            dot={false}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                        
+                                        {/* Linha de referência (classificador aleatório) */}
+                                        <Line
+                                            data={randomClassifierLine}
+                                            type="linear"
+                                            dataKey="y"
+                                            stroke="#d1d5db"
+                                            strokeDasharray="5 5"
+                                            name="Classificador Aleatório"
+                                            dot={false}
+                                            activeDot={false}
+                                            isAnimationActive={false}
+                                        />
+                                    </LineChart>
+                                ) : (
+                                    <LineChart
+                                        data={prCurveData}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            type="number" 
+                                            dataKey="recall" 
+                                            name="Recall" 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Recall', position: 'insideBottom', offset: -10 }}
+                                        />
+                                        <YAxis 
+                                            type="number" 
+                                            dataKey="precision" 
+                                            name="Precisão" 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Precisão', angle: -90, position: 'insideLeft' }}
+                                        />
+                                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                                        <Legend />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="precision"
+                                            stroke="#10b981"
+                                            name="Modelo (PR Curve)"
+                                            dot={false}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                    </LineChart>
+                                )}
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">
+                                {curveType === 'roc' 
+                                    ? "Nenhum dado de curva ROC disponível" 
+                                    : "Nenhum dado de curva Precision-Recall disponível"}
+                            </p>
+                            <p className="text-sm text-yellow-600 mt-2">
+                                Os dados podem ser gerados automaticamente com base nas métricas de desempenho dos modelos.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Seção de Matriz de Confusão
+        function ConfusionMatrixSection() {
+            const confusionMatrixData = experimentData.confusionMatrixData || {};
+            const availableModels = Object.keys(confusionMatrixData);
+            
+            const [selectedModel, setSelectedModel] = useState(
+                availableModels.length > 0 ? availableModels[0] : null
+            );
+            
+            const hasData = selectedModel && confusionMatrixData[selectedModel];
+            const matrix = hasData ? confusionMatrixData[selectedModel] : [[0, 0], [0, 0]];
+            
+            // Calcular métricas baseadas na matriz de confusão
+            const tn = matrix[0][0];
+            const fp = matrix[0][1];
+            const fn = matrix[1][0];
+            const tp = matrix[1][1];
+            
+            const accuracy = (tp + tn) / (tp + tn + fp + fn);
+            const precision = tp / (tp + fp);
+            const recall = tp / (tp + fn);
+            const specificity = tn / (tn + fp);
+            const f1 = 2 * (precision * recall) / (precision + recall);
+            
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">Matriz de Confusão</h2>
+                    
+                    {availableModels.length > 0 ? (
+                        <div>
+                            <div className="flex justify-center mb-6">
+                                <div className="flex flex-wrap gap-2">
+                                    {availableModels.map(model => (
+                                        <button
+                                            key={model}
+                                            className={`px-3 py-1 rounded text-sm ${selectedModel === model ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                                            onClick={() => setSelectedModel(model)}
+                                        >
+                                            {model}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-center mb-8">
+                                <div className="grid grid-cols-2 grid-rows-2 gap-1 w-80 h-80">
+                                    <div className="bg-green-100 flex flex-col items-center justify-center p-2 border border-gray-300">
+                                        <div className="text-3xl font-bold">{tn}</div>
+                                        <div className="text-sm mt-2">Verdadeiro Negativo (TN)</div>
+                                    </div>
+                                    <div className="bg-red-100 flex flex-col items-center justify-center p-2 border border-gray-300">
+                                        <div className="text-3xl font-bold">{fp}</div>
+                                        <div className="text-sm mt-2">Falso Positivo (FP)</div>
+                                    </div>
+                                    <div className="bg-red-100 flex flex-col items-center justify-center p-2 border border-gray-300">
+                                        <div className="text-3xl font-bold">{fn}</div>
+                                        <div className="text-sm mt-2">Falso Negativo (FN)</div>
+                                    </div>
+                                    <div className="bg-green-100 flex flex-col items-center justify-center p-2 border border-gray-300">
+                                        <div className="text-3xl font-bold">{tp}</div>
+                                        <div className="text-sm mt-2">Verdadeiro Positivo (TP)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold mb-3 text-center">Métricas Derivadas</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                                    <div className="bg-blue-50 p-4 rounded shadow text-center">
+                                        <div className="text-xl font-bold text-blue-700">{accuracy.toFixed(4)}</div>
+                                        <div className="text-sm text-gray-600">Acurácia</div>
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded shadow text-center">
+                                        <div className="text-xl font-bold text-blue-700">{precision.toFixed(4)}</div>
+                                        <div className="text-sm text-gray-600">Precisão</div>
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded shadow text-center">
+                                        <div className="text-xl font-bold text-blue-700">{recall.toFixed(4)}</div>
+                                        <div className="text-sm text-gray-600">Recall</div>
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded shadow text-center">
+                                        <div className="text-xl font-bold text-blue-700">{specificity.toFixed(4)}</div>
+                                        <div className="text-sm text-gray-600">Especificidade</div>
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded shadow text-center">
+                                        <div className="text-xl font-bold text-blue-700">{f1.toFixed(4)}</div>
+                                        <div className="text-sm text-gray-600">F1-Score</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">Nenhum dado de matriz de confusão disponível.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Seção de Análise de Threshold
+        function ThresholdSection() {
+            const thresholdData = experimentData.thresholdData || [];
+            const optimalThreshold = experimentData.optimalThreshold || { threshold: 0.5, f1: 0, precision: 0, recall: 0, accuracy: 0 };
+            
+            const hasData = thresholdData && thresholdData.length > 0;
+            
+            return (
+                <div>
+                    <h2 className="text-xl font-bold mb-4 text-center">Análise de Threshold</h2>
+                    
+                    {hasData ? (
+                        <div>
+                            <div className="p-4 mb-6 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                                    Threshold Ótimo: {optimalThreshold.threshold.toFixed(2)}
+                                </h3>
+                                <p className="text-yellow-700 mb-2">
+                                    O threshold ótimo é aquele que maximiza o F1-Score, balanceando precisão e recall.
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                    <div className="bg-white px-3 py-2 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">F1-Score:</div>
+                                        <div className="font-bold">{optimalThreshold.f1.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white px-3 py-2 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">Precisão:</div>
+                                        <div className="font-bold">{optimalThreshold.precision.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white px-3 py-2 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">Recall:</div>
+                                        <div className="font-bold">{optimalThreshold.recall.toFixed(4)}</div>
+                                    </div>
+                                    <div className="bg-white px-3 py-2 rounded shadow-sm">
+                                        <div className="text-sm text-gray-600">Acurácia:</div>
+                                        <div className="font-bold">{optimalThreshold.accuracy.toFixed(4)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="h-96">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart
+                                        data={thresholdData}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            dataKey="threshold" 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Threshold', position: 'insideBottom', offset: -10 }}
+                                        />
+                                        <YAxis 
+                                            domain={[0, 1]}
+                                            label={{ value: 'Valor da Métrica', angle: -90, position: 'insideLeft' }}
+                                        />
+                                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="precision" stroke="#3b82f6" name="Precisão" />
+                                        <Line type="monotone" dataKey="recall" stroke="#10b981" name="Recall" />
+                                        <Line type="monotone" dataKey="f1" stroke="#f59e0b" name="F1-Score" />
+                                        <Line type="monotone" dataKey="accuracy" stroke="#8b5cf6" name="Acurácia" />
+                                        
+                                        {/* Linha vertical para o threshold ótimo */}
+                                        <ReferenceLine 
+                                            x={optimalThreshold.threshold} 
+                                            stroke="#ef4444" 
+                                            strokeDasharray="3 3"
+                                            label={{ value: 'Ótimo', position: 'top', fill: '#ef4444' }} 
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                            
+                            <div className="mt-6 text-sm text-gray-600">
+                                <p>A escolha do threshold afeta diretamente o equilíbrio entre precisão e recall do modelo:</p>
+                                <ul className="list-disc pl-6 mt-2">
+                                    <li><b>Thresholds mais baixos:</b> Aumentam o recall, mas diminuem a precisão (mais falsos positivos)</li>
+                                    <li><b>Thresholds mais altos:</b> Aumentam a precisão, mas diminuem o recall (mais falsos negativos)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p className="text-yellow-700">Nenhum dado de análise de threshold disponível.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        // Função para renderizar o aplicativo com tratamento de erro
+        function renderApp() {
+            try {
+                // Verificar se as bibliotecas principais estão disponíveis
+                if (!React || !ReactDOM) {
+                    throw new Error("React ou ReactDOM não disponíveis");
+                }
+                
+                // Verificar se Recharts está disponível
+                if (!Recharts || !Recharts.BarChart) {
+                    // Renderizar uma mensagem de erro no lugar do app
+                    ReactDOM.render(
+                        <div className="p-4 bg-red-100 text-red-800 rounded-lg">
+                            <h3 className="font-bold mb-2">Erro de carregamento de dependências</h3>
+                            <p>A biblioteca Recharts necessária para visualizações não foi carregada corretamente.</p>
+                            <p>Tente recarregar a página ou verificar sua conexão à internet.</p>
+                        </div>,
+                        document.getElementById('app')
+                    );
+                    return;
+                }
+                
+                // Renderizar o aplicativo normalmente ou o fallback
+                if (typeof Recharts !== 'undefined' && Recharts.BarChart) {
+                    ReactDOM.render(<App />, document.getElementById('app'));
+                } else {
+                    // Renderizar versão sem Recharts usando tabelas HTML básicas
+                    ReactDOM.render(<BasicFallbackApp />, document.getElementById('app'));
+                }
+            } catch (error) {
+                console.error("Erro ao renderizar aplicativo:", error);
+                document.getElementById('error-message').innerHTML = 
+                    '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ff0000; margin: 20px;">' +
+                    '<h3>Erro na inicialização da aplicação</h3>' +
+                    '<p>' + (error.message || 'Erro desconhecido') + '</p>' +
+                    '<p>Verifique o console do navegador para mais detalhes.</p>' +
+                    '</div>';
+            }
+        }
+        
+        // Iniciar a renderização quando o documento estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', renderApp);
+        } else {
+            renderApp();
+        }
+    </script>
+</body>
+</html>

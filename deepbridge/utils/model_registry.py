@@ -6,6 +6,7 @@ import optuna
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.base import BaseEstimator
 import xgboost as xgb
 
@@ -16,6 +17,7 @@ class ModelType(Enum):
     GBM = auto()
     XGB = auto()
     MLP = auto()
+    RANDOM_FOREST = auto()  
 
 class ModelMode(Enum):
     """Supported model modes."""
@@ -81,6 +83,17 @@ class ModelRegistry:
             'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0)
         }
     
+    @staticmethod
+    def _random_forest_param_space(trial: optuna.Trial) -> Dict[str, Any]:
+        """Define parameter space for Random Forest."""
+        return {
+            'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+            'max_depth': trial.suggest_int('max_depth', 3, 20),
+            'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+            'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
+            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None])
+        }
+    
     # Model configurations
     SUPPORTED_MODELS: Dict[ModelType, ModelConfig] = {
         ModelType.DECISION_TREE: ModelConfig(
@@ -102,7 +115,6 @@ class ModelRegistry:
                 'max_iter': 1000,
                 'random_state': 42,
                 'solver': 'lbfgs'
-                # multi_class foi removido para evitar FutureWarning
             },
             param_space_fn=_logistic_regression_param_space
         ),
@@ -128,6 +140,19 @@ class ModelRegistry:
                 'objective': 'binary:logistic'  # Vai ser substituído para regressão
             },
             param_space_fn=_xgb_param_space
+        ),
+        ModelType.RANDOM_FOREST: ModelConfig(
+            classifier_class=RandomForestClassifier,
+            regressor_class=RandomForestRegressor,
+            default_params={
+                'n_estimators': 100,
+                'max_depth': 10,
+                'min_samples_split': 2,
+                'min_samples_leaf': 1,
+                'max_features': 'sqrt',
+                'random_state': 42
+            },
+            param_space_fn=_random_forest_param_space
         )
     }
     
