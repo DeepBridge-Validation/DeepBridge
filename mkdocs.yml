@@ -25,8 +25,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-  logo: assets/images/deep.png
-  favicon: assets/images/deep.png
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.png
   icon:
     repo: fontawesome/brands/github
   features:
@@ -54,7 +54,7 @@ nav:
   - Getting Started:
     - Quick Start: tutorials/quickstart.md
     - Installation: templates/install.md
-    - Key Concepts: index.md#key-features
+    - Key Concepts: index.md
   - User Guide:
     - Model Validation: guides/validation.md
     - Model Distillation: guides/distillation.md
@@ -67,6 +67,7 @@ nav:
     - Specialized Managers: api/specialized_managers_documentation.md
     - TestRunner: api/test_runner_documentation.md
     - Visualization Manager: api/visualization_manager_documentation.md
+    - Standard Processor: api/standard_processor_documentation.md
   - API Reference:
     - Experiment Class: api/experiment_class_documentation.md
     - DBDataset: api/db_data_documentation.md
@@ -76,7 +77,7 @@ nav:
     - CLI: api/cli.md
   - Technical Topics:
     - Synthetic Data: 
-      - Overview: api/synthetic.md
+      - Overview: concepts/synthetic_data.md
       - Methods: 
         - UltraLightGenerator: concepts/synthetic_UltraLightGenerator.md
         - Gaussian Copula: concepts/synthetic_gaussian_copula.md

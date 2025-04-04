@@ -8,23 +8,22 @@ DeepBridge has been redesigned with a modular, component-based architecture that
 
 The architecture follows a delegation pattern, with the `Experiment` class serving as the central coordinator:
 
-```
-┌─────────────────┐
-│   Experiment    │
-└───────┬─────────┘
-        │
-        ▼
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│  ┌───────────┐  ┌────────────┐  ┌──────────────┐        │
-│  │DataManager│  │ModelManager│  │TestRunner    │        │
-│  └───────────┘  └────────────┘  └──────────────┘        │
-│                                                         │
-│  ┌───────────┐  ┌─────────────┐  ┌───────────────┐      │
-│  │ModelEval  │  │ReportGen    │  │VisualizationMgr│     │
-│  └───────────┘  └─────────────┘  └───────────────┘      │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A[Experiment] -->B[DataManager]
+    A -->C[ModelManager]
+    A -->D[TestRunner]
+    A -->E[ModelEvaluation]
+    A -->F[ReportGenerator]
+    A -->G[VisualizationManager]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:1px
+    style C fill:#bbf,stroke:#333,stroke-width:1px
+    style D fill:#bbf,stroke:#333,stroke-width:1px
+    style E fill:#bbf,stroke:#333,stroke-width:1px
+    style F fill:#bbf,stroke:#333,stroke-width:1px
+    style G fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 ## Component Responsibilities and Integration
@@ -234,15 +233,17 @@ Each specialized manager integrates with corresponding visualizer classes:
 3. Visualizer classes consume these results to create standardized visualizations
 4. VisualizationManager provides a consistent interface to access these visualizations
 
-```
-┌─────────────────┐     ┌──────────────────┐
-│  RobustnessManager │────> │ RobustnessResults │
-└────────┬────────┘     └────────┬─────────┘
-         │                       │
-         ▼                       ▼
-┌─────────────────┐     ┌──────────────────┐
-│  RobustnessVisualizer │<───┤ VisualizationManager │
-└─────────────────┘     └──────────────────┘
+```mermaid
+graph LR
+    A[RobustnessManager] --> B[RobustnessResults]
+    A --> C[RobustnessVisualizer]
+    B --> D[VisualizationManager]
+    D --> C
+    
+    style A fill:#bbf,stroke:#333,stroke-width:1px
+    style B fill:#ddf,stroke:#333,stroke-width:1px
+    style C fill:#bbf,stroke:#333,stroke-width:1px
+    style D fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 ## Data Flow in Common Operations

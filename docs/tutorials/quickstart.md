@@ -16,23 +16,22 @@ pip install deepbridge
 
 DeepBridge has been redesigned with a modular, component-based architecture:
 
-```
-┌─────────────────┐
-│   Experiment    │
-└───────┬─────────┘
-        │
-        ▼
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│  ┌───────────┐  ┌────────────┐  ┌──────────────┐        │
-│  │DataManager│  │ModelManager│  │TestRunner    │        │
-│  └───────────┘  └────────────┘  └──────────────┘        │
-│                                                         │
-│  ┌───────────┐  ┌─────────────┐  ┌───────────────┐      │
-│  │ModelEval  │  │ReportGen    │  │VisualizationMgr│     │
-│  └───────────┘  └─────────────┘  └───────────────┘      │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A[Experiment] -->B[DataManager]
+    A -->C[ModelManager]
+    A -->D[TestRunner]
+    A -->E[ModelEvaluation]
+    A -->F[ReportGenerator]
+    A -->G[VisualizationManager]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:1px
+    style C fill:#bbf,stroke:#333,stroke-width:1px
+    style D fill:#bbf,stroke:#333,stroke-width:1px
+    style E fill:#bbf,stroke:#333,stroke-width:1px
+    style F fill:#bbf,stroke:#333,stroke-width:1px
+    style G fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 ## Use Cases and Examples

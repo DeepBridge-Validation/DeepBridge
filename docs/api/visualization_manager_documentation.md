@@ -114,15 +114,20 @@ While the `VisualizationManager` doesn't directly implement visualization logic,
 
 This architecture separates visualization retrieval from visualization generation:
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Experiment    │────>│VisualizationMgr │────>│   TestRunner    │
-└─────────────────┘     └─────────────────┘     └────────┬────────┘
-                                                         │
-                                                         ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Visualizer    │<────│     Manager     │<────│  Test Results   │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+```mermaid
+graph LR
+    A[Experiment] --> B[VisualizationMgr]
+    B --> C[TestRunner]
+    C --> D[Test Results]
+    D --> E[Manager]
+    E --> F[Visualizer]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:1px
+    style C fill:#bbf,stroke:#333,stroke-width:1px
+    style D fill:#ddf,stroke:#333,stroke-width:1px
+    style E fill:#bbf,stroke:#333,stroke-width:1px
+    style F fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 ## Usage Example
