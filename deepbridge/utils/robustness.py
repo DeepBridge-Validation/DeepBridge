@@ -106,6 +106,47 @@ def compare_models_robustness(results_dict, use_worst=False):
     # Generate comparison plot
     return suite.plot_models_comparison(results_dict, use_worst=use_worst)
 
+def is_metric_higher_better(metric_name: str) -> bool:
+    """
+    Determine if a higher value for a metric is better.
+    
+    Parameters:
+    -----------
+    metric_name : str
+        Name of the metric to check
+        
+    Returns:
+    --------
+    bool : True if higher is better, False otherwise
+    """
+    # Standard metrics where higher is better
+    higher_better_metrics = {
+        'accuracy', 'precision', 'recall', 'f1', 'auc', 'roc_auc', 'r2',
+        'balanced_accuracy', 'average_precision', 'explained_variance',
+        'accuracy_score', 'recall_score', 'precision_score', 'f1_score'
+    }
+    
+    # Standard metrics where lower is better
+    lower_better_metrics = {
+        'error', 'mae', 'mse', 'rmse', 'log_loss', 'cross_entropy',
+        'mean_squared_error', 'mean_absolute_error', 'mean_squared_log_error',
+        'median_absolute_error', 'max_error', 'hinge_loss'
+    }
+    
+    # Normalize metric name to lowercase for comparison
+    metric_lower = metric_name.lower()
+    
+    # Check in higher-better set
+    if any(m in metric_lower for m in higher_better_metrics):
+        return True
+    
+    # Check in lower-better set
+    if any(m in metric_lower for m in lower_better_metrics):
+        return False
+    
+    # Default to higher-better for unknown metrics
+    return True
+
 def robustness_report_to_html(results, include_plots=True):
     """
     Generate HTML report from robustness results.

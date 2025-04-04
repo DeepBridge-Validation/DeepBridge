@@ -1,28 +1,35 @@
+"""
+Robustness manager for model evaluation.
+"""
+
 import typing as t
 import copy
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from deepbridge.core.experiment.managers.base_manager import BaseManager
 
-class RobustnessManager:
+class RobustnessManager(BaseManager):
     """
     Handles robustness testing and comparison between models.
+    Implements the BaseManager interface.
     """
     
-    def __init__(self, dataset, alternative_models, verbose=False):
-        self.dataset = dataset
-        self.alternative_models = alternative_models
-        self.verbose = verbose
-        
-    def run_tests(self) -> dict:
+    def run_tests(self, config_name='full', **kwargs) -> dict:
         """
         Run robustness tests using RobustnessSuite and compare
         the original model with alternative models.
+        
+        Args:
+            config_name: Configuration profile ('quick', 'medium', 'full')
+            **kwargs: Additional test parameters
+            
+        Returns:
+            dict: Results of robustness tests
         """
         from deepbridge.validation.wrappers.robustness_suite import RobustnessSuite
         
-        if self.verbose:
-            print("Running robustness tests...")
+        self.log("Running robustness tests...")
             
         # Initialize results storage
         results = {
@@ -33,24 +40,21 @@ class RobustnessManager:
         
         # Test main model
         suite = RobustnessSuite(self.dataset, verbose=self.verbose)
-        results['main_model'] = suite.config('full').run()
+        results['main_model'] = suite.config(config_name).run()
         
         # Generate a report for the main model
         try:
             main_report_path = f"robustness_report_main_model.html"
             suite.save_report(main_report_path)
             results['main_model_report_path'] = main_report_path
-            if self.verbose:
-                print(f"Main model robustness report saved to {main_report_path}")
+            self.log(f"Main model robustness report saved to {main_report_path}")
         except Exception as e:
-            if self.verbose:
-                print(f"Error generating main model report: {str(e)}")
+            self.log(f"Error generating main model report: {str(e)}")
         
         # Test alternative models if we have any
         if self.alternative_models:
             for name, model in self.alternative_models.items():
-                if self.verbose:
-                    print(f"Testing robustness of alternative model: {name}")
+                self.log(f"Testing robustness of alternative model: {name}")
                 
                 # Create temporary dataset with alternative model
                 temp_dataset = copy.deepcopy(self.dataset)
@@ -58,7 +62,7 @@ class RobustnessManager:
                 
                 # Run robustness tests on alternative model
                 alt_suite = RobustnessSuite(temp_dataset, verbose=self.verbose)
-                alt_results = alt_suite.config('full').run()
+                alt_results = alt_suite.config(config_name).run()
                 results['alternative_models'][name] = alt_results
                 
                 # Generate a report for the alternative model
@@ -66,11 +70,9 @@ class RobustnessManager:
                     alt_report_path = f"robustness_report_{name}.html"
                     alt_suite.save_report(alt_report_path)
                     results['alternative_models'][name + '_report_path'] = alt_report_path
-                    if self.verbose:
-                        print(f"Alternative model {name} robustness report saved to {alt_report_path}")
+                    self.log(f"Alternative model {name} robustness report saved to {alt_report_path}")
                 except Exception as e:
-                    if self.verbose:
-                        print(f"Error generating report for model {name}: {str(e)}")
+                    self.log(f"Error generating report for model {name}: {str(e)}")
         
         # Compare models based on robustness scores
         results['comparison'] = self.compare_models_robustness(results)
@@ -80,6 +82,20 @@ class RobustnessManager:
         
         return results
     
+    def compare_models(self, config_name='full', **kwargs) -> dict:
+        """
+        Compare robustness of multiple models.
+        
+        Args:
+            config_name: Configuration profile ('quick', 'medium', 'full')
+            **kwargs: Additional test parameters
+            
+        Returns:
+            dict: Comparison results for all models
+        """
+        # Run full tests that include model comparison
+        return self.run_tests(config_name, **kwargs)
+    
     def compare_models_robustness(self, robustness_results) -> dict:
         """
         Compare the robustness scores of the main model and alternative models.
@@ -88,15 +104,27 @@ class RobustnessManager:
         
         # Extract overall score for main model
         main_score = None
-        if 'main_model' in robustness_results and 'robustness_scores' in robustness_results['main_model']:
-            main_score = robustness_results['main_model']['robustness_scores'].get('overall_score', 0)
-        
+        if 'main_model' in robustness_results:
+            # Try different possible paths to find the robustness score
+            if 'robustness_scores' in robustness_results['main_model']:
+                main_score = robustness_results['main_model']['robustness_scores'].get('overall_score', 0)
+            elif 'robustness_score' in robustness_results['main_model']:
+                main_score = robustness_results['main_model']['robustness_score']
+            
         # Extract scores for alternative models
         alt_scores = {}
         if 'alternative_models' in robustness_results:
             for model_name, model_results in robustness_results['alternative_models'].items():
+                model_score = None
+                # Try different possible paths to find the robustness score
                 if 'robustness_scores' in model_results:
-                    alt_scores[model_name] = model_results['robustness_scores'].get('overall_score', 0)
+                    model_score = model_results['robustness_scores'].get('overall_score', 0)
+                elif 'robustness_score' in model_results:
+                    model_score = model_results['robustness_score']
+                
+                # Only add if we found a score
+                if model_score is not None:
+                    alt_scores[model_name] = model_score
         
         # Identify the most robust model
         all_scores = {
@@ -104,6 +132,7 @@ class RobustnessManager:
         }
         all_scores.update(alt_scores)
         
+        # Handle None values by replacing them with 0 for comparison
         most_robust_model = max(all_scores.items(), key=lambda x: x[1] if x[1] is not None else 0)
         
         # Store comparison results
@@ -113,11 +142,17 @@ class RobustnessManager:
             'most_robust_score': most_robust_model[1]
         }
         
-        if self.verbose:
-            print("\nRobustness comparison results:")
-            for model_name, score in all_scores.items():
-                print(f"{model_name}: {score:.4f}")
-            print(f"\nMost robust model: {most_robust_model[0]} (score: {most_robust_model[1]:.4f})")
+        self.log("\nRobustness comparison results:")
+        for model_name, score in all_scores.items():
+            if score is not None:
+                self.log(f"{model_name}: {score:.4f}")
+            else:
+                self.log(f"{model_name}: None")
+                
+        if most_robust_model[1] is not None:
+            self.log(f"\nMost robust model: {most_robust_model[0]} (score: {most_robust_model[1]:.4f})")
+        else:
+            self.log(f"\nMost robust model: {most_robust_model[0]} (score: None)")
             
         return comparison
     
@@ -207,8 +242,7 @@ class RobustnessManager:
                 visualizations['models_worst_case'] = fig_worst
                 
         except Exception as e:
-            if self.verbose:
-                print(f"Error generating models comparison visualization: {str(e)}")
+            self.log(f"Error generating models comparison visualization: {str(e)}")
                 
         # 2. Feature Importance Visualization
         try:
@@ -248,8 +282,7 @@ class RobustnessManager:
                 visualizations['feature_importance'] = fig
                 
         except Exception as e:
-            if self.verbose:
-                print(f"Error generating feature importance visualization: {str(e)}")
+            self.log(f"Error generating feature importance visualization: {str(e)}")
                 
         # 3. Add additional visualizations (distribution, boxplots, etc.)
         self._add_additional_visualizations(visualizations, model_data)
@@ -286,8 +319,7 @@ class RobustnessManager:
                 visualizations['score_distribution'] = fig
                 
         except Exception as e:
-            if self.verbose:
-                print(f"Error generating score distribution visualization: {str(e)}")
+            self.log(f"Error generating score distribution visualization: {str(e)}")
                 
         # Perturbation Methods Comparison
         try:
@@ -340,5 +372,4 @@ class RobustnessManager:
                 visualizations['perturbation_methods'] = fig
                 
         except Exception as e:
-            if self.verbose:
-                print(f"Error generating perturbation methods comparison: {str(e)}")
+            self.log(f"Error generating perturbation methods comparison: {str(e)}")

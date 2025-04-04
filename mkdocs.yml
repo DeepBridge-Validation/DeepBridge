@@ -1,23 +1,48 @@
 site_name: DeepBridge
-site_description: A Python library for model validation and distillation
+site_description: Advanced machine learning model validation and distillation framework
 site_author: Gustavo Haase
 repo_url: https://github.com/DeepBridge-Validation/DeepBridge
-repo_name: deepbridge
+repo_name: DeepBridge
+site_url: https://deepbridge.readthedocs.io/
 
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
-    primary: indigo
-    accent: indigo
-  logo: assets/images/deepbridge-logo.svg
-  favicon: assets/images/deepbridge-logo.svg
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  logo: assets/images/deep.png
+  favicon: assets/images/deep.png
+  icon:
+    repo: fontawesome/brands/github
   features:
     - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
     - navigation.instant
     - navigation.tracking
-    - navigation.top
+    - navigation.expand
     - search.highlight
     - search.share
+    - search.suggest
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
   font:
     text: Roboto
     code: Roboto Mono
@@ -26,68 +51,123 @@ theme:
 
 nav:
   - Home: index.md
-  - User Guide:
+  - Getting Started:
     - Quick Start: tutorials/quickstart.md
-    - Auto Distiller: tutorials/AutoDistiller.md
+    - Installation: templates/install.md
+    - Key Concepts: index.md#key-features
+  - User Guide:
     - Model Validation: guides/validation.md
     - Model Distillation: guides/distillation.md
     - CLI Usage: guides/cli.md
+    - Auto Distiller: tutorials/AutoDistiller.md
+    - Synthetic Data: guides/synthetic_data.md
+  - Architecture:
+    - Overview: api/experiment_documentation.md
+    - Component Integration: api/component_integration_guide.md
+    - Specialized Managers: api/specialized_managers_documentation.md
+    - TestRunner: api/test_runner_documentation.md
+    - Visualization Manager: api/visualization_manager_documentation.md
   - API Reference:
-    - Data: api/db_data.md
-    - Experiment: api/experiment.md
+    - Experiment Class: api/experiment_class_documentation.md
+    - DBDataset: api/db_data_documentation.md
+    - Base Processor: api/base_processor_documentation.md
+    - Model Manager: api/model_manager_documentation.md
+    - Model Evaluation: api/model_evaluation_documentation.md
     - CLI: api/cli.md
-  - Synthetic Data: 
-      - Synthesizer: api/synthetic.md
+  - Technical Topics:
+    - Synthetic Data: 
+      - Overview: api/synthetic.md
       - Methods: 
-          - UltraLightGenerator: concepts/synthetic_UltraLightGenerator.md
-          - Gaussian Copula: concepts/synthetic_gaussian_copula.md
-          - CTGAN: concepts/synthetic_ctgan.md          
-  - Distiller Models:
-    - Knowledge Distillation: concepts/knowledge_distillation.md
-    - How a Student Model Learns from a Teacher Model: concepts/model_learns.md
-    - What is Knowledge Distillation?: concepts/what_Knowledge.md
-    - Auto Distiller: concepts/auto_distillation.md
+        - UltraLightGenerator: concepts/synthetic_UltraLightGenerator.md
+        - Gaussian Copula: concepts/synthetic_gaussian_copula.md
+        - CTGAN: concepts/synthetic_ctgan.md
+    - Distillation:
+      - Knowledge Distillation: concepts/knowledge_distillation.md
+      - Student-Teacher Learning: concepts/model_learns.md
+      - Distillation Theory: concepts/what_Knowledge.md
+      - Auto Distiller: concepts/auto_distillation.md
+    - Robustness:
+      - Introduction: concepts/robustness.md
+      - Data Perturbation: api/data_manager_documentation.md
   - Advanced Topics:
     - Custom Models: advanced/custom_models.md
     - Optimization: advanced/optimization.md
     - Deployment: advanced/deployment.md
-  - Contributing: contributing.md
-  - License: license.md
+  - Examples:
+    - Table Sorting: examples/table_sorting_example.md
+  - Community:
+    - Contributing: contributing.md
+    - License: license.md
 
 extra_css:
   - assets/custom.css
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
   - codehilite
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.arithmatex:
       generic: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.betterem
+  - pymdownx.caret
   - pymdownx.details
-  - pymdownx.tasklist
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
   - toc:
       permalink: true
+      toc_depth: 3
 
 plugins:
-- macros
-- mkdocstrings:
-    handlers:
-      python:
-        paths: [deepbridge]
+  - macros
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [deepbridge]
+          options:
+            show_source: true
+            show_category_heading: true
+            show_root_heading: true
 
 extra:
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/DeepBridge-Validation/DeepBridge
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/deepbridge/
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/deepbridge/
 
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
+  - assets/js/tablesort.js
 
 copyright: Copyright &copy; 2025 DeepBridge-Validation

@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Dict, Optional
 
-from deepbridge.validation.robustness_metrics import is_metric_higher_better
+from deepbridge.utils.robustness import is_metric_higher_better
 from deepbridge.visualization.robustness.base_viz import RobustnessBaseViz
 
 class FeatureViz(RobustnessBaseViz):

@@ -10,11 +10,14 @@ from deepbridge.utils.model_registry import ModelType
 from deepbridge.core.experiment.data_manager import DataManager
 from deepbridge.core.experiment.model_evaluation import ModelEvaluation
 from deepbridge.core.experiment.report_generator import ReportGenerator
-from deepbridge.core.experiment.managers import ModelManager, RobustnessManager, UncertaintyManager, ResilienceManager, HyperparameterManager
+from deepbridge.core.experiment.managers import ModelManager
+from deepbridge.core.experiment.test_runner import TestRunner
+from deepbridge.core.experiment.visualization_manager import VisualizationManager
 
 class Experiment:
     """
-    Experiment class to handle different types of modeling tasks and their configurations.
+    Main Experiment class coordinating different components for modeling tasks.
+    This class has been refactored to delegate responsibilities to specialized components.
     """
     
     VALID_TYPES = ["binary_classification", "regression", "forecasting"]
@@ -72,9 +75,6 @@ class Experiment:
             'test': {}
         }
         
-        # Initialize tests results storage
-        self.test_results = {}
-        
         # Initialize distillation model
         self.distillation_model = None
         
@@ -93,13 +93,29 @@ class Experiment:
         # Initialize alternative models
         self.alternative_models = self.model_manager.create_alternative_models(self.X_train, self.y_train)
         
+        # Initialize test runner
+        self.test_runner = TestRunner(
+            self.dataset,
+            self.alternative_models,
+            self.tests,
+            self.X_train,
+            self.X_test,
+            self.y_train,
+            self.y_test,
+            self.verbose
+        )
+        self.test_results = {}
+        
+        # Initialize visualization manager
+        self.visualization_manager = VisualizationManager(self.test_runner)
+        
         # Auto-fit if enabled and dataset has probabilities
         if self.auto_fit and hasattr(dataset, 'original_prob') and dataset.original_prob is not None:
             self._auto_fit_model()
         
         # Run requested tests if any
         if self.tests:
-            self._run_tests()
+            self.test_results = self.test_runner.run_initial_tests()
     
     def _auto_fit_model(self):
         """Auto-fit a model when probabilities are available but no model is present"""
@@ -184,53 +200,6 @@ class Experiment:
             optuna_logger = logging.getLogger("optuna")
             optuna_logger.setLevel(logging_state)
 
-    def _run_tests(self) -> None:
-        """Run the tests specified in self.tests."""
-        if self.verbose:
-            print(f"Running the following tests: {self.tests}")
-            
-        # Check if we have a model to test
-        if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            if self.verbose:
-                print("No model found in dataset. Skipping tests.")
-            return
-            
-        # Run robustness tests if requested
-        if "robustness" in self.tests:
-            robustness_manager = RobustnessManager(
-                self.dataset, 
-                self.alternative_models, 
-                self.verbose
-            )
-            self.test_results['robustness'] = robustness_manager.run_tests()
-            
-        # Run uncertainty tests if requested
-        if "uncertainty" in self.tests:
-            uncertainty_manager = UncertaintyManager(
-                self.dataset, 
-                self.alternative_models, 
-                self.verbose
-            )
-            self.test_results['uncertainty'] = uncertainty_manager.run_tests()
-            
-        # Run resilience tests if requested
-        if "resilience" in self.tests:
-            resilience_manager = ResilienceManager(
-                self.dataset, 
-                self.alternative_models, 
-                self.verbose
-            )
-            self.test_results['resilience'] = resilience_manager.run_tests()
-            
-        # Run hyperparameter tests if requested
-        if "hyperparameters" in self.tests:
-            hyperparameter_manager = HyperparameterManager(
-                self.dataset, 
-                self.alternative_models, 
-                self.verbose
-            )
-            self.test_results['hyperparameters'] = hyperparameter_manager.run_tests()
-        
     def run_tests(self, config_name: str = 'quick') -> dict:
         """
         Run all tests specified during initialization with the given configuration.
@@ -244,223 +213,8 @@ class Experiment:
         --------
         dict : Dictionary with test results
         """
-        if self.verbose:
-            print(f"Running tests with {config_name} configuration...")
-            
-        # Check if we have a model to test
-        if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            if self.verbose:
-                print("No model found in dataset. Skipping tests.")
-            return {}
-        
-        # Initialize results dictionary
-        results = {}
-        
-        # Run robustness tests if requested
-        if "robustness" in self.tests:
-            from deepbridge.utils.robustness import run_robustness_tests
-            from deepbridge.core.db_data import DBDataset
-            
-            # Initialize robustness results dictionary
-            robustness_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing robustness of primary model...")
-            
-            primary_results = run_robustness_tests(
-                self.dataset, 
-                config_name=config_name,
-                metric='AUC', 
-                verbose=self.verbose
-            )
-            robustness_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing robustness of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = DBDataset(
-                        train_data=self.dataset.train_data,
-                        test_data=self.dataset.test_data,
-                        target_column=self.dataset.target_name,
-                        model=model
-                    )
-                    
-                    # Run robustness tests on the alternative model
-                    alt_results = run_robustness_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='AUC',
-                        verbose=self.verbose
-                    )
-                    
-                    # Store results
-                    robustness_results['alternative_models'][model_name] = alt_results
-            
-            # Store all robustness results
-            results['robustness'] = robustness_results
-            
-        # Run uncertainty tests if requested
-        if "uncertainty" in self.tests:
-            from deepbridge.utils.uncertainty import run_uncertainty_tests
-            from deepbridge.core.db_data import DBDataset
-            
-            # Initialize uncertainty results dictionary
-            uncertainty_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing uncertainty quantification of primary model...")
-            
-            primary_results = run_uncertainty_tests(
-                self.dataset, 
-                config_name=config_name,
-                verbose=self.verbose
-            )
-            uncertainty_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing uncertainty of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = DBDataset(
-                        train_data=self.dataset.train_data,
-                        test_data=self.dataset.test_data,
-                        target_column=self.dataset.target_name,
-                        model=model
-                    )
-                    
-                    # Run uncertainty tests on the alternative model
-                    alt_results = run_uncertainty_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        verbose=self.verbose
-                    )
-                    
-                    # Store results
-                    uncertainty_results['alternative_models'][model_name] = alt_results
-            
-            # Store all uncertainty results
-            results['uncertainty'] = uncertainty_results
-            
-        # Run resilience tests if requested
-        if "resilience" in self.tests:
-            from deepbridge.utils.resilience import run_resilience_tests
-            from deepbridge.core.db_data import DBDataset
-            
-            # Initialize resilience results dictionary
-            resilience_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing resilience of primary model...")
-            
-            primary_results = run_resilience_tests(
-                self.dataset, 
-                config_name=config_name,
-                metric='auc', 
-                verbose=self.verbose
-            )
-            resilience_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing resilience of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = DBDataset(
-                        train_data=self.dataset.train_data,
-                        test_data=self.dataset.test_data,
-                        target_column=self.dataset.target_name,
-                        model=model
-                    )
-                    
-                    # Run resilience tests on the alternative model
-                    alt_results = run_resilience_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='auc',
-                        verbose=self.verbose
-                    )
-                    
-                    # Store results
-                    resilience_results['alternative_models'][model_name] = alt_results
-            
-            # Store all resilience results
-            results['resilience'] = resilience_results
-            
-        # Run hyperparameter tests if requested
-        if "hyperparameters" in self.tests:
-            from deepbridge.utils.hyperparameter import run_hyperparameter_tests
-            from deepbridge.core.db_data import DBDataset
-            
-            # Initialize hyperparameter results dictionary
-            hyperparameter_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing hyperparameter importance of primary model...")
-            
-            primary_results = run_hyperparameter_tests(
-                self.dataset, 
-                config_name=config_name,
-                metric='accuracy', 
-                verbose=self.verbose
-            )
-            hyperparameter_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing hyperparameter importance of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = DBDataset(
-                        train_data=self.dataset.train_data,
-                        test_data=self.dataset.test_data,
-                        target_column=self.dataset.target_name,
-                        model=model
-                    )
-                    
-                    # Run hyperparameter tests on the alternative model
-                    alt_results = run_hyperparameter_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='accuracy',
-                        verbose=self.verbose
-                    )
-                    
-                    # Store results
-                    hyperparameter_results['alternative_models'][model_name] = alt_results
-            
-            # Store all hyperparameter results
-            results['hyperparameters'] = hyperparameter_results
-        
-        # Store results in the object for future reference
+        results = self.test_runner.run_tests(config_name)
         self.test_results.update(results)
-        
         return results
 
     @property
@@ -527,251 +281,72 @@ class Experiment:
             self.get_comprehensive_results()
         )
 
-    # Robustness testing methods
+    # Delegation methods to VisualizationManager
     def get_robustness_results(self):
-        """
-        Get the robustness test results.
-        
-        Returns:
-            dict: Dictionary containing robustness test results for main model and alternatives.
-                  Returns None if robustness tests haven't been run.
-        """
-        if 'robustness' not in self.test_results:
-            if "robustness" in self.tests:
-                # Run robustness tests if they were requested but not run yet
-                robustness_manager = RobustnessManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['robustness'] = robustness_manager.run_tests()
-                return self.test_results.get('robustness')
-            return None
-        return self.test_results.get('robustness')
+        """Get the robustness test results."""
+        return self.visualization_manager.get_robustness_results()
         
     def get_robustness_visualizations(self):
-        """
-        Get the robustness visualizations generated by the tests.
-        
-        Returns:
-            dict: Dictionary of plotly figures for robustness visualizations.
-                  Returns empty dict if no visualizations are available.
-        """
-        if 'robustness' not in self.test_results:
-            if "robustness" in self.tests:
-                # Run robustness tests if they were requested but not run yet
-                robustness_manager = RobustnessManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['robustness'] = robustness_manager.run_tests()
-            else:
-                return {}
-                
-        return self.test_results.get('robustness', {}).get('visualizations', {})
+        """Get the robustness visualizations generated by the tests."""
+        return self.visualization_manager.get_robustness_visualizations()
         
     def plot_robustness_comparison(self):
-        """
-        Get the plotly figure showing the comparison of robustness across models.
-        
-        Returns:
-            plotly.graph_objects.Figure: Comparison plot of models robustness.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_robustness_visualizations()
-        return visualizations.get('models_comparison')
+        """Get the plotly figure showing the comparison of robustness across models."""
+        return self.visualization_manager.plot_robustness_comparison()
     
     def plot_robustness_distribution(self):
-        """
-        Get the boxplot showing distribution of robustness scores.
-        
-        Returns:
-            plotly.graph_objects.Figure: Boxplot of robustness score distributions.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_robustness_visualizations()
-        return visualizations.get('score_distribution')
+        """Get the boxplot showing distribution of robustness scores."""
+        return self.visualization_manager.plot_robustness_distribution()
     
     def plot_feature_importance_robustness(self):
-        """
-        Get the plotly figure showing feature importance for robustness.
-        
-        Returns:
-            plotly.graph_objects.Figure: Feature importance bar chart.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_robustness_visualizations()
-        return visualizations.get('feature_importance')
+        """Get the plotly figure showing feature importance for robustness."""
+        return self.visualization_manager.plot_feature_importance_robustness()
     
     def plot_perturbation_methods_comparison(self):
-        """
-        Get the plotly figure comparing different perturbation methods.
+        """Get the plotly figure comparing different perturbation methods."""
+        return self.visualization_manager.plot_perturbation_methods_comparison()
         
-        Returns:
-            plotly.graph_objects.Figure: Comparison plot of perturbation methods.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_robustness_visualizations()
-        return visualizations.get('perturbation_methods')
-        
-    # Uncertainty testing methods
+    # Delegation methods to VisualizationManager for uncertainty
     def get_uncertainty_results(self):
-        """
-        Get the uncertainty test results.
-        
-        Returns:
-            dict: Dictionary containing uncertainty test results for main model and alternatives.
-                  Returns None if uncertainty tests haven't been run.
-        """
-        if 'uncertainty' not in self.test_results:
-            if "uncertainty" in self.tests:
-                # Run uncertainty tests if they were requested but not run yet
-                uncertainty_manager = UncertaintyManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['uncertainty'] = uncertainty_manager.run_tests()
-                return self.test_results.get('uncertainty')
-            return None
-        return self.test_results.get('uncertainty')
+        """Get the uncertainty test results."""
+        return self.visualization_manager.get_uncertainty_results()
         
     def get_uncertainty_visualizations(self):
-        """
-        Get the uncertainty visualizations generated by the tests.
-        
-        Returns:
-            dict: Dictionary of plotly figures for uncertainty visualizations.
-                  Returns empty dict if no visualizations are available.
-        """
-        if 'uncertainty' not in self.test_results:
-            if "uncertainty" in self.tests:
-                # Run uncertainty tests if they were requested but not run yet
-                uncertainty_manager = UncertaintyManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['uncertainty'] = uncertainty_manager.run_tests()
-            else:
-                return {}
-                
-        return self.test_results.get('uncertainty', {}).get('visualizations', {})
+        """Get the uncertainty visualizations generated by the tests."""
+        return self.visualization_manager.get_uncertainty_visualizations()
         
     def plot_uncertainty_alpha_comparison(self):
-        """
-        Get the plotly figure showing the comparison of different alpha levels.
-        
-        Returns:
-            plotly.graph_objects.Figure: Comparison plot of alpha levels.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_uncertainty_visualizations()
-        return visualizations.get('alpha_comparison')
+        """Get the plotly figure showing the comparison of different alpha levels."""
+        return self.visualization_manager.plot_uncertainty_alpha_comparison()
     
     def plot_uncertainty_width_distribution(self):
-        """
-        Get the boxplot showing distribution of interval widths.
-        
-        Returns:
-            plotly.graph_objects.Figure: Boxplot of interval width distributions.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_uncertainty_visualizations()
-        return visualizations.get('width_distribution')
+        """Get the boxplot showing distribution of interval widths."""
+        return self.visualization_manager.plot_uncertainty_width_distribution()
     
     def plot_feature_importance_uncertainty(self):
-        """
-        Get the plotly figure showing feature importance for uncertainty.
-        
-        Returns:
-            plotly.graph_objects.Figure: Feature importance bar chart.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_uncertainty_visualizations()
-        return visualizations.get('feature_importance')
+        """Get the plotly figure showing feature importance for uncertainty."""
+        return self.visualization_manager.plot_feature_importance_uncertainty()
     
     def plot_coverage_vs_width(self):
-        """
-        Get the plotly figure showing trade-off between coverage and width.
+        """Get the plotly figure showing trade-off between coverage and width."""
+        return self.visualization_manager.plot_coverage_vs_width()
         
-        Returns:
-            plotly.graph_objects.Figure: Coverage vs width plot.
-                                         Returns None if visualization not available.
-        """
-        visualizations = self.get_uncertainty_visualizations()
-        return visualizations.get('coverage_vs_width')
-        
-    # Resilience testing methods
+    # Delegation methods to visualization manager for resilience and hyperparameter
     def get_resilience_results(self):
-        """
-        Get the resilience test results.
-        
-        Returns:
-            dict: Dictionary containing resilience test results for main model and alternatives.
-                  Returns None if resilience tests haven't been run.
-        """
-        if 'resilience' not in self.test_results:
-            if "resilience" in self.tests:
-                # Run resilience tests if they were requested but not run yet
-                resilience_manager = ResilienceManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['resilience'] = resilience_manager.run_tests()
-                return self.test_results.get('resilience')
-            return None
-        return self.test_results.get('resilience')
+        """Get the resilience test results."""
+        return self.visualization_manager.get_resilience_results()
     
-    # Hyperparameter testing methods
     def get_hyperparameter_results(self):
-        """
-        Get the hyperparameter importance test results.
-        
-        Returns:
-            dict: Dictionary containing hyperparameter importance results for main model and alternatives.
-                  Returns None if hyperparameter tests haven't been run.
-        """
-        if 'hyperparameters' not in self.test_results:
-            if "hyperparameters" in self.tests:
-                # Run hyperparameter tests if they were requested but not run yet
-                hyperparameter_manager = HyperparameterManager(
-                    self.dataset, 
-                    self.alternative_models, 
-                    self.verbose
-                )
-                self.test_results['hyperparameters'] = hyperparameter_manager.run_tests()
-                return self.test_results.get('hyperparameters')
-            return None
-        return self.test_results.get('hyperparameters')
+        """Get the hyperparameter importance test results."""
+        return self.visualization_manager.get_hyperparameter_results()
     
     def get_hyperparameter_importance(self):
-        """
-        Get the hyperparameter importance scores for the primary model.
-        
-        Returns:
-            dict: Dictionary of parameter names to importance scores.
-                  Returns None if hyperparameter tests haven't been run.
-        """
-        results = self.get_hyperparameter_results()
-        if results and 'primary_model' in results:
-            return results['primary_model'].get('sorted_importance', {})
-        return None
+        """Get the hyperparameter importance scores for the primary model."""
+        return self.visualization_manager.get_hyperparameter_importance()
     
     def get_hyperparameter_tuning_order(self):
-        """
-        Get the suggested hyperparameter tuning order for the primary model.
-        
-        Returns:
-            list: List of parameter names in recommended tuning order.
-                  Returns None if hyperparameter tests haven't been run.
-        """
-        results = self.get_hyperparameter_results()
-        if results and 'primary_model' in results:
-            return results['primary_model'].get('tuning_order', [])
-        return None
+        """Get the suggested hyperparameter tuning order for the primary model."""
+        return self.visualization_manager.get_hyperparameter_tuning_order()
 
     # Proxy properties to maintain backward compatibility
     @property

@@ -24,36 +24,115 @@ pip install -e .
 
 ## Key Features
 
-- **Model Validation**
-  - Experiment tracking and management
-  - Comprehensive model performance analysis
-  - Advanced metric tracking
-  - Model versioning support
+### Experiment Framework
+- **Modular Architecture**: Component-based design with specialized managers
+- **Comprehensive Testing**: Robustness, uncertainty, and resilience evaluation
+- **Visualization System**: Integrated visualization capabilities
+- **Reporting Engine**: Detailed HTML report generation
 
-- **Model Distillation**
-  - Knowledge distillation across multiple model types
-  - Advanced configuration options
-  - Performance optimization
-  - Probabilistic model compression
+### Model Validation
+- **Multi-faceted Evaluation**: Assess models across multiple dimensions
+- **Alternative Model Comparison**: Generate and compare different model types
+- **Metrics Analysis**: Comprehensive performance metrics
+- **Visualization Tools**: Interactive plots for model analysis
 
-- **Advanced Analytics**
-  - Detailed performance metrics
-  - Distribution analysis
-  - Visualization of model performance
-  - Precision-recall trade-off analysis
+### Model Distillation
+- **Knowledge Distillation**: Transfer knowledge from complex to simpler models
+- **Surrogate Modeling**: Create lightweight approximations of complex models
+- **Hyperparameter Optimization**: Automated tuning of student models
+- **Distribution Matching**: Ensure student models faithfully reproduce teacher distributions
+
+### Advanced Analytics
+- **Robustness Testing**: Evaluate model stability under perturbations
+- **Uncertainty Quantification**: Assess model confidence and calibration
+- **Resilience Analysis**: Test models under adverse conditions
+- **Hyperparameter Importance**: Identify critical hyperparameters
+
+## Architecture Overview
+
+DeepBridge has been redesigned with a modular, component-based architecture:
+
+```
+┌─────────────────┐
+│   Experiment    │
+└───────┬─────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│  ┌───────────┐  ┌────────────┐  ┌──────────────┐        │
+│  │DataManager│  │ModelManager│  │TestRunner    │        │
+│  └───────────┘  └────────────┘  └──────────────┘        │
+│                                                         │
+│  ┌───────────┐  ┌─────────────┐  ┌───────────────┐      │
+│  │ModelEval  │  │ReportGen    │  │VisualizationMgr│     │
+│  └───────────┘  └─────────────┘  └───────────────┘      │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+- **Experiment**: Central coordinator managing the experiment workflow
+- **DataManager**: Handles data preparation and splitting
+- **ModelManager**: Creates and manages models and distillation
+- **TestRunner**: Coordinates test execution across managers
+- **ModelEvaluation**: Calculates metrics and evaluates models
+- **ReportGenerator**: Creates HTML reports with results
+- **VisualizationManager**: Coordinates visualization creation
 
 ## Quick Start
 
-### Model Distillation
+### Comprehensive Experiment
 ```python
-from deepbridge.model_distiller import ModelDistiller
+from deepbridge.core.experiment import Experiment
+from deepbridge.core.db_data import DBDataset
 
-# Create and train distilled model
-distiller = ModelDistiller(model_type="gbm")
-distiller.fit(X=features, probas=predictions)
+# Create dataset
+dataset = DBDataset(
+    data=df,
+    target_column='target',
+    features=features
+)
+
+# Initialize experiment with tests
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type='binary_classification',
+    tests=['robustness', 'uncertainty']
+)
+
+# Train a distilled model
+experiment.fit(
+    student_model_type='random_forest',
+    distillation_method='knowledge_distillation',
+    temperature=2.0
+)
+
+# Run tests and generate visualizations
+experiment.run_tests(config_name='medium')
+robustness_plot = experiment.plot_robustness_comparison()
+
+# Save comprehensive report
+experiment.save_report('experiment_report.html')
+```
+
+### Direct Model Distillation
+```python
+from deepbridge.distillation.techniques.knowledge_distillation import KnowledgeDistillation
+
+# Create distiller directly
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type='gbm',
+    temperature=2.0,
+    alpha=0.5
+)
+
+# Train the distilled model
+distiller.fit(X_train, y_train)
 
 # Make predictions
-predictions = distiller.predict(X_new)
+predictions = distiller.predict(X_test)
 ```
 
 ### Automated Distillation
@@ -61,7 +140,7 @@ predictions = distiller.predict(X_new)
 from deepbridge.auto_distiller import AutoDistiller
 from deepbridge.db_data import DBDataset
 
-# Create dataset
+# Create dataset with probabilities
 dataset = DBDataset(
     data=df,
     target_column='target',
@@ -86,7 +165,20 @@ deepbridge validation create my_experiment --path ./experiments
 
 # Train distilled model
 deepbridge distill train gbm predictions.csv features.csv -s ./models
+
+# Run robustness tests
+deepbridge validation test robustness my_experiment --config medium
 ```
+
+## Documentation
+
+Full documentation available at: [DeepBridge Documentation](https://deepbridge.readthedocs.io/)
+
+The documentation includes:
+- API Reference
+- Architecture Guides
+- Tutorial Notebooks
+- Examples
 
 ## Requirements
 
@@ -97,11 +189,8 @@ deepbridge distill train gbm predictions.csv features.csv -s ./models
   - scikit-learn
   - xgboost
   - scipy
-  - matplotlib
-
-## Documentation
-
-Full documentation available at: [DeepBridge Documentation](https://deepbridge.readthedocs.io/)
+  - plotly
+  - optuna
 
 ## Contributing
 

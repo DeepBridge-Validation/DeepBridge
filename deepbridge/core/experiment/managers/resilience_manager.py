@@ -3,25 +3,15 @@ Resilience manager for model evaluation.
 """
 
 import typing as t
+from deepbridge.core.experiment.managers.base_manager import BaseManager
+from deepbridge.utils.dataset_factory import DBDatasetFactory
 
-class ResilienceManager:
+class ResilienceManager(BaseManager):
     """
     Manager class for running resilience tests on models.
+    Implements the BaseManager interface.
     """
     
-    def __init__(self, dataset, alternative_models=None, verbose=False):
-        """
-        Initialize the resilience manager.
-        
-        Args:
-            dataset: DBDataset instance containing the primary model
-            alternative_models: Dictionary of alternative models for comparison
-            verbose: Whether to print progress information
-        """
-        self.dataset = dataset
-        self.alternative_models = alternative_models or {}
-        self.verbose = verbose
-        
     def run_tests(self, config_name='quick', metric='auc'):
         """
         Run standard resilience tests on the primary model.
@@ -33,8 +23,7 @@ class ResilienceManager:
         Returns:
             dict: Results of resilience tests
         """
-        if self.verbose:
-            print("Running resilience tests...")
+        self.log("Running resilience tests...")
             
         from deepbridge.utils.resilience import run_resilience_tests
         
@@ -46,8 +35,7 @@ class ResilienceManager:
             verbose=self.verbose
         )
         
-        if self.verbose:
-            print("Resilience tests completed.")
+        self.log("Resilience tests completed.")
             
         return results
     
@@ -62,11 +50,9 @@ class ResilienceManager:
         Returns:
             dict: Comparison results for all models
         """
-        if self.verbose:
-            print("Comparing resilience across models...")
+        self.log("Comparing resilience across models...")
             
         from deepbridge.utils.resilience import run_resilience_tests
-        from deepbridge.core.db_data import DBDataset
         
         # Initialize results
         results = {
@@ -75,8 +61,7 @@ class ResilienceManager:
         }
         
         # Test primary model
-        if self.verbose:
-            print("Testing primary model resilience...")
+        self.log("Testing primary model resilience...")
             
         primary_results = run_resilience_tests(
             self.dataset,
@@ -89,14 +74,11 @@ class ResilienceManager:
         # Test alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
-                if self.verbose:
-                    print(f"Testing resilience of alternative model: {model_name}")
+                self.log(f"Testing resilience of alternative model: {model_name}")
                 
                 # Create a new dataset with the alternative model
-                alt_dataset = DBDataset(
-                    train_data=self.dataset.train_data,
-                    test_data=self.dataset.test_data,
-                    target_column=self.dataset.target_name,
+                alt_dataset = DBDatasetFactory.create_for_alternative_model(
+                    original_dataset=self.dataset,
                     model=model
                 )
                 

@@ -3,25 +3,15 @@ Hyperparameter manager for model evaluation.
 """
 
 import typing as t
+from deepbridge.core.experiment.managers.base_manager import BaseManager
+from deepbridge.utils.dataset_factory import DBDatasetFactory
 
-class HyperparameterManager:
+class HyperparameterManager(BaseManager):
     """
     Manager class for running hyperparameter importance tests on models.
+    Implements the BaseManager interface.
     """
     
-    def __init__(self, dataset, alternative_models=None, verbose=False):
-        """
-        Initialize the hyperparameter manager.
-        
-        Args:
-            dataset: DBDataset instance containing the primary model
-            alternative_models: Dictionary of alternative models for comparison
-            verbose: Whether to print progress information
-        """
-        self.dataset = dataset
-        self.alternative_models = alternative_models or {}
-        self.verbose = verbose
-        
     def run_tests(self, config_name='quick', metric='accuracy'):
         """
         Run standard hyperparameter importance tests on the primary model.
@@ -33,8 +23,7 @@ class HyperparameterManager:
         Returns:
             dict: Results of hyperparameter importance tests
         """
-        if self.verbose:
-            print("Running hyperparameter importance tests...")
+        self.log("Running hyperparameter importance tests...")
             
         from deepbridge.utils.hyperparameter import run_hyperparameter_tests
         
@@ -46,8 +35,7 @@ class HyperparameterManager:
             verbose=self.verbose
         )
         
-        if self.verbose:
-            print("Hyperparameter importance tests completed.")
+        self.log("Hyperparameter importance tests completed.")
             
         return results
     
@@ -62,11 +50,9 @@ class HyperparameterManager:
         Returns:
             dict: Comparison results for all models
         """
-        if self.verbose:
-            print("Comparing hyperparameter importance across models...")
+        self.log("Comparing hyperparameter importance across models...")
             
         from deepbridge.utils.hyperparameter import run_hyperparameter_tests
-        from deepbridge.core.db_data import DBDataset
         
         # Initialize results
         results = {
@@ -75,8 +61,7 @@ class HyperparameterManager:
         }
         
         # Test primary model
-        if self.verbose:
-            print("Testing primary model hyperparameter importance...")
+        self.log("Testing primary model hyperparameter importance...")
             
         primary_results = run_hyperparameter_tests(
             self.dataset,
@@ -89,14 +74,11 @@ class HyperparameterManager:
         # Test alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
-                if self.verbose:
-                    print(f"Testing hyperparameter importance of alternative model: {model_name}")
+                self.log(f"Testing hyperparameter importance of alternative model: {model_name}")
                 
                 # Create a new dataset with the alternative model
-                alt_dataset = DBDataset(
-                    train_data=self.dataset.train_data,
-                    test_data=self.dataset.test_data,
-                    target_column=self.dataset.target_name,
+                alt_dataset = DBDatasetFactory.create_for_alternative_model(
+                    original_dataset=self.dataset,
                     model=model
                 )
                 
