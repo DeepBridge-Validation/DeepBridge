@@ -1,0 +1,74 @@
+<!-- API Module Template -->
+<div class="db-method">
+  <div class="db-method__header">
+    <span class="db-method__name">{{ module_name }}</span>
+  </div>
+  <div class="db-method__body">
+    <div class="db-method__section">
+      <div class="db-method__section-title">Description</div>
+      <p>{{ description }}</p>
+    </div>
+    
+    {% if properties %}
+    <div class="db-method__section">
+      <div class="db-method__section-title">Properties</div>
+      <table class="db-params sortable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for prop in properties %}
+          <tr>
+            <td><span class="db-param-name">{{ prop.name }}</span></td>
+            <td><span class="db-param-type">{{ prop.type }}</span></td>
+            <td>{{ prop.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    
+    {% if methods %}
+    <div class="db-method__section">
+      <div class="db-method__section-title">Methods</div>
+      <table class="db-params sortable">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Return Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for method in methods %}
+          <tr>
+            <td><span class="db-param-name">{{ method.name }}</span></td>
+            <td><span class="db-param-type">{{ method.return_type }}</span></td>
+            <td>{{ method.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    
+    {% if examples %}
+    <div class="db-method__section">
+      <div class="db-method__section-title">Examples</div>
+      {% for example in examples %}
+      <div class="db-code-example">
+        <pre><code class="python">{{ example.code }}</code></pre>
+        {% if example.description %}
+        <p><em>{{ example.description }}</em></p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Data Quality Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            border-bottom: 2px solid #4e4376;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: #2b5876;
+        }
+        .metric-card {
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            transition: transform 0.3s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            font-weight: 600;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
+        .metrics-table {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .metrics-table th {
+            background-color: #e9ecef;
+        }
+        .footer {
+            margin-top: 4rem;
+            padding: 1rem 0;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .model-params {
+            font-size: 1.1rem;
+            padding: 1rem;
+            background-color: rgba(46, 88, 118, 0.1);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .model-params span {
+            font-weight: 600;
+        }
+        .feature-importance-bar {
+            background-color: #4e4376;
+        }
+        .positive-diff {
+            color: #28a745;
+        }
+        .negative-diff {
+            color: #dc3545;
+        }
+        .neutral-diff {
+            color: #6c757d;
+        }
+        .parameter-name {
+            font-weight: 600;
+            color: #2b5876;
+        }
+        .parameter-value {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.3rem;
+        }
+        .legend-item {
+            margin-right: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            display: inline-block;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        .real-color {
+            background-color: #2b5876;
+        }
+        .synthetic-color {
+            background-color: #4e4376;
+        }
+        .metric-good { color: #28a745; }
+        .metric-medium { color: #ffc107; }
+        .metric-poor { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>Synthetic Data Quality Report</h1>
+            <p class="lead">Detailed analysis of synthetic data generation results</p>
+            <div class="mt-3">
+                <span class="badge bg-light text-dark fs-5">{{ generator_info.method }}</span>
+                <span class="badge bg-info text-dark fs-5">{{ generator_info.num_samples }} samples</span>
+                <span class="badge bg-warning text-dark fs-5">Random seed: {{ generator_info.random_state }}</span>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h3 class="mb-0">Executive Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>This report presents a detailed analysis of the synthetic data generated using the {{ generator_info.method }} method. The synthetic dataset contains {{ generator_info.num_samples }} samples and aims to preserve the statistical properties of the original dataset while maintaining privacy.</p>
+                        
+                        <div class="model-params">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p><span>Generation Method:</span> {{ generator_info.method }}</p>
+                                    <p><span>Number of Samples:</span> {{ generator_info.num_samples }}</p>
+                                    <p><span>Random Seed:</span> {{ generator_info.random_state }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><span>Overall Quality Score:</span> <span class="{{ 'metric-good' if quality_score > 0.8 else 'metric-medium' if quality_score > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(quality_score) }}</span></p>
+                                    <p><span>Statistical Similarity:</span> <span class="{{ 'metric-good' if metrics.overall.statistical_similarity > 0.8 else 'metric-medium' if metrics.overall.statistical_similarity > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(metrics.overall.statistical_similarity) }}</span></p>
+                                    <p><span>Privacy Score:</span> <span class="{{ 'metric-good' if metrics.overall.privacy_score > 0.8 else 'metric-medium' if metrics.overall.privacy_score > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(metrics.overall.privacy_score) }}</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><span>Real Data Size:</span> {{ metrics.overall.real_data_size }}</p>
+                                    <p><span>Synthetic Data Size:</span> {{ metrics.overall.synthetic_data_size }}</p>
+                                    <p><span>Size Ratio:</span> {{ "%.2f"|format(metrics.overall.size_ratio) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Charts -->
+        <h2 class="section-title">Distribution Analysis</h2>
+        
+        <div class="row mb-5">
+            <!-- Numerical Distributions -->
+            {% for col_name in numerical_cols[:6] %}
+            <div class="col-md-6 mb-4">
+                <div class="chart-container">
+                    <h4>{{ col_name }}</h4>
+                    <div id="num-dist-{{ loop.index }}" style="height: 300px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-color real-color"></span> Real Data</div>
+                        <div class="legend-item"><span class="legend-color synthetic-color"></span> Synthetic Data</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Categorical Distributions -->
+        <h2 class="section-title">Categorical Analysis</h2>
+        
+        <div class="row mb-5">
+            {% for col_name in categorical_cols[:6] %}
+            <div class="col-md-6 mb-4">
+                <div class="chart-container">
+                    <h4>{{ col_name }}</h4>
+                    <div id="cat-dist-{{ loop.index }}" style="height: 300px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-color real-color"></span> Real Data</div>
+                        <div class="legend-item"><span class="legend-color synthetic-color"></span> Synthetic Data</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Correlation Analysis -->
+        <h2 class="section-title">Correlation Analysis</h2>
+        
+        <div class="row mb-5">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Real Data Correlation Matrix</h4>
+                    <div id="real-corr-matrix" style="height: 400px;"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h4>Synthetic Data Correlation Matrix</h4>
+                    <div id="synthetic-corr-matrix" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <h2 class="section-title">Quality Metrics</h2>
+        
+        <div class="row mb-5">
+            <!-- Metrics Cards -->
+            <div class="col-md-3 mb-4">
+                <div class="card metric-card">
+                    <div class="card-header bg-primary text-white">
+                        Statistical Similarity
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="display-4 {{ 'metric-good' if metrics.overall.statistical_similarity > 0.8 else 'metric-medium' if metrics.overall.statistical_similarity > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(metrics.overall.statistical_similarity) }}</div>
+                        <div class="text-muted mb-2">Based on distribution matching</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card metric-card">
+                    <div class="card-header bg-success text-white">
+                        Privacy Score
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="display-4 {{ 'metric-good' if metrics.overall.privacy_score > 0.8 else 'metric-medium' if metrics.overall.privacy_score > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(metrics.overall.privacy_score) }}</div>
+                        <div class="text-muted mb-2">Lower re-identification risk</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card metric-card">
+                    <div class="card-header bg-info text-white">
+                        Correlation Preservation
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="display-4 {{ 'metric-good' if metrics.overall.correlation_fidelity_score > 0.8 else 'metric-medium' if metrics.overall.correlation_fidelity_score > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(metrics.overall.correlation_fidelity_score) }}</div>
+                        <div class="text-muted mb-2">Correlation structure similarity</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card metric-card">
+                    <div class="card-header bg-warning text-dark">
+                        Overall Quality
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="display-4 {{ 'metric-good' if quality_score > 0.8 else 'metric-medium' if quality_score > 0.6 else 'metric-poor' }}">{{ "%.2f"|format(quality_score) }}</div>
+                        <div class="text-muted mb-2">Comprehensive quality score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Metrics Table -->
+        <div class="table-responsive mb-5">
+            <table class="table table-striped table-bordered metrics-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Interpretation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category, category_metrics in detailed_metrics.items() %}
+                        {% for metric_name, metric_value in category_metrics.items() %}
+                        <tr>
+                            <td>{{ category|capitalize }}</td>
+                            <td><strong>{{ metric_name|replace('_', ' ')|capitalize }}</strong></td>
+                            <td>{{ "%.4f"|format(metric_value) if metric_value is number else metric_value }}</td>
+                            <td>
+                                {% if category == 'statistical' and metric_name in ['avg_ks_statistic', 'avg_distribution_difference', 'correlation_mean_difference'] %}
+                                    {% if metric_value < 0.1 %}
+                                        <span class="metric-good">Excellent</span>
+                                    {% elif metric_value < 0.2 %}
+                                        <span class="metric-good">Good</span>
+                                    {% elif metric_value < 0.3 %}
+                                        <span class="metric-medium">Acceptable</span>
+                                    {% else %}
+                                        <span class="metric-poor">Poor</span>
+                                    {% endif %}
+                                {% elif category == 'privacy' and metric_name == 'at_risk_percentage' %}
+                                    {% if metric_value < 1 %}
+                                        <span class="metric-good">Very Low Risk</span>
+                                    {% elif metric_value < 5 %}
+                                        <span class="metric-good">Low Risk</span>
+                                    {% elif metric_value < 10 %}
+                                        <span class="metric-medium">Moderate Risk</span>
+                                    {% else %}
+                                        <span class="metric-poor">High Risk</span>
+                                    {% endif %}
+                                {% elif category == 'utility' and 'score' in metric_name %}
+                                    {% if metric_value > 0.9 %}
+                                        <span class="metric-good">Excellent</span>
+                                    {% elif metric_value > 0.8 %}
+                                        <span class="metric-good">Good</span>
+                                    {% elif metric_value > 0.7 %}
+                                        <span class="metric-medium">Acceptable</span>
+                                    {% else %}
+                                        <span class="metric-poor">Poor</span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Sample Data Comparison -->
+        <h2 class="section-title">Data Samples</h2>
+        
+        <div class="row mb-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Real Data Sample</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        {% for col in real_sample_columns %}
+                                        <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in real_sample_data %}
+                                    <tr>
+                                        {% for value in row %}
+                                        <td>{{ value }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h4 class="mb-0">Synthetic Data Sample</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        {% for col in synthetic_sample_columns %}
+                                        <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in synthetic_sample_data %}
+                                    <tr>
+                                        {% for value in row %}
+                                        <td>{{ value }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conclusion and Recommendations -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">Conclusion and Recommendations</h3>
+            </div>
+            <div class="card-body">
+                <h4>Key Findings</h4>
+                <ul>
+                    <li>The {{ generator_info.method }} method generated {{ generator_info.num_samples }} synthetic samples with an overall quality score of {{ "%.2f"|format(quality_score) }}</li>
+                    <li>Statistical similarity between real and synthetic data is {{ 'excellent' if metrics.overall.statistical_similarity > 0.9 else 'good' if metrics.overall.statistical_similarity > 0.8 else 'acceptable' if metrics.overall.statistical_similarity > 0.7 else 'poor' }}</li>
+                    <li>Privacy risk is {{ 'very low' if metrics.overall.privacy_score > 0.9 else 'low' if metrics.overall.privacy_score > 0.8 else 'moderate' if metrics.overall.privacy_score > 0.7 else 'high' }}</li>
+                    <li>Correlation structure is {{ 'well preserved' if metrics.overall.correlation_fidelity_score > 0.8 else 'reasonably preserved' if metrics.overall.correlation_fidelity_score > 0.6 else 'poorly preserved' }}</li>
+                </ul>
+                
+                <h4>Recommendations</h4>
+                <ol>
+                    <li><strong>Usage Recommendation:</strong> This synthetic dataset is {{ 'suitable' if quality_score > 0.8 else 'potentially suitable' if quality_score > 0.7 else 'not recommended' }} for {{ 'all analytical purposes' if quality_score > 0.8 else 'most analytical purposes, but caution is advised for sensitive analyses' if quality_score > 0.7 else 'analytical purposes without significant improvements' }}</li>
+                    
+                    <li><strong>Improvements:</strong> 
+                    {% if metrics.overall.statistical_similarity < 0.8 %}
+                        Statistical similarity could be improved by adjusting the generation parameters or trying alternative methods.
+                    {% endif %}
+                    {% if metrics.overall.privacy_score < 0.8 %}
+                        Privacy protection could be enhanced by applying additional anonymization techniques.
+                    {% endif %}
+                    {% if metrics.overall.correlation_fidelity_score < 0.8 %}
+                        Correlation preservation could be improved by using methods that better capture relationships between variables.
+                    {% endif %}
+                    {% if metrics.overall.statistical_similarity >= 0.8 and metrics.overall.privacy_score >= 0.8 and metrics.overall.correlation_fidelity_score >= 0.8 %}
+                        The synthetic data shows good quality across all dimensions. Consider increasing the sample size for even better results.
+                    {% endif %}
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated with DeepBridge Synthetic Data Generator | Date: {{ generation_date }}</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chart data passed from the Python script
+            const numericalData = {{ numerical_data | tojson }};
+            const categoricalData = {{ categorical_data | tojson }};
+            const correlationData = {{ correlation_data | tojson }};
+            
+            // Create numerical distribution charts
+            for (let i = 0; i < numericalData.length; i++) {
+                createNumericalChart(`num-dist-${i+1}`, numericalData[i]);
+            }
+            
+            // Create categorical distribution charts
+            for (let i = 0; i < categoricalData.length; i++) {
+                createCategoricalChart(`cat-dist-${i+1}`, categoricalData[i]);
+            }
+            
+            // Create correlation matrices
+            if (correlationData.real) {
+                createCorrelationMatrix('real-corr-matrix', correlationData.real);
+            }
+            if (correlationData.synthetic) {
+                createCorrelationMatrix('synthetic-corr-matrix', correlationData.synthetic);
+            }
+        });
+        
+        function createNumericalChart(elementId, data) {
+            const svg = d3.select(`#${elementId}`)
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Create the X and Y scales
+            const x = d3.scaleLinear()
+                .domain([data.min, data.max])
+                .range([0, width]);
+                
+            const y = d3.scaleLinear()
+                .domain([0, Math.max(...data.real_hist.map(d => d.density), ...data.synthetic_hist.map(d => d.density))])
+                .nice()
+                .range([height, 0]);
+                
+            // Draw the X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+                
+            // Draw the Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Draw the real data histogram
+            const realLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.density));
+                
+            g.append("path")
+                .datum(data.real_hist)
+                .attr("fill", "none")
+                .attr("stroke", "#2b5876")
+                .attr("stroke-width", 2)
+                .attr("d", realLine);
+                
+            g.append("path")
+                .datum(data.real_hist)
+                .attr("fill", "#2b5876")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.density))
+                );
+                
+            // Draw the synthetic data histogram
+            const syntheticLine = d3.line()
+                .curve(d3.curveBasis)
+                .x(d => x(d.x))
+                .y(d => y(d.density));
+                
+            g.append("path")
+                .datum(data.synthetic_hist)
+                .attr("fill", "none")
+                .attr("stroke", "#4e4376")
+                .attr("stroke-width", 2)
+                .attr("d", syntheticLine);
+                
+            g.append("path")
+                .datum(data.synthetic_hist)
+                .attr("fill", "#4e4376")
+                .attr("fill-opacity", 0.3)
+                .attr("d", d3.area()
+                    .curve(d3.curveBasis)
+                    .x(d => x(d.x))
+                    .y0(height)
+                    .y1(d => y(d.density))
+                );
+                
+            // Add KS statistic if available
+            if (data.ks_statistic) {
+                g.append("text")
+                    .attr("x", width - 120)
+                    .attr("y", 30)
+                    .attr("text-anchor", "start")
+                    .attr("font-size", "12px")
+                    .text(`KS: ${data.ks_statistic.toFixed(3)}`);
+            }
+        }
+        
+        function createCategoricalChart(elementId, data) {
+            const svg = d3.select(`#${elementId}`)
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 300");
+                
+            const margin = {top: 20, right: 30, bottom: 80, left: 40};
+            const width = 600 - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Create the X scale
+            const categories = data.categories;
+            const x = d3.scaleBand()
+                .domain(categories)
+                .range([0, width])
+                .padding(0.2);
+                
+            // Create the Y scale
+            const y = d3.scaleLinear()
+                .domain([0, Math.max(...data.real_counts, ...data.synthetic_counts)])
+                .nice()
+                .range([height, 0]);
+                
+            // Draw the X axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em");
+                
+            // Draw the Y axis
+            g.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Draw the real data bars
+            g.selectAll(".real-bar")
+                .data(categories)
+                .enter()
+                .append("rect")
+                .attr("class", "real-bar")
+                .attr("x", d => x(d))
+                .attr("y", (d, i) => y(data.real_counts[i]))
+                .attr("width", x.bandwidth() / 2)
+                .attr("height", (d, i) => height - y(data.real_counts[i]))
+                .attr("fill", "#2b5876");
+                
+            // Draw the synthetic data bars
+            g.selectAll(".synthetic-bar")
+                .data(categories)
+                .enter()
+                .append("rect")
+                .attr("class", "synthetic-bar")
+                .attr("x", d => x(d) + x.bandwidth() / 2)
+                .attr("y", (d, i) => y(data.synthetic_counts[i]))
+                .attr("width", x.bandwidth() / 2)
+                .attr("height", (d, i) => height - y(data.synthetic_counts[i]))
+                .attr("fill", "#4e4376");
+                
+            // Add chi-square statistic if available
+            if (data.chi2_pvalue) {
+                g.append("text")
+                    .attr("x", width - 120)
+                    .attr("y", 30)
+                    .attr("text-anchor", "start")
+                    .attr("font-size", "12px")
+                    .text(`p-value: ${data.chi2_pvalue.toFixed(3)}`);
+            }
+        }
+        
+        function createCorrelationMatrix(elementId, data) {
+            const svg = d3.select(`#${elementId}`)
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 600 600");
+                
+            const margin = {top: 80, right: 30, bottom: 30, left: 80};
+            const width = 600 - margin.left - margin.right;
+            const height = 600 - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+            // Create scales
+            const x = d3.scaleBand()
+                .domain(data.columns)
+                .range([0, width])
+                .padding(0.05);
+                
+            const y = d3.scaleBand()
+                .domain(data.columns)
+                .range([0, height])
+                .padding(0.05);
+                
+            // Create color scale
+            const color = d3.scaleSequential()
+                .interpolator(d3.interpolateRdBu)
+                .domain([1, -1]);  // Reversed to make red positive and blue negative
+                
+            // Draw cells
+            g.selectAll(".cell")
+                .data(data.values)
+                .enter()
+                .append("rect")
+                .attr("class", "cell")
+                .attr("x", d => x(d.col1))
+                .attr("y", d => y(d.col2))
+                .attr("width", x.bandwidth())
+                .attr("height", y.bandwidth())
+                .attr("fill", d => color(d.value))
+                .append("title")
+                .text(d => `${d.col1} × ${d.col2}: ${d.value.toFixed(2)}`);
+                
+            // Add x-axis labels
+            g.append("g")
+                .selectAll(".x-label")
+                .data(data.columns)
+                .enter()
+                .append("text")
+                .attr("class", "x-label")
+                .attr("x", d => x(d) + x.bandwidth() / 2)
+                .attr("y", -10)
+                .attr("text-anchor", "middle")
+                .attr("transform", d => `rotate(-45, ${x(d) + x.bandwidth() / 2}, -10)`)
+                .text(d => d);
+                
+            // Add y-axis labels
+            g.append("g")
+                .selectAll(".y-label")
+                .data(data.columns)
+                .enter()
+                .append("text")
+                .attr("class", "y-label")
+                .attr("x", -10)
+                .attr("y", d => y(d) + y.bandwidth() / 2)
+                .attr("text-anchor", "end")
+                .attr("dominant-baseline", "middle")
+                .text(d => d);
+        }
+    </script>
+</body>
+</html>

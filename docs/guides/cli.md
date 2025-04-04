@@ -5,9 +5,7 @@
 2. [Basic Usage](#basic-usage)
 3. [Command Reference](#command-reference)
 4. [Advanced Usage Patterns](#advanced-usage-patterns)
-5. [Environment Configuration](#environment-configuration)
-6. [Troubleshooting](#troubleshooting)
-7. [Best Practices](#best-practices)
+5. [Best Practices](#best-practices)
 
 ## Installation
 
@@ -46,9 +44,37 @@ deepbridge --help
 
 # Check version
 deepbridge --version
+
+# Get documentation for a specific command
+deepbridge validation --help
 ```
 
 ## Command Reference
+
+### Experiment Commands
+
+The DeepBridge CLI provides access to the component-based architecture through convenient commands:
+
+```bash
+# Create new experiment with specific test types
+deepbridge experiment create \
+    --name my_experiment \
+    --path ./experiments \
+    --data-file data.csv \
+    --target-column target \
+    --tests robustness uncertainty \
+    --experiment-type binary_classification
+
+# Run tests with specific configuration
+deepbridge experiment run-tests \
+    --path ./experiments/my_experiment \
+    --config medium
+
+# Generate report from experiment
+deepbridge experiment report \
+    --path ./experiments/my_experiment \
+    --output ./reports/experiment_report.html
+```
 
 ### Model Validation Commands
 
@@ -65,10 +91,11 @@ deepbridge validation add-data \
     --target-column target_variable \
     [--test-data test_data.csv]
 
-# View experiment information
-deepbridge validation info \
-    /path/to/experiment \
-    [--format json|table]
+# Run validation tests
+deepbridge validation test \
+    --path /path/to/experiment \
+    --tests robustness uncertainty \
+    --config medium
 ```
 
 ### Model Distillation Commands
@@ -90,262 +117,277 @@ deepbridge distill predict \
     input_data.csv \
     [--output predictions.csv]
 
-# Evaluate distilled model performance
-deepbridge distill evaluate \
-    /path/to/model.pkl \
-    true_labels.csv \
-    original_predictions.csv \
-    distilled_predictions.csv \
-    [--format json|table]
+# Compare teacher and student models
+deepbridge distill compare \
+    --teacher-model /path/to/teacher.pkl \
+    --student-model /path/to/student.pkl \
+    --test-data test_data.csv \
+    --output comparison_report.html
+```
+
+### Robustness Testing Commands
+
+```bash
+# Run robustness tests on a model
+deepbridge robustness test \
+    --model-path /path/to/model.pkl \
+    --data-file data.csv \
+    --target-column target \
+    --config full \
+    --output robustness_report.html
+
+# Compare multiple models for robustness
+deepbridge robustness compare \
+    --models-dir /path/to/models \
+    --data-file data.csv \
+    --target-column target \
+    --output comparison.html
+```
+
+### Visualization Commands
+
+```bash
+# Generate robustness visualizations
+deepbridge visualize robustness \
+    --results-file /path/to/results.json \
+    --output-dir /path/to/visualizations
+
+# Create comparison plots
+deepbridge visualize comparison \
+    --results-dir /path/to/results \
+    --output comparison_plot.html \
+    --plot-type bar
 ```
 
 ## Advanced Usage Patterns
 
-### Complex Experiment Workflows
+### Experiment Pipeline
+
+Create an end-to-end experiment script:
 
 ```bash
 #!/bin/bash
-# Advanced experiment automation script
+# Complete experiment pipeline
 
-# Set up experiment directories
-mkdir -p experiments/{v1,v2,v3}
+# Create experiment directory
+mkdir -p experiments/my_experiment
 
-# Iterate through multiple configurations
-MODEL_TYPES=("gbm" "xgb" "random_forest")
-TEMPERATURES=(0.5 1.0 2.0)
+# Create experiment
+deepbridge experiment create \
+    --name my_experiment \
+    --path ./experiments/my_experiment \
+    --data-file data.csv \
+    --target-column target \
+    --tests robustness uncertainty resilience \
+    --experiment-type binary_classification
+
+# Train distilled model
+deepbridge distill train gbm \
+    --experiment-path ./experiments/my_experiment \
+    --temperature 2.0 \
+    --alpha 0.5 \
+    --n-trials 20
+
+# Run comprehensive tests
+deepbridge experiment run-tests \
+    --path ./experiments/my_experiment \
+    --config full
+
+# Generate report
+deepbridge experiment report \
+    --path ./experiments/my_experiment \
+    --output ./reports/comprehensive_report.html
+
+echo "Experiment pipeline completed!"
+```
+
+### Complex Model Comparison
+
+Compare multiple model types with different configurations:
+
+```bash
+#!/bin/bash
+# Advanced model comparison script
+
+MODEL_TYPES=("gbm" "xgb" "random_forest" "logistic_regression")
+TEMPS=(1.0 2.0 5.0)
 ALPHAS=(0.3 0.5 0.7)
+CONFIG="medium"
 
-# Loop through configurations
+# Create experiment
+deepbridge experiment create \
+    --name model_comparison \
+    --path ./experiments/comparison \
+    --data-file data.csv \
+    --target-column target \
+    --test robustness \
+    --experiment-type binary_classification
+
+# Train all model combinations
 for model in "${MODEL_TYPES[@]}"; do
-    for temp in "${TEMPERATURES[@]}"; do
+    for temp in "${TEMPS[@]}"; do
         for alpha in "${ALPHAS[@]}"; do
-            # Create unique experiment name
-            exp_name="experiment_${model}_t${temp}_a${alpha}"
+            MODEL_NAME="${model}_t${temp}_a${alpha}"
+            echo "Training model: $MODEL_NAME"
             
-            # Run distillation
             deepbridge distill train "$model" \
-                teacher_predictions.csv \
-                features.csv \
-                --save-path "experiments/${exp_name}" \
+                --experiment-path ./experiments/comparison \
+                --model-name "$MODEL_NAME" \
                 --temperature "$temp" \
-                --alpha "$alpha"
-            
-            # Evaluate model
-            deepbridge distill evaluate \
-                "experiments/${exp_name}/model.pkl" \
-                true_labels.csv \
-                teacher_predictions.csv \
-                "experiments/${exp_name}/predictions.csv" \
-                --format json > "experiments/${exp_name}/metrics.json"
+                --alpha "$alpha" \
+                --n-trials 10
         done
     done
 done
-```
 
-### Parallel Experiment Execution
+# Run robustness tests on all models
+deepbridge robustness compare \
+    --experiment-path ./experiments/comparison \
+    --config "$CONFIG" \
+    --output ./reports/model_comparison.html
 
-```python
-# parallel_experiments.py
-import subprocess
-import multiprocessing
-from itertools import product
-
-def run_experiment(params):
-    """
-    Run a single experiment configuration
-    
-    Args:
-        params (tuple): Experiment configuration parameters
-    """
-    model, temp, alpha = params
-    exp_name = f"experiment_{model}_t{temp}_a{alpha}"
-    
-    try:
-        # Construct CLI command
-        cmd = [
-            "deepbridge", "distill", "train", model,
-            "teacher_predictions.csv",
-            "features.csv",
-            "--save-path", f"experiments/{exp_name}",
-            "--temperature", str(temp),
-            "--alpha", str(alpha)
-        ]
-        
-        # Run command
-        result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True
-        )
-        
-        # Log results
-        with open(f"experiments/{exp_name}/log.txt", "w") as log_file:
-            log_file.write(result.stdout)
-            log_file.write(result.stderr)
-        
-        return exp_name
-    except Exception as e:
-        print(f"Error in experiment {exp_name}: {e}")
-        return None
-
-def main():
-    # Define experiment configurations
-    model_types = ["gbm", "xgb", "random_forest"]
-    temperatures = [0.5, 1.0, 2.0]
-    alphas = [0.3, 0.5, 0.7]
-    
-    # Generate all possible configurations
-    experiments = list(product(model_types, temperatures, alphas))
-    
-    # Use multiprocessing to run experiments in parallel
-    with multiprocessing.Pool() as pool:
-        completed_experiments = pool.map(run_experiment, experiments)
-    
-    print("Completed experiments:", completed_experiments)
-
-if __name__ == "__main__":
-    main()
-```
-
-## Environment Configuration
-
-### Virtual Environment Setup
-
-```bash
-# Create virtual environment
-python3 -m venv deepbridge_env
-
-# Activate virtual environment
-# On Unix/macOS
-source deepbridge_env/bin/activate
-# On Windows
-deepbridge_env\Scripts\activate
-
-# Install DeepBridge
-pip install deepbridge
-
-# Create requirements file
-pip freeze > requirements.txt
-```
-
-### Configuration File
-
-Create a `deepbridge.yaml` in your project root:
-
-```yaml
-# DeepBridge Configuration
-project:
-  name: my_ml_project
-  version: 1.0.0
-
-experiments:
-  default_path: ./experiments
-  random_seed: 42
-
-distillation:
-  default_model_type: gbm
-  temperatures: [0.5, 1.0, 2.0]
-  alphas: [0.3, 0.5, 0.7]
-
-logging:
-  level: INFO
-  path: ./logs
-```
-
-## Troubleshooting
-
-### Common Issues and Solutions
-
-1. **Installation Problems**
-   - Ensure Python version compatibility (3.8+)
-   - Update pip: `python -m pip install --upgrade pip`
-   - Check system dependencies
-
-2. **Command Execution Errors**
-
-   ```bash
-   # Verbose error logging
-   DEEPBRIDGE_DEBUG=1 deepbridge distill train ...
-   ```
-
-3. **Dependency Conflicts**
-
-   ```bash
-   # Create isolated environment
-   pipx install deepbridge
-
-   # Or use explicit version
-   pip install deepbridge==X.Y.Z
-   ```
-
-### Debugging Commands
-
-```bash
-# Show detailed version information
-deepbridge --version --verbose
-
-# Validate installation
-deepbridge doctor
-
-# Check system compatibility
-deepbridge system-check
+echo "Model comparison completed!"
 ```
 
 ## Best Practices
 
-1. **Environment Management**
-   - Always use virtual environments
-   - Pin dependencies
-   - Use consistent Python versions
+### 1. Consistent Naming Convention
 
-2. **Experiment Organization**
-   - Use descriptive experiment names
-   - Store metadata with experiments
-   - Version control your configurations
+Use consistent naming conventions for experiments and outputs:
 
-3. **Security**
-   - Avoid committing sensitive data
-   - Use environment variables for credentials
-   - Implement access controls
+```bash
+# Naming pattern: <project>_<model-type>_<date>
+EXPERIMENT_NAME="customer_churn_gbm_$(date +%Y%m%d)"
 
-4. **Performance**
-   - Monitor resource usage
-   - Use parallel processing for large experiments
-   - Optimize model and data preprocessing
-
-## Extending CLI Functionality
-
-### Custom CLI Plugins
-
-```python
-# custom_plugin.py
-import typer
-
-# Create a custom CLI extension
-custom_app = typer.Typer()
-
-@custom_app.command()
-def analyze(
-    experiment_path: str,
-    output_path: str = None
-):
-    """
-    Custom analysis command for DeepBridge experiments
-    """
-    # Implement your custom analysis logic
-    print(f"Analyzing experiment: {experiment_path}")
-
-# Integrate with main DeepBridge CLI
-from deepbridge.cli import app
-app.add_typer(custom_app, name="custom")
+deepbridge experiment create \
+    --name "$EXPERIMENT_NAME" \
+    --path "./experiments/$EXPERIMENT_NAME" \
+    --data-file data.csv \
+    --target-column target
 ```
 
-## Community and Support
+### 2. Configuration Files
 
-- **Documentation**: [DeepBridge Docs](https://deepbridge.readthedocs.io/)
-- **Issue Tracker**: [GitHub Issues](https://github.com/deepbridge/deepbridge/issues)
-- **Community Chat**: [Slack Channel](https://deepbridge-community.slack.com)
+Use JSON configuration files for reproducible experiments:
+
+```json
+{
+  "experiment": {
+    "name": "production_model_v2",
+    "type": "binary_classification",
+    "tests": ["robustness", "uncertainty", "resilience"],
+    "random_state": 42
+  },
+  "data": {
+    "file": "data/processed/training_data.csv",
+    "target_column": "churn",
+    "test_size": 0.2
+  },
+  "distillation": {
+    "model_type": "gbm",
+    "temperature": 2.0,
+    "alpha": 0.5,
+    "n_trials": 50
+  }
+}
+```
+
+Then use it with the CLI:
+
+```bash
+deepbridge experiment create --config experiment_config.json
+```
+
+### 3. Output Management
+
+Organize outputs in a structured way:
+
+```bash
+# Create directory structure
+mkdir -p experiments/{data,models,reports,visualizations}
+
+# Run experiment with structured output
+deepbridge experiment create \
+    --name my_experiment \
+    --path ./experiments/models/my_experiment \
+    --data-file ./experiments/data/processed_data.csv \
+    --target-column target
+
+# Generate report to specific location
+deepbridge experiment report \
+    --path ./experiments/models/my_experiment \
+    --output ./experiments/reports/my_experiment_report.html
+```
+
+### 4. Automation and CI/CD Integration
+
+Integrate DeepBridge with CI/CD pipelines:
+
+```bash
+#!/bin/bash
+# CI/CD script for model validation
+
+# Set environment variables
+export EXPERIMENT_NAME="model_validation_$(date +%Y%m%d)"
+export DATA_PATH="./data/latest.csv"
+export REPORT_PATH="./reports/$EXPERIMENT_NAME.html"
+
+# Run validation
+deepbridge validation create "$EXPERIMENT_NAME" \
+    --data-file "$DATA_PATH" \
+    --target-column target \
+    --tests robustness
+
+# Run tests
+deepbridge validation test \
+    --path "$EXPERIMENT_NAME" \
+    --config medium
+
+# Generate report
+deepbridge experiment report \
+    --path "$EXPERIMENT_NAME" \
+    --output "$REPORT_PATH"
+
+# Check for performance thresholds
+PERFORMANCE=$(jq '.overall_score' "$EXPERIMENT_NAME/results.json")
+THRESHOLD=0.85
+
+if (( $(echo "$PERFORMANCE < $THRESHOLD" | bc -l) )); then
+    echo "Model validation failed: performance $PERFORMANCE below threshold $THRESHOLD"
+    exit 1
+else
+    echo "Model validation passed: performance $PERFORMANCE above threshold $THRESHOLD"
+    exit 0
+fi
+```
+
+## CLI Architecture
+
+The DeepBridge CLI follows the same component-based architecture as the core library:
+
+```
+┌───────────────────┐
+│      CLI App      │
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────────────────────────────────────────┐
+│                                                       │
+│  ┌───────────┐  ┌────────────┐  ┌──────────────┐      │
+│  │Experiment │  │Validation  │  │Distillation  │      │
+│  │Commands   │  │Commands    │  │Commands      │      │
+│  └───────────┘  └────────────┘  └──────────────┘      │
+│                                                       │
+│  ┌───────────┐  ┌────────────┐  ┌──────────────┐      │
+│  │Robustness │  │Visualization│  │Utility      │      │
+│  │Commands   │  │Commands     │  │Commands     │      │
+│  └───────────┘  └────────────┘  └──────────────┘      │
+│                                                       │
+└───────────────────────────────────────────────────────┘
+```
+
+Each command group interacts with the corresponding components in the core library, providing a seamless command-line interface to the entire framework.
 
 ## Conclusion
 
-The DeepBridge CLI provides a powerful, flexible interface for machine learning experiment management. By following these guidelines, you can streamline your model validation and distillation workflows.
+The DeepBridge CLI provides a powerful interface to the component-based architecture of the framework. By using these commands, you can automate complex model validation and distillation workflows, integrate them into your development pipelines, and ensure reproducible machine learning experiments.

@@ -22,7 +22,7 @@ class DBDataset:
         target_column: t.Optional[str] = None,
         features: t.Optional[t.List[str]] = None,
         model_path: t.Optional[t.Union[str, Path]] = None,
-        model: t.Optional[t.Any] = None,  # Parameter for directly passing a model object
+        model: t.Optional[t.Any] = None,  
         train_predictions: t.Optional[pd.DataFrame] = None,
         test_predictions: t.Optional[pd.DataFrame] = None,
         prob_cols: t.Optional[t.List[str]] = None,

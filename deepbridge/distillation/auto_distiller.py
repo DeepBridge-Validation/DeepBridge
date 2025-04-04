@@ -10,8 +10,10 @@ from deepbridge.core.db_data import DBDataset
 from deepbridge.config.settings import DistillationConfig
 from deepbridge.distillation.experiment_runner import ExperimentRunner
 from deepbridge.metrics.evaluator import MetricsEvaluator
-from deepbridge.visualization.auto_visualizer import AutoVisualizer
 from deepbridge.utils.reporting import ReportGenerator
+
+# Import visualization components to break circular imports
+# This will be done dynamically in _initialize_analysis_components method
 
 class AutoDistiller:
     """
@@ -265,6 +267,9 @@ class AutoDistiller:
             results_df=self.results_df,
             config=self.config
         )
+        
+        # Import here to break circular imports
+        from deepbridge.visualization.auto_visualizer import AutoVisualizer
         
         # Initialize visualizer
         self.visualizer = AutoVisualizer(

@@ -6,6 +6,8 @@ import psutil
 import warnings
 from tqdm.auto import tqdm
 
+from sklearn.preprocessing import OrdinalEncoder
+
 # Import Dask for parallel processing
 import dask
 import dask.dataframe as dd
@@ -14,6 +16,8 @@ from dask.distributed import Client, wait, progress
 
 # Import GaussianMultivariate from copulas
 from copulas.multivariate import GaussianMultivariate
+from ..utils.bernoulli_custom import BernoulliCustom
+
 
 from ..base import BaseSyntheticGenerator
 
@@ -58,14 +62,7 @@ def _process_chunk_for_dask_standalone(
     Returns:
         Processed chunk of synthetic data
     """
-    # Set random seed for reproducibility
-    np.random.seed(random_state + chunk_id)
-    
-    # Fixed code:
-    if random_state is not None:
-        np.random.seed(random_state + chunk_id)
-    else:
-        np.random.seed(chunk_id)  # Use just chunk_id if random_state is None
+    np.random.seed(random_state + chunk_id if random_state is not None else chunk_id)
 
     # Print message
     print(f"Generating chunk {chunk_id+1} with {size} samples")
@@ -296,36 +293,23 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
     def _encode_categorical_features(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Encode categorical features to numerical values for copula fitting.
-        
+
         Args:
             data: DataFrame with categorical and numerical features
             
         Returns:
-            DataFrame with all features encoded as numerical
+            DataFrame with categorical features encoded numerically
         """
-        # Create a copy to avoid modifying the original data
+        # Cria uma cópia dos dados para não alterar o original
         encoded_data = data.copy()
-        
-        for col in self.categorical_columns:
-            if col in encoded_data.columns:
-                # For categorical features, use improved encoding method
-                # Frequency-based encoding can better preserve distribution
-                value_counts = encoded_data[col].value_counts(normalize=True)
-                
-                # Map categories to their frequency (preserves distribution better)
-                freq_map = value_counts.to_dict()
-                encoded_data[col] = encoded_data[col].map(freq_map).fillna(0)
-                
-                # Add small random noise to avoid identical values
-                np.random.seed(self.random_state)
-                encoded_data[col] += np.random.normal(0, 0.01, len(encoded_data))
-                
-                # Normalize to [0, 1] range
-                min_val = encoded_data[col].min()
-                max_val = encoded_data[col].max()
-                if max_val > min_val:
-                    encoded_data[col] = (encoded_data[col] - min_val) / (max_val - min_val)
-        
+
+        if self.categorical_columns:
+            encoder = OrdinalEncoder()
+            encoded_data[self.categorical_columns] = encoder.fit_transform(encoded_data[self.categorical_columns])
+
+            # Opcional: Salvar o encoder para uso posterior (geração inversa)
+            self._categorical_encoder = encoder
+
         return encoded_data
     
     # This is now a method that prepares parameters for the standalone function
@@ -399,7 +383,7 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
     ) -> None:
         """
         Fit the Gaussian Copula generator to the input data.
-        
+
         Args:
             data: The dataset to fit the generator on
             target_column: The name of the target variable column
@@ -408,14 +392,14 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
             **kwargs: Additional parameters specific to the implementation
         """
         self.log(f"Fitting Gaussian Copula generator on dataset with {len(data)} rows...")
-        
+
         # Store target column name
         self.target_column = target_column
-        
+
         # Get stratification column if provided
         stratify_by = kwargs.get('stratify_by', None)
         stratify = data[stratify_by] if stratify_by and stratify_by in data.columns else None
-        
+
         # Determine the number of samples to use for fitting
         max_fit_samples = kwargs.get('max_fit_samples', self.fit_sample_size)
         if len(data) > max_fit_samples:
@@ -427,21 +411,21 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                 fit_data = data.sample(max_fit_samples, random_state=self.random_state)
         else:
             fit_data = data
-        
+
         # Store a small sample of original data for validation and constraint enforcement
         sample_size = min(1000, len(data))
         self.original_data_sample = data.sample(sample_size, random_state=self.random_state)
-        
+
         # Validate and infer column types
         self.categorical_columns, self.numerical_columns = self._validate_columns(
             fit_data, categorical_columns, numerical_columns
         )
-        
+
         self.log(f"Identified {len(self.categorical_columns)} categorical columns and {len(self.numerical_columns)} numerical columns")
-        
+
         # Store original data types and ranges
         self.dtypes = {col: fit_data[col].dtype for col in fit_data.columns}
-        
+
         # Store distribution parameters for numerical columns to use in post-processing
         self.num_column_stats = {}
         for col in self.numerical_columns:
@@ -457,7 +441,7 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                         'q1': col_data.quantile(0.25),
                         'q3': col_data.quantile(0.75)
                     }
-        
+
         # Store categorical value distributions for post-processing
         self.cat_column_stats = {}
         for col in self.categorical_columns:
@@ -467,34 +451,55 @@ class GaussianCopulaGenerator(BaseSyntheticGenerator):
                     'values': value_counts.index.tolist(),
                     'frequencies': value_counts.values.tolist()
                 }
-        
+
         # Handle categorical features by encoding them
         encoded_data = self._encode_categorical_features(fit_data)
-        
+
+        # Define binary columns explicitly
+        binary_columns = []
+        if target_column and fit_data[target_column].nunique() == 2:
+            binary_columns.append(target_column)
+
+        # Fit the copula model
         try:
-            # Clear memory before fitting
             gc.collect()
-            
-            # Initialize the copula model
             self.log("Initializing GaussianMultivariate copula model...")
             self.copula_model = GaussianMultivariate(random_state=self.random_state)
-            
-            # Fit the copula model
             self.log("Fitting copula model to data...")
             self.copula_model.fit(encoded_data)
-            
             self.log("Copula model fitting completed successfully")
-            
-            # Clean up to free memory
+
+            # Explicitly redefine binary columns with Bernoulli distribution
+            for column in binary_columns:
+                bernoulli_custom = BernoulliCustom()
+                bernoulli_custom.fit(encoded_data[column])
+
+                # Obter índice correto da coluna para substituição
+                column_index = self.copula_model.columns.index(column)
+
+                # Substituir pelo índice
+                self.copula_model.univariates[column_index] = bernoulli_custom
+
+                self.log(f"Explicitly set '{column}' as BernoulliCustom with parameter p = {bernoulli_custom.p:.4f}")
+
+
+            # Explicitly log marginal distributions
+            self.log("Identified marginal distributions for each column:")
+            for column, distribution in self.copula_model.univariates.items():
+                dist_name = type(distribution).__name__
+                params = distribution.to_dict()
+                self.log(f"Column '{column}': Distribution '{dist_name}' with parameters {params}")
+
             del encoded_data
             gc.collect()
-            
+
         except Exception as e:
             self.log(f"Error fitting copula model: {str(e)}")
             raise RuntimeError(f"Failed to fit copula model: {str(e)}")
-        
+
         self._is_fitted = True
         self.log("Gaussian Copula model fitting completed successfully")
+
     
     def generate(
         self, 

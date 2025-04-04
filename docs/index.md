@@ -1,118 +1,110 @@
-![DeepBridge Logo](/assets/images/logo.svg)
+# DeepBridge
 
-# DeepBridge: Advanced Machine Learning Model Validation and Distillation
+<div class="db-hero">
+  <h1>DeepBridge</h1>
+  <p>Advanced framework for machine learning model validation, distillation, and synthetic data generation</p>
+  <div class="db-hero-buttons">
+    <a href="tutorials/quickstart/" class="md-button">Get Started</a>
+    <a href="api/experiment_documentation/" class="md-button">Explore Documentation</a>
+  </div>
+</div>
 
-[![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
-[![Documentation Status](https://readthedocs.org/projects/deepbridge/badge/?version=latest)](https://deepbridge.readthedocs.io/en/latest/)
+## What is DeepBridge?
 
-## Why DeepBridge?
+DeepBridge is a comprehensive Python framework that bridges the gap between model development and deployment. It provides a structured approach to validating machine learning models, optimizing their performance through distillation, and generating high-quality synthetic data for testing and augmentation.
 
-DeepBridge is a comprehensive Python library that revolutionizes machine learning model validation and distillation. Our key features include:
+<div class="db-features">
+  <div class="feature-card">
+    <h3><span class="icon">🧪</span> Model Validation</h3>
+    <p>Rigorously test your models across multiple dimensions including robustness, uncertainty, and resilience to ensure they perform reliably in production.</p>
+  </div>
+  <div class="feature-card">
+    <h3><span class="icon">🧠</span> Knowledge Distillation</h3>
+    <p>Transfer knowledge from complex teacher models to smaller, faster student models while maintaining performance for efficient deployment.</p>
+  </div>
+  <div class="feature-card">
+    <h3><span class="icon">🔄</span> Synthetic Data</h3>
+    <p>Generate high-quality synthetic data that preserves statistical properties and privacy constraints of your original datasets.</p>
+  </div>
+  <div class="feature-card">
+    <h3><span class="icon">📊</span> Advanced Visualization</h3>
+    <p>Comprehensive visualization tools for model performance, robustness analysis, and synthetic data quality assessment.</p>
+  </div>
+</div>
 
-- 🚀 **Automated Model Validation**: Streamline experiment tracking and model comparison
-- 🧠 **Intelligent Model Distillation**: Create lightweight, high-performance models
-- 📊 **Advanced Metrics**: In-depth performance analysis
-- 🔬 **Flexible Experiment Management**: Support for multiple model types and use cases
+## Key Features
 
-## Key Differentiators
+DeepBridge is built around a powerful component-based architecture that enables modular and extensible machine learning workflows:
 
-- Seamless integration with scikit-learn
-- Support for complex model architectures
-- Automated hyperparameter optimization
-- Robust performance tracking
+### Component-Based Architecture
 
-## Installation
+The framework uses a delegation pattern to separate responsibilities into specialized components:
 
-Install DeepBridge using pip:
+- **Experiment** - The central coordination point that delegates to specialized managers
+- **BaseProcessor** - Abstract class defining core processing capabilities
+- **Specialized Managers** - Handle specific aspects like models, hyperparameters, resilience, and uncertainty
+- **TestRunner** - Coordinates test execution and result collection
+- **VisualizationManager** - Centralizes visualization capabilities
+
+### Validation Suites
+
+DeepBridge provides comprehensive validation suites to ensure your models are production-ready:
+
+- **Robustness Testing** - Evaluate model performance under data perturbations and adversarial conditions
+- **Uncertainty Quantification** - Measure model uncertainty across different data distributions
+- **Resilience Assessment** - Test model behavior with missing features and noisy inputs
+
+### Knowledge Distillation
+
+Optimize model deployment with advanced distillation techniques:
+
+- **AutoDistiller** - Automated pipeline for teacher-student model distillation
+- **Multiple Distillation Methods** - Knowledge distillation, surrogate models, and ensemble techniques
+- **Optimization Techniques** - Pruning, quantization, and temperature scaling
+
+### Synthetic Data Generation
+
+Create high-quality synthetic data with built-in validation metrics:
+
+- **Multiple Generation Methods** - Gaussian copula, CTGAN, and more
+- **Quality Assessment** - Comprehensive metrics for similarity, utility, and privacy
+- **Scalable Generation** - Efficient generation for large datasets
+
+## Getting Started
+
+DeepBridge is designed to be intuitive and easy to use. Start by installing the package:
 
 ```bash
 pip install deepbridge
 ```
 
-## Quick Start
+Then follow our [Quick Start Guide](tutorials/quickstart.md) to begin your first experiment.
 
-### Model Validation
-
-```python
-from deepbridge.model_validation import ModelValidation
-
-# Create a new experiment
-experiment = ModelValidation("my_experiment")
-
-# Add training and test data
-experiment.add_data(X_train, y_train, X_test, y_test)
-
-# Add a model to the experiment
-experiment.add_model(model, "model_v1")
-
-# Save the model
-experiment.save_model("model_v1")
-```
-
-### Model Distillation
+## Example Usage
 
 ```python
-from deepbridge.model_distiller import ModelDistiller
+from deepbridge.core.experiment import Experiment
+from deepbridge.core.db_data import DBDataset
+import pandas as pd
 
-# Create a distiller
-distiller = ModelDistiller(model_type="gbm")
+# Load your dataset
+data = pd.read_csv("your_dataset.csv")
+dataset = DBDataset(data, target_column="target")
 
-# Train the distilled model
-distiller.fit(X=features, probas=predictions)
+# Create an experiment
+experiment = Experiment(dataset)
 
-# Make predictions
-new_predictions = distiller.predict(X_test)
+# Run comprehensive validation
+results = experiment.validate(
+    robustness=True,
+    uncertainty=True,
+    resilience=True
+)
+
+# Generate report
+experiment.generate_report("experiment_results")
 ```
-
-## Key Features
-
-### Model Validation
-
-- Experiment management and tracking
-- Model versioning and storage
-- Performance metrics calculation
-- Support for surrogate models
-
-### Model Distillation
-
-- Support for multiple model types:
-  - Gradient Boosting (GBM)
-  - XGBoost
-  - Multi-layer Perceptron (MLP)
-- Automated model training
-- Comprehensive performance metrics
-- Easy model persistence
-
-### Command Line Interface
-
-```bash
-# Create a new experiment
-deepbridge validation create my_experiment --path ./experiments
-
-# Train a distilled model
-deepbridge distill train gbm predictions.csv features.csv -s ./models
-
-# Make predictions
-deepbridge distill predict ./models/model.joblib new_data.csv -o predictions.csv
-```
-
-## Next Steps
-
-- Check out the [Quick Start Guide](tutorials/quickstart.md) for a detailed introduction
-- Learn about [Model Validation](guides/validation.md)
-- Explore [Model Distillation](guides/distillation.md)
-- See the [API Reference](api/model_validation.md) for detailed documentation
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](contributing.md) for details.
 
 ## License
 
-DeepBridge is released under the MIT License. See the [License](license.md) file for more details.
-
-## Support
-
-- Report bugs and request features on [GitHub Issues](https://github.com/DeepBridge-Validation/DeepBridge/issues)
-- Join our community discussions
-- Check out our [documentation](https://deepbridge.readthedocs.io/)
+DeepBridge is available under the [MIT License](license.md).

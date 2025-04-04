@@ -180,8 +180,65 @@ def _generate_html_report(
 ) -> str:
     """Generate an HTML report on synthetic data quality."""
     
-    # Basic HTML structure with embedded CSS
-    html = """
+    # Use Jinja2 to render the template with data
+    import jinja2
+    import os
+    
+    # Path to the central templates directory
+    template_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'reports', 'templates')
+    
+    # Initialize Jinja2 environment
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(template_dir),
+        autoescape=jinja2.select_autoescape(['html', 'xml'])
+    )
+    
+    try:
+        # Load the template
+        template = env.get_template('synthetic_report.html')
+        
+        # Prepare timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Prepare data for the template
+        template_data = {
+            'generation_date': timestamp,
+            'generator_info': {
+                'method': generator_info,
+                'num_samples': len(synthetic_data),
+                'random_state': "N/A"  # This could be extracted from kwargs if available
+            },
+            'quality_score': quality_metrics.get('overall', {}).get('statistical_similarity', 0.75),
+            'metrics': {
+                'overall': quality_metrics.get('overall', {})
+            },
+            'numerical_cols': [col for col in real_data.columns if col in synthetic_data.columns 
+                             and pd.api.types.is_numeric_dtype(real_data[col])],
+            'categorical_cols': [col for col in real_data.columns if col in synthetic_data.columns 
+                               and not pd.api.types.is_numeric_dtype(real_data[col])],
+            'detailed_metrics': {
+                'statistical': quality_metrics.get('numerical', {}),
+                'privacy': quality_metrics.get('privacy', {}),
+                'utility': quality_metrics.get('categorical', {})
+            },
+            'real_sample_columns': real_data.columns[:5].tolist(),
+            'real_sample_data': real_data.head(5).values.tolist(),
+            'synthetic_sample_columns': synthetic_data.columns[:5].tolist(),
+            'synthetic_sample_data': synthetic_data.head(5).values.tolist(),
+            'numerical_data': [],  # Would need to be prepared
+            'categorical_data': [], # Would need to be prepared
+            'correlation_data': {},  # Would need to be prepared
+            'visualization_paths': visualization_paths or {}
+        }
+        
+        # Render the template
+        return template.render(**template_data)
+        
+    except Exception as e:
+        print(f"Error using template: {str(e)}. Falling back to basic HTML.")
+        
+        # Basic HTML structure with embedded CSS
+        html = """
     <!DOCTYPE html>
     <html lang="en">
     <head>

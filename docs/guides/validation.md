@@ -1,359 +1,325 @@
 # Model Validation Guide
 
-## Overview of Model Validation
+## Overview
 
-Model validation is a critical process in machine learning that ensures your models are reliable, performant, and generalizable. This guide will walk you through comprehensive strategies for validating machine learning models using DeepBridge.
+Model validation is a critical process in machine learning that ensures your models are reliable, performant, and generalizable. DeepBridge's new component-based architecture provides comprehensive tools for validating ML models across multiple dimensions. This guide explains how to use the DeepBridge components for robust model validation.
 
 ## Validation Process Flowchart
 
 ```mermaid
 graph TD
     A[Data Collection] --> B[Data Preprocessing]
-    B --> C[Train-Test Split]
-    C --> D[Model Training]
-    D --> E[Performance Evaluation]
-    E --> F{Performance Threshold?}
-    F -->|No| G[Hyperparameter Tuning]
-    G --> D
-    F -->|Yes| H[Model Validation]
-    H --> I[Cross-Validation]
-    I --> J[Generalization Check]
-    J --> K[Overfitting Detection]
-    K --> L[Final Model Selection]
-    L --> M[Model Deployment]
+    B --> C[Dataset Creation]
+    C --> D[Experiment Setup]
+    D --> E[Test Selection]
+    E --> F[Run Tests]
+    F --> G[Visualization]
+    G --> H[Report Generation]
+    H --> I[Result Analysis]
+    I --> J{Performance Sufficient?}
+    J -->|No| K[Parameter Tuning]
+    K --> E
+    J -->|Yes| L[Model Deployment]
 ```
 
-## Key Validation Strategies
+## DeepBridge Validation Architecture
 
-### 1. Comprehensive Model Validation
+```
+┌───────────────────┐
+│  Experiment       │
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐     ┌───────────────────┐
+│  TestRunner       │────>│  Test Results     │
+└─────────┬─────────┘     └─────────┬─────────┘
+          │                         │
+          ▼                         ▼
+┌───────────────────┐     ┌───────────────────┐
+│  Specialized      │     │  Visualization    │
+│  Managers         │────>│  Manager          │
+└───────────────────┘     └───────────────────┘
+```
+
+## Validation Using the Experiment Class
+
+The `Experiment` class is the central component for model validation. It orchestrates:
+
+1. Data management through `DataManager`
+2. Test execution through `TestRunner` and specialized managers
+3. Visualization through `VisualizationManager`
+4. Reporting through `ReportGenerator`
 
 ```python
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+from deepbridge.core.experiment import Experiment
+from deepbridge.core.db_data import DBDataset
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    accuracy_score, 
-    precision_score, 
-    recall_score, 
-    f1_score, 
-    roc_auc_score, 
-    confusion_matrix
+from sklearn.model_selection import train_test_split
+import pandas as pd
+
+# Load and prepare your data
+data = pd.read_csv("your_dataset.csv")
+X = data.drop(columns=["target"])
+y = data["target"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a model to test
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Create a dataset with the model
+dataset = DBDataset(
+    data=X_train,
+    target=y_train,
+    test_data=X_test,
+    test_target=y_test,
+    model=model
 )
-from deepbridge.model_validation import ModelValidation
 
-class RobustModelValidator:
-    """
-    Advanced model validation with multiple checks and strategies
-    """
-    def __init__(self, data, target_column):
-        """
-        Initialize validator with dataset
-        
-        Args:
-            data (pd.DataFrame): Full dataset
-            target_column (str): Name of the target variable
-        """
-        self.data = data
-        self.target_column = target_column
-        self.X = data.drop(columns=[target_column])
-        self.y = data[target_column]
-    
-    def validate_model(self, model, validation_strategies=None):
-        """
-        Perform comprehensive model validation
-        
-        Args:
-            model (BaseEstimator): Model to validate
-            validation_strategies (dict): Custom validation parameters
-        
-        Returns:
-            dict: Comprehensive validation results
-        """
-        # Default validation strategies
-        default_strategies = {
-            'train_test_split_ratio': 0.2,
-            'cross_validation_folds': 5,
-            'performance_thresholds': {
-                'accuracy': 0.7,
-                'precision': 0.65,
-                'recall': 0.65,
-                'f1_score': 0.7,
-                'roc_auc': 0.75
-            }
-        }
-        
-        # Merge default and custom strategies
-        strategies = {**default_strategies, **(validation_strategies or {})}
-        
-        # Validation results
-        validation_results = {
-            'preprocessing': {},
-            'train_test_split': {},
-            'cross_validation': {},
-            'performance_metrics': {},
-            'overfitting_check': {},
-            'recommendations': []
-        }
-        
-        try:
-            # 1. Preprocessing and Feature Scaling
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(self.X)
-            validation_results['preprocessing']['scaled_features'] = X_scaled.shape
-            
-            # 2. Train-Test Split
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_scaled, 
-                self.y, 
-                test_size=strategies['train_test_split_ratio'], 
-                random_state=42,
-                stratify=self.y
-            )
-            validation_results['train_test_split'] = {
-                'train_size': len(X_train),
-                'test_size': len(X_test)
-            }
-            
-            # 3. Cross-Validation
-            cv = StratifiedKFold(
-                n_splits=strategies['cross_validation_folds'], 
-                shuffle=True, 
-                random_state=42
-            )
-            cv_scores = cross_val_score(
-                model, 
-                X_scaled, 
-                self.y, 
-                cv=cv, 
-                scoring='accuracy'
-            )
-            validation_results['cross_validation'] = {
-                'mean_cv_score': cv_scores.mean(),
-                'std_cv_score': cv_scores.std(),
-                'individual_fold_scores': cv_scores.tolist()
-            }
-            
-            # 4. Model Training and Evaluation
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            y_pred_proba = model.predict_proba(X_test)[:, 1]
-            
-            # Calculate performance metrics
-            performance_metrics = {
-                'accuracy': accuracy_score(y_test, y_pred),
-                'precision': precision_score(y_test, y_pred),
-                'recall': recall_score(y_test, y_pred),
-                'f1_score': f1_score(y_test, y_pred),
-                'roc_auc': roc_auc_score(y_test, y_pred_proba),
-                'confusion_matrix': confusion_matrix(y_test, y_pred).tolist()
-            }
-            validation_results['performance_metrics'] = performance_metrics
-            
-            # 5. Overfitting Check
-            train_pred = model.predict(X_train)
-            train_accuracy = accuracy_score(y_train, train_pred)
-            test_accuracy = performance_metrics['accuracy']
-            
-            overfitting_check = {
-                'train_accuracy': train_accuracy,
-                'test_accuracy': test_accuracy,
-                'accuracy_difference': abs(train_accuracy - test_accuracy)
-            }
-            validation_results['overfitting_check'] = overfitting_check
-            
-            # 6. Performance Recommendations
-            recommendations = []
-            for metric, threshold in strategies['performance_thresholds'].items():
-                if performance_metrics[metric] < threshold:
-                    recommendations.append(
-                        f"Performance for {metric} is below threshold. "
-                        "Consider model tuning or feature engineering."
-                    )
-            
-            # Add overfitting warning
-            if overfitting_check['accuracy_difference'] > 0.1:
-                recommendations.append(
-                    "Potential overfitting detected. "
-                    "Consider regularization or more data."
-                )
-            
-            validation_results['recommendations'] = recommendations
-            
-            return validation_results
-        
-        except Exception as e:
-            print(f"Validation error: {e}")
-            raise
-    
-    def create_experiment(self, model):
-        """
-        Create a ModelValidation experiment
-        
-        Args:
-            model (BaseEstimator): Model to validate
-        
-        Returns:
-            ModelValidation: Experiment instance
-        """
-        experiment = ModelValidation(
-            experiment_name=f"{type(model).__name__}_validation"
-        )
-        
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            self.X, self.y, test_size=0.2, random_state=42
-        )
-        
-        # Add data to experiment
-        experiment.add_data(
-            X_train=X_train, 
-            y_train=y_train, 
-            X_test=X_test, 
-            y_test=y_test
-        )
-        
-        # Add model to experiment
-        experiment.add_model(model, "primary_model")
-        
-        return experiment
+# Initialize experiment with the tests you want to run
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type="binary_classification",
+    tests=["robustness", "uncertainty", "resilience", "hyperparameters"]
+)
 
-# Example Usage
-def run_model_validation():
-    # Load your dataset
-    data = pd.read_csv('your_dataset.csv')
-    
-    # Initialize validator
-    validator = RobustModelValidator(data, target_column='target')
-    
-    # Create model
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    
-    try:
-        # Validate model
-        validation_results = validator.validate_model(model)
-        
-        # Print detailed results
-        print("Model Validation Results:")
-        for section, results in validation_results.items():
-            print(f"\n{section.upper()}:")
-            print(json.dumps(results, indent=2))
-        
-        # Create experiment
-        experiment = validator.create_experiment(model)
-        
-        return validation_results, experiment
-    
-    except Exception as e:
-        print(f"Validation process failed: {e}")
+# Run tests with specified configuration intensity
+results = experiment.run_tests(config_name="medium")
 
-# Run validation
-results, experiment = run_model_validation()
+# Generate comprehensive report
+experiment.save_report("validation_report.html")
 ```
 
-## Best Practices and Common Pitfalls
+## Understanding Test Types
 
-### Best Practices
+DeepBridge provides several specialized test types, each managed by a dedicated component:
 
-1. **Data Preprocessing**
-   - Always scale or normalize features
-   - Handle missing values
-   - Encode categorical variables
-   - Remove or transform outliers
+### 1. Robustness Testing
 
-2. **Model Selection**
-   - Use multiple models
-   - Compare performance across different algorithms
-   - Consider model complexity vs. interpretability
-
-3. **Validation Techniques**
-   - Use cross-validation
-   - Stratify for imbalanced datasets
-   - Use multiple evaluation metrics
-
-### Common Pitfalls
-
-1. **Overfitting**
-   - Symptoms: Large gap between training and test performance
-   - Solutions:
-     - Use regularization
-     - Collect more data
-     - Reduce model complexity
-
-2. **Data Leakage**
-   - Avoid preprocessing entire dataset before splitting
-   - Fit scalers/encoders only on training data
-   - Use pipelines to prevent leakage
-
-3. **Inappropriate Metrics**
-   - Use multiple metrics
-   - Consider domain-specific evaluation criteria
-   - Be aware of class imbalance
-
-## Advanced Validation Scenarios
-
-### Handling Imbalanced Datasets
+Measures how model performance changes when input data is perturbed:
 
 ```python
-from sklearn.utils import class_weight
-from sklearn.metrics import balanced_accuracy_score, precision_recall_curve, average_precision_score
+# After creating experiment
+robustness_results = experiment.get_robustness_results()
 
-def validate_imbalanced_dataset(X, y, model):
-    """
-    Validate models on imbalanced datasets
-    
-    Args:
-        X (np.ndarray): Features
-        y (np.ndarray): Target variable
-        model (BaseEstimator): Model to validate
-    
-    Returns:
-        dict: Validation metrics for imbalanced data
-    """
-    # Calculate class weights
-    class_weights = class_weight.compute_class_weight(
-        'balanced', 
-        classes=np.unique(y), 
-        y=y
-    )
-    
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=42
-    )
-    
-    # Train model with class weights
-    model.fit(X_train, y_train, sample_weight=class_weights)
-    
-    # Predictions
-    y_pred = model.predict(X_test)
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
-    
-    # Advanced metrics
-    balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
-    precision_recall_auc = average_precision_score(y_test, y_pred_proba)
-    
-    return {
-        'balanced_accuracy': balanced_accuracy,
-        'precision_recall_auc': precision_recall_auc
-    }
+# Access specific robustness visualizations
+robustness_plot = experiment.plot_robustness_comparison()
+feature_importance = experiment.plot_feature_importance_robustness()
+```
+
+### 2. Uncertainty Testing
+
+Evaluates the model's ability to quantify its own prediction uncertainty:
+
+```python
+# Access uncertainty results
+uncertainty_results = experiment.get_uncertainty_results()
+
+# Generate uncertainty visualizations
+calibration_plot = experiment.plot_uncertainty_alpha_comparison()
+width_distribution = experiment.plot_uncertainty_width_distribution()
+```
+
+### 3. Resilience Testing
+
+Tests model behavior under adverse conditions like missing data:
+
+```python
+# Access resilience results
+resilience_results = experiment.get_resilience_results()
+```
+
+### 4. Hyperparameter Importance
+
+Analyzes how sensitive the model is to its hyperparameters:
+
+```python
+# Access hyperparameter importance
+hyperparameter_results = experiment.get_hyperparameter_results()
+hyperparameter_importance = experiment.get_hyperparameter_importance()
+tuning_order = experiment.get_hyperparameter_tuning_order()
+```
+
+## Working with Test Managers Directly
+
+For more control, you can work directly with the specialized test managers:
+
+```python
+from deepbridge.core.experiment.managers.robustness_manager import RobustnessManager
+
+# Create robustness manager
+robustness_manager = RobustnessManager(
+    dataset=dataset,
+    alternative_models={
+        "logistic_regression": logistic_model,
+        "decision_tree": decision_tree_model
+    },
+    verbose=True
+)
+
+# Run robustness tests with full configuration
+results = robustness_manager.run_tests(config_name="full")
+
+# Compare different models
+comparison = robustness_manager.compare_models()
+```
+
+## Validation Configurations
+
+DeepBridge supports different test configurations:
+
+1. **Quick**: Fast tests with minimal computational requirements
+2. **Medium**: Balanced approach with moderate depth
+3. **Full**: Comprehensive testing for thorough validation
+
+```python
+# Quick tests for rapid iteration
+quick_results = experiment.run_tests(config_name="quick")
+
+# Comprehensive tests for final validation
+full_results = experiment.run_tests(config_name="full")
+```
+
+## Alternative Model Comparison
+
+DeepBridge automatically creates and tests alternative models:
+
+```python
+# Create experiment with alternative model comparison
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type="binary_classification",
+    tests=["robustness"],
+    # Alternative models are automatically created
+)
+
+# Run tests to compare models
+experiment.run_tests()
+
+# Get model comparison results
+comparison_plot = experiment.plot_robustness_comparison()
+```
+
+## Best Practices
+
+### 1. Data Preparation
+
+- Use the `DBDataset` class to properly structure your data
+- Include both training and test data for comprehensive validation
+- Provide an already trained model if you want to validate it
+
+```python
+# Create complete dataset for validation
+dataset = DBDataset(
+    data=X_train,
+    target=y_train,
+    test_data=X_test,
+    test_target=y_test,
+    model=model,
+    features=feature_names,  # Optional: provide feature names
+    categorical_features=cat_features  # Optional: identify categorical features
+)
+```
+
+### 2. Multi-dimensional Validation
+
+Always test your models across multiple dimensions:
+
+```python
+# Create experiment with multiple test types
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type="binary_classification",
+    tests=[
+        "robustness",  # Test stability under perturbations
+        "uncertainty",  # Test confidence calibration
+        "resilience",  # Test behavior with missing data
+        "hyperparameters"  # Test parameter sensitivity
+    ]
+)
+```
+
+### 3. Visualization for Insight
+
+Use the visualization system to gain deeper insights:
+
+```python
+# Create multiple visualizations
+visualizations = {
+    "robustness_comparison": experiment.plot_robustness_comparison(),
+    "feature_importance": experiment.plot_feature_importance_robustness(),
+    "methods_comparison": experiment.plot_perturbation_methods_comparison(),
+    "uncertainty": experiment.plot_uncertainty_alpha_comparison()
+}
+
+# Visualizations can be displayed in notebooks or saved
+for name, fig in visualizations.items():
+    fig.write_html(f"{name}.html")
+```
+
+### 4. Comprehensive Reporting
+
+Always generate and save comprehensive reports:
+
+```python
+# Generate and save detailed HTML report
+report_path = experiment.save_report("validation_report.html")
+print(f"Report saved to: {report_path}")
+```
+
+## Common Pitfalls and Solutions
+
+### Overfitting Detection
+
+DeepBridge helps identify overfitting by comparing training and test performance:
+
+```python
+# Compare train vs test performance
+results = experiment.compare_all_models(dataset="test")
+train_results = experiment.compare_all_models(dataset="train")
+
+# Large differences between train and test performance indicate overfitting
+```
+
+### Data Leakage Prevention
+
+The component architecture helps prevent data leakage:
+
+```python
+# DataManager handles train/test splitting properly
+dataset = DBDataset(
+    data=full_data,
+    target_column="target",
+    test_size=0.2,  # Proper split with no leakage
+    random_state=42
+)
+
+# Experiment creates a clean validation pipeline
+experiment = Experiment(dataset=dataset, ...)
+```
+
+### Resource Management
+
+Configure test intensity based on your computational resources:
+
+```python
+# Quick tests for rapid iteration
+quick_results = experiment.run_tests(config_name="quick")
+
+# Use medium configuration for balanced validation
+medium_results = experiment.run_tests(config_name="medium")
+
+# Full tests for final validation when resources allow
+full_results = experiment.run_tests(config_name="full")
 ```
 
 ## Conclusion
 
-Model validation is an iterative and comprehensive process. Always:
-- Be skeptical of your initial results
-- Continuously validate and improve
-- Understand your data and model's limitations
+DeepBridge's component-based architecture provides a comprehensive framework for validating machine learning models. By using the `Experiment` class and specialized managers, you can evaluate models across multiple dimensions and gain confidence in their reliability and performance.
 
 ## Additional Resources
-- [Scikit-learn Model Evaluation](https://scikit-learn.org/stable/model_evaluation.html)
-- [Cross-Validation Guide](https://scikit-learn.org/stable/modules/cross_validation.html)
-- [Model Validation Best Practices](https://ml-cheatsheet.readthedocs.io/en/latest/validation.html)
 
-## Troubleshooting
-- Unexpected results? Double-check data preprocessing
-- Low performance? Try different models or feature engineering
-- Overfitting? Implement regularization techniques
+- [Experiment Documentation](../api/experiment_documentation.md)
+- [TestRunner Documentation](../api/test_runner_documentation.md)
+- [Component Integration Guide](../api/component_integration_guide.md)
+- [Specialized Managers Documentation](../api/specialized_managers_documentation.md)

@@ -38,8 +38,8 @@ class HTMLReportGenerator:
         # Setup Jinja2 templates
         self.template_dir = template_dir
         if not self.template_dir:
-            # Use default templates embedded in the package
-            self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+            # Use central templates directory
+            self.template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports', 'templates')
             
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)

@@ -45,3 +45,11 @@ except:
 __version__ = '0.2.0'
 
 from .synthesizer import Synthesize
+from .base_generator import BaseGenerator
+from .standard_generator import StandardGenerator
+
+__all__ = [
+    "Synthesize", 
+    "BaseGenerator", 
+    "StandardGenerator"
+]

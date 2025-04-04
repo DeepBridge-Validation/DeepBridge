@@ -1,409 +1,426 @@
 # Knowledge Distillation Guide
 
-## Theoretical Background
+## Overview
 
-### What is Knowledge Distillation?
+Knowledge Distillation is a powerful technique for creating smaller, more efficient models that preserve the performance of larger, more complex models. DeepBridge provides a comprehensive framework for knowledge distillation with its component-based architecture.
 
-Knowledge Distillation (KD) is an innovative model compression technique that transfers knowledge from a large, complex model (teacher) to a smaller, more efficient model (student). The core idea is to leverage the rich, nuanced representations learned by a complex model to guide the training of a more compact model.
+## Distillation Architecture
 
-#### Key Concepts
-
-1. **Teacher-Student Paradigm**
-   - Teacher Model: Large, complex, high-performance model
-   - Student Model: Smaller, more efficient model
-   - Goal: Preserve teacher's performance with student's efficiency
-
-### Mathematical Foundation
-
-#### Knowledge Transfer Objective
-
-The knowledge distillation loss combines two key components:
-
-1. **Soft Target Loss**
-   The core of knowledge distillation is capturing the "dark knowledge" - the soft probabilities from the teacher model.
-
-Mathematically, the soft target loss can be represented as:
+DeepBridge implements distillation through a modular component system:
 
 ```
-L_soft = KL(p_teacher || p_student)
+┌───────────────────┐
+│  Experiment       │
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐
+│  ModelManager     │
+└─────────┬─────────┘
+          │
+          ▼
+┌───────────────────┐      ┌───────────────────┐
+│  Distillation     │──────│  ModelEvaluation  │
+│  Techniques       │      └───────────────────┘
+└───────────────────┘
 ```
 
-Where:
-- `KL()` is the Kullback-Leibler divergence
-- `p_teacher` are the softened probabilities from the teacher
-- `p_student` are the softened probabilities from the student
+## Distillation Methods
 
-2. **Hard Target Loss**
-   Traditional supervised learning loss on the ground truth labels:
+DeepBridge supports multiple distillation approaches:
 
-```
-L_hard = CE(y_true, p_student)
-```
+### 1. Surrogate Model Distillation
 
-3. **Combined Loss**
-   The final loss function combines both components:
-
-```
-L_total = α * L_soft + (1 - α) * L_hard
-```
-- `α` is a hyperparameter controlling the balance between soft and hard targets
-
-## Comprehensive Knowledge Distillation Implementation
+Directly learns to mimic the output probabilities of a teacher model:
 
 ```python
+from deepbridge.distillation.techniques.surrogate import SurrogateModel
+from deepbridge.utils.model_registry import ModelType
 import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from sklearn.model_selection import train_test_split
-from typing import Optional, Dict, Any
 
-class KnowledgeDistiller:
-    """
-    Advanced Knowledge Distillation Framework
-    
-    Supports multiple distillation strategies and performance tracking
-    """
-    
-    def __init__(
-        self, 
-        teacher_model: Any, 
-        student_model: Any, 
-        temperature: float = 2.0, 
-        alpha: float = 0.5
-    ):
-        """
-        Initialize Knowledge Distillation process
-        
-        Args:
-            teacher_model: Pretrained, complex model
-            student_model: Model to be distilled
-            temperature: Softening temperature for probabilities
-            alpha: Balance between soft and hard targets
-        """
-        self.teacher_model = teacher_model
-        self.student_model = student_model
-        self.temperature = temperature
-        self.alpha = alpha
-        
-        # Performance tracking
-        self.training_history = {
-            'soft_loss': [],
-            'hard_loss': [],
-            'total_loss': [],
-            'teacher_performance': {},
-            'student_performance': {}
-        }
-    
-    def _soften_probabilities(self, logits, temperature):
-        """
-        Apply temperature scaling to logits
-        
-        Args:
-            logits: Model logits
-            temperature: Scaling temperature
-        
-        Returns:
-            Softened probabilities
-        """
-        return torch.softmax(logits / temperature, dim=1)
-    
-    def _calculate_distillation_loss(
-        self, 
-        student_outputs: torch.Tensor, 
-        teacher_outputs: torch.Tensor, 
-        ground_truth: torch.Tensor
-    ) -> Dict[str, torch.Tensor]:
-        """
-        Calculate comprehensive distillation loss
-        
-        Args:
-            student_outputs: Student model predictions
-            teacher_outputs: Teacher model predictions
-            ground_truth: True labels
-        
-        Returns:
-            Dictionary of loss components
-        """
-        # Soft target loss (KL Divergence)
-        soft_target_loss = nn.KLDivLoss(reduction='batchmean')(
-            torch.log(self._soften_probabilities(student_outputs, self.temperature)),
-            self._soften_probabilities(teacher_outputs, self.temperature)
-        )
-        
-        # Hard target loss (Cross Entropy)
-        hard_target_loss = nn.CrossEntropyLoss()(student_outputs, ground_truth)
-        
-        # Combined loss
-        total_loss = (
-            self.alpha * soft_target_loss + 
-            (1 - self.alpha) * hard_target_loss
-        )
-        
-        return {
-            'soft_loss': soft_target_loss,
-            'hard_loss': hard_target_loss,
-            'total_loss': total_loss
-        }
-    
-    def distill(
-        self, 
-        X_train: np.ndarray, 
-        y_train: np.ndarray, 
-        X_test: Optional[np.ndarray] = None,
-        y_test: Optional[np.ndarray] = None,
-        epochs: int = 50,
-        batch_size: int = 32
-    ) -> Dict[str, Any]:
-        """
-        Perform knowledge distillation
-        
-        Args:
-            X_train: Training features
-            y_train: Training labels
-            X_test: Optional test features
-            y_test: Optional test labels
-            epochs: Number of training epochs
-            batch_size: Training batch size
-        
-        Returns:
-            Distillation results and performance metrics
-        """
-        # Prepare data
-        X_train_tensor = torch.FloatTensor(X_train)
-        y_train_tensor = torch.LongTensor(y_train)
-        
-        # Prepare optimizer
-        optimizer = optim.Adam(self.student_model.parameters())
-        
-        # Distillation training loop
-        for epoch in range(epochs):
-            # Forward pass with teacher
-            with torch.no_grad():
-                teacher_outputs = self.teacher_model(X_train_tensor)
-            
-            # Student forward and backward pass
-            student_outputs = self.student_model(X_train_tensor)
-            
-            # Calculate losses
-            losses = self._calculate_distillation_loss(
-                student_outputs, teacher_outputs, y_train_tensor
-            )
-            
-            # Optimization step
-            optimizer.zero_grad()
-            losses['total_loss'].backward()
-            optimizer.step()
-            
-            # Track training progress
-            self.training_history['soft_loss'].append(
-                losses['soft_loss'].item()
-            )
-            self.training_history['hard_loss'].append(
-                losses['hard_loss'].item()
-            )
-            self.training_history['total_loss'].append(
-                losses['total_loss'].item()
-            )
-        
-        # Evaluate performance
-        return self._evaluate_distillation(
-            X_train, y_train, X_test, y_test
-        )
-    
-    def _evaluate_distillation(
-        self, 
-        X_train, 
-        y_train, 
-        X_test=None, 
-        y_test=None
-    ):
-        """
-        Comprehensive performance evaluation
-        
-        Compares teacher and student model performance
-        """
-        # Evaluate teacher
-        teacher_train_metrics = self._model_performance(
-            self.teacher_model, X_train, y_train
-        )
-        self.training_history['teacher_performance']['train'] = teacher_train_metrics
-        
-        # Evaluate student
-        student_train_metrics = self._model_performance(
-            self.student_model, X_train, y_train
-        )
-        self.training_history['student_performance']['train'] = student_train_metrics
-        
-        # Test set evaluation if provided
-        if X_test is not None and y_test is not None:
-            teacher_test_metrics = self._model_performance(
-                self.teacher_model, X_test, y_test
-            )
-            self.training_history['teacher_performance']['test'] = teacher_test_metrics
-            
-            student_test_metrics = self._model_performance(
-                self.student_model, X_test, y_test
-            )
-            self.training_history['student_performance']['test'] = student_test_metrics
-        
-        return {
-            'training_history': self.training_history,
-            'student_model': self.student_model
-        }
-    
-    def _model_performance(self, model, X, y):
-        """
-        Calculate model performance metrics
-        """
-        # Placeholder for actual metric calculation
-        # Would typically include accuracy, F1 score, etc.
-        predictions = model.predict(X)
-        return {
-            'accuracy': np.mean(predictions == y),
-            # Add more metrics as needed
-        }
+# Create and configure surrogate model
+surrogate = SurrogateModel(
+    student_model_type=ModelType.LOGISTIC_REGRESSION,
+    student_params={'C': 1.0},
+    n_trials=20  # Number of hyperparameter optimization trials
+)
 
-# Performance Benchmarking Function
-def benchmark_distillation(
-    teacher_model, 
-    student_architectures,
-    X_train, 
-    y_train, 
-    X_test, 
-    y_test
-):
-    """
-    Benchmark multiple student model architectures
-    
-    Args:
-        teacher_model: Complex teacher model
-        student_architectures: List of student model configurations
-        X_train: Training features
-        y_train: Training labels
-        X_test: Test features
-        y_test: Test labels
-    
-    Returns:
-        Comparative performance results
-    """
-    results = {}
-    
-    for student_config in student_architectures:
-        # Create student model
-        student_model = student_config['model']
-        
-        # Perform distillation
-        distiller = KnowledgeDistiller(
-            teacher_model=teacher_model,
-            student_model=student_model,
-            temperature=student_config.get('temperature', 2.0),
-            alpha=student_config.get('alpha', 0.5)
-        )
-        
-        # Run distillation
-        distillation_result = distiller.distill(
-            X_train, y_train, X_test, y_test
-        )
-        
-        # Store results
-        results[student_config['name']] = {
-            'performance': distillation_result['training_history'],
-            'model': distillation_result['student_model']
-        }
-    
-    return results
+# Train using teacher model's probability outputs
+teacher_probas = teacher_model.predict_proba(X_train)
+surrogate.fit(X=X_train, probas=teacher_probas)
 
-# Example Usage
-def run_knowledge_distillation_experiment():
-    # Prepare data (replace with your actual data)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-    
-    # Define student architectures to benchmark
-    student_architectures = [
-        {
-            'name': 'Small Neural Network',
-            'model': SmallNeuralNetwork(),
-            'temperature': 1.5,
-            'alpha': 0.7
-        },
-        {
-            'name': 'Lightweight CNN',
-            'model': LightweightCNN(),
-            'temperature': 2.0,
-            'alpha': 0.5
-        }
-    ]
-    
-    # Run distillation experiment
-    results = benchmark_distillation(
-        teacher_model=complex_teacher_model,
-        student_architectures=student_architectures,
-        X_train=X_train,
-        y_train=y_train,
-        X_test=X_test,
-        y_test=y_test
-    )
-    
-    # Analyze and print results
-    for name, result in results.items():
-        print(f"\nStudent Model: {name}")
-        print("Performance Metrics:")
-        print(result['performance'])
+# Make predictions with the surrogate model
+predictions = surrogate.predict(X_test)
+probabilities = surrogate.predict_proba(X_test)
 ```
 
-## Best Practices for Knowledge Distillation
+### 2. Knowledge Distillation
 
-### Hyperparameter Tuning
-1. **Temperature Scaling**
-   - Start with temperature values between 1.0 and 5.0
-   - Lower temperatures preserve more specific knowledge
-   - Higher temperatures create smoother probability distributions
+Uses temperature scaling to transfer knowledge from teacher to student:
 
-2. **Alpha Balancing**
-   - Typical range: 0.3 to 0.7
-   - More weight to soft targets for complex task transfer
-   - More weight to hard targets for straightforward tasks
+```python
+from deepbridge.distillation.techniques.knowledge_distillation import KnowledgeDistillation
+from deepbridge.utils.model_registry import ModelType
 
-### Common Challenges
+# Create and configure knowledge distillation
+distiller = KnowledgeDistillation(
+    teacher_model=complex_teacher_model,  # Original complex model
+    student_model_type=ModelType.GBM,     # Lighter student model type
+    temperature=2.0,                      # Softening temperature
+    alpha=0.5,                            # Balance between soft and hard targets
+    n_trials=30                           # Hyperparameter optimization trials
+)
 
-1. **Performance Gap**
-   - Not all knowledge can be perfectly transferred
-   - Some performance degradation is expected
-   - Mitigation:
-     - Try different student architectures
-     - Adjust distillation hyperparameters
-     - Use ensemble techniques
+# Train using both teacher model and actual labels
+distiller.fit(X_train, y_train)
 
-2. **Computational Overhead**
-   - Distillation process can be computationally expensive
-   - Optimize by:
-     - Sampling training data
-     - Using more efficient distillation techniques
-     - Leveraging GPU acceleration
+# Make predictions
+predictions = distiller.predict(X_test)
+probabilities = distiller.predict_proba(X_test)
+```
 
-## Advanced Techniques
+## Using Distillation in Experiments
 
-1. **Multi-Stage Distillation**
-   - Progressively compress models
-   - Transfer knowledge in multiple steps
+The `Experiment` class provides a high-level interface for distillation:
 
-2. **Ensemble Distillation**
-   - Distill knowledge from multiple teacher models
-   - Create more robust student models
+```python
+from deepbridge.core.experiment import Experiment
+from deepbridge.core.db_data import DBDataset
+from deepbridge.utils.model_registry import ModelType
+
+# Create dataset
+dataset = DBDataset(
+    data=X_train, 
+    target=y_train,
+    test_data=X_test,
+    test_target=y_test,
+    model=teacher_model  # Provide the complex teacher model
+)
+
+# Initialize experiment
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type='binary_classification',
+    tests=['robustness']  # Optionally test distilled model
+)
+
+# Perform model distillation
+experiment.fit(
+    student_model_type=ModelType.GBM,  # Choose student model type
+    distillation_method='knowledge_distillation',  # Or 'surrogate'
+    temperature=2.0,  # Temperature for softening probabilities
+    alpha=0.5,        # Balance between soft and hard targets
+    n_trials=20       # Hyperparameter optimization trials
+)
+
+# Evaluate the distilled model
+metrics = experiment.model_evaluation.evaluate_model(
+    experiment.distillation_model, 
+    "Distilled Model",
+    "distilled", 
+    X_test, 
+    y_test
+)
+
+print(f"Distilled model accuracy: {metrics.get('accuracy', 'N/A')}")
+```
+
+## Automated Distillation
+
+For even simpler model distillation, use the `AutoDistiller`:
+
+```python
+from deepbridge.auto_distiller import AutoDistiller
+from deepbridge.core.db_data import DBDataset
+from deepbridge.utils.model_registry import ModelType
+
+# Create dataset with probabilities
+dataset = DBDataset(
+    data=df,
+    target_column='target',
+    features=feature_columns,
+    prob_cols=['prob_class_0', 'prob_class_1']  # Pre-calculated probabilities
+)
+
+# Configure and run automated distillation
+distiller = AutoDistiller(
+    dataset=dataset,
+    output_dir='results',
+    test_size=0.2,
+    n_trials=10
+)
+
+# Customize model configurations to test
+distiller.customize_config(
+    model_types=[
+        ModelType.LOGISTIC_REGRESSION, 
+        ModelType.GBM, 
+        ModelType.RANDOM_FOREST
+    ],
+    temperatures=[1.0, 2.0, 5.0],
+    alphas=[0.3, 0.5, 0.7]
+)
+
+# Run the distillation process
+results = distiller.run(use_probabilities=True)
+
+# Get the best model based on test accuracy
+best_model = distiller.get_best_model(metric='test_accuracy')
+```
+
+## Working with ModelManager Directly
+
+For more advanced control, you can use the `ModelManager` component directly:
+
+```python
+from deepbridge.core.experiment.managers.model_manager import ModelManager
+from deepbridge.utils.model_registry import ModelType
+
+# Create model manager
+model_manager = ModelManager(
+    dataset=dataset,
+    experiment_type='binary_classification',
+    verbose=True
+)
+
+# Create distillation model
+distillation_model = model_manager.create_distillation_model(
+    distillation_method='knowledge_distillation',
+    student_model_type=ModelType.GBM,
+    student_params={'max_depth': 4},
+    temperature=2.0,
+    alpha=0.5,
+    use_probabilities=True,
+    n_trials=20,
+    validation_split=0.2
+)
+
+# Train the model
+distillation_model.fit(X_train, y_train)
+```
+
+## Key Parameters for Distillation
+
+### Temperature
+
+The temperature parameter controls the "softness" of probability distributions:
+
+```python
+# High temperature (softer probabilities)
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=5.0,  # Higher temperature = softer probabilities
+    alpha=0.5
+)
+
+# Low temperature (sharper probabilities)
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=1.0,  # Lower temperature = sharper probabilities
+    alpha=0.5
+)
+```
+
+### Alpha
+
+The alpha parameter balances between mimicking the teacher (soft targets) and learning from actual labels (hard targets):
+
+```python
+# Focus more on teacher probabilities
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=2.0,
+    alpha=0.8  # Higher alpha = more focus on soft targets
+)
+
+# Balance between teacher and true labels
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=2.0,
+    alpha=0.5  # Equal balance
+)
+
+# Focus more on true labels
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=2.0,
+    alpha=0.2  # Lower alpha = more focus on hard targets
+)
+```
+
+## Evaluating Distilled Models
+
+DeepBridge provides comprehensive tools for evaluating distilled models:
+
+```python
+from deepbridge.core.experiment import Experiment
+from deepbridge.core.db_data import DBDataset
+
+# Create dataset with both models
+dataset = DBDataset(
+    data=X_train, 
+    target=y_train,
+    test_data=X_test,
+    test_target=y_test,
+    model=teacher_model
+)
+
+# Initialize experiment
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type='binary_classification'
+)
+
+# Perform distillation
+experiment.fit(
+    student_model_type='gbm',
+    distillation_method='knowledge_distillation'
+)
+
+# Compare all models
+comparison = experiment.compare_all_models(dataset='test')
+print(comparison)
+
+# Run robustness tests to compare stability
+experiment.tests = ['robustness']
+results = experiment.run_tests()
+
+# Visualize comparison
+robustness_plot = experiment.plot_robustness_comparison()
+```
+
+## Distribution Matching Analysis
+
+You can analyze how well the student model matches the teacher's probability distributions:
+
+```python
+from deepbridge.core.experiment.model_evaluation import ModelEvaluation
+from sklearn.metrics import r2_score
+import numpy as np
+
+# Create model evaluation component
+evaluator = ModelEvaluation(
+    experiment_type='binary_classification',
+    metrics_calculator=None  # Or provide metrics calculator
+)
+
+# Get model predictions
+teacher_probs = teacher_model.predict_proba(X_test)
+student_probs = student_model.predict_proba(X_test)
+
+# Calculate distribution metrics
+results = evaluator._calculate_distribution_metrics(
+    teacher_probs[:, 1],  # Probability of positive class from teacher
+    student_probs[:, 1]   # Probability of positive class from student
+)
+
+ks_stat, ks_pvalue, r2 = results
+print(f"KS Statistic: {ks_stat:.4f}")
+print(f"KS p-value: {ks_pvalue:.4f}")
+print(f"R² Score: {r2:.4f}")
+```
+
+## Best Practices
+
+### 1. Model Selection
+
+Choose student models based on your deployment constraints:
+
+```python
+# For maximum accuracy and acceptable size
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.GBM,
+    temperature=2.0
+)
+
+# For smallest model size and fast inference
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.LOGISTIC_REGRESSION,
+    temperature=2.0
+)
+
+# For balanced size-performance trade-off
+distiller = KnowledgeDistillation(
+    teacher_model=teacher_model,
+    student_model_type=ModelType.DECISION_TREE,
+    temperature=2.0
+)
+```
+
+### 2. Parameter Experimentation
+
+Test multiple configurations to find the optimal settings:
+
+```python
+# Create dataset
+dataset = DBDataset(data=X_train, target=y_train, test_data=X_test, test_target=y_test)
+
+# Initialize experiment
+experiment = Experiment(dataset=dataset, experiment_type='binary_classification')
+
+# Compare different temperatures
+results = {}
+for temp in [1.0, 2.0, 5.0, 10.0]:
+    experiment.fit(
+        student_model_type='gbm',
+        distillation_method='knowledge_distillation',
+        temperature=temp,
+        alpha=0.5
+    )
+    
+    # Evaluate on test set
+    accuracy = experiment.model_evaluation.evaluate_model(
+        experiment.distillation_model, 
+        f"Temp_{temp}", 
+        "distilled", 
+        X_test, 
+        y_test
+    ).get('accuracy')
+    
+    results[f"Temperature {temp}"] = accuracy
+
+print("Temperature comparison:", results)
+```
+
+### 3. Validation After Distillation
+
+Always validate distilled models thoroughly:
+
+```python
+# Create experiment with distilled model
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type='binary_classification',
+    tests=['robustness', 'uncertainty', 'resilience']
+)
+
+# Fit distilled model
+experiment.fit(
+    student_model_type='gbm',
+    distillation_method='knowledge_distillation'
+)
+
+# Run comprehensive validation
+experiment.run_tests(config_name='full')
+
+# Generate report
+experiment.save_report('distilled_model_validation.html')
+```
 
 ## Conclusion
 
-Knowledge Distillation is a powerful technique for model compression, offering:
-- Reduced model size
-- Faster inference
-- Preserved performance
-- Improved deployment efficiency
+DeepBridge's component-based architecture provides flexible and powerful tools for knowledge distillation. By choosing the right distillation method and parameters, you can create efficient models that maintain most of the performance of complex teacher models while being much lighter and faster.
 
-## Recommended Resources
-- [Original Knowledge Distillation Paper](https://arxiv.org/abs/1503.02531)
-- [Advanced KD Techniques](https://arxiv.org/abs/1904.09216)
-- [Model Compression Strategies](https://arxiv.org/abs/1710.09282)
+## Additional Resources
+
+- [Knowledge Distillation Theory](../concepts/knowledge_distillation.md)
+- [How Student Models Learn](../concepts/model_learns.md)
+- [AutoDistiller Guide](../tutorials/AutoDistiller.md)
+- [ModelManager Documentation](../api/model_manager_documentation.md)
