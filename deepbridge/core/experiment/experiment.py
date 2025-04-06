@@ -143,29 +143,50 @@ class Experiment(IExperiment):
         # Get initial configuration and model metrics
         if self.tests:
             self.initial_results = self.test_runner.run_initial_tests()
-            # Ensure AUC is present in primary model metrics
-            if 'models' in self.initial_results and 'primary_model' in self.initial_results['models']:
-                if 'metrics' in self.initial_results['models']['primary_model']:
-                    metrics = self.initial_results['models']['primary_model']['metrics']
-                    # If we don't have auc but have roc_auc, copy it
-                    if 'roc_auc' in metrics and 'auc' not in metrics:
-                        metrics['auc'] = metrics['roc_auc']
-                    elif 'auc' in metrics and 'roc_auc' not in metrics:
+            # Process all models to ensure roc_auc is present and remove auc
+            if 'models' in self.initial_results:
+                # Helper function to calculate roc_auc for a model
+                def ensure_roc_auc(model_name, model_data, model_obj):
+                    if 'metrics' not in model_data:
+                        return
+                        
+                    metrics = model_data['metrics']
+                    
+                    # If we have auc but not roc_auc, copy it
+                    if 'auc' in metrics and 'roc_auc' not in metrics:
                         metrics['roc_auc'] = metrics['auc']
-                    # If we don't have either, calculate AUC if possible
-                    if 'auc' not in metrics and 'roc_auc' not in metrics and hasattr(self.dataset, 'model'):
+                    
+                    # If we still don't have roc_auc, calculate it if possible
+                    if 'roc_auc' not in metrics and model_obj is not None:
                         try:
                             # Only calculate if model has predict_proba
-                            if hasattr(self.dataset.model, 'predict_proba'):
+                            if hasattr(model_obj, 'predict_proba'):
                                 from sklearn.metrics import roc_auc_score
-                                y_prob = self.dataset.model.predict_proba(self.X_test)
+                                y_prob = model_obj.predict_proba(self.X_test)
                                 if y_prob.shape[1] > 1:  # For binary classification
-                                    auc_value = roc_auc_score(self.y_test, y_prob[:, 1])
-                                    metrics['auc'] = auc_value
-                                    metrics['roc_auc'] = auc_value
+                                    roc_auc = roc_auc_score(self.y_test, y_prob[:, 1])
+                                    metrics['roc_auc'] = roc_auc
+                                    if self.verbose:
+                                        print(f"Calculated ROC AUC for {model_name}: {roc_auc}")
                         except Exception as e:
                             if self.verbose:
-                                print(f"Could not calculate AUC: {str(e)}")
+                                print(f"Could not calculate ROC AUC for {model_name}: {str(e)}")
+                    
+                    # Remove auc field, keeping only roc_auc
+                    if 'auc' in metrics:
+                        metrics.pop('auc')
+                
+                # Process primary model
+                if 'primary_model' in self.initial_results['models']:
+                    ensure_roc_auc('primary_model', 
+                                  self.initial_results['models']['primary_model'],
+                                  self.dataset.model if hasattr(self.dataset, 'model') else None)
+                
+                # Process all alternative models
+                for model_name, model_data in self.initial_results['models'].items():
+                    if model_name != 'primary_model':
+                        model_obj = self.alternative_models.get(model_name)
+                        ensure_roc_auc(model_name, model_data, model_obj)
             
         # If config_name parameter is provided, automatically run tests with that configuration
         if self.config_name and self.tests:

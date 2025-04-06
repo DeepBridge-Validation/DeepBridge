@@ -162,27 +162,20 @@ class TestRunner:
                 # Will use forced AUC value below if this fails
                 pass
             
-            # Try to calculate AUC for models that support predict_proba if not already calculated
-            if 'auc' not in metrics and 'roc_auc' not in metrics:
+            # Try to calculate ROC AUC for models that support predict_proba
+            if 'roc_auc' not in metrics:
                 try:
                     if hasattr(model, 'predict_proba'):
                         y_prob = model.predict_proba(self.X_test)
                         if y_prob.shape[1] > 1:  # For binary classification
                             from sklearn.metrics import roc_auc_score
-                            auc_value = roc_auc_score(self.y_test, y_prob[:, 1])
-                            metrics['auc'] = auc_value
-                            metrics['roc_auc'] = auc_value
+                            roc_auc = roc_auc_score(self.y_test, y_prob[:, 1])
+                            metrics['roc_auc'] = roc_auc
                             if self.verbose:
-                                print(f"Calculated AUC for {model_name}: {auc_value}")
+                                print(f"Calculated ROC AUC for {model_name}: {roc_auc}")
                 except Exception as e:
                     if self.verbose:
-                        print(f"Could not calculate AUC for {model_name}: {str(e)}")
-            
-            # Make sure both metrics exist - copy from one to the other if only one exists
-            if 'auc' in metrics and 'roc_auc' not in metrics:
-                metrics['roc_auc'] = metrics['auc']
-            elif 'roc_auc' in metrics and 'auc' not in metrics:
-                metrics['auc'] = metrics['roc_auc']
+                        print(f"Could not calculate ROC AUC for {model_name}: {str(e)}")
             
             if self.verbose:
                 print(f"DEBUG: Final metrics for {model_name}: {metrics}")
