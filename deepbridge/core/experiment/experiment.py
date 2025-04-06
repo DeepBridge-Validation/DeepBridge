@@ -388,6 +388,29 @@ class Experiment(IExperiment):
         Returns:
             str: Path to the saved report
         """
+        # Combine experiment_info and initial_results to ensure we have all the data
+        combined_info = {
+            'config': {
+                'tests': self.tests,
+                'experiment_type': self.experiment_type,
+                'test_size': self.test_size,
+                'random_state': self.random_state,
+                'auto_fit': self.auto_fit
+            }
+        }
+        
+        # Add initial_results if available
+        if hasattr(self, 'initial_results'):
+            # Merge initial_results data
+            for key, value in self.initial_results.items():
+                if key == 'config' and isinstance(value, dict):
+                    # Merge configs
+                    for config_key, config_val in value.items():
+                        combined_info['config'][config_key] = config_val
+                else:
+                    # Copy other keys directly
+                    combined_info[key] = value
+        
         # Handle special report types
         if report_type == 'robustness':
             if 'robustness' not in self.test_results:
@@ -399,78 +422,54 @@ class Experiment(IExperiment):
             # Generate default path if not provided
             if report_path is None:
                 report_path = f"robustness_report_{self.experiment_type}.html"
+        
+        elif report_type == 'uncertainty':
+            if 'uncertainty' not in self.test_results:
+                raise ValueError("No uncertainty test results available. Run uncertainty tests first.")
                 
-            # Combine experiment_info and initial_results to ensure we have all the data
-            combined_info = {
-                'config': {
-                    'tests': self.tests,
-                    'experiment_type': self.experiment_type,
-                    'test_size': self.test_size,
-                    'random_state': self.random_state,
-                    'auto_fit': self.auto_fit
-                }
-            }
+            # Import the uncertainty report generator
+            from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
             
-            # Add initial_results if available
-            if hasattr(self, 'initial_results'):
-                # Merge initial_results data
-                for key, value in self.initial_results.items():
-                    if key == 'config' and isinstance(value, dict):
-                        # Merge configs
-                        for config_key, config_val in value.items():
-                            combined_info['config'][config_key] = config_val
-                    else:
-                        # Copy other keys directly
-                        combined_info[key] = value
+            # Generate default path if not provided
+            if report_path is None:
+                report_path = f"uncertainty_report_{self.experiment_type}.html"
             
-            # Include metrics for primary model
-            if 'primary_model' not in combined_info:
-                combined_info['primary_model'] = {}
-                
-            # If we have metrics in the test results, include them explicitly
-            if 'primary_model' in self.test_results.get('robustness', {}) and 'metrics' in self.test_results['robustness']['primary_model']:
-                # Copy metrics without modification
-                metrics = self.test_results['robustness']['primary_model']['metrics'].copy()
-                combined_info['primary_model']['metrics'] = metrics
-            elif 'metrics' in self.test_results.get('robustness', {}):
-                # Copy metrics without modification
-                metrics = self.test_results['robustness']['metrics'].copy()
-                combined_info['primary_model']['metrics'] = metrics
-                
-            # Include the base_score value as roc_auc for primary model if needed
-            base_score = None
-            if 'primary_model' in self.test_results.get('robustness', {}):
-                base_score = self.test_results['robustness']['primary_model'].get('base_score')
-            else:
-                base_score = self.test_results.get('robustness', {}).get('base_score')
-                
-            if base_score is not None:
-                if 'metrics' not in combined_info['primary_model']:
-                    combined_info['primary_model']['metrics'] = {}
-                if 'roc_auc' not in combined_info['primary_model']['metrics']:
-                    combined_info['primary_model']['metrics']['roc_auc'] = base_score
-                    
-            # Include models section with metrics for all models
+            # Make sure we have the models section
             if 'models' not in combined_info:
                 combined_info['models'] = {}
                 
-            # Add primary model to models section
+            # Make sure primary model is in models section
             if 'primary_model' not in combined_info['models']:
                 combined_info['models']['primary_model'] = {
-                    'metrics': combined_info['primary_model'].get('metrics', {})
+                    'metrics': {}
                 }
                 
-            # Add alternative models and their metrics
-            if 'alternative_models' in self.test_results.get('robustness', {}):
-                for model_name, model_results in self.test_results['robustness']['alternative_models'].items():
+            # If we have uncertainty specific metrics in the results, include them
+            if 'primary_model' in self.test_results.get('uncertainty', {}):
+                primary_results = self.test_results['uncertainty']['primary_model']
+                # Add important uncertainty metrics to the combined info
+                combined_info['uncertainty_metrics'] = {
+                    'calibration_score': primary_results.get('calibration_score', 0),
+                    'coverage_rate': primary_results.get('coverage_rate', 0),
+                    'avg_interval_width': primary_results.get('average_width', 0),
+                    'base_score': primary_results.get('base_score', 0)
+                }
+                
+                # If there are metrics, copy them
+                if 'metrics' in primary_results:
+                    combined_info['models']['primary_model']['metrics'] = primary_results['metrics'].copy()
+                
+            # Add alternative models if available
+            if 'alternative_models' in self.test_results.get('uncertainty', {}):
+                for model_name, model_results in self.test_results['uncertainty']['alternative_models'].items():
                     if model_name not in combined_info['models']:
                         combined_info['models'][model_name] = {}
                     
-                    # Use the calculated metrics if available in model_results
+                    # Use metrics if available
                     if 'metrics' in model_results:
                         combined_info['models'][model_name]['metrics'] = model_results['metrics'].copy()
                     else:
-                        # Otherwise, try to look up metrics from initial_results
+                        # Try to get metrics from initial_results
                         if ('models' in self.initial_results and 
                             model_name in self.initial_results['models'] and 
                             'metrics' in self.initial_results['models'][model_name]):
@@ -483,6 +482,18 @@ class Experiment(IExperiment):
             
             return generate_robustness_report(
                 self.test_results['robustness'],
+                report_path,
+                model_name="Primary Model",
+                experiment_info=experiment_info
+            )
+            
+        elif report_type == 'uncertainty':
+            # Use the combined info already prepared above
+            experiment_info = combined_info
+            
+            # Use the final prepared experiment info for report generation
+            return generate_uncertainty_report(
+                self.test_results['uncertainty'],
                 report_path,
                 model_name="Primary Model",
                 experiment_info=experiment_info
