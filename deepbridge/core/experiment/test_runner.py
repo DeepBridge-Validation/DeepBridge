@@ -162,34 +162,30 @@ class TestRunner:
                 # Will use forced AUC value below if this fails
                 pass
             
-            # FORCE A UNIQUE AUC VALUE FOR EACH MODEL
-            # Generate a deterministic but unique AUC value based on model name
-            import hashlib
-            model_hash = int(hashlib.md5(model_name.encode()).hexdigest(), 16)
+            # Try to calculate AUC for models that support predict_proba if not already calculated
+            if 'auc' not in metrics and 'roc_auc' not in metrics:
+                try:
+                    if hasattr(model, 'predict_proba'):
+                        y_prob = model.predict_proba(self.X_test)
+                        if y_prob.shape[1] > 1:  # For binary classification
+                            from sklearn.metrics import roc_auc_score
+                            auc_value = roc_auc_score(self.y_test, y_prob[:, 1])
+                            metrics['auc'] = auc_value
+                            metrics['roc_auc'] = auc_value
+                            if self.verbose:
+                                print(f"Calculated AUC for {model_name}: {auc_value}")
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Could not calculate AUC for {model_name}: {str(e)}")
             
-            # Primary model gets a high AUC
-            if model_name == "primary_model":
-                auc_value = 0.97
-            # Alternative models get slightly lower values, but each is unique
-            else:
-                # Different ranges for different models
-                if "GBM" in model_name:
-                    auc_value = 0.94 + (model_hash % 100) / 10000
-                elif "DECISION_TREE" in model_name:
-                    auc_value = 0.88 + (model_hash % 100) / 10000
-                elif "LOGISTIC_REGRESSION" in model_name:
-                    auc_value = 0.91 + (model_hash % 100) / 10000
-                else:
-                    # For any other model
-                    auc_value = 0.85 + (model_hash % 100) / 1000
-            
-            # Only use hardcoded AUC if we don't have a real one
-            if 'auc' not in metrics:
-                metrics['auc'] = auc_value
-            metrics['roc_auc'] = metrics['auc']
+            # Make sure both metrics exist - copy from one to the other if only one exists
+            if 'auc' in metrics and 'roc_auc' not in metrics:
+                metrics['roc_auc'] = metrics['auc']
+            elif 'roc_auc' in metrics and 'auc' not in metrics:
+                metrics['auc'] = metrics['roc_auc']
             
             if self.verbose:
-                print(f"DEBUG: Forced unique AUC value for {model_name}: {auc_value}")
+                print(f"DEBUG: Final metrics for {model_name}: {metrics}")
                 
             # Try to calculate F1, precision, and recall for classification
             try:

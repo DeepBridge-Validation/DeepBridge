@@ -150,10 +150,22 @@ class Experiment(IExperiment):
                     # If we don't have auc but have roc_auc, copy it
                     if 'roc_auc' in metrics and 'auc' not in metrics:
                         metrics['auc'] = metrics['roc_auc']
-                    # If we don't have either, add a default value
-                    if 'auc' not in metrics and 'roc_auc' not in metrics:
-                        metrics['auc'] = 0.97
-                        metrics['roc_auc'] = 0.97
+                    elif 'auc' in metrics and 'roc_auc' not in metrics:
+                        metrics['roc_auc'] = metrics['auc']
+                    # If we don't have either, calculate AUC if possible
+                    if 'auc' not in metrics and 'roc_auc' not in metrics and hasattr(self.dataset, 'model'):
+                        try:
+                            # Only calculate if model has predict_proba
+                            if hasattr(self.dataset.model, 'predict_proba'):
+                                from sklearn.metrics import roc_auc_score
+                                y_prob = self.dataset.model.predict_proba(self.X_test)
+                                if y_prob.shape[1] > 1:  # For binary classification
+                                    auc_value = roc_auc_score(self.y_test, y_prob[:, 1])
+                                    metrics['auc'] = auc_value
+                                    metrics['roc_auc'] = auc_value
+                        except Exception as e:
+                            if self.verbose:
+                                print(f"Could not calculate AUC: {str(e)}")
             
         # If config_name parameter is provided, automatically run tests with that configuration
         if self.config_name and self.tests:
