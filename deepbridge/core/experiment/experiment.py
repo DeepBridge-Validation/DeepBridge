@@ -388,6 +388,21 @@ class Experiment(IExperiment):
         Returns:
             str: Path to the saved report
         """
+        # Try to import report generators early to catch any import errors
+        try:
+            # Import robustness report generator if needed
+            if report_type == 'robustness':
+                import sys
+                from deepbridge.reporting.plots.robustness.robustness_report_generator import generate_robustness_report
+            
+            # Import uncertainty report generator if needed
+            elif report_type == 'uncertainty':
+                import sys
+                from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
+        except ImportError as e:
+            print(f"Error importing report generators: {str(e)}")
+            raise
+            
         # Combine experiment_info and initial_results to ensure we have all the data
         combined_info = {
             'config': {
@@ -415,24 +430,24 @@ class Experiment(IExperiment):
         if report_type == 'robustness':
             if 'robustness' not in self.test_results:
                 raise ValueError("No robustness test results available. Run robustness tests first.")
-                
-            # Import the robustness report generator
-            from deepbridge.reporting.plots.robustness.robustness_report_generator import generate_robustness_report
             
             # Generate default path if not provided
             if report_path is None:
                 report_path = f"robustness_report_{self.experiment_type}.html"
+                
+            # Make sure we have the proper import
+            from deepbridge.reporting.plots.robustness.robustness_report_generator import generate_robustness_report
         
         elif report_type == 'uncertainty':
             if 'uncertainty' not in self.test_results:
                 raise ValueError("No uncertainty test results available. Run uncertainty tests first.")
-                
-            # Import the uncertainty report generator
-            from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
             
             # Generate default path if not provided
             if report_path is None:
                 report_path = f"uncertainty_report_{self.experiment_type}.html"
+                
+            # Make sure we have the proper import
+            from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
             
             # Make sure we have the models section
             if 'models' not in combined_info:

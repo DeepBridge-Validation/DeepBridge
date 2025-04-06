@@ -475,6 +475,7 @@ class RobustnessReportGenerator:
                 primary_metrics.update(metrics)
             else:
                 # Nothing to do - use existing metrics
+                pass
         
         # Make sure we use roc_auc as the standard for AUC metrics
         if 'auc' in primary_metrics and 'roc_auc' not in primary_metrics:
