@@ -429,19 +429,15 @@ class Experiment(IExperiment):
                 
             # If we have metrics in the test results, include them explicitly
             if 'primary_model' in self.test_results.get('robustness', {}) and 'metrics' in self.test_results['robustness']['primary_model']:
+                # Copy metrics without modification
                 metrics = self.test_results['robustness']['primary_model']['metrics'].copy()
-                # Force primary model AUC to be distinctive
-                metrics['auc'] = 0.97
                 combined_info['primary_model']['metrics'] = metrics
-                print(f"DEBUG: Using direct metrics from primary model: {metrics}")
             elif 'metrics' in self.test_results.get('robustness', {}):
+                # Copy metrics without modification
                 metrics = self.test_results['robustness']['metrics'].copy()
-                # Force primary model AUC to be distinctive
-                metrics['auc'] = 0.97
                 combined_info['primary_model']['metrics'] = metrics
-                print(f"DEBUG: Using robustness metrics for primary model: {metrics}")
                 
-            # Also include any base_score value as AUC for primary model
+            # Include the base_score value as roc_auc for primary model if needed
             base_score = None
             if 'primary_model' in self.test_results.get('robustness', {}):
                 base_score = self.test_results['robustness']['primary_model'].get('base_score')
@@ -451,8 +447,8 @@ class Experiment(IExperiment):
             if base_score is not None:
                 if 'metrics' not in combined_info['primary_model']:
                     combined_info['primary_model']['metrics'] = {}
-                if 'auc' not in combined_info['primary_model']['metrics']:
-                    combined_info['primary_model']['metrics']['auc'] = base_score
+                if 'roc_auc' not in combined_info['primary_model']['metrics']:
+                    combined_info['primary_model']['metrics']['roc_auc'] = base_score
                     
             # Include models section with metrics for all models
             if 'models' not in combined_info:
@@ -470,48 +466,20 @@ class Experiment(IExperiment):
                     if model_name not in combined_info['models']:
                         combined_info['models'][model_name] = {}
                     
-                    # FORCE UNIQUE METRICS FOR EACH MODEL
-                    import hashlib
-                    model_hash = int(hashlib.md5(model_name.encode()).hexdigest(), 16)
-                    
-                    # Different models get different metrics
-                    if "GBM" in model_name:
-                        auc_value = 0.94 + (model_hash % 100) / 10000
-                    elif "DECISION_TREE" in model_name:
-                        auc_value = 0.88 + (model_hash % 100) / 10000
-                    elif "LOGISTIC_REGRESSION" in model_name:
-                        auc_value = 0.91 + (model_hash % 100) / 10000
+                    # Use the calculated metrics if available in model_results
+                    if 'metrics' in model_results:
+                        combined_info['models'][model_name]['metrics'] = model_results['metrics'].copy()
                     else:
-                        auc_value = 0.85 + (model_hash % 100) / 1000
-                        
-                    # Generate metrics based on auc_value with minor variations
-                    combined_info['models'][model_name]['metrics'] = {
-                        'auc': auc_value,
-                        'accuracy': min(0.99, auc_value - 0.02 + (model_hash % 10) / 1000),
-                        'f1': min(0.99, auc_value - 0.01 + (model_hash % 10) / 1000),
-                        'precision': min(0.99, auc_value - 0.005 + (model_hash % 10) / 1000),
-                        'recall': min(0.99, auc_value - 0.015 + (model_hash % 10) / 1000)
-                    }
-                    
-                    # Debug output
-                    print(f"DEBUG: Forced unique metrics for {model_name}: AUC={auc_value}")
-                    
-                    # Debug print
-                    print(f"DEBUG: Model {model_name} metrics: {combined_info['models'][model_name].get('metrics', {})}")
+                        # Otherwise, try to look up metrics from initial_results
+                        if ('models' in self.initial_results and 
+                            model_name in self.initial_results['models'] and 
+                            'metrics' in self.initial_results['models'][model_name]):
+                            combined_info['models'][model_name]['metrics'] = self.initial_results['models'][model_name]['metrics'].copy()
             
             # Use the combined info 
             experiment_info = combined_info
                 
-            # Debug prints to help diagnose metrics issues
-            print(f"DEBUG: Experiment report - primary model metrics:")
-            if 'primary_model' in experiment_info and 'metrics' in experiment_info['primary_model']:
-                print(f"DEBUG: Primary model metrics: {experiment_info['primary_model']['metrics']}")
-            
-            if 'models' in experiment_info:
-                print(f"DEBUG: Models in experiment_info: {list(experiment_info['models'].keys())}")
-                for model_name, model_data in experiment_info['models'].items():
-                    if 'metrics' in model_data:
-                        print(f"DEBUG: {model_name} metrics: {model_data['metrics']}")
+            # Use the final prepared experiment info for report generation
             
             return generate_robustness_report(
                 self.test_results['robustness'],

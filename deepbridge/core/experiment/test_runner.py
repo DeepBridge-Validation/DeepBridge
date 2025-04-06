@@ -177,8 +177,7 @@ class TestRunner:
                     if self.verbose:
                         print(f"Could not calculate ROC AUC for {model_name}: {str(e)}")
             
-            if self.verbose:
-                print(f"DEBUG: Final metrics for {model_name}: {metrics}")
+            # Metrics calculated, continue to classification metrics
                 
             # Try to calculate F1, precision, and recall for classification
             try:
