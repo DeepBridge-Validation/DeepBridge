@@ -210,6 +210,10 @@ class TestRunner:
             if 'auc' in metrics and 'roc_auc' not in metrics:
                 metrics['roc_auc'] = metrics['auc']
                 
+            # Make sure we have AUC in metrics
+            if 'roc_auc' in metrics and 'auc' not in metrics:
+                metrics['auc'] = metrics['roc_auc']
+            
             model_info['metrics'] = metrics
             
             # Debug output
