@@ -9,13 +9,11 @@ from deepbridge.utils.model_registry import ModelType
 
 from deepbridge.core.experiment.data_manager import DataManager
 from deepbridge.core.experiment.model_evaluation import ModelEvaluation
-from deepbridge.core.experiment.report_generator import ReportGenerator
 from deepbridge.core.experiment.managers import ModelManager
 
 # The following imports are done locally to avoid circular imports
 # and to allow easier swapping of implementations
 # from deepbridge.core.experiment.runner import TestRunner
-# from deepbridge.core.experiment.visualization import VisualizationManager
 
 from deepbridge.core.experiment.interfaces import IExperiment
 
@@ -100,7 +98,6 @@ class Experiment(IExperiment):
         self.data_manager = DataManager(dataset, test_size, random_state)
         self.model_manager = ModelManager(dataset, self.experiment_type, self.verbose)
         self.model_evaluation = ModelEvaluation(self.experiment_type, self.metrics_calculator)
-        self.report_generator = ReportGenerator()
         
         # Data handling
         self.data_manager.prepare_data()
@@ -126,11 +123,6 @@ class Experiment(IExperiment):
             self.feature_subset
         )
         self._test_results = {}
-        
-        # Initialize visualization manager
-        # Use the new enhanced VisualizationManager class from visualization.py
-        from deepbridge.core.experiment.visualization import VisualizationManager
-        self.visualization_manager = VisualizationManager(self.test_runner)
         
         # Auto-fit if enabled and dataset has probabilities
         if self.auto_fit and hasattr(dataset, 'original_prob') and dataset.original_prob is not None:
@@ -375,346 +367,46 @@ class Experiment(IExperiment):
 
     def get_comprehensive_results(self):
         """Return a comprehensive dictionary with all metrics and information."""
-        return self.report_generator.generate_comprehensive_results(
-            self.experiment_type,
-            self.test_size,
-            self.random_state,
-            self.auto_fit,
-            self.dataset,
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-            self.model,
-            self.alternative_models,
-            self.distillation_model if hasattr(self, 'distillation_model') else None,
-            self.metrics_calculator
-        )
-
-    def save_report(self, report_type: str = None, report_path: str = None) -> str:
-        """
-        Generate and save an HTML report with experiment results.
-        
-        Args:
-            report_type: Type of report to generate ('robustness', 'uncertainty', etc.).
-                If None, generates a comprehensive report with all results.
-            report_path: Path to save the generated report.
-                If None, uses a default path based on the report type.
-            
-        Returns:
-            str: Path to the saved report
-        """
-        # Combine experiment_info and initial_results to ensure we have all the data
-        experiment_info = {
+        # Simplified version that returns basic experiment info
+        return {
+            'experiment_type': self.experiment_type,
             'config': {
-                'tests': self.tests,
-                'experiment_type': self.experiment_type,
                 'test_size': self.test_size,
                 'random_state': self.random_state,
                 'auto_fit': self.auto_fit
+            },
+            'model_info': {
+                'has_primary_model': self.model is not None,
+                'has_alternative_models': len(self.alternative_models) > 0 if self.alternative_models else False,
+                'has_distillation_model': hasattr(self, 'distillation_model') and self.distillation_model is not None
             }
         }
-        
-        # Add initial_results if available
-        if hasattr(self, 'initial_results'):
-            # Merge initial_results data
-            for key, value in self.initial_results.items():
-                if key == 'config' and isinstance(value, dict):
-                    # Merge configs
-                    for config_key, config_val in value.items():
-                        experiment_info['config'][config_key] = config_val
-                else:
-                    # Copy other keys directly
-                    experiment_info[key] = value
-        
-        # Ensure we have a models section
-        if 'models' not in experiment_info:
-            experiment_info['models'] = {}
-            
-        # Ensure primary model is in models section
-        if 'primary_model' not in experiment_info['models']:
-            experiment_info['models']['primary_model'] = {
-                'metrics': {}
-            }
-        
-        # Add metrics comparison from compare_all_models() for more accurate reporting
-        try:
-            # Get comparison metrics for test dataset
-            comparison_metrics = self.compare_all_models(dataset='test')
-            if not comparison_metrics.empty:
-                # Store the comparison metrics DataFrame in experiment_info
-                experiment_info['comparison_metrics'] = comparison_metrics
-                
-                if self.verbose:
-                    print(f"Added comparison metrics from compare_all_models() to report")
-        except Exception as e:
-            if self.verbose:
-                print(f"Could not add comparison metrics: {str(e)}")
-            
-        # Handle robustness report type
-        if report_type == 'robustness':
-            if 'robustness' not in self.test_results:
-                raise ValueError("No robustness test results available. Run robustness tests first.")
-            
-            # Generate default path if not provided
-            if report_path is None:
-                report_path = f"robustness_report_{self.experiment_type}.html"
-            
-            # Add robustness-specific data
-            if 'primary_model' in self.test_results.get('robustness', {}):
-                robustness_primary = self.test_results['robustness']['primary_model']
-                # If there are metrics, copy them
-                if 'metrics' in robustness_primary:
-                    experiment_info['models']['primary_model']['metrics'] = robustness_primary['metrics'].copy()
-                
-                # Add base score if available
-                if 'base_score' in robustness_primary:
-                    base_score = robustness_primary['base_score']
-                    if 'metrics' not in experiment_info['models']['primary_model']:
-                        experiment_info['models']['primary_model']['metrics'] = {}
-                    if 'roc_auc' not in experiment_info['models']['primary_model']['metrics']:
-                        experiment_info['models']['primary_model']['metrics']['roc_auc'] = base_score
-            
-            # Add alternative models if available
-            if 'alternative_models' in self.test_results.get('robustness', {}):
-                for model_name, model_results in self.test_results['robustness']['alternative_models'].items():
-                    if model_name not in experiment_info['models']:
-                        experiment_info['models'][model_name] = {}
-                    
-                    # Use metrics if available
-                    if 'metrics' in model_results:
-                        experiment_info['models'][model_name]['metrics'] = model_results['metrics'].copy()
-            
-            # Import module and generate report
-            try:
-                # Make sure there's a base_score in the robustness results
-                if 'primary_model' in self.test_results['robustness']:
-                    # Check base_score in primary_model
-                    primary_model = self.test_results['robustness']['primary_model']
-                    
-                    # If base_score is missing from primary_model but we have metrics, add it
-                    if ('base_score' not in primary_model and 'metrics' in primary_model and 
-                       ('auc' in primary_model['metrics'] or 'roc_auc' in primary_model['metrics'])):
-                        # Use roc_auc or auc from metrics as base_score
-                        if 'roc_auc' in primary_model['metrics']:
-                            primary_model['base_score'] = primary_model['metrics']['roc_auc']
-                        elif 'auc' in primary_model['metrics']:
-                            primary_model['base_score'] = primary_model['metrics']['auc']
-                        
-                        if self.verbose:
-                            print(f"Added base_score {primary_model['base_score']} from metrics to primary model")
-                
-                # Ensure comparison_metrics is properly processed if available
-                if 'comparison_metrics' in experiment_info:
-                    try:
-                        # Convert pandas DataFrame to a list of dicts if needed
-                        if hasattr(experiment_info['comparison_metrics'], 'to_dict'):
-                            comparison_dicts = experiment_info['comparison_metrics'].to_dict('records')
-                            if self.verbose:
-                                print(f"Converted comparison_metrics DataFrame to {len(comparison_dicts)} records")
-                            experiment_info['comparison_metrics_list'] = comparison_dicts
-                    except Exception as conversion_error:
-                        print(f"Error converting comparison metrics: {str(conversion_error)}")
-                
-                from deepbridge.reporting.plots.robustness.robustness_report_generator import generate_robustness_report
-                
-                if self.verbose:
-                    print(f"Generating robustness report with {len(self.test_results['robustness'])} result keys")
-                    if 'primary_model' in self.test_results['robustness']:
-                        primary_keys = list(self.test_results['robustness']['primary_model'].keys())
-                        print(f"Primary model keys: {primary_keys}")
-                        if 'metrics' in self.test_results['robustness']['primary_model']:
-                            metrics_keys = list(self.test_results['robustness']['primary_model']['metrics'].keys())
-                            print(f"Primary model metrics keys: {metrics_keys}")
-                
-                return generate_robustness_report(
-                    self.test_results['robustness'],
-                    report_path,
-                    model_name="Primary Model",
-                    experiment_info=experiment_info
-                )
-            except ImportError as e:
-                print(f"Error importing robustness report generator: {str(e)}")
-                raise
-            except Exception as e:
-                import traceback
-                print(f"Error generating robustness report: {str(e)}")
-                print(traceback.format_exc())
-                
-                # Create a simple error report
-                with open(report_path, 'w') as f:
-                    f.write(f"""<!DOCTYPE html>
-                    <html>
-                    <head><title>Robustness Report Error</title></head>
-                    <body>
-                        <h1>Error Generating Robustness Report</h1>
-                        <pre>{str(e)}\n{traceback.format_exc()}</pre>
-                    </body>
-                    </html>""")
-                return report_path
-        
-        # Handle uncertainty report type
-        elif report_type == 'uncertainty':
-            if 'uncertainty' not in self.test_results:
-                raise ValueError("No uncertainty test results available. Run uncertainty tests first.")
-            
-            # Generate default path if not provided
-            if report_path is None:
-                report_path = f"uncertainty_report_{self.experiment_type}.html"
-            
-            # Add uncertainty-specific data
-            if 'primary_model' in self.test_results.get('uncertainty', {}):
-                uncertainty_primary = self.test_results['uncertainty']['primary_model']
-                # Add important uncertainty metrics to the experiment info
-                experiment_info['uncertainty_metrics'] = {
-                    'calibration_score': uncertainty_primary.get('calibration_score', 0),
-                    'coverage_rate': uncertainty_primary.get('coverage_rate', 0),
-                    'avg_interval_width': uncertainty_primary.get('average_width', 0),
-                    'base_score': uncertainty_primary.get('base_score', 0)
-                }
-                
-                # If there are metrics, copy them
-                if 'metrics' in uncertainty_primary:
-                    experiment_info['models']['primary_model']['metrics'] = uncertainty_primary['metrics'].copy()
-                
-                # Make sure we have roc_auc in metrics
-                if ('base_score' in uncertainty_primary and 
-                    'metrics' in experiment_info['models']['primary_model'] and 
-                    'roc_auc' not in experiment_info['models']['primary_model']['metrics']):
-                    experiment_info['models']['primary_model']['metrics']['roc_auc'] = uncertainty_primary['base_score']
-                
-            # Add alternative models if available
-            if 'alternative_models' in self.test_results.get('uncertainty', {}):
-                for model_name, model_results in self.test_results['uncertainty']['alternative_models'].items():
-                    if model_name not in experiment_info['models']:
-                        experiment_info['models'][model_name] = {}
-                    
-                    # Use metrics if available
-                    if 'metrics' in model_results:
-                        experiment_info['models'][model_name]['metrics'] = model_results['metrics'].copy()
-                        
-                    # Make sure we have roc_auc in metrics
-                    if ('base_score' in model_results and 
-                        'metrics' in experiment_info['models'][model_name] and 
-                        'roc_auc' not in experiment_info['models'][model_name]['metrics']):
-                        experiment_info['models'][model_name]['metrics']['roc_auc'] = model_results['base_score']
-            
-            # Import module and generate report
-            try:
-                from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
-                return generate_uncertainty_report(
-                    self.test_results['uncertainty'],
-                    report_path,
-                    model_name="Primary Model",
-                    experiment_info=experiment_info
-                )
-            except ImportError as e:
-                print(f"Error importing uncertainty report generator: {str(e)}")
-                raise
-            
-        # Removed duplicate uncertainty report handler block that was causing issues
-            
-        # Fall back to standard report generation
-        # Get comprehensive results
-        results = self.get_comprehensive_results()
-        
-        # Use the provided report_path or generate a default one
-        if report_path is None:
-            report_path = f"experiment_report_{self.experiment_type}.html"
-        
-        # Check if we have test results to include
-        if self.test_results:
-            # Convert regular test results to an ExperimentResult
-            from deepbridge.core.experiment.results import wrap_results
-            
-            # Combine comprehensive results with test results
-            combined_results = {
-                'experiment_type': self.experiment_type,
-                'config': {
-                    'experiment_type': self.experiment_type,
-                    'tests': self.tests,
-                    'test_size': self.test_size,
-                    'random_state': self.random_state,
-                    'auto_fit': self.auto_fit
-                },
-                **self.test_results
-            }
-            
-            # Wrap in an ExperimentResult object
-            experiment_result = wrap_results(combined_results)
-            
-            # Use the ExperimentResult's save_report method
-            return str(experiment_result.save_report(report_path))
-        
-        # Fall back to the regular report generator
-        return self.report_generator.save_report(report_path, results)
 
-    # Delegation methods to VisualizationManager
+    def save_report(self, report_type: str = None, report_path: str = None) -> str:
+        """
+        This method has been deprecated as part of removing visualization and reporting.
+        
+        Returns:
+            str: Message indicating reports are no longer supported
+        """
+        raise NotImplementedError("Reports and visualizations have been removed from this version. Use model metrics and test results directly.")
+
+    # Direct access to test results
     def get_robustness_results(self):
         """Get the robustness test results."""
-        return self.visualization_manager.get_robustness_results()
+        return self.test_results.get('robustness', {})
         
-    def get_robustness_visualizations(self):
-        """Get the robustness visualizations generated by the tests."""
-        return self.visualization_manager.get_robustness_visualizations()
-        
-    def plot_robustness_comparison(self):
-        """Get the plotly figure showing the comparison of robustness across models."""
-        return self.visualization_manager.plot_robustness_comparison()
-    
-    def plot_robustness_distribution(self):
-        """Get the boxplot showing distribution of robustness scores."""
-        return self.visualization_manager.plot_robustness_distribution()
-    
-    def plot_feature_importance_robustness(self):
-        """Get the plotly figure showing feature importance for robustness."""
-        return self.visualization_manager.plot_feature_importance_robustness()
-    
-    def plot_perturbation_methods_comparison(self):
-        """Get the plotly figure comparing different perturbation methods."""
-        return self.visualization_manager.plot_perturbation_methods_comparison()
-        
-    # Delegation methods to VisualizationManager for uncertainty
     def get_uncertainty_results(self):
         """Get the uncertainty test results."""
-        return self.visualization_manager.get_uncertainty_results()
-        
-    def get_uncertainty_visualizations(self):
-        """Get the uncertainty visualizations generated by the tests."""
-        return self.visualization_manager.get_uncertainty_visualizations()
-        
-    def plot_uncertainty_alpha_comparison(self):
-        """Get the plotly figure showing the comparison of different alpha levels."""
-        return self.visualization_manager.plot_uncertainty_alpha_comparison()
+        return self.test_results.get('uncertainty', {})
     
-    def plot_uncertainty_width_distribution(self):
-        """Get the boxplot showing distribution of interval widths."""
-        return self.visualization_manager.plot_uncertainty_width_distribution()
-    
-    def plot_feature_importance_uncertainty(self):
-        """Get the plotly figure showing feature importance for uncertainty."""
-        return self.visualization_manager.plot_feature_importance_uncertainty()
-    
-    def plot_coverage_vs_width(self):
-        """Get the plotly figure showing trade-off between coverage and width."""
-        return self.visualization_manager.plot_coverage_vs_width()
-        
-    # Delegation methods to visualization manager for resilience and hyperparameter
     def get_resilience_results(self):
         """Get the resilience test results."""
-        return self.visualization_manager.get_resilience_results()
+        return self.test_results.get('resilience', {})
     
     def get_hyperparameter_results(self):
         """Get the hyperparameter importance test results."""
-        return self.visualization_manager.get_hyperparameter_results()
-    
-    def get_hyperparameter_importance(self):
-        """Get the hyperparameter importance scores for the primary model."""
-        return self.visualization_manager.get_hyperparameter_importance()
-    
-    def get_hyperparameter_tuning_order(self):
-        """Get the suggested hyperparameter tuning order for the primary model."""
-        return self.visualization_manager.get_hyperparameter_tuning_order()
+        return self.test_results.get('hyperparameters', {})
 
     # Required properties from IExperiment interface
     @property

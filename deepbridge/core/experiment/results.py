@@ -1,6 +1,7 @@
 """
 Standardized result objects for experiment test results.
 These classes implement the interface defined in interfaces.py.
+Reporting functionality has been removed in this version.
 """
 
 import typing as t
@@ -43,92 +44,12 @@ class BaseTestResult(TestResult):
         return self._metadata
     
     def to_html(self) -> str:
-        """Convert results to HTML format - generic implementation"""
-        # Basic HTML representation
-        html = f"<h2>{self.name} Test Results</h2>"
-        html += "<table border='1'><tr><th>Metric</th><th>Value</th></tr>"
-        
-        # Add flattened results as rows in table
-        for key, value in self._flatten_dict(self.results).items():
-            if not isinstance(value, dict):  # Skip nested dictionaries
-                html += f"<tr><td>{key}</td><td>{value}</td></tr>"
-                
-        html += "</table>"
-        return html
+        """This method has been deprecated as reporting has been removed."""
+        raise NotImplementedError("HTML reporting has been removed from this version.")
     
     def save_report(self, path: t.Union[str, Path], name: t.Optional[str] = None) -> Path:
-        """Save results to a report file"""
-        path = Path(path)
-        report_name = name or f"{self.name}_report.html"
-        
-        # Ensure directory exists
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Generate full report path
-        report_path = path / report_name if path.is_dir() else path
-        
-        # Generate HTML content
-        html_content = self._generate_html_report()
-        
-        # Write to file
-        with open(report_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-            
-        return report_path
-    
-    def _generate_html_report(self) -> str:
-        """Generate a complete HTML report"""
-        # Basic HTML structure with styling
-        html = f"""<!DOCTYPE html>
-        <html>
-        <head>
-            <title>{self.name} Test Results</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
-                h1, h2, h3 {{ color: #333; }}
-                .section {{ margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 5px; }}
-                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                th, td {{ padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }}
-                th {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>{self.name} Test Results</h1>
-            <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            
-            <div class="section">
-                {self.to_html()}
-            </div>
-            
-            <div class="section">
-                <h2>Test Metadata</h2>
-                <table>
-                    <tr><th>Property</th><th>Value</th></tr>
-                    {self._metadata_to_html()}
-                </table>
-            </div>
-        </body>
-        </html>
-        """
-        return html
-    
-    def _metadata_to_html(self) -> str:
-        """Convert metadata to HTML table rows"""
-        html = ""
-        for key, value in self.metadata.items():
-            html += f"<tr><td>{key}</td><td>{value}</td></tr>"
-        return html
-    
-    def _flatten_dict(self, d: dict, parent_key: str = '', sep: str = '_') -> dict:
-        """Flatten a nested dictionary structure"""
-        items = {}
-        for k, v in d.items():
-            new_key = f"{parent_key}{sep}{k}" if parent_key else k
-            if isinstance(v, dict) and len(v) < 10:  # Only flatten small dictionaries
-                items.update(self._flatten_dict(v, new_key, sep))
-            else:
-                items[new_key] = v
-        return items
+        """This method has been deprecated as reporting has been removed."""
+        raise NotImplementedError("Report generation has been removed from this version.")
 
 
 class RobustnessResult(BaseTestResult):
@@ -136,57 +57,6 @@ class RobustnessResult(BaseTestResult):
     
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Robustness", results, metadata)
-    
-    def to_html(self) -> str:
-        """Specialized HTML representation for robustness results"""
-        html = f"<h2>Robustness Test Results</h2>"
-        
-        # Extract key robustness metrics
-        primary_results = self.results.get('primary_model', self.results)
-        
-        # Base score and impacts
-        base_score = primary_results.get('base_score', 'N/A')
-        avg_overall_impact = primary_results.get('avg_overall_impact', 'N/A')
-        
-        html += f"<p><strong>Base Model Score:</strong> {base_score}</p>"
-        html += f"<p><strong>Average Overall Impact:</strong> {avg_overall_impact}</p>"
-        
-        # Show perturbation methods if available
-        if 'raw' in primary_results:
-            html += "<h3>Raw Perturbation Results</h3>"
-            html += "<table border='1'><tr><th>Level</th><th>Impact</th></tr>"
-            
-            for level, impact in primary_results.get('raw', {}).get('by_level', {}).items():
-                html += f"<tr><td>{level}</td><td>{impact}</td></tr>"
-                
-            html += "</table>"
-            
-        if 'quantile' in primary_results:
-            html += "<h3>Quantile Perturbation Results</h3>"
-            html += "<table border='1'><tr><th>Level</th><th>Impact</th></tr>"
-            
-            for level, impact in primary_results.get('quantile', {}).get('by_level', {}).items():
-                html += f"<tr><td>{level}</td><td>{impact}</td></tr>"
-                
-            html += "</table>"
-        
-        # Feature importance if available
-        if 'feature_importance' in primary_results or 'feature_impact' in primary_results:
-            feature_importance = primary_results.get('feature_importance', primary_results.get('feature_impact', {}))
-            
-            if feature_importance:
-                html += "<h3>Feature Importance</h3>"
-                html += "<table border='1'><tr><th>Feature</th><th>Importance</th></tr>"
-                
-                # Sort features by importance
-                sorted_features = sorted(feature_importance.items(), key=lambda x: abs(x[1]), reverse=True)
-                
-                for feature, importance in sorted_features:
-                    html += f"<tr><td>{feature}</td><td>{importance:.4f}</td></tr>"
-                    
-                html += "</table>"
-        
-        return html
 
 
 class UncertaintyResult(BaseTestResult):
@@ -194,40 +64,6 @@ class UncertaintyResult(BaseTestResult):
     
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Uncertainty", results, metadata)
-    
-    def to_html(self) -> str:
-        """Specialized HTML representation for uncertainty results"""
-        html = f"<h2>Uncertainty Quantification Results</h2>"
-        
-        # Extract key uncertainty metrics
-        primary_results = self.results.get('primary_model', self.results)
-        
-        # Coverage stats
-        if 'coverage_stats' in primary_results:
-            coverage_stats = primary_results['coverage_stats']
-            html += "<h3>Coverage Statistics</h3>"
-            html += "<table border='1'><tr><th>Alpha</th><th>Expected Coverage</th><th>Actual Coverage</th><th>Avg Interval Width</th></tr>"
-            
-            for alpha, stats in coverage_stats.items():
-                expected = 1 - float(alpha)
-                actual = stats.get('coverage', 'N/A')
-                width = stats.get('avg_width', 'N/A')
-                html += f"<tr><td>{alpha}</td><td>{expected:.2f}</td><td>{actual:.4f}</td><td>{width:.4f}</td></tr>"
-                
-            html += "</table>"
-            
-        # Calibration metrics if available  
-        if 'calibration_metrics' in primary_results:
-            calibration = primary_results['calibration_metrics']
-            html += "<h3>Calibration Metrics</h3>"
-            html += "<table border='1'><tr><th>Metric</th><th>Value</th></tr>"
-            
-            for metric, value in calibration.items():
-                html += f"<tr><td>{metric}</td><td>{value}</td></tr>"
-                
-            html += "</table>"
-        
-        return html
 
 
 class ResilienceResult(BaseTestResult):
@@ -235,39 +71,6 @@ class ResilienceResult(BaseTestResult):
     
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Resilience", results, metadata)
-    
-    def to_html(self) -> str:
-        """Specialized HTML representation for resilience results"""
-        html = f"<h2>Resilience Test Results</h2>"
-        
-        # Extract key resilience metrics
-        primary_results = self.results.get('primary_model', self.results)
-        
-        # Base score
-        base_score = primary_results.get('base_score', 'N/A')
-        html += f"<p><strong>Base Model Score:</strong> {base_score}</p>"
-        
-        # Drift results by type
-        drift_types = ['covariate', 'label', 'concept']
-        
-        for drift_type in drift_types:
-            if drift_type in primary_results:
-                html += f"<h3>{drift_type.capitalize()} Drift Results</h3>"
-                html += "<table border='1'><tr><th>Intensity</th><th>Score</th><th>Impact</th></tr>"
-                
-                drift_results = primary_results[drift_type]
-                for intensity, result in drift_results.items():
-                    score = result.get('score', 'N/A')
-                    impact = result.get('impact', 'N/A')
-                    html += f"<tr><td>{intensity}</td><td>{score}</td><td>{impact}</td></tr>"
-                    
-                html += "</table>"
-                
-        # Overall resilience index if available
-        if 'resilience_index' in primary_results:
-            html += f"<p><strong>Overall Resilience Index:</strong> {primary_results['resilience_index']}</p>"
-            
-        return html
 
 
 class HyperparameterResult(BaseTestResult):
@@ -275,55 +78,12 @@ class HyperparameterResult(BaseTestResult):
     
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Hyperparameter", results, metadata)
-    
-    def to_html(self) -> str:
-        """Specialized HTML representation for hyperparameter results"""
-        html = f"<h2>Hyperparameter Importance Results</h2>"
-        
-        # Extract key hyperparameter metrics
-        primary_results = self.results.get('primary_model', self.results)
-        
-        # Hyperparameter importance
-        if 'sorted_importance' in primary_results:
-            importance = primary_results['sorted_importance']
-            html += "<h3>Hyperparameter Importance</h3>"
-            html += "<table border='1'><tr><th>Hyperparameter</th><th>Importance</th></tr>"
-            
-            # Display sorted by importance
-            for param, imp in importance.items():
-                html += f"<tr><td>{param}</td><td>{imp:.4f}</td></tr>"
-                
-            html += "</table>"
-            
-        # Tuning order if available
-        if 'tuning_order' in primary_results:
-            tuning_order = primary_results['tuning_order']
-            html += "<h3>Recommended Tuning Order</h3>"
-            html += "<ol>"
-            
-            for param in tuning_order:
-                html += f"<li>{param}</li>"
-                
-            html += "</ol>"
-            
-        # Best parameters if available
-        if 'best_params' in primary_results:
-            best_params = primary_results['best_params']
-            html += "<h3>Best Parameters</h3>"
-            html += "<table border='1'><tr><th>Parameter</th><th>Value</th></tr>"
-            
-            for param, value in best_params.items():
-                html += f"<tr><td>{param}</td><td>{value}</td></tr>"
-                
-            html += "</table>"
-            
-        return html
 
 
 class ExperimentResult:
     """
     Container for all test results from an experiment.
-    Provides methods to manage results and generate combined reports.
+    Report generation has been removed in this version.
     """
     
     def __init__(self, experiment_type: str, config: dict):
@@ -398,107 +158,12 @@ class ExperimentResult:
         return cleaned
     
     def to_html(self) -> str:
-        """Generate an HTML report with all results"""
-        # Basic HTML structure
-        html = f"""<!DOCTYPE html>
-        <html>
-        <head>
-            <title>Experiment Results</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
-                h1, h2, h3 {{ color: #333; }}
-                .section {{ margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 5px; }}
-                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                th, td {{ padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }}
-                th {{ background-color: #f2f2f2; }}
-                .summary {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; }}
-            </style>
-        </head>
-        <body>
-            <h1>Experiment Results</h1>
-            <p>Generated on: {self.generation_time.strftime('%Y-%m-%d %H:%M:%S')}</p>
-            
-            <div class="section summary">
-                <h2>Experiment Summary</h2>
-                <table>
-                    <tr><th>Property</th><th>Value</th></tr>
-                    <tr><td>Experiment Type</td><td>{self.experiment_type}</td></tr>
-                    <tr><td>Tests Performed</td><td>{', '.join(self.results.keys())}</td></tr>
-                </table>
-            </div>
-        """
-        
-        # Add each test's HTML representation
-        for name, result in self.results.items():
-            html += f"<div class='section'>{result.to_html()}</div>"
-            
-        html += "</body></html>"
-        return html
+        """This method has been deprecated as reporting has been removed."""
+        raise NotImplementedError("HTML reporting has been removed from this version.")
     
     def save_report(self, report_type: t.Optional[str] = None, path: t.Union[str, Path] = None, name: str = "experiment_report.html") -> Path:
-        """
-        Save a combined HTML report for all test results
-        
-        Args:
-            report_type: Type of report to generate ('robustness', 'uncertainty', etc.)
-                If specified, generates a specialized report using the corresponding generator
-            path: Directory path or full file path
-            name: Filename (used only if path is a directory)
-            
-        Returns:
-            Path to the saved report
-        """
-        if report_type is not None:
-            # Handle specialized report types
-            report_type = report_type.lower()
-            
-            # Default path if none provided
-            if path is None:
-                path = f"{report_type}_report.html"
-                
-            # Try to generate specialized report
-            try:
-                if report_type == 'robustness' and 'robustness' in self.results:
-                    from deepbridge.reporting.plots.robustness.robustness_report_generator import generate_robustness_report
-                    return generate_robustness_report(
-                        self.results['robustness'].results,  # Use the raw results dictionary
-                        path,
-                        model_name="Primary Model",
-                        experiment_info=self.to_dict()  # Use the full experiment dict
-                    )
-                elif report_type == 'uncertainty' and 'uncertainty' in self.results:
-                    from deepbridge.reporting.plots.uncertainty.uncertainty_report_generator import generate_uncertainty_report
-                    return generate_uncertainty_report(
-                        self.results['uncertainty'].results,  # Use the raw results dictionary
-                        path,
-                        model_name="Primary Model",
-                        experiment_info=self.to_dict()  # Use the full experiment dict
-                    )
-            except Exception as e:
-                import traceback
-                print(f"Error generating specialized {report_type} report: {str(e)}")
-                print(traceback.format_exc())
-                # Continue to default report generation
-        
-        # Default report generation
-        path = Path(path) if path is not None else Path(name)
-        
-        # Ensure directory exists
-        if path.is_dir():
-            report_path = path / name
-            path.mkdir(parents=True, exist_ok=True)
-        else:
-            report_path = path
-            path.parent.mkdir(parents=True, exist_ok=True)
-            
-        # Generate HTML content
-        html_content = self.to_html()
-        
-        # Write to file
-        with open(report_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-            
-        return report_path
+        """This method has been deprecated as reporting has been removed."""
+        raise NotImplementedError("Report generation has been removed from this version.")
     
     @classmethod
     def from_dict(cls, results_dict: dict) -> 'ExperimentResult':
