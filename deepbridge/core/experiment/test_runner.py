@@ -259,17 +259,17 @@ class TestRunner:
             config_options['quick'] = {
                 'perturbation_methods': ['raw', 'quantile'],
                 'levels': [0.1, 0.2],
-                'n_trials': 5
+                'n_trials': 3
             }
             config_options['medium'] = {
                 'perturbation_methods': ['raw', 'quantile', 'adversarial'],
-                'levels': [0.05, 0.1, 0.2],
-                'n_trials': 10
+                'levels': [0.1, 0.2, 0.4],
+                'n_trials': 6
             }
             config_options['full'] = {
                 'perturbation_methods': ['raw', 'quantile', 'adversarial', 'custom'],
-                'levels': [0.01, 0.05, 0.1, 0.2, 0.3],
-                'n_trials': 20
+                'levels': [0.1, 0.2, 0.4, 0.6, 0.8, 1.0],
+                'n_trials': 10
             }
         
         elif test_type == 'uncertainty':

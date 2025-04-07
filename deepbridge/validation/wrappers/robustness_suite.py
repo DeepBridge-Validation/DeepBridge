@@ -195,7 +195,8 @@ class RobustnessSuite:
             'raw': {'by_level': {}, 'overall': {}},
             'quantile': {'by_level': {}, 'overall': {}},
             'feature_importance': {},
-            'feature_subset': self.feature_subset  # Store the feature subset used in the test
+            'feature_subset': self.feature_subset,  # Store the feature subset used in the test
+            'metric': self.metric  # Store the metric used for evaluation
         }
         
         # Calculate baseline score

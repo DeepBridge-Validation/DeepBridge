@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Hyperparameter Analysis Report</title>
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="../../assets/images/favicon.png" type="image/png">
+    <!-- External Dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <!-- Include common report styles -->
+    <link rel="stylesheet" href="../../assets/css/report.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        @media print {
+            body {
+                font-size: 12pt;
+                background-color: white;
+                color: black;
+            }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            .tabs {
+                display: none;
+            }
+            
+            .tab-content {
+                display: block;
+                page-break-after: always;
+            }
+            
+            .plot-container {
+                height: 300px;
+                page-break-inside: avoid;
+            }
+            
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+        }
+        
+        /* Header styles */
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .logo-container {
+            flex: 0 0 180px;
+            padding-right: 20px;
+        }
+        
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        
+        .title-container {
+            flex: 1;
+        }
+        
+        .report-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 16px;
+            color: #555;
+            margin-top: 10px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2, h3 {
+            color: var(--secondary-color);
+            margin-top: 0;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        h3 {
+            font-size: 20px;
+            margin: 25px 0 15px 0;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .plot-container {
+            width: 100%;
+            height: 500px;
+            margin: 20px 0;
+        }
+        
+        .plot-container-small {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .metrics-table th, .metrics-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metrics-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .metrics-overview {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .importance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .importance-table th, .importance-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .importance-table th {
+            background-color: #f2f2f2;
+        }
+        
+        .importance-bar {
+            background-color: #3498db;
+            height: 20px;
+            border-radius: 2px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #777;
+            text-align: center;
+        }
+        
+        .footer .version {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #999;
+        }
+        
+        /* Cards styling */
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background-color: white;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: #f5f5f5;
+            padding: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+
+        /* Tabs for performance data */
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 12px 16px;
+            transition: 0.3s;
+            font-size: 16px;
+        }
+
+        .tab button:hover {
+            background-color: #ddd;
+        }
+
+        .tab button.active {
+            background-color: #2980b9;
+            color: white;
+        }
+
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-container">
+                <div class="logo-container">
+                    <img src="../../assets/images/logo.png" alt="DeepBridge Logo" class="logo">
+                </div>
+                <div class="title-container">
+                    <h1>DeepBridge Hyperparameter Analysis Report</h1>
+                    <div class="report-info">
+                        <div class="model-name"><strong>Model:</strong> Model</div>
+                        <div class="timestamp"><strong>Generated on:</strong> 2025-04-07 17:00:18</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div id="report-content">
+            <script type="text/javascript">
+                // Parse the report data
+                const reportData = JSON.parse('{"primary_model": {"importance": {"by_config": {"cv3_subs5_size0.5": {"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "normalized_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "max_depth": {"None": null, "10": null, "20": null, "30": null}, "min_samples_split": {"2": null, "5": null, "10": null}, "min_samples_leaf": {"1": null, "2": null, "4": null}}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"]}}, "all_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "normalized_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "max_depth": {"None": null, "10": null, "20": null, "30": null}, "min_samples_split": {"2": null, "5": null, "10": null}, "min_samples_leaf": {"1": null, "2": null, "4": null}}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"]}]}, "importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"], "metrics": {"accuracy": 0.982, "roc_auc": 0.9951927693489533, "f1": 0.9819959474671671, "precision": 0.982151158739503, "recall": 0.982}}, "alternative_models": {"DECISION_TREE": {"importance": {"by_config": {"cv3_subs5_size0.5": {"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "normalized_importance": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "sorted_importance": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "param_variations": {"ccp_alpha": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_impurity_decrease": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_weight_fraction_leaf": [null, null, null, null, null]}, "performance_data": {"ccp_alpha": {"0.0": null}, "max_depth": {"2": null, "5": null, "10": null}, "min_impurity_decrease": {"0.0": null}, "min_samples_leaf": {"1": null, "2": null}, "min_samples_split": {"1": null, "2": null, "4": null}, "min_weight_fraction_leaf": {"0.0": null}}, "tuning_order": ["ccp_alpha", "max_depth", "min_impurity_decrease", "min_samples_leaf", "min_samples_split", "min_weight_fraction_leaf"]}}, "all_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "normalized_importance": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "sorted_importance": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "param_variations": {"ccp_alpha": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_impurity_decrease": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_weight_fraction_leaf": [null, null, null, null, null]}, "performance_data": {"ccp_alpha": {"0.0": null}, "max_depth": {"2": null, "5": null, "10": null}, "min_impurity_decrease": {"0.0": null}, "min_samples_leaf": {"1": null, "2": null}, "min_samples_split": {"1": null, "2": null, "4": null}, "min_weight_fraction_leaf": {"0.0": null}}, "tuning_order": ["ccp_alpha", "max_depth", "min_impurity_decrease", "min_samples_leaf", "min_samples_split", "min_weight_fraction_leaf"]}]}, "importance_scores": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "sorted_importance": {"ccp_alpha": null, "max_depth": null, "min_impurity_decrease": null, "min_samples_leaf": null, "min_samples_split": null, "min_weight_fraction_leaf": null}, "tuning_order": ["ccp_alpha", "max_depth", "min_impurity_decrease", "min_samples_leaf", "min_samples_split", "min_weight_fraction_leaf"], "metrics": {"accuracy": 0.935, "roc_auc": 0.9647254697202485, "f1": 0.9349988946805626, "precision": 0.9349996598898043, "recall": 0.935}}, "LOGISTIC_REGRESSION": {"importance": {"by_config": {"cv3_subs5_size0.5": {"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"C": null, "penalty": null, "solver": null}, "normalized_importance": {"C": null, "penalty": null, "solver": null}, "sorted_importance": {"C": null, "penalty": null, "solver": null}, "param_variations": {"C": [null, null, null, null, null], "penalty": [null, null, null, null, null], "solver": [null, null, null, null, null]}, "performance_data": {"C": {"0.01": null, "0.1": null, "1.0": null, "10.0": null}, "penalty": {"l1": null, "l2": null}, "solver": {"liblinear": null, "saga": null}}, "tuning_order": ["C", "penalty", "solver"]}}, "all_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"C": null, "penalty": null, "solver": null}, "normalized_importance": {"C": null, "penalty": null, "solver": null}, "sorted_importance": {"C": null, "penalty": null, "solver": null}, "param_variations": {"C": [null, null, null, null, null], "penalty": [null, null, null, null, null], "solver": [null, null, null, null, null]}, "performance_data": {"C": {"0.01": null, "0.1": null, "1.0": null, "10.0": null}, "penalty": {"l1": null, "l2": null}, "solver": {"liblinear": null, "saga": null}}, "tuning_order": ["C", "penalty", "solver"]}]}, "importance_scores": {"C": null, "penalty": null, "solver": null}, "sorted_importance": {"C": null, "penalty": null, "solver": null}, "tuning_order": ["C", "penalty", "solver"], "metrics": {"accuracy": 0.892, "roc_auc": 0.950924436655784, "f1": 0.891998163998164, "precision": 0.892512069910651, "recall": 0.892}}, "GBM": {"importance": {"by_config": {"cv3_subs5_size0.5": {"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "normalized_importance": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "sorted_importance": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "learning_rate": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "learning_rate": {"0.01": null, "0.1": null, "0.2": null}, "max_depth": {"3": null, "5": null, "10": null}, "min_samples_split": {"2": null, "5": null, "10": null}}, "tuning_order": ["n_estimators", "learning_rate", "max_depth", "min_samples_split"]}}, "all_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "normalized_importance": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "sorted_importance": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "learning_rate": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "learning_rate": {"0.01": null, "0.1": null, "0.2": null}, "max_depth": {"3": null, "5": null, "10": null}, "min_samples_split": {"2": null, "5": null, "10": null}}, "tuning_order": ["n_estimators", "learning_rate", "max_depth", "min_samples_split"]}]}, "importance_scores": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "sorted_importance": {"n_estimators": null, "learning_rate": null, "max_depth": null, "min_samples_split": null}, "tuning_order": ["n_estimators", "learning_rate", "max_depth", "min_samples_split"], "metrics": {"accuracy": 0.9375, "roc_auc": 0.9727560255425389, "f1": 0.9374750876950666, "precision": 0.9377924782923626, "recall": 0.9375}}}, "config": {"name": "quick", "tests": ["robustness", "uncertainty", "resilience", "hyperparameters"]}, "experiment_type": "binary_classification", "importance": {"by_config": {"cv3_subs5_size0.5": {"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "normalized_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "max_depth": {"None": null, "10": null, "20": null, "30": null}, "min_samples_split": {"2": null, "5": null, "10": null}, "min_samples_leaf": {"1": null, "2": null, "4": null}}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"]}}, "all_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "normalized_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "max_depth": {"None": null, "10": null, "20": null, "30": null}, "min_samples_split": {"2": null, "5": null, "10": null}, "min_samples_leaf": {"1": null, "2": null, "4": null}}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"]}]}, "importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"], "metrics": {"accuracy": 0.982, "roc_auc": 0.9951927693489533, "f1": 0.9819959474671671, "precision": 0.982151158739503, "recall": 0.982}, "model_name": "Model", "timestamp": "2025-04-07 17:00:18", "model_type": "Unknown Model", "importance_results": [{"method": "importance", "cv": 3, "n_subsamples": 5, "subsample_size": 0.5, "raw_importance_scores": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "normalized_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "sorted_importance": {"n_estimators": null, "max_depth": null, "min_samples_split": null, "min_samples_leaf": null}, "param_variations": {"n_estimators": [null, null, null, null, null], "max_depth": [null, null, null, null, null], "min_samples_split": [null, null, null, null, null], "min_samples_leaf": [null, null, null, null, null]}, "performance_data": {"n_estimators": {"50": null, "100": null, "200": null}, "max_depth": {"None": null, "10": null, "20": null, "30": null}, "min_samples_split": {"2": null, "5": null, "10": null}, "min_samples_leaf": {"1": null, "2": null, "4": null}}, "tuning_order": ["n_estimators", "max_depth", "min_samples_split", "min_samples_leaf"]}]}');
+                console.log("Report data loaded:", reportData);
+                
+                // When the page loads, create the visualizations
+                document.addEventListener('DOMContentLoaded', function() {
+                    createReportContent();
+                });
+                
+                function createReportContent() {
+                    const contentDiv = document.getElementById('report-content');
+                    
+                    // Create summary section
+                    const summarySection = document.createElement('div');
+                    summarySection.innerHTML = `
+                        <h2>Hyperparameter Importance Analysis</h2>
+                        <div class="card">
+                            <div class="card-header">Analysis Summary</div>
+                            <div class="card-body">
+                                <p>This report analyzes the importance of various hyperparameters for model 
+                                performance. Key hyperparameters are ranked based on their impact on model results.</p>
+                                
+                                <div class="summary-stats">
+                                    <div class="metrics-overview">
+                                        <h4>Model Metrics</h4>
+                                        <div id="metrics-table"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(summarySection);
+                    
+                    // Fill metrics table if available
+                    if (reportData.metrics) {
+                        const metricsTable = document.createElement('table');
+                        metricsTable.className = 'metrics-table';
+                        let tableHTML = '<tr><th>Metric</th><th>Value</th></tr>';
+                        
+                        Object.entries(reportData.metrics).forEach(([metric, value]) => {
+                            tableHTML += `<tr><td>${metric}</td><td>${typeof value === 'number' ? value.toFixed(4) : value}</td></tr>`;
+                        });
+                        
+                        metricsTable.innerHTML = tableHTML;
+                        document.getElementById('metrics-table').appendChild(metricsTable);
+                    }
+                    
+                    // Create importance plot section
+                    const importancePlotSection = document.createElement('div');
+                    importancePlotSection.innerHTML = `
+                        <h3>Hyperparameter Importance Ranking</h3>
+                        <div id="importance-plot" class="plot-container"></div>
+                    `;
+                    contentDiv.appendChild(importancePlotSection);
+                    
+                    // Create hyperparameter importance table
+                    const importanceTableSection = document.createElement('div');
+                    importanceTableSection.innerHTML = `
+                        <h3>Hyperparameter Importance Scores</h3>
+                        <div id="importance-table-container"></div>
+                    `;
+                    contentDiv.appendChild(importanceTableSection);
+                    
+                    // Create performance plots section
+                    const performancePlotsSection = document.createElement('div');
+                    performancePlotsSection.innerHTML = `
+                        <h3>Hyperparameter Performance Impact</h3>
+                        <div class="tab" id="param-tabs"></div>
+                        <div id="performance-plots"></div>
+                    `;
+                    contentDiv.appendChild(performancePlotsSection);
+                    
+                    // Create the actual visualizations
+                    createImportancePlot();
+                    createImportanceTable();
+                    createPerformancePlots();
+                }
+                
+                function createImportancePlot() {
+                    if (!reportData.importance_scores || !reportData.tuning_order) {
+                        console.log("No importance scores found");
+                        return;
+                    }
+                    
+                    // Extract data for plotting
+                    const params = reportData.tuning_order || Object.keys(reportData.importance_scores);
+                    const scores = params.map(param => reportData.importance_scores[param] || 0);
+                    
+                    // Filter out NaN values
+                    const validData = params.map((param, index) => {
+                        return {
+                            param: param,
+                            score: scores[index]
+                        };
+                    }).filter(item => !isNaN(item.score));
+                    
+                    // Sort by score in descending order
+                    validData.sort((a, b) => b.score - a.score);
+                    
+                    // Create the bar chart
+                    const trace = {
+                        x: validData.map(item => item.param),
+                        y: validData.map(item => item.score),
+                        type: 'bar',
+                        marker: {
+                            color: '#3498db'
+                        }
+                    };
+                    
+                    const layout = {
+                        title: 'Hyperparameter Importance',
+                        xaxis: {
+                            title: 'Hyperparameter'
+                        },
+                        yaxis: {
+                            title: 'Importance Score'
+                        },
+                        margin: {
+                            l: 60,
+                            r: 30,
+                            b: 80,
+                            t: 50,
+                            pad: 4
+                        }
+                    };
+                    
+                    Plotly.newPlot('importance-plot', [trace], layout, {responsive: true});
+                }
+                
+                function createImportanceTable() {
+                    if (!reportData.importance_scores) {
+                        console.log("No importance scores found for table");
+                        return;
+                    }
+                    
+                    const tableContainer = document.getElementById('importance-table-container');
+                    
+                    // Extract data for the table
+                    const params = reportData.tuning_order || Object.keys(reportData.importance_scores);
+                    const scores = params.map(param => reportData.importance_scores[param] || 0);
+                    
+                    // Filter out NaN values and sort by score
+                    const validData = params.map((param, index) => {
+                        return {
+                            param: param,
+                            score: scores[index]
+                        };
+                    }).filter(item => !isNaN(item.score))
+                      .sort((a, b) => b.score - a.score);
+                    
+                    // Calculate the max score for proportion
+                    const maxScore = Math.max(...validData.map(item => item.score));
+                    
+                    // Create the table HTML
+                    let tableHtml = `
+                        <table class="importance-table">
+                            <thead>
+                                <tr>
+                                    <th>Hyperparameter</th>
+                                    <th>Importance Score</th>
+                                    <th>Relative Importance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    validData.forEach(item => {
+                        const relativeScore = maxScore > 0 ? (item.score / maxScore) * 100 : 0;
+                        tableHtml += `
+                            <tr>
+                                <td>${item.param}</td>
+                                <td>${item.score.toFixed(4)}</td>
+                                <td>
+                                    <div class="importance-bar" style="width: ${relativeScore}%"></div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHtml += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    tableContainer.innerHTML = tableHtml;
+                }
+                
+                function createPerformancePlots() {
+                    // Check if we have importance results with performance data
+                    if (!reportData.importance_results || reportData.importance_results.length === 0) {
+                        console.log("No importance results found for performance plots");
+                        return;
+                    }
+                    
+                    // Get first result with performance data
+                    let performanceData = null;
+                    for (const result of reportData.importance_results) {
+                        if (result.performance_data) {
+                            performanceData = result.performance_data;
+                            break;
+                        }
+                    }
+                    
+                    if (!performanceData) {
+                        console.log("No performance data found in importance results");
+                        return;
+                    }
+                    
+                    // Create tabs for hyperparameters
+                    const tabContainer = document.getElementById('param-tabs');
+                    const plotContainer = document.getElementById('performance-plots');
+                    
+                    // Get hyperparameters (params)
+                    const params = Object.keys(performanceData);
+                    
+                    // Create a tab and plot div for each parameter
+                    params.forEach((param, index) => {
+                        // Create tab button
+                        const tabButton = document.createElement('button');
+                        tabButton.className = 'tablinks';
+                        tabButton.textContent = param;
+                        tabButton.onclick = function() {
+                            openParamTab(param);
+                        };
+                        tabContainer.appendChild(tabButton);
+                        
+                        // Create tab content
+                        const tabContent = document.createElement('div');
+                        tabContent.id = `tab-${param}`;
+                        tabContent.className = 'tabcontent';
+                        
+                        // Create plot div inside tab content
+                        const plotDiv = document.createElement('div');
+                        plotDiv.id = `plot-${param}`;
+                        plotDiv.className = 'plot-container-small';
+                        tabContent.appendChild(plotDiv);
+                        
+                        plotContainer.appendChild(tabContent);
+                        
+                        // Create the plot for this parameter
+                        createParamPerformancePlot(param, performanceData[param], plotDiv.id);
+                    });
+                    
+                    // Open the first tab by default
+                    if (params.length > 0) {
+                        openParamTab(params[0]);
+                    }
+                }
+                
+                function openParamTab(paramName) {
+                    // Hide all tab content
+                    const tabcontent = document.getElementsByClassName("tabcontent");
+                    for (let i = 0; i < tabcontent.length; i++) {
+                        tabcontent[i].style.display = "none";
+                    }
+                    
+                    // Remove active class from all tabs
+                    const tablinks = document.getElementsByClassName("tablinks");
+                    for (let i = 0; i < tablinks.length; i++) {
+                        tablinks[i].className = tablinks[i].className.replace(" active", "");
+                    }
+                    
+                    // Show the current tab and add active class
+                    document.getElementById(`tab-${paramName}`).style.display = "block";
+                    
+                    // Find and activate the button
+                    for (let i = 0; i < tablinks.length; i++) {
+                        if (tablinks[i].textContent === paramName) {
+                            tablinks[i].className += " active";
+                            break;
+                        }
+                    }
+                }
+                
+                function createParamPerformancePlot(paramName, paramData, plotDivId) {
+                    // Extract x and y values
+                    const values = Object.keys(paramData);
+                    const scores = values.map(val => paramData[val]);
+                    
+                    // Filter out invalid scores
+                    const validData = values.map((val, index) => {
+                        return {
+                            value: val,
+                            score: scores[index]
+                        };
+                    }).filter(item => !isNaN(item.score) && isFinite(item.score));
+                    
+                    // Skip if no valid data
+                    if (validData.length === 0) {
+                        console.log(`No valid performance data for parameter ${paramName}`);
+                        return;
+                    }
+                    
+                    // Sort by parameter value (convert to number if possible)
+                    validData.sort((a, b) => {
+                        const aVal = isNaN(Number(a.value)) ? a.value : Number(a.value);
+                        const bVal = isNaN(Number(b.value)) ? b.value : Number(b.value);
+                        return aVal - bVal;
+                    });
+                    
+                    // Create the line chart
+                    const trace = {
+                        x: validData.map(item => item.value),
+                        y: validData.map(item => item.score),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {
+                            size: 8,
+                            color: '#2980b9'
+                        },
+                        line: {
+                            width: 2,
+                            color: '#2980b9'
+                        }
+                    };
+                    
+                    const layout = {
+                        title: `Performance Impact: ${paramName}`,
+                        xaxis: {
+                            title: paramName
+                        },
+                        yaxis: {
+                            title: reportData.metric || 'Performance Score'
+                        },
+                        margin: {
+                            l: 60,
+                            r: 30,
+                            b: 60,
+                            t: 50,
+                            pad: 4
+                        }
+                    };
+                    
+                    Plotly.newPlot(plotDivId, [trace], layout, {responsive: true});
+                }
+            </script>
+        </div>
+        
+        <div class="footer">
+            <p>Generated using DeepBridge Hyperparameter Analysis</p>
+            <p>&copy; 2025 DeepBridge</p>
+            <p class="version">Version 1.0</p>
+        </div>
+    </div>
+</body>
+</html>

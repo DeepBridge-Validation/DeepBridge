@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DeepBridge Report{% endblock %}</title>
     
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{{ favicon_path|default('assets/images/favicon.png') }}" type="image/png">
+    
     <!-- External dependencies -->
     <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
     
@@ -14,6 +17,58 @@
     <!-- Base JavaScript -->
     <script src="{{ js_path|default('assets/js/report.js') }}"></script>
     
+    <style>
+        /* Base Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+        
+        header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #777;
+            font-size: 0.9em;
+        }
+        
+        /* Responsive layout */
+        @media (max-width: 768px) {
+            .container {
+                width: 100%;
+            }
+            
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+    
     <!-- Additional head content -->
     {% block head %}{% endblock %}
 </head>
@@ -21,9 +76,7 @@
     <div class="container">
         <header>
             {% block header %}
-            <h1>DeepBridge Analysis Report</h1>
-            <div id="model-name">{{ model_name }}</div>
-            <div id="timestamp">Generated on: {{ timestamp }}</div>
+            {% include "shared/header.html" with report_title="DeepBridge Analysis Report" %}
             {% endblock %}
         </header>
 

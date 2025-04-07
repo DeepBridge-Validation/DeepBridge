@@ -130,7 +130,12 @@ class ExperimentResult:
         test_type = test_type.lower()
         
         # Check if we have results for this test type
-        result = self.results.get(test_type)
+        # Handle the case where hyperparameters is plural but the key is singular
+        lookup_key = test_type
+        if test_type == "hyperparameters":
+            lookup_key = "hyperparameter"
+            
+        result = self.results.get(lookup_key)
         if not result:
             raise ValueError(f"No {test_type} test results found. Run the test first.")
         

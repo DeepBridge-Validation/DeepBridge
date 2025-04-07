@@ -1,7 +1,82 @@
 <div class="report-header">
-    <h1>{{ report_title }}</h1>
-    <div class="report-info">
-        <div class="model-name">{{ model_name }}</div>
-        <div class="timestamp">Generated on: {{ timestamp }}</div>
+    <div class="header-container">
+        <div class="logo-container">
+            <img src="../../assets/images/logo.png" alt="DeepBridge Logo" class="logo">
+        </div>
+        <div class="title-container">
+            <h1>{{ report_title }}</h1>
+            <div class="report-info">
+                <div class="model-name"><strong>Model:</strong> {{ model_name }}</div>
+                <div class="timestamp"><strong>Generated on:</strong> {{ timestamp }}</div>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    .report-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 15px 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .header-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .logo-container {
+        flex: 0 0 180px;
+        padding-right: 20px;
+    }
+    
+    .logo {
+        max-width: 150px;
+        height: auto;
+    }
+    
+    .title-container {
+        flex: 1;
+    }
+    
+    .report-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+        color: #2c3e50;
+    }
+    
+    .report-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        font-size: 16px;
+        color: #555;
+    }
+    
+    .model-name, .timestamp {
+        flex-grow: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .header-container {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: 15px;
+            padding-right: 0;
+        }
+        
+        .report-info {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+</style>

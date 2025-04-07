@@ -4,6 +4,7 @@ Report generation module for experiment results.
 
 import os
 import json
+import math
 import datetime
 from typing import Dict, Any, Optional, Union
 
@@ -76,14 +77,24 @@ class ReportManager:
             
             # Check for float numpy types
             if hasattr(np, 'floating') and isinstance(data, np.floating):
+                # Handle NaN and Inf values
+                if np.isnan(data) or np.isinf(data):
+                    return None
                 return float(data)
             # Check for specific float types
             elif any(hasattr(np, t) and isinstance(data, getattr(np, t)) 
                      for t in ['float16', 'float32', 'float64']):
+                if np.isnan(data) or np.isinf(data):
+                    return None
                 return float(data)
             
             # Check for numpy array
             elif isinstance(data, np.ndarray):
+                # Convert array to list, replacing NaN/Inf with None
+                if np.issubdtype(data.dtype, np.floating):
+                    result = data.tolist()
+                    if isinstance(result, list):
+                        return [None if (isinstance(x, float) and (math.isnan(x) or math.isinf(x))) else x for x in result]
                 return data.tolist()
         
         # Handle other types
@@ -93,6 +104,8 @@ class ReportManager:
             return [self.convert_numpy_types(item) for item in data]
         elif isinstance(data, (datetime.datetime, datetime.date)):
             return data.isoformat()
+        elif isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
+            return None
         else:
             return data
     
@@ -160,13 +173,22 @@ class ReportManager:
             def transform_robustness_data(results_raw, local_model_name=model_name, local_timestamp=timestamp):
                 print("Transforming robustness data structure...")
                 
+                # Debug input data
+                print("Raw structure keys:", [k for k in results_raw.keys() if isinstance(results_raw, dict)])
+                if isinstance(results_raw, dict) and 'raw' in results_raw:
+                    print("Raw section exists with keys:", list(results_raw['raw'].keys()))
+                    if 'by_level' in results_raw['raw']:
+                        print("Raw by_level exists with levels:", list(results_raw['raw']['by_level'].keys()))
+                
                 # Convert results to a compatible format for the template
                 if hasattr(results_raw, 'to_dict'):
                     report_data = results_raw.to_dict()
+                    print("Used to_dict() method to convert results")
                 else:
                     # Create a deep copy to avoid modifying the original
                     import copy
                     report_data = copy.deepcopy(results_raw)
+                    print("Used deep copy to convert results")
                 
                 # Handle case where results are nested under 'primary_model' key
                 if 'primary_model' in report_data:
@@ -527,10 +549,13 @@ class ReportManager:
             # Convert numpy types to native Python types
             report_data = self.convert_numpy_types(report_data)
             
-            # Ensure JSON serialization will work
+            # Ensure JSON serialization will work, handling NaN values
             def json_serializer(obj):
                 if isinstance(obj, (datetime.datetime, datetime.date)):
                     return obj.isoformat()
+                # Handle NaN values which are not valid in JSON
+                if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                    return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
             
             # Print the structure of report_data for debugging
@@ -633,6 +658,9 @@ class ReportManager:
                     # Try to extract from other fields if possible
                     if 'test_results' in report_data and isinstance(report_data['test_results'], list):
                         report_data['distribution_shift_results'] = report_data['test_results']
+                    elif 'distribution_shift' in report_data and 'all_results' in report_data['distribution_shift']:
+                        # Extract results from the nested structure
+                        report_data['distribution_shift_results'] = report_data['distribution_shift']['all_results']
                     else:
                         # Create empty results
                         report_data['distribution_shift_results'] = []
@@ -694,10 +722,13 @@ class ReportManager:
             # Convert numpy types to native Python types
             report_data = self.convert_numpy_types(report_data)
             
-            # Ensure JSON serialization will work
+            # Ensure JSON serialization will work, handling NaN values
             def json_serializer(obj):
                 if isinstance(obj, (datetime.datetime, datetime.date)):
                     return obj.isoformat()
+                # Handle NaN values which are not valid in JSON
+                if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                    return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
             
             # Print the structure of report_data for debugging
@@ -758,11 +789,94 @@ class ReportManager:
             # Load the template
             template = self.jinja_env.get_template('hyperparameter/report.html')
             
-            # Create report data (simplified for placeholder)
+            # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Define a function to transform hyperparameter data for the template
+            def transform_hyperparameter_data(results_raw, local_model_name=model_name, local_timestamp=timestamp):
+                print("Transforming hyperparameter data structure...")
+                
+                # Convert results to compatible format
+                if hasattr(results_raw, 'to_dict'):
+                    report_data = results_raw.to_dict()
+                else:
+                    # Create a deep copy to avoid modifying the original
+                    import copy
+                    report_data = copy.deepcopy(results_raw)
+                
+                # Handle case where results are nested under 'primary_model' key
+                if 'primary_model' in report_data:
+                    print("Found 'primary_model' key, extracting data...")
+                    primary_data = report_data['primary_model']
+                    # Copy fields from primary_model to the top level
+                    for key, value in primary_data.items():
+                        if key not in report_data:
+                            report_data[key] = value
+                
+                # Add metadata for display
+                report_data['model_name'] = report_data.get('model_name', local_model_name)
+                report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
+                report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                
+                # Ensure we have a proper metrics structure
+                if 'metrics' not in report_data:
+                    report_data['metrics'] = {}
+                
+                # Make sure we have importance_results
+                if 'importance_results' not in report_data:
+                    # Try to extract from other fields if possible
+                    if 'importance' in report_data and 'all_results' in report_data['importance']:
+                        report_data['importance_results'] = report_data['importance']['all_results']
+                    else:
+                        # Create empty results
+                        report_data['importance_results'] = []
+                
+                # Ensure we have importance_scores at top level
+                if 'importance_scores' not in report_data:
+                    # Try to get from importance section if it exists
+                    if 'importance' in report_data and 'all_results' in report_data['importance'] and report_data['importance']['all_results']:
+                        first_result = report_data['importance']['all_results'][0]
+                        if 'normalized_importance' in first_result:
+                            report_data['importance_scores'] = first_result['normalized_importance']
+                        elif 'raw_importance_scores' in first_result:
+                            report_data['importance_scores'] = first_result['raw_importance_scores']
+                
+                # Ensure we have tuning_order
+                if 'tuning_order' not in report_data:
+                    # Try to extract from results
+                    if 'importance' in report_data and 'all_results' in report_data['importance'] and report_data['importance']['all_results']:
+                        result = report_data['importance']['all_results'][0]
+                        if 'tuning_order' in result:
+                            report_data['tuning_order'] = result['tuning_order']
+                        elif 'sorted_importance' in result:
+                            # Use keys of sorted_importance as tuning_order
+                            report_data['tuning_order'] = list(result['sorted_importance'].keys())
+                
+                return report_data
+            
+            # Transform the data structure
+            report_data = transform_hyperparameter_data(results, model_name, timestamp)
+            
+            # Convert numpy types to native Python types
+            report_data = self.convert_numpy_types(report_data)
+            
+            # Ensure JSON serialization will work, handling NaN values
+            def json_serializer(obj):
+                if isinstance(obj, (datetime.datetime, datetime.date)):
+                    return obj.isoformat()
+                # Handle NaN values which are not valid in JSON
+                if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                    return None
+                raise TypeError(f"Type not serializable: {type(obj)}")
+            
+            # Print the structure of report_data for debugging
+            print("Report data structure after transformation:")
+            for key in report_data:
+                print(f"- {key}: {type(report_data[key])}")
             
             # Render the template
             rendered_html = template.render(
+                report_data=json.dumps(report_data, default=json_serializer),
                 model_name=model_name,
                 timestamp=timestamp,
                 current_year=datetime.datetime.now().year
@@ -776,7 +890,7 @@ class ReportManager:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(rendered_html)
                 
-            print(f"Hyperparameter report placeholder saved to: {file_path}")
+            print(f"Hyperparameter report saved to: {file_path}")
             return file_path
             
         except Exception as e:
@@ -804,13 +918,14 @@ class ReportManager:
         --------
         str : Path to the generated report
         """
-        if test_type.lower() == 'robustness':
+        test_type_lower = test_type.lower()
+        if test_type_lower == 'robustness':
             return self.generate_robustness_report(results, file_path, model_name)
-        elif test_type.lower() == 'uncertainty':
+        elif test_type_lower == 'uncertainty':
             return self.generate_uncertainty_report(results, file_path, model_name)
-        elif test_type.lower() == 'resilience':
+        elif test_type_lower == 'resilience':
             return self.generate_resilience_report(results, file_path, model_name)
-        elif test_type.lower() == 'hyperparameter':
+        elif test_type_lower == 'hyperparameter' or test_type_lower == 'hyperparameters':
             return self.generate_hyperparameter_report(results, file_path, model_name)
         else:
             raise ValueError(f"Unknown test type: {test_type}")
