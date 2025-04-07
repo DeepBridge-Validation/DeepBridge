@@ -3,8 +3,6 @@ Utility functions for resilience testing.
 """
 
 import numpy as np
-import io
-import base64
 from typing import Dict, List, Optional, Union, Any
 
 def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=True, feature_subset=None):
@@ -48,119 +46,12 @@ def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=Tru
 
 def resilience_report_to_html(results, include_details=True):
     """
-    Generate HTML report from resilience results.
+    This function has been deprecated as reporting functionality has been removed.
     
-    Parameters:
-    -----------
-    results : dict
-        Resilience test results from run_resilience_tests
-    include_details : bool
-        Whether to include detailed information in the report
-        
-    Returns:
-    --------
-    str : HTML report content
+    Raises:
+        NotImplementedError: Always raises this exception
     """
-    # Basic report structure
-    html = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        "<title>Resilience Test Report</title>",
-        "<style>",
-        "body { font-family: Arial, sans-serif; margin: 20px; }",
-        ".summary { background-color: #f5f5f5; padding: 15px; border-radius: 5px; }",
-        ".plot-container { margin: 20px 0; }",
-        "table { border-collapse: collapse; width: 100%; }",
-        "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }",
-        "th { background-color: #f2f2f2; }",
-        "tr:nth-child(even) { background-color: #f9f9f9; }",
-        ".feature-importance { margin-top: 20px; }",
-        "</style>",
-        "</head>",
-        "<body>",
-        "<h1>Model Resilience Test Report</h1>"
-    ]
-    
-    # Summary section
-    html.append("<div class='summary'>")
-    html.append("<h2>Summary</h2>")
-    html.append(f"<p><strong>Overall Resilience Score:</strong> {results.get('resilience_score', 0):.3f}</p>")
-    html.append("</div>")
-    
-    # Alpha-specific results
-    html.append("<h2>Results by Worst Sample Ratio (Alpha)</h2>")
-    html.append("<table>")
-    html.append("<tr><th>Alpha</th><th>Average Performance Gap</th></tr>")
-    
-    for alpha, alpha_data in sorted(results.get('distribution_shift', {}).get('by_alpha', {}).items()):
-        html.append("<tr>")
-        html.append(f"<td>{alpha}</td>")
-        html.append(f"<td>{alpha_data.get('avg_performance_gap', 0):.3f}</td>")
-        html.append("</tr>")
-    
-    html.append("</table>")
-    
-    # Feature importance by distance metric
-    for dm, dm_data in results.get('distribution_shift', {}).get('by_distance_metric', {}).items():
-        html.append(f"<h2>Feature Importance ({dm} Distance Metric)</h2>")
-        html.append("<table>")
-        html.append("<tr><th>Feature</th><th>Average Distance</th></tr>")
-        
-        # Sort features by distance
-        top_features = sorted(dm_data.get('top_features', {}).items(), 
-                            key=lambda x: x[1], reverse=True)
-        
-        for feature, value in top_features[:10]:
-            html.append("<tr>")
-            html.append(f"<td>{feature}</td>")
-            html.append(f"<td>{value:.3f}</td>")
-            html.append("</tr>")
-        
-        html.append("</table>")
-    
-    # Detailed test results
-    if include_details:
-        html.append("<h2>Detailed Test Results</h2>")
-        
-        for i, result in enumerate(results.get('distribution_shift', {}).get('all_results', []), 1):
-            html.append(f"<h3>Test {i}</h3>")
-            html.append("<table>")
-            html.append("<tr><th>Parameter</th><th>Value</th></tr>")
-            
-            html.append("<tr><td>Method</td><td>Distribution Shift Analysis</td></tr>")
-            html.append(f"<tr><td>Alpha</td><td>{result.get('alpha', 0)}</td></tr>")
-            html.append(f"<tr><td>Performance Metric</td><td>{result.get('metric', '')}</td></tr>")
-            html.append(f"<tr><td>Distance Metric</td><td>{result.get('distance_metric', '')}</td></tr>")
-            html.append(f"<tr><td>Worst Samples Score</td><td>{result.get('worst_metric', 0):.3f}</td></tr>")
-            html.append(f"<tr><td>Remaining Samples Score</td><td>{result.get('remaining_metric', 0):.3f}</td></tr>")
-            html.append(f"<tr><td>Performance Gap</td><td>{result.get('performance_gap', 0):.3f}</td></tr>")
-            html.append(f"<tr><td>Worst Sample Count</td><td>{result.get('worst_sample_count', 0)}</td></tr>")
-            html.append(f"<tr><td>Remaining Sample Count</td><td>{result.get('remaining_sample_count', 0)}</td></tr>")
-            
-            html.append("</table>")
-            
-            # Top features for this test
-            html.append("<h4>Top Features by Distance</h4>")
-            html.append("<table>")
-            html.append("<tr><th>Feature</th><th>Distance</th></tr>")
-            
-            top_features = sorted(result.get('feature_distances', {}).get('top_features', {}).items(), 
-                                key=lambda x: x[1], reverse=True)
-            
-            for feature, value in top_features[:5]:
-                html.append("<tr>")
-                html.append(f"<td>{feature}</td>")
-                html.append(f"<td>{value:.3f}</td>")
-                html.append("</tr>")
-            
-            html.append("</table>")
-    
-    # Close HTML
-    html.append("</body>")
-    html.append("</html>")
-    
-    return "\n".join(html)
+    raise NotImplementedError("Report generation functionality has been removed from this version.")
 
 def compare_models_resilience(results_dict):
     """
