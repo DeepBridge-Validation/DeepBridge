@@ -53,6 +53,17 @@ class TestResult(ABC):
     def results(self) -> dict:
         """Get the raw results dictionary"""
         pass
+    
+    @property
+    @abstractmethod
+    def metadata(self) -> dict:
+        """Get the test metadata"""
+        pass
+        
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """Convert test result to a dictionary format"""
+        pass
 
 class ModelResult(ABC):
     """Interface for model evaluation result"""
@@ -79,6 +90,22 @@ class ModelResult(ABC):
     @abstractmethod
     def hyperparameters(self) -> dict:
         """Get model hyperparameters"""
+        pass
+        
+    @property
+    @abstractmethod
+    def metadata(self) -> dict:
+        """Get additional metadata"""
+        pass
+        
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """Convert the model result to a dictionary"""
+        pass
+        
+    @abstractmethod
+    def get_metric(self, metric_name: str, default: t.Any = None) -> t.Any:
+        """Get a specific metric by name with optional default"""
         pass
 
 # Test Runner Interfaces
@@ -141,7 +168,7 @@ class ITestRunner(ABC):
         """
         pass
 
-# These interfaces have been removed as part of the visualization/reporting cleanup
+# Visualization and reporting interfaces have been completely removed in this refactoring
 
 # Experiment Interface
 class IExperiment(ABC):
@@ -190,7 +217,7 @@ class IExperiment(ABC):
             **kwargs: Additional test parameters
             
         Returns:
-            Dictionary containing all test results with save_report method
+            Dictionary containing all test results
         """
         pass
     

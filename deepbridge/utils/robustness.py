@@ -33,7 +33,7 @@ def run_robustness_tests(dataset, config_name='full', metric='AUC', verbose=True
     --------
     Dict[str, Any] : Test results dictionary containing:
         - base_score: The baseline score of the model
-        - metric: The metric used for evaluation
+        - metrics: Dictionary of evaluation metrics
         - feature_subset: The features that were perturbed (None for all)
         - feature_importance: Feature importance scores
         - raw: Results for raw (Gaussian) perturbation
@@ -111,7 +111,6 @@ def run_robustness_tests(dataset, config_name='full', metric='AUC', verbose=True
     
     # Add the iterations count to the results
     results['n_iterations'] = n_iterations
-    results['metric'] = metric
     
     # Initialize metrics dictionary with just base values
     # Complete metrics will be set from initial_results in the calling code

@@ -1,14 +1,18 @@
 import typing as t
-from deepbridge.core.experiment.managers import (
-    RobustnessManager, UncertaintyManager, ResilienceManager, HyperparameterManager
-)
+
+# Import dataset factory directly since it doesn't create circular dependencies
 from deepbridge.utils.dataset_factory import DBDatasetFactory
+from deepbridge.utils.logger import get_logger
+
+# Manager imports are moved to appropriate methods to avoid potential circular dependencies
 
 class TestRunner:
     """
     Responsible for running various tests on models.
     Extracted from Experiment class to separate test execution responsibilities.
     """
+    # Initialize logger for this class
+    logger = get_logger("deepbridge.testrunner")
     
     def __init__(
         self,
@@ -46,6 +50,14 @@ class TestRunner:
         self.verbose = verbose
         self.features_select = features_select
         
+        # Set logger verbosity
+        self.logger.set_verbose(verbose)
+        
+        # Log initialization
+        self.logger.debug(f"Initializing test runner with tests: {tests}")
+        if features_select:
+            self.logger.debug(f"Feature subset for testing: {features_select}")
+        
         # Store test results
         self.test_results = {}
         
@@ -58,8 +70,7 @@ class TestRunner:
         --------
         dict : Dictionary with model metrics and experiment configurations
         """
-        if self.verbose:
-            print(f"Initializing experiment with tests: {self.tests}")
+        self.logger.info(f"Initializing experiment with tests: {self.tests}")
             
         # Initialize results dictionary
         results = {
@@ -69,8 +80,7 @@ class TestRunner:
         
         # Check if we have models to evaluate
         if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            if self.verbose:
-                print("No model found in dataset.")
+            self.logger.warning("No model found in dataset.")
             
             # Still include configuration details
             return results
@@ -82,8 +92,7 @@ class TestRunner:
         # Calculate metrics for alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
-                if self.verbose:
-                    print(f"Calculating metrics for alternative model: {model_name}")
+                self.logger.debug(f"Calculating metrics for alternative model: {model_name}")
                 
                 model_metrics = self._calculate_model_metrics(model, model_name)
                 results['models'][model_name] = model_metrics
@@ -124,10 +133,74 @@ class TestRunner:
             
         return config
     
-    def _calculate_model_metrics(self, model, model_name: str) -> dict:
-        """Calculate basic metrics for a model."""
+    def _standardize_metrics(self, metrics: dict) -> None:
+        """
+        Standardize metrics format and naming conventions.
+        Centralizes metric normalization to avoid redundancy.
+        
+        Args:
+            metrics: Dictionary of metrics to standardize
+        """
+        # Standard metric name is 'roc_auc', convert any 'auc' to 'roc_auc' 
+        if 'auc' in metrics:
+            # Copy 'auc' value to 'roc_auc' if not already present
+            if 'roc_auc' not in metrics:
+                metrics['roc_auc'] = float(metrics['auc'])
+            # Always remove 'auc' to maintain standardization
+            del metrics['auc']
+            
+        # Ensure all metric values are float type for consistency
+        for key, value in metrics.items():
+            if value is not None and not isinstance(value, str):
+                metrics[key] = float(value)
+    
+    def _calculate_metrics_for_model(self, model, X, y) -> dict:
+        """
+        Calculate standard metrics for a model and dataset.
+        Centralized helper method to avoid duplicate code.
+
+        Args:
+            model: The model to evaluate
+            X: Features to use for prediction
+            y: Target values for evaluation
+
+        Returns:
+            Dictionary of calculated metrics
+        """
         from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
         
+        # Initialize metrics dictionary
+        metrics = {}
+        
+        # Get predictions
+        y_pred = model.predict(X)
+        
+        # Basic accuracy metric
+        metrics['accuracy'] = float(accuracy_score(y, y_pred))
+        
+        # Calculate ROC AUC if model supports predict_proba
+        if hasattr(model, 'predict_proba'):
+            try:
+                y_prob = model.predict_proba(X)
+                if y_prob.shape[1] > 1:  # For binary classification
+                    metrics['roc_auc'] = float(roc_auc_score(y, y_prob[:, 1]))
+            except Exception:
+                # Skip if not applicable
+                pass
+        
+        # Classification metrics
+        try:
+            metrics['f1'] = float(f1_score(y, y_pred, average='weighted'))
+            metrics['precision'] = float(precision_score(y, y_pred, average='weighted'))
+            metrics['recall'] = float(recall_score(y, y_pred, average='weighted'))
+        except Exception:
+            # Skip if not applicable
+            pass
+            
+        return metrics
+
+    def _calculate_model_metrics(self, model, model_name: str) -> dict:
+        """Calculate basic metrics for a model."""
         model_info = {
             'name': model_name,
             'type': type(model).__name__,
@@ -140,77 +213,15 @@ class TestRunner:
             return model_info
             
         try:
-            # Try to get predictions
-            y_pred = model.predict(self.X_test)
+            # Use the centralized metrics calculation method
+            metrics = self._calculate_metrics_for_model(model, self.X_test, self.y_test)
             
-            # Calculate basic metrics
-            metrics = {
-                'accuracy': accuracy_score(self.y_test, y_pred)
-            }
-            
-            # Remove the duplicate F1, precision, and recall calculation from here, as it's done again below
-                
-            # Try to calculate AUC for models that support predict_proba
-            try:
-                if hasattr(model, 'predict_proba'):
-                    y_prob = model.predict_proba(self.X_test)
-                    if y_prob.shape[1] > 1:  # For binary classification
-                        metrics['auc'] = roc_auc_score(self.y_test, y_prob[:, 1])
-            except Exception as e:
-                if self.verbose:
-                    print(f"Error calculating AUC for {model_name}: {str(e)}")
-                # Will use forced AUC value below if this fails
-                pass
-            
-            # Try to calculate ROC AUC for models that support predict_proba
-            if 'roc_auc' not in metrics:
-                try:
-                    if hasattr(model, 'predict_proba'):
-                        y_prob = model.predict_proba(self.X_test)
-                        if y_prob.shape[1] > 1:  # For binary classification
-                            from sklearn.metrics import roc_auc_score
-                            roc_auc = roc_auc_score(self.y_test, y_prob[:, 1])
-                            metrics['roc_auc'] = roc_auc
-                            if self.verbose:
-                                print(f"Calculated ROC AUC for {model_name}: {roc_auc}")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"Could not calculate ROC AUC for {model_name}: {str(e)}")
-            
-            # Metrics calculated, continue to classification metrics
-                
-            # Try to calculate F1, precision, and recall for classification
-            try:
-                metrics['f1'] = f1_score(self.y_test, y_pred, average='weighted')
-                metrics['precision'] = precision_score(self.y_test, y_pred, average='weighted')
-                metrics['recall'] = recall_score(self.y_test, y_pred, average='weighted')
-            except Exception as e:
-                if self.verbose:
-                    print(f"Error calculating classification metrics for {model_name}: {str(e)}")
-                # Skip if not applicable
-                pass
-                
-            # Make sure we have auc in the metrics 
-            if 'roc_auc' in metrics and 'auc' not in metrics:
-                metrics['auc'] = metrics['roc_auc']
-                
-            # Make sure we have roc_auc in the metrics
-            if 'auc' in metrics and 'roc_auc' not in metrics:
-                metrics['roc_auc'] = metrics['auc']
-                
-            # Make sure we have AUC in metrics
-            if 'roc_auc' in metrics and 'auc' not in metrics:
-                metrics['auc'] = metrics['roc_auc']
+            # Standardize metrics names and formats
+            self._standardize_metrics(metrics)
             
             model_info['metrics'] = metrics
             
-            # Debug output
-            if self.verbose:
-                print(f"DEBUG: Calculated metrics for {model_name}: {metrics}")
-            
         except Exception as e:
-            if self.verbose:
-                print(f"Error calculating metrics for {model_name}: {str(e)}")
             model_info['metrics'] = {'error': str(e)}
             
         return model_info
@@ -234,8 +245,6 @@ class TestRunner:
             return {}
             
         except Exception as e:
-            if self.verbose:
-                print(f"Error extracting hyperparameters: {str(e)}")
             return {'error': str(e)}
     
     def _get_test_config(self, test_type: str) -> dict:
@@ -307,6 +316,126 @@ class TestRunner:
         
         return config_options
         
+    def _get_test_arguments(self, test_type: str, config_name: str, model_name: str, metric_param: str = None) -> dict:
+        """
+        Get the appropriate arguments for a specific test function based on test type.
+        Different test functions have different parameter signatures.
+        
+        Args:
+            test_type: Type of test being run
+            config_name: Configuration level
+            model_name: Name of the model being tested
+            metric_param: Optional metric parameter name
+            
+        Returns:
+            Dictionary of arguments appropriate for the test function
+        """
+        # Base arguments for all tests
+        args = {
+            'config_name': config_name,
+            'verbose': self.verbose,
+            'feature_subset': self.features_select,
+        }
+        
+        # Test-specific arguments
+        if test_type == 'uncertainty':
+            # Uncertainty tests don't use model_name or metric parameters
+            pass
+        elif test_type == 'robustness':
+            # Robustness tests use model_name but not metric parameter
+            args['model_name'] = model_name
+            # The 'metric' parameter is now removed, as it was redundant with 'metrics'
+        elif test_type == 'resilience':
+            # Resilience tests use metric but not model_name
+            if metric_param:
+                args[metric_param.lower()] = metric_param
+        elif test_type == 'hyperparameters':
+            # Hyperparameter tests use metric but not model_name
+            if metric_param:
+                args[metric_param.lower()] = metric_param
+        
+        return args
+
+    def _run_model_test(self, test_type: str, config_name: str, run_test_fn, metric_param: str = 'AUC') -> dict:
+        """
+        Run a specific type of test for all models.
+        
+        Args:
+            test_type: Type of test to run ('robustness', 'uncertainty', etc.)
+            config_name: Configuration level ('quick', 'medium', 'full')
+            run_test_fn: Function to run the test
+            metric_param: Name of metric parameter to pass to the test function
+            
+        Returns:
+            Dictionary with test results for all models
+        """
+        # Initialize results dictionary
+        test_results = {
+            'primary_model': {},
+            'alternative_models': {}
+        }
+        
+        # Test primary model
+        self.logger.info(f"Testing {test_type} of primary model...")
+        
+        # Get appropriate arguments for this test type for primary model
+        test_args = self._get_test_arguments(test_type, config_name, 'primary_model', metric_param)
+        
+        # Run the test
+        primary_results = run_test_fn(self.dataset, **test_args)
+        
+        # Apply metrics from initial results if available for primary model
+        if 'models' in self.test_results and 'primary_model' in self.test_results['models']:
+            primary_metrics = self.test_results['models']['primary_model'].get('metrics', {})
+            if primary_metrics and isinstance(primary_metrics, dict):
+                # Create a deep copy of the metrics
+                metrics_copy = {}
+                for key, value in primary_metrics.items():
+                    metrics_copy[key] = value
+                
+                # Ensure metrics exist in results
+                if 'metrics' not in primary_results:
+                    primary_results['metrics'] = {}
+                
+                # Replace with real metrics
+                primary_results['metrics'] = metrics_copy
+                
+                # Standardize metrics names
+                self._standardize_metrics(primary_results['metrics'])
+        
+        # Store primary model results
+        test_results['primary_model'] = primary_results
+        
+        # Test alternative models
+        if self.alternative_models:
+            for model_name, model in self.alternative_models.items():
+                self.logger.info(f"Testing {test_type} of alternative model: {model_name}")
+                
+                # Create dataset with the alternative model
+                alt_dataset = self._create_alternative_dataset(model)
+                
+                # Get appropriate arguments for alternative model
+                test_args = self._get_test_arguments(test_type, config_name, model_name, metric_param)
+                
+                # Run test for alternative model
+                alt_results = run_test_fn(alt_dataset, **test_args)
+                
+                # Apply metrics from initial results if available
+                if 'models' in self.test_results and model_name in self.test_results['models']:
+                    model_metrics = self.test_results['models'][model_name].get('metrics', {})
+                    if model_metrics and isinstance(model_metrics, dict):
+                        # Ensure metrics exist in results
+                        if 'metrics' not in alt_results:
+                            alt_results['metrics'] = {}
+                        
+                        # Replace with real metrics
+                        alt_results['metrics'] = model_metrics.copy()
+                
+                # Store results for this alternative model
+                test_results['alternative_models'][model_name] = alt_results
+        
+        return test_results
+    
     def run_tests(self, config_name: str = 'quick') -> dict:
         """
         Run all tests specified during initialization with the given configuration.
@@ -320,13 +449,11 @@ class TestRunner:
         --------
         dict : Dictionary with test results
         """
-        if self.verbose:
-            print(f"Running tests with {config_name} configuration...")
+        self.logger.info(f"Running tests with {config_name} configuration...")
             
         # Check if we have a model to test
         if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            if self.verbose:
-                print("No model found in dataset. Skipping tests.")
+            self.logger.warning("No model found in dataset. Skipping tests.")
             return {}
             
         # Make sure we have run initial tests first to get base metrics
@@ -339,296 +466,42 @@ class TestRunner:
         # Run robustness tests if requested
         if "robustness" in self.tests:
             from deepbridge.utils.robustness import run_robustness_tests
-            
-            # Initialize robustness results dictionary
-            robustness_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing robustness of primary model...")
-            
-            # First check if we have AUC metrics from initial tests
-            auc_from_metrics = None
-            if 'models' in self.test_results and 'primary_model' in self.test_results['models']:
-                primary_metrics = self.test_results['models']['primary_model'].get('metrics', {})
-                # Check for auc or roc_auc
-                auc_from_metrics = primary_metrics.get('auc', primary_metrics.get('roc_auc'))
-                if auc_from_metrics and self.verbose:
-                    print(f"DEBUG: Using AUC {auc_from_metrics} from initial metrics for primary model")
-                    
-            # Run robustness tests for primary model
-            primary_results = run_robustness_tests(
-                self.dataset, 
+            results['robustness'] = self._run_model_test(
+                test_type='robustness',  # Accepts model_name but not metric parameter
                 config_name=config_name,
-                metric='AUC',
-                verbose=self.verbose,
-                feature_subset=self.features_select,
-                model_name="primary_model"
+                run_test_fn=run_robustness_tests,
+                metric_param=None
             )
-            
-            # IMPORTANTE: Use real metrics directly from initial_results if available
-            # This is the primary source of truth for metrics - use a complete COPY to ensure no reference issues
-            if hasattr(self, 'test_results') and 'models' in self.test_results and 'primary_model' in self.test_results['models']:
-                primary_metrics = self.test_results['models']['primary_model'].get('metrics', {})
-                if primary_metrics and isinstance(primary_metrics, dict):
-                    # Create a deep copy of the metrics to avoid any reference issues
-                    metrics_copy = {}
-                    for key, value in primary_metrics.items():
-                        metrics_copy[key] = value
-                    
-                    # Ensure the metrics exist in the results
-                    if 'metrics' not in primary_results:
-                        primary_results['metrics'] = {}
-                    # Replace with the real metrics
-                    primary_results['metrics'] = metrics_copy
-                    
-                    # Make sure both 'auc' and 'roc_auc' are consistent
-                    if 'roc_auc' in metrics_copy and 'auc' not in metrics_copy:
-                        primary_results['metrics']['auc'] = primary_results['metrics']['roc_auc']
-                    elif 'auc' in metrics_copy and 'roc_auc' not in metrics_copy:
-                        primary_results['metrics']['roc_auc'] = primary_results['metrics']['auc']
-                    
-                    # Debug output
-                    if self.verbose:
-                        print(f"DEBUG: Primary model metrics from initial_results: {primary_results.get('metrics', {})}")
-            robustness_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing robustness of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = self._create_alternative_dataset(model)
-                    
-                    # Run robustness tests on the alternative model
-                    alt_results = run_robustness_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='AUC',
-                        verbose=self.verbose,
-                        feature_subset=self.features_select,
-                        model_name=model_name
-                    )
-                    
-                    # Use real metrics from initial_results directly - this is the primary source of truth
-                    if hasattr(self, 'test_results') and 'models' in self.test_results and model_name in self.test_results['models']:
-                        model_metrics = self.test_results['models'][model_name].get('metrics', {})
-                        if model_metrics and isinstance(model_metrics, dict):
-                            # Ensure the metrics exist in the results
-                            if 'metrics' not in alt_results:
-                                alt_results['metrics'] = {}
-                            # COMPLETELY REPLACE metrics with real values from initial_results
-                            alt_results['metrics'] = model_metrics.copy()
-                            if self.verbose:
-                                print(f"DEBUG: Completely replaced metrics for {model_name} with real metrics from initial_results: {model_metrics}")
-                    
-                    # Store original metrics for reference and avoid duplicating the code below
-                    alt_metrics_from_initial = None
-                    if 'models' in self.test_results and model_name in self.test_results['models']:
-                        alt_metrics_from_initial = self.test_results['models'][model_name].get('metrics', {})
-                        if alt_metrics_from_initial and self.verbose:
-                            print(f"DEBUG: Initial metrics available for {model_name}: {alt_metrics_from_initial}")
-                    
-                    # Skip direct calculation of metrics if we already have metrics from initial_results
-                    # This is to avoid overwriting the real metrics with potentially inconsistent values
-                    if 'metrics' not in alt_results or not alt_results['metrics']:
-                        try:
-                            print(f"DEBUG: Initial metrics missing, calculating direct metrics for alternative model {model_name}")
-                            from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
-                            
-                            X_test = alt_dataset.get_feature_data('test')
-                            y_test = alt_dataset.get_target_data('test')
-                            
-                            # Make predictions
-                            y_pred = model.predict(X_test)
-                            
-                            # Add metrics to results
-                            if 'metrics' not in alt_results:
-                                alt_results['metrics'] = {}
-                                
-                            # Add basic metrics
-                            alt_results['metrics']['accuracy'] = accuracy_score(y_test, y_pred)
-                            
-                            # Calculate AUC if possible
-                            if hasattr(model, 'predict_proba'):
-                                try:
-                                    y_prob = model.predict_proba(X_test)
-                                    if y_prob.shape[1] > 1:
-                                        alt_results['metrics']['roc_auc'] = roc_auc_score(y_test, y_prob[:, 1])
-                                        alt_results['metrics']['auc'] = alt_results['metrics']['roc_auc']
-                                except Exception as e:
-                                    print(f"DEBUG: Error calculating AUC for {model_name}: {e}")
-                                    
-                            # Calculate F1, precision, recall
-                            try:
-                                alt_results['metrics']['f1'] = f1_score(y_test, y_pred)
-                                alt_results['metrics']['precision'] = precision_score(y_test, y_pred)
-                                alt_results['metrics']['recall'] = recall_score(y_test, y_pred)
-                            except Exception as e:
-                                print(f"DEBUG: Error calculating classification metrics for {model_name}: {e}")
-                                
-                            print(f"DEBUG: Direct metrics for {model_name}: {alt_results['metrics']}")
-                        except Exception as e:
-                            print(f"DEBUG: Failed to calculate direct metrics for {model_name}: {e}")
-                            
-                            # If direct calculation failed but we have initial metrics, use those
-                            if alt_metrics_from_initial:
-                                if 'metrics' not in alt_results:
-                                    alt_results['metrics'] = {}
-                                alt_results['metrics'] = alt_metrics_from_initial.copy()
-                                print(f"DEBUG: Using initial metrics for {model_name} instead: {alt_results['metrics']}")
-                    else:
-                        print(f"DEBUG: Skipping direct metrics calculation for {model_name} as we already have metrics from initial_results")
-                    
-                    # Store results
-                    robustness_results['alternative_models'][model_name] = alt_results
-            
-            # Store all robustness results
-            results['robustness'] = robustness_results
             
         # Run uncertainty tests if requested
         if "uncertainty" in self.tests:
             from deepbridge.utils.uncertainty import run_uncertainty_tests
-            
-            # Initialize uncertainty results dictionary
-            uncertainty_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing uncertainty quantification of primary model...")
-            
-            primary_results = run_uncertainty_tests(
-                self.dataset, 
+            results['uncertainty'] = self._run_model_test(
+                test_type='uncertainty',  # Doesn't accept model_name or metric
                 config_name=config_name,
-                verbose=self.verbose,
-                feature_subset=self.features_select
+                run_test_fn=run_uncertainty_tests,
+                metric_param=None
             )
-            uncertainty_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing uncertainty of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = self._create_alternative_dataset(model)
-                    
-                    # Run uncertainty tests on the alternative model
-                    alt_results = run_uncertainty_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        verbose=self.verbose,
-                        feature_subset=self.features_select
-                    )
-                    
-                    # Store results
-                    uncertainty_results['alternative_models'][model_name] = alt_results
-            
-            # Store all uncertainty results
-            results['uncertainty'] = uncertainty_results
             
         # Run resilience tests if requested
         if "resilience" in self.tests:
             from deepbridge.utils.resilience import run_resilience_tests
-            
-            # Initialize resilience results dictionary
-            resilience_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing resilience of primary model...")
-            
-            primary_results = run_resilience_tests(
-                self.dataset, 
+            results['resilience'] = self._run_model_test(
+                test_type='resilience',  # Accepts metric but not model_name
                 config_name=config_name,
-                metric='auc', 
-                verbose=self.verbose,
-                feature_subset=self.features_select
+                run_test_fn=run_resilience_tests,
+                metric_param='metric'  # We keep this one since it's not redundant
             )
-            resilience_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing resilience of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = self._create_alternative_dataset(model)
-                    
-                    # Run resilience tests on the alternative model
-                    alt_results = run_resilience_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='auc',
-                        verbose=self.verbose,
-                        feature_subset=self.features_select
-                    )
-                    
-                    # Store results
-                    resilience_results['alternative_models'][model_name] = alt_results
-            
-            # Store all resilience results
-            results['resilience'] = resilience_results
             
         # Run hyperparameter tests if requested
         if "hyperparameters" in self.tests:
             from deepbridge.utils.hyperparameter import run_hyperparameter_tests
-            
-            # Initialize hyperparameter results dictionary
-            hyperparameter_results = {
-                'primary_model': {},
-                'alternative_models': {}
-            }
-            
-            # Test primary model
-            if self.verbose:
-                print(f"Testing hyperparameter importance of primary model...")
-            
-            primary_results = run_hyperparameter_tests(
-                self.dataset, 
+            results['hyperparameters'] = self._run_model_test(
+                test_type='hyperparameters',  # Accepts metric but not model_name
                 config_name=config_name,
-                metric='accuracy', 
-                verbose=self.verbose,
-                feature_subset=self.features_select
+                run_test_fn=run_hyperparameter_tests,
+                metric_param='metric'
             )
-            hyperparameter_results['primary_model'] = primary_results
-            
-            # Test alternative models
-            if self.alternative_models:
-                for model_name, model in self.alternative_models.items():
-                    if self.verbose:
-                        print(f"Testing hyperparameter importance of alternative model: {model_name}")
-                    
-                    # Create a new dataset with the alternative model
-                    alt_dataset = self._create_alternative_dataset(model)
-                    
-                    # Run hyperparameter tests on the alternative model
-                    alt_results = run_hyperparameter_tests(
-                        alt_dataset,
-                        config_name=config_name,
-                        metric='accuracy',
-                        verbose=self.verbose,
-                        feature_subset=self.features_select
-                    )
-                    
-                    # Store results
-                    hyperparameter_results['alternative_models'][model_name] = alt_results
-            
-            # Store all hyperparameter results
-            results['hyperparameters'] = hyperparameter_results
         
         # Store results in the object for future reference
         self.test_results.update(results)

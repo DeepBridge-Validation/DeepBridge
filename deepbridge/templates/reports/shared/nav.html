@@ -1,0 +1,10 @@
+<div class="report-nav">
+    <div class="logo">
+        <img src="{{ logo_path|default('assets/img/logo.png') }}" alt="DeepBridge Logo">
+    </div>
+    <div class="nav-links">
+        {% for link in nav_links %}
+        <a href="{{ link.url }}" {% if link.active %}class="active"{% endif %}>{{ link.text }}</a>
+        {% endfor %}
+    </div>
+</div>

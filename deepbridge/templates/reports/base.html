@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DeepBridge Report{% endblock %}</title>
+    
+    <!-- External dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{{ css_path|default('assets/css/report.css') }}">
+    
+    <!-- Base JavaScript -->
+    <script src="{{ js_path|default('assets/js/report.js') }}"></script>
+    
+    <!-- Additional head content -->
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <header>
+            {% block header %}
+            <h1>DeepBridge Analysis Report</h1>
+            <div id="model-name">{{ model_name }}</div>
+            <div id="timestamp">Generated on: {{ timestamp }}</div>
+            {% endblock %}
+        </header>
+
+        <div class="content">
+            {% block content %}
+            <!-- Content will be filled by templates extending this base -->
+            {% endblock %}
+        </div>
+
+        <div class="footer">
+            {% block footer %}
+            <p>Generated using DeepBridge Analysis</p>
+            <p>© {{ current_year|default(2025) }} DeepBridge</p>
+            {% endblock %}
+        </div>
+    </div>
+    
+    <!-- Additional scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

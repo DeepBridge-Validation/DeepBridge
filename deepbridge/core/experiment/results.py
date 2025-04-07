@@ -43,13 +43,13 @@ class BaseTestResult(TestResult):
         """Get the test metadata"""
         return self._metadata
     
-    def to_html(self) -> str:
-        """This method has been deprecated as reporting has been removed."""
-        raise NotImplementedError("HTML reporting has been removed from this version.")
-    
-    def save_report(self, path: t.Union[str, Path], name: t.Optional[str] = None) -> Path:
-        """This method has been deprecated as reporting has been removed."""
-        raise NotImplementedError("Report generation has been removed from this version.")
+    def to_dict(self) -> dict:
+        """Convert test result to a dictionary format"""
+        return {
+            'name': self.name,
+            'results': self.results,
+            'metadata': self.metadata
+        }
 
 
 class RobustnessResult(BaseTestResult):
@@ -83,7 +83,7 @@ class HyperparameterResult(BaseTestResult):
 class ExperimentResult:
     """
     Container for all test results from an experiment.
-    Report generation has been removed in this version.
+    Includes HTML report generation functionality.
     """
     
     def __init__(self, experiment_type: str, config: dict):
@@ -106,6 +106,65 @@ class ExperimentResult:
     def get_result(self, name: str) -> t.Optional[TestResult]:
         """Get a specific test result by name"""
         return self.results.get(name.lower())
+        
+    def save_html(self, test_type: str, file_path: str, model_name: str = "Model") -> str:
+        """
+        Generate and save an HTML report for the specified test.
+        
+        Args:
+            test_type: Type of test ('robustness', 'uncertainty', 'resilience', 'hyperparameter')
+            file_path: Path where the HTML report will be saved (relative or absolute)
+            model_name: Name of the model for display in the report
+            
+        Returns:
+            Path to the generated report file
+            
+        Raises:
+            ValueError: If test results not found or report generation fails
+        """
+        # Import report manager
+        from deepbridge.core.experiment.report_manager import ReportManager
+        import os
+        
+        # Convert test_type to lowercase for consistency
+        test_type = test_type.lower()
+        
+        # Check if we have results for this test type
+        result = self.results.get(test_type)
+        if not result:
+            raise ValueError(f"No {test_type} test results found. Run the test first.")
+        
+        # Initialize report manager
+        report_manager = ReportManager()
+        
+        # Get the results dictionary
+        if hasattr(result, 'to_dict'):
+            results_dict = result.to_dict()['results']  # Extract the 'results' key from TestResult.to_dict()
+        else:
+            results_dict = result.results
+            
+        # Add experiment config if not present
+        if 'config' not in results_dict:
+            results_dict['config'] = self.config
+            
+        # Add experiment type
+        results_dict['experiment_type'] = self.experiment_type
+        
+        # Ensure file_path is absolute
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+            
+        # Generate the report
+        try:
+            report_path = report_manager.generate_report(
+                test_type=test_type,
+                results=results_dict,
+                file_path=file_path,
+                model_name=model_name
+            )
+            return report_path
+        except NotImplementedError:
+            raise ValueError(f"HTML report generation for {test_type} tests is not yet implemented.")
     
     def to_dict(self) -> dict:
         """Convert all results to a dictionary"""
@@ -157,13 +216,26 @@ class ExperimentResult:
         
         return cleaned
     
-    def to_html(self) -> str:
-        """This method has been deprecated as reporting has been removed."""
-        raise NotImplementedError("HTML reporting has been removed from this version.")
-    
-    def save_report(self, report_type: t.Optional[str] = None, path: t.Union[str, Path] = None, name: str = "experiment_report.html") -> Path:
-        """This method has been deprecated as reporting has been removed."""
-        raise NotImplementedError("Report generation has been removed from this version.")
+    def to_dict(self) -> dict:
+        """
+        Convert all results to a dictionary for serialization.
+        This replaces the deprecated HTML report generation.
+        
+        Returns:
+            Complete dictionary representation of experiment results
+        """
+        result_dict = {
+            'experiment_type': self.experiment_type,
+            'config': self.config,
+            'generation_time': self.generation_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'tests_performed': list(self.results.keys())
+        }
+        
+        # Add each test's results to the dictionary
+        for name, result in self.results.items():
+            result_dict[name] = self._clean_results_dict(result.results)
+            
+        return result_dict
     
     @classmethod
     def from_dict(cls, results_dict: dict) -> 'ExperimentResult':

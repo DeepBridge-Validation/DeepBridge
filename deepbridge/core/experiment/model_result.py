@@ -90,36 +90,7 @@ class BaseModelResult(ModelResult):
             'metadata': self.metadata
         }
     
-    def to_html(self) -> str:
-        """Convert model result to HTML"""
-        html = f"<h3>Model: {self.model_name} ({self.model_type})</h3>"
-        
-        # Metrics table
-        html += "<h4>Performance Metrics</h4>"
-        html += "<table border='1'><tr><th>Metric</th><th>Value</th></tr>"
-        
-        for metric, value in self.metrics.items():
-            # Format numbers nicely
-            if isinstance(value, float):
-                value_str = f"{value:.4f}"
-            else:
-                value_str = str(value)
-                
-            html += f"<tr><td>{metric}</td><td>{value_str}</td></tr>"
-            
-        html += "</table>"
-        
-        # Add hyperparameters if available
-        if self.hyperparameters:
-            html += "<h4>Hyperparameters</h4>"
-            html += "<table border='1'><tr><th>Parameter</th><th>Value</th></tr>"
-            
-            for param, value in self.hyperparameters.items():
-                html += f"<tr><td>{param}</td><td>{value}</td></tr>"
-                
-            html += "</table>"
-            
-        return html
+    # to_html method has been removed in this refactoring
     
     def compare_with(self, other: 'ModelResult', metrics: t.Optional[t.List[str]] = None) -> dict:
         """
@@ -213,32 +184,7 @@ class ClassificationModelResult(BaseModelResult):
         """Get the ROC curve data"""
         return self._auc_curve
     
-    def to_html(self) -> str:
-        """Convert classification model result to HTML"""
-        # Get base HTML representation
-        html = super().to_html()
-        
-        # Add classification-specific visualizations
-        if self.confusion_matrix is not None:
-            html += "<h4>Confusion Matrix</h4>"
-            html += "<table border='1'>"
-            
-            # Add header row with class names
-            html += "<tr><th></th>"
-            for cls in self.class_names:
-                html += f"<th>Predicted {cls}</th>"
-            html += "</tr>"
-            
-            # Add rows for each true class
-            for i, cls in enumerate(self.class_names):
-                html += f"<tr><th>Actual {cls}</th>"
-                for j in range(len(self.class_names)):
-                    html += f"<td>{self.confusion_matrix[i, j]}</td>"
-                html += "</tr>"
-                
-            html += "</table>"
-        
-        return html
+    # to_html method has been removed in this refactoring
 
 class RegressionModelResult(BaseModelResult):
     """Model result specialized for regression models"""
@@ -281,29 +227,7 @@ class RegressionModelResult(BaseModelResult):
         """Get feature importance scores"""
         return self._feature_importances
     
-    def to_html(self) -> str:
-        """Convert regression model result to HTML"""
-        # Get base HTML representation
-        html = super().to_html()
-        
-        # Add regression-specific visualizations
-        if self.feature_importances:
-            html += "<h4>Feature Importances</h4>"
-            html += "<table border='1'><tr><th>Feature</th><th>Importance</th></tr>"
-            
-            # Sort features by importance
-            sorted_features = sorted(
-                self.feature_importances.items(), 
-                key=lambda x: abs(x[1]), 
-                reverse=True
-            )
-            
-            for feature, importance in sorted_features:
-                html += f"<tr><td>{feature}</td><td>{importance:.4f}</td></tr>"
-                
-            html += "</table>"
-        
-        return html
+    # to_html method has been removed in this refactoring
 
 def create_model_result(
     model_name: str,

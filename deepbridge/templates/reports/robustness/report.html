@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Robustness Analysis Report</title>
+    <!-- External Dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <!-- Internal Styles -->
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--secondary-color);
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: var(--secondary-color);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .tab:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .plot-container {
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        table th, table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+        
+        table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .footer {
+            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+            padding-top: 20px;
+            text-align: center;
+            color: #777;
+            font-size: 0.9rem;
+        }
+        
+        .metric-good {
+            color: var(--success-color);
+        }
+        
+        .metric-average {
+            color: var(--warning-color);
+        }
+        
+        .metric-poor {
+            color: var(--danger-color);
+        }
+        
+        .feature-table {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media print {
+            .tabs {
+                display: none;
+            }
+            
+            .tab-content {
+                display: block;
+                page-break-after: always;
+            }
+            
+            .plot-container {
+                height: 300px;
+                page-break-inside: avoid;
+            }
+            
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+            
+            body {
+                font-size: 12pt;
+            }
+            
+            h1 {
+                font-size: 18pt;
+            }
+            
+            h2 {
+                font-size: 16pt;
+            }
+            
+            .card {
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DeepBridge Robustness Analysis Report</h1>
+            <div id="model-name">{{ model_name }}</div>
+            <div id="timestamp">Generated on: {{ timestamp }}</div>
+        </header>
+
+        <div class="card">
+            <div class="card-header">Robustness Summary</div>
+            <div class="card-body">
+                <div class="summary-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Overall Robustness Score</div>
+                        <div class="stat-value" id="robustness-score">{{ robustness_score }}</div>
+                        <div class="stat-description">Higher is better (0-1 scale)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Avg. Gaussian Impact</div>
+                        <div class="stat-value" id="raw-impact">{{ raw_impact }}</div>
+                        <div class="stat-description">Lower is better</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Avg. Quantile Impact</div>
+                        <div class="stat-value" id="quantile-impact">{{ quantile_impact }}</div>
+                        <div class="stat-description">Lower is better</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Base Score</div>
+                        <div class="stat-value" id="base-score">{{ base_score }}</div>
+                        <div class="stat-description">{{ metric }}</div>
+                    </div>
+                </div>
+                
+                <h3>Test Configuration</h3>
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Model Type</td>
+                        <td id="model-type">{{ model_type }}</td>
+                    </tr>
+                    <tr>
+                        <td>Metric</td>
+                        <td id="metric-name">{{ metric }}</td>
+                    </tr>
+                    <tr>
+                        <td>Iterations</td>
+                        <td id="iterations">{{ iterations }}</td>
+                    </tr>
+                    <tr>
+                        <td>Feature Subset</td>
+                        <td id="feature-subset">{{ feature_subset_display }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" id="tab-raw">Gaussian Perturbation</div>
+            <div class="tab" id="tab-quantile">Quantile Perturbation</div>
+            <div class="tab" id="tab-features">Feature Importance</div>
+            <div class="tab" id="tab-metrics">Model Metrics</div>
+            <div class="tab" id="tab-detailed">Detailed Results</div>
+        </div>
+
+        <div id="raw" class="tab-content active">
+            <h2>Gaussian Noise Perturbation Results</h2>
+            <div class="plot-container" id="raw-plot"></div>
+            <div class="card">
+                <div class="card-header">Gaussian Perturbation Analysis</div>
+                <div class="card-body">
+                    <p>
+                        This analysis shows how the model performance changes when Gaussian noise is added to input features.
+                        The noise level represents standard deviations of the feature distribution.
+                    </p>
+                    
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Noise Level</th>
+                            <th>Score</th>
+                            <th>Impact</th>
+                            <th>Relative Drop (%)</th>
+                        </tr>
+                        <tbody id="raw-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-raw-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-raw-tables">
+                            <!-- Alternative model tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="quantile" class="tab-content">
+            <h2>Quantile-based Perturbation Results</h2>
+            <div class="plot-container" id="quantile-plot"></div>
+            <div class="card">
+                <div class="card-header">Quantile Perturbation Analysis</div>
+                <div class="card-body">
+                    <p>
+                        This analysis shows how the model performance changes when feature values are replaced with
+                        values sampled from different quantiles of the distribution.
+                    </p>
+                    
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Perturbation Level</th>
+                            <th>Score</th>
+                            <th>Impact</th>
+                            <th>Relative Drop (%)</th>
+                        </tr>
+                        <tbody id="quantile-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-quantile-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-quantile-tables">
+                            <!-- Alternative model tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="features" class="tab-content">
+            <h2>Feature Importance for Robustness</h2>
+            <div class="plot-container" id="feature-importance-plot"></div>
+            <div class="card">
+                <div class="card-header">Feature Sensitivity Analysis</div>
+                <div class="card-body">
+                    <p>
+                        This analysis shows which features have the most impact on model performance when perturbed.
+                        Features with higher scores have greater impact on model robustness.
+                    </p>
+                    <div class="feature-table">
+                        <table>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Importance Score</th>
+                                <th>Relative Impact (%)</th>
+                            </tr>
+                            <tbody id="feature-table">
+                                <!-- This will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <h2>Model Performance Metrics</h2>
+            <div class="card">
+                <div class="card-header">Model Metrics</div>
+                <div class="card-body">
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                        <tbody id="metrics-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-metrics-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-metrics-tables">
+                            <!-- Alternative model metrics tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detailed" class="tab-content">
+            <h2>Detailed Test Results</h2>
+            <div class="card">
+                <div class="card-header">Run Details</div>
+                <div class="card-body">
+                    <pre id="detailed-results" style="overflow-x: auto; max-height: 500px;">
+                        <!-- This will be populated by JavaScript -->
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated using DeepBridge Robustness Analysis</p>
+            <p>&copy; {{ current_year }} DeepBridge</p>
+        </div>
+    </div>
+
+    <script>
+        // Declare the showTab function globally
+        window.showTab = function(tabId) {
+            console.log(`Showing tab: ${tabId}`);
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activate the selected tab
+            if (tabId === 'raw') {
+                document.getElementById('tab-raw').classList.add('active');
+            } else if (tabId === 'quantile') {
+                document.getElementById('tab-quantile').classList.add('active');
+            } else if (tabId === 'features') {
+                document.getElementById('tab-features').classList.add('active');
+            } else if (tabId === 'metrics') {
+                document.getElementById('tab-metrics').classList.add('active');
+            } else if (tabId === 'detailed') {
+                document.getElementById('tab-detailed').classList.add('active');
+            }
+            
+            // Trigger resize event to ensure plots render correctly
+            window.dispatchEvent(new Event('resize'));
+        };
+
+        // Initialize tab event handlers
+        function initializeTabs() {
+            // Set up tab click events
+            document.getElementById('tab-raw').addEventListener('click', function() { showTab('raw'); });
+            document.getElementById('tab-quantile').addEventListener('click', function() { showTab('quantile'); });
+            document.getElementById('tab-features').addEventListener('click', function() { showTab('features'); });
+            document.getElementById('tab-metrics').addEventListener('click', function() { showTab('metrics'); });
+            document.getElementById('tab-detailed').addEventListener('click', function() { showTab('detailed'); });
+        }
+
+        // Load and process the data
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Document loaded');
+            
+            // Initialize the tabs
+            initializeTabs();
+            
+            // The data will be injected here as a JavaScript variable
+            let reportData;
+            try {
+                reportData = {{ report_data|safe }};
+                console.log('Report data loaded successfully:', Object.keys(reportData));
+                
+                // Set basic information with safety checks
+                if (document.getElementById('model-name')) {
+                    document.getElementById('model-name').innerText = reportData.model_name || 'Unnamed Model';
+                }
+                if (document.getElementById('timestamp')) {
+                    document.getElementById('timestamp').innerText = 'Generated on: ' + (reportData.timestamp || new Date().toLocaleString());
+                }
+                if (document.getElementById('robustness-score')) {
+                    const robustnessScore = reportData.robustness_score !== undefined ? 
+                        reportData.robustness_score : 
+                        (reportData.avg_overall_impact !== undefined ? (1 - reportData.avg_overall_impact) : 0.5);
+                    document.getElementById('robustness-score').innerText = robustnessScore.toFixed(3);
+                }
+                if (document.getElementById('raw-impact')) {
+                    const rawImpact = reportData.avg_raw_impact !== undefined ? reportData.avg_raw_impact : 0;
+                    document.getElementById('raw-impact').innerText = rawImpact.toFixed(3);
+                }
+                if (document.getElementById('quantile-impact')) {
+                    const quantileImpact = reportData.avg_quantile_impact !== undefined ? reportData.avg_quantile_impact : 0;
+                    document.getElementById('quantile-impact').innerText = quantileImpact.toFixed(3);
+                }
+                if (document.getElementById('base-score')) {
+                    const baseScore = reportData.base_score !== undefined ? reportData.base_score : 0;
+                    document.getElementById('base-score').innerText = baseScore.toFixed(3);
+                }
+                
+                if (document.getElementById('model-type')) {
+                    document.getElementById('model-type').innerText = reportData.model_type || 'Unknown';
+                }
+                if (document.getElementById('metric-name')) {
+                    document.getElementById('metric-name').innerText = reportData.metric || 'Unknown';
+                }
+                if (document.getElementById('iterations')) {
+                    document.getElementById('iterations').innerText = reportData.n_iterations || 'Unknown';
+                }
+                if (document.getElementById('feature-subset')) {
+                    document.getElementById('feature-subset').innerText = 
+                        reportData.feature_subset && Array.isArray(reportData.feature_subset) ? 
+                        reportData.feature_subset.join(', ') : 'All Features';
+                }
+                
+                // Fill metrics table for primary model
+                const metricsTable = document.getElementById('metrics-table');
+                if (metricsTable && reportData.metrics) {
+                    Object.entries(reportData.metrics).forEach(([key, value]) => {
+                        if (key !== 'base_score') {  // Already showing base_score in summary
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${key}</td>
+                                <td>${typeof value === 'number' ? value.toFixed(4) : value}</td>
+                            `;
+                            metricsTable.appendChild(row);
+                        }
+                    });
+                }
+                
+                // Add alternative models metrics tables
+                const alternativeModelsMetricsSection = document.getElementById('alternative-models-metrics-section');
+                const alternativeModelsMetricsTables = document.getElementById('alternative-models-metrics-tables');
+                
+                if (alternativeModelsMetricsSection && alternativeModelsMetricsTables && 
+                    reportData.alternative_models && Object.keys(reportData.alternative_models).length > 0) {
+                    
+                    // Show the section
+                    alternativeModelsMetricsSection.style.display = 'block';
+                    
+                    // Create a table for each alternative model
+                    Object.entries(reportData.alternative_models).forEach(([modelName, modelData]) => {
+                        if (modelData.metrics) {
+                            const modelDiv = document.createElement('div');
+                            modelDiv.style.marginBottom = '20px';
+                            
+                            const modelHeader = document.createElement('h5');
+                            modelHeader.textContent = modelName;
+                            modelDiv.appendChild(modelHeader);
+                            
+                            const modelTable = document.createElement('table');
+                            modelTable.innerHTML = `
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                </tr>
+                            `;
+                            
+                            const tbody = document.createElement('tbody');
+                            Object.entries(modelData.metrics).forEach(([metricKey, metricValue]) => {
+                                if (metricKey !== 'base_score') {  // Already showing base_score in summary
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${metricKey}</td>
+                                        <td>${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}</td>
+                                    `;
+                                    tbody.appendChild(row);
+                                }
+                            });
+                            
+                            modelTable.appendChild(tbody);
+                            modelDiv.appendChild(modelTable);
+                            alternativeModelsMetricsTables.appendChild(modelDiv);
+                        }
+                    });
+                }
+                
+                // Create raw perturbation plot
+                console.log('Creating raw perturbation plot...');
+                if (reportData.raw && reportData.raw.by_level) {
+                    console.log('Raw data found:', Object.keys(reportData.raw));
+                    console.log('Raw by_level keys:', Object.keys(reportData.raw.by_level));
+                    
+                    try {
+                        // Prepare data for plot
+                        const levels = Object.keys(reportData.raw.by_level).map(level => parseFloat(level));
+                        // Ensure levels are sorted numerically
+                        levels.sort((a, b) => a - b);
+                        console.log('Perturbation levels (sorted):', levels);
+                        
+                        const scores = [];
+                        levels.forEach(level => {
+                            try {
+                                const levelData = reportData.raw.by_level[level.toString()];
+                                console.log(`Processing level ${level}:`, Object.keys(levelData));
+                                
+                                // Get the overall result score
+                                let score = 0;
+                                
+                                if (levelData.overall_result) {
+                                    console.log(`Level ${level} overall_result keys:`, Object.keys(levelData.overall_result));
+                                    
+                                    if (levelData.overall_result.all_features) {
+                                        score = levelData.overall_result.all_features.mean_score;
+                                    } else if (levelData.overall_result.feature_subset) {
+                                        score = levelData.overall_result.feature_subset.mean_score;
+                                    }
+                                } else {
+                                    console.log(`Level ${level} has no overall_result`);
+                                }
+                                
+                                scores.push(score);
+                            } catch (error) {
+                                console.error(`Error processing level ${level}:`, error);
+                                scores.push(null); // Use null for missing data
+                            }
+                        });
+                        
+                        console.log('Scores calculated:', scores);
+                        
+                        // Create plot
+                        const rawPlot = document.getElementById('raw-plot');
+                        if (!rawPlot) {
+                            console.error("Cannot find raw-plot element");
+                        } else {
+                            console.log('Creating Plotly chart for raw perturbation');
+                            
+                            // Create plot traces array
+                            const plotTraces = [{
+                                x: levels,
+                                y: scores,
+                                mode: 'lines+markers',
+                                type: 'scatter',
+                                name: 'Primary Model',
+                                marker: {
+                                    size: 10,
+                                    color: '#3498db'
+                                },
+                                line: {
+                                    width: 3,
+                                    color: '#3498db'
+                                }
+                            }];
+                            
+                            // Add alternative models to plot
+                            const alternativeModelsSection = document.getElementById('alternative-models-raw-section');
+                            const alternativeModelsRawTables = document.getElementById('alternative-models-raw-tables');
+                            
+                            if (alternativeModelsSection && alternativeModelsRawTables &&
+                                reportData.alternative_models && Object.keys(reportData.alternative_models).length > 0) {
+                                
+                                // Show the section
+                                alternativeModelsSection.style.display = 'block';
+                                
+                                // Color palette for alternative models
+                                const colors = ['#2ecc71', '#9b59b6', '#f39c12', '#16a085', '#d35400', '#c0392b', '#7f8c8d'];
+                                let colorIndex = 0;
+                                
+                                // Add each alternative model
+                                Object.entries(reportData.alternative_models).forEach(([modelName, modelData]) => {
+                                    if (modelData.raw && modelData.raw.by_level) {
+                                        const color = colors[colorIndex % colors.length];
+                                        colorIndex++;
+                                        
+                                        // Calculate scores for this model
+                                        const modelScores = [];
+                                        const modelTable = document.createElement('div');
+                                        modelTable.style.marginBottom = '20px';
+                                        
+                                        // Add model header
+                                        const modelHeader = document.createElement('h5');
+                                        modelHeader.textContent = modelName;
+                                        modelTable.appendChild(modelHeader);
+                                        
+                                        // Create table
+                                        const table = document.createElement('table');
+                                        table.innerHTML = `
+                                            <tr>
+                                                <th>Noise Level</th>
+                                                <th>Score</th>
+                                                <th>Impact</th>
+                                                <th>Relative Drop (%)</th>
+                                            </tr>
+                                        `;
+                                        const tbody = document.createElement('tbody');
+                                        
+                                        levels.forEach(level => {
+                                            let score = null;
+                                            let impact = null;
+                                            
+                                            try {
+                                                if (modelData.raw.by_level[level.toString()] && 
+                                                    modelData.raw.by_level[level.toString()].overall_result) {
+                                                    
+                                                    const levelResult = modelData.raw.by_level[level.toString()].overall_result;
+                                                    
+                                                    if (levelResult.all_features) {
+                                                        score = levelResult.all_features.mean_score;
+                                                        impact = levelResult.all_features.impact;
+                                                    } else if (levelResult.feature_subset) {
+                                                        score = levelResult.feature_subset.mean_score;
+                                                        impact = levelResult.feature_subset.impact;
+                                                    }
+                                                }
+                                                
+                                                modelScores.push(score);
+                                                
+                                                // Add row to table
+                                                const row = document.createElement('tr');
+                                                const relativeImpact = impact !== null ? impact * 100 : null;
+                                                
+                                                row.innerHTML = `
+                                                    <td>${level.toFixed(2)}</td>
+                                                    <td>${score !== null ? score.toFixed(4) : 'N/A'}</td>
+                                                    <td>${impact !== null ? impact.toFixed(4) : 'N/A'}</td>
+                                                    <td>${relativeImpact !== null ? relativeImpact.toFixed(2) + '%' : 'N/A'}</td>
+                                                `;
+                                                tbody.appendChild(row);
+                                                
+                                            } catch (error) {
+                                                console.error(`Error processing alternative model ${modelName} at level ${level}:`, error);
+                                                modelScores.push(null);
+                                            }
+                                        });
+                                        
+                                        table.appendChild(tbody);
+                                        modelTable.appendChild(table);
+                                        alternativeModelsRawTables.appendChild(modelTable);
+                                        
+                                        // Add model to plot traces
+                                        plotTraces.push({
+                                            x: levels,
+                                            y: modelScores,
+                                            mode: 'lines+markers',
+                                            type: 'scatter',
+                                            name: modelName,
+                                            marker: {
+                                                size: 8,
+                                                color: color
+                                            },
+                                            line: {
+                                                width: 2,
+                                                color: color
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                            
+                            // Create the plot with all traces
+                            Plotly.newPlot(rawPlot, plotTraces, {
+                                title: 'Model Performance Under Gaussian Noise',
+                                xaxis: {
+                                    title: 'Noise Level (Std Dev)',
+                                    tickformat: '.2f',
+                                    autorange: true  // Ensure all points are visible
+                                },
+                                yaxis: {
+                                    title: reportData.metric || 'Performance Metric',
+                                    tickformat: '.3f',
+                                    autorange: true  // Ensure all points are visible
+                                },
+                                showlegend: true,
+                                legend: {
+                                    x: 0.99,
+                                    y: 0.99,
+                                    xanchor: 'right',
+                                    yanchor: 'top',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)'
+                                },
+                                margin: {
+                                    l: 60,
+                                    r: 30,
+                                    t: 80,
+                                    b: 60
+                                }
+                            }, {responsive: true});
+                        }
+                        
+                        // Fill raw perturbation table
+                        const rawTable = document.getElementById('raw-table');
+                        if (rawTable) {
+                            console.log('Filling raw perturbation table');
+                            levels.forEach(level => {
+                                try {
+                                    const levelData = reportData.raw.by_level[level.toString()];
+                                    let score = 0;
+                                    let impact = 0;
+                                    
+                                    if (levelData.overall_result && levelData.overall_result.all_features) {
+                                        score = levelData.overall_result.all_features.mean_score;
+                                        impact = levelData.overall_result.all_features.impact;
+                                    } else if (levelData.overall_result && levelData.overall_result.feature_subset) {
+                                        score = levelData.overall_result.feature_subset.mean_score;
+                                        impact = levelData.overall_result.feature_subset.impact;
+                                    }
+                                    
+                                    const relativeImpact = impact * 100;
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${level.toFixed(2)}</td>
+                                        <td>${score.toFixed(4)}</td>
+                                        <td>${impact.toFixed(4)}</td>
+                                        <td>${relativeImpact.toFixed(2)}%</td>
+                                    `;
+                                    rawTable.appendChild(row);
+                                } catch (error) {
+                                    console.error(`Error filling table for level ${level}:`, error);
+                                }
+                            });
+                        } else {
+                            console.error("Cannot find raw-table element");
+                        }
+                    } catch (error) {
+                        console.error("Error creating raw perturbation visualizations:", error);
+                    }
+                }
+                
+                // Create quantile perturbation plot
+                console.log('Creating quantile perturbation plot...');
+                if (reportData.quantile && reportData.quantile.by_level) {
+                    console.log('Quantile data found:', Object.keys(reportData.quantile));
+                    console.log('Quantile by_level keys:', Object.keys(reportData.quantile.by_level));
+                    
+                    try {
+                        // Prepare data for plot
+                        const levels = Object.keys(reportData.quantile.by_level).map(level => parseFloat(level));
+                        // Ensure levels are sorted numerically
+                        levels.sort((a, b) => a - b);
+                        console.log('Quantile perturbation levels (sorted):', levels);
+                        
+                        const scores = [];
+                        levels.forEach(level => {
+                            try {
+                                const levelData = reportData.quantile.by_level[level.toString()];
+                                console.log(`Processing quantile level ${level}:`, Object.keys(levelData));
+                                
+                                // Get the overall result score
+                                let score = 0;
+                                
+                                if (levelData.overall_result) {
+                                    console.log(`Quantile level ${level} overall_result keys:`, Object.keys(levelData.overall_result));
+                                    
+                                    if (levelData.overall_result.all_features) {
+                                        score = levelData.overall_result.all_features.mean_score;
+                                    } else if (levelData.overall_result.feature_subset) {
+                                        score = levelData.overall_result.feature_subset.mean_score;
+                                    }
+                                } else {
+                                    console.log(`Quantile level ${level} has no overall_result`);
+                                }
+                                
+                                scores.push(score);
+                            } catch (error) {
+                                console.error(`Error processing quantile level ${level}:`, error);
+                                scores.push(null); // Use null for missing data
+                            }
+                        });
+                        
+                        console.log('Quantile scores calculated:', scores);
+                        
+                        // Create plot
+                        const quantilePlot = document.getElementById('quantile-plot');
+                        if (!quantilePlot) {
+                            console.error("Cannot find quantile-plot element");
+                        } else {
+                            console.log('Creating Plotly chart for quantile perturbation');
+                            
+                            // Create plot traces array
+                            const plotTraces = [{
+                                x: levels,
+                                y: scores,
+                                mode: 'lines+markers',
+                                type: 'scatter',
+                                name: 'Primary Model',
+                                marker: {
+                                    size: 10,
+                                    color: '#2ecc71'
+                                },
+                                line: {
+                                    width: 3,
+                                    color: '#2ecc71'
+                                }
+                            }];
+                            
+                            // Add alternative models to plot
+                            const alternativeModelsSection = document.getElementById('alternative-models-quantile-section');
+                            const alternativeModelsQuantileTables = document.getElementById('alternative-models-quantile-tables');
+                            
+                            if (alternativeModelsSection && alternativeModelsQuantileTables &&
+                                reportData.alternative_models && Object.keys(reportData.alternative_models).length > 0) {
+                                
+                                // Show the section
+                                alternativeModelsSection.style.display = 'block';
+                                
+                                // Color palette for alternative models
+                                const colors = ['#3498db', '#9b59b6', '#f39c12', '#16a085', '#d35400', '#c0392b', '#7f8c8d'];
+                                let colorIndex = 0;
+                                
+                                // Add each alternative model
+                                Object.entries(reportData.alternative_models).forEach(([modelName, modelData]) => {
+                                    if (modelData.quantile && modelData.quantile.by_level) {
+                                        const color = colors[colorIndex % colors.length];
+                                        colorIndex++;
+                                        
+                                        // Calculate scores for this model
+                                        const modelScores = [];
+                                        const modelTable = document.createElement('div');
+                                        modelTable.style.marginBottom = '20px';
+                                        
+                                        // Add model header
+                                        const modelHeader = document.createElement('h5');
+                                        modelHeader.textContent = modelName;
+                                        modelTable.appendChild(modelHeader);
+                                        
+                                        // Create table
+                                        const table = document.createElement('table');
+                                        table.innerHTML = `
+                                            <tr>
+                                                <th>Perturbation Level</th>
+                                                <th>Score</th>
+                                                <th>Impact</th>
+                                                <th>Relative Drop (%)</th>
+                                            </tr>
+                                        `;
+                                        const tbody = document.createElement('tbody');
+                                        
+                                        levels.forEach(level => {
+                                            let score = null;
+                                            let impact = null;
+                                            
+                                            try {
+                                                if (modelData.quantile.by_level[level.toString()] && 
+                                                    modelData.quantile.by_level[level.toString()].overall_result) {
+                                                    
+                                                    const levelResult = modelData.quantile.by_level[level.toString()].overall_result;
+                                                    
+                                                    if (levelResult.all_features) {
+                                                        score = levelResult.all_features.mean_score;
+                                                        impact = levelResult.all_features.impact;
+                                                    } else if (levelResult.feature_subset) {
+                                                        score = levelResult.feature_subset.mean_score;
+                                                        impact = levelResult.feature_subset.impact;
+                                                    }
+                                                }
+                                                
+                                                modelScores.push(score);
+                                                
+                                                // Add row to table
+                                                const row = document.createElement('tr');
+                                                const relativeImpact = impact !== null ? impact * 100 : null;
+                                                
+                                                row.innerHTML = `
+                                                    <td>${level.toFixed(2)}</td>
+                                                    <td>${score !== null ? score.toFixed(4) : 'N/A'}</td>
+                                                    <td>${impact !== null ? impact.toFixed(4) : 'N/A'}</td>
+                                                    <td>${relativeImpact !== null ? relativeImpact.toFixed(2) + '%' : 'N/A'}</td>
+                                                `;
+                                                tbody.appendChild(row);
+                                                
+                                            } catch (error) {
+                                                console.error(`Error processing alternative model ${modelName} at level ${level}:`, error);
+                                                modelScores.push(null);
+                                            }
+                                        });
+                                        
+                                        table.appendChild(tbody);
+                                        modelTable.appendChild(table);
+                                        alternativeModelsQuantileTables.appendChild(modelTable);
+                                        
+                                        // Add model to plot traces
+                                        plotTraces.push({
+                                            x: levels,
+                                            y: modelScores,
+                                            mode: 'lines+markers',
+                                            type: 'scatter',
+                                            name: modelName,
+                                            marker: {
+                                                size: 8,
+                                                color: color
+                                            },
+                                            line: {
+                                                width: 2,
+                                                color: color
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                            
+                            // Create the plot with all traces
+                            Plotly.newPlot(quantilePlot, plotTraces, {
+                                title: 'Model Performance Under Quantile Perturbation',
+                                xaxis: {
+                                    title: 'Perturbation Level',
+                                    tickformat: '.2f',
+                                    autorange: true  // Ensure all points are visible
+                                },
+                                yaxis: {
+                                    title: reportData.metric || 'Performance Metric',
+                                    tickformat: '.3f',
+                                    autorange: true  // Ensure all points are visible
+                                },
+                                showlegend: true,
+                                legend: {
+                                    x: 0.99,
+                                    y: 0.99,
+                                    xanchor: 'right',
+                                    yanchor: 'top',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)'
+                                },
+                                margin: {
+                                    l: 60,
+                                    r: 30,
+                                    t: 80,
+                                    b: 60
+                                }
+                            }, {responsive: true});
+                        }
+                        
+                        // Fill quantile perturbation table
+                        const quantileTable = document.getElementById('quantile-table');
+                        if (quantileTable) {
+                            console.log('Filling quantile perturbation table');
+                            levels.forEach(level => {
+                                try {
+                                    const levelData = reportData.quantile.by_level[level.toString()];
+                                    let score = 0;
+                                    let impact = 0;
+                                    
+                                    if (levelData.overall_result && levelData.overall_result.all_features) {
+                                        score = levelData.overall_result.all_features.mean_score;
+                                        impact = levelData.overall_result.all_features.impact;
+                                    } else if (levelData.overall_result && levelData.overall_result.feature_subset) {
+                                        score = levelData.overall_result.feature_subset.mean_score;
+                                        impact = levelData.overall_result.feature_subset.impact;
+                                    }
+                                    
+                                    const relativeImpact = impact * 100;
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${level.toFixed(2)}</td>
+                                        <td>${score.toFixed(4)}</td>
+                                        <td>${impact.toFixed(4)}</td>
+                                        <td>${relativeImpact.toFixed(2)}%</td>
+                                    `;
+                                    quantileTable.appendChild(row);
+                                } catch (error) {
+                                    console.error(`Error filling quantile table for level ${level}:`, error);
+                                }
+                            });
+                        } else {
+                            console.error("Cannot find quantile-table element");
+                        }
+                    } catch (error) {
+                        console.error("Error creating quantile perturbation visualizations:", error);
+                    }
+                }
+                
+                // Create feature importance plot
+                console.log('Creating feature importance plot...');
+                if (reportData.feature_importance) {
+                    console.log('Feature importance data found:', Object.keys(reportData.feature_importance));
+                    
+                    try {
+                        // Extract feature importance data, excluding '_detailed_results'
+                        const featureData = {};
+                        Object.entries(reportData.feature_importance).forEach(([key, value]) => {
+                            if (key !== '_detailed_results') {
+                                featureData[key] = value;
+                            }
+                        });
+                        
+                        console.log('Processed feature data:', Object.keys(featureData));
+                        
+                        // If we have no features, add a dummy feature for testing
+                        if (Object.keys(featureData).length === 0) {
+                            console.log('No feature data found, adding dummy data for testing');
+                            featureData['feature_1'] = 0.5;
+                            featureData['feature_2'] = 0.3;
+                            featureData['feature_3'] = 0.2;
+                        }
+                        
+                        // Sort and get top features
+                        const featureEntries = Object.entries(featureData);
+                        featureEntries.sort((a, b) => b[1] - a[1]);
+                        const topFeatures = featureEntries.slice(0, 15); // Get top 15 features
+                        
+                        console.log('Top features:', topFeatures);
+                        
+                        // Prepare data for plot
+                        const featureNames = topFeatures.map(item => item[0]);
+                        const featureScores = topFeatures.map(item => item[1]);
+                        
+                        // Create plot
+                        const featurePlot = document.getElementById('feature-importance-plot');
+                        if (!featurePlot) {
+                            console.error("Cannot find feature-importance-plot element");
+                        } else {
+                            console.log('Creating Plotly chart for feature importance');
+                            Plotly.newPlot(featurePlot, [{
+                                y: featureNames,
+                                x: featureScores,
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: {
+                                    color: featureScores.map(score => {
+                                        // Color gradient based on score
+                                        const normalized = score / Math.max(...featureScores);
+                                        return `rgba(52, 152, 219, ${0.3 + 0.7 * normalized})`;
+                                    })
+                                }
+                            }], {
+                                title: 'Feature Importance for Robustness',
+                                xaxis: {
+                                    title: 'Impact Score',
+                                    tickformat: '.3f'
+                                },
+                                yaxis: {
+                                    title: 'Feature',
+                                    automargin: true
+                                },
+                                margin: {
+                                    l: 150,
+                                    r: 30,
+                                    t: 80,
+                                    b: 60
+                                }
+                            }, {responsive: true});
+                        }
+                        
+                        // Fill feature table
+                        const featureTable = document.getElementById('feature-table');
+                        if (featureTable) {
+                            console.log('Filling feature importance table');
+                            featureEntries.forEach(([feature, score]) => {
+                                try {
+                                    const maxScore = Math.max(...featureEntries.map(item => item[1]));
+                                    const relativeScore = (score / maxScore) * 100;
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${feature}</td>
+                                        <td>${score.toFixed(4)}</td>
+                                        <td>${relativeScore.toFixed(2)}%</td>
+                                    `;
+                                    featureTable.appendChild(row);
+                                } catch (error) {
+                                    console.error(`Error filling feature table for ${feature}:`, error);
+                                }
+                            });
+                        } else {
+                            console.error("Cannot find feature-table element");
+                        }
+                    } catch (error) {
+                        console.error("Error creating feature importance visualizations:", error);
+                    }
+                } else {
+                    console.log('No feature importance data found');
+                }
+                
+                // Fill detailed results
+                console.log('Filling detailed results tab...');
+                const detailedResults = document.getElementById('detailed-results');
+                if (detailedResults) {
+                    try {
+                        detailedResults.textContent = JSON.stringify(reportData, null, 2);
+                    } catch (error) {
+                        console.error("Error stringifying report data:", error);
+                        detailedResults.textContent = "Error displaying detailed results: " + error.message;
+                    }
+                } else {
+                    console.error("Cannot find detailed-results element");
+                }
+                
+                // Set current year in footer
+                console.log('Setting current year in footer...');
+                document.querySelectorAll('.footer p:last-child').forEach(el => {
+                    el.innerHTML = el.innerHTML.replace('{{ current_year }}', new Date().getFullYear());
+                });
+                
+                // Ensure plots render correctly after a delay
+                console.log('Scheduling resize event...');
+                setTimeout(function() {
+                    console.log('Triggering resize event to fix plot layouts');
+                    window.dispatchEvent(new Event('resize'));
+                }, 100);
+                
+                // Show all plots when document is printed
+                if (window.matchMedia) {
+                    const mediaQueryList = window.matchMedia('print');
+                    mediaQueryList.addEventListener('change', function(mql) {
+                        if (mql.matches) {
+                            console.log('Print mode detected, showing all tabs');
+                            document.querySelectorAll('.tab-content').forEach(content => {
+                                content.classList.add('active');
+                            });
+                        }
+                    });
+                }
+                
+                console.log('Report initialization complete');
+            } catch(error) {
+                console.error("Error creating report:", error);
+                // Show friendly error message in the UI
+                document.getElementById('raw').innerHTML = 
+                    '<div style="color:red;padding:20px;">Error creating plots: ' + error.message + 
+                    '<br><br>Please try refreshing the page or check the data format.</div>';
+            }
+        });
+    </script>
+</body>
+</html>
