@@ -53,16 +53,6 @@ class TestResult(ABC):
     def results(self) -> dict:
         """Get the raw results dictionary"""
         pass
-    
-    @abstractmethod
-    def to_html(self) -> str:
-        """Convert results to HTML format"""
-        pass
-    
-    @abstractmethod
-    def save_report(self, path: t.Union[str, Path], name: t.Optional[str] = None) -> Path:
-        """Save results to a report file"""
-        pass
 
 class ModelResult(ABC):
     """Interface for model evaluation result"""
@@ -151,96 +141,7 @@ class ITestRunner(ABC):
         """
         pass
 
-# Visualization Interface
-class IVisualizationManager(ABC):
-    """Interface for visualization manager components"""
-    
-    @abstractmethod
-    def get_visualization(self, test_type: str, visualization_name: str) -> t.Any:
-        """
-        Get a specific visualization for a test type.
-        
-        Args:
-            test_type: Type of test (robustness, uncertainty, etc.)
-            visualization_name: Name of the visualization to retrieve
-            
-        Returns:
-            Visualization object (typically a plotly figure)
-        """
-        pass
-    
-    @abstractmethod
-    def get_visualizations(self, test_type: str) -> dict:
-        """
-        Get all visualizations for a test type.
-        
-        Args:
-            test_type: Type of test (robustness, uncertainty, etc.)
-            
-        Returns:
-            Dictionary of visualization objects keyed by visualization name
-        """
-        pass
-        
-    @abstractmethod
-    def get_test_results(self, test_type: str) -> TestResultsDict:
-        """
-        Get results for a specific test type.
-        
-        Args:
-            test_type: Type of test (robustness, uncertainty, etc.)
-            
-        Returns:
-            Dictionary with test results
-        """
-        pass
-
-# Report Generator Interface
-class IReportGenerator(ABC):
-    """Interface for report generator components"""
-    
-    @abstractmethod
-    def generate_report(self, results: TestResultsDict, experiment_name: str = "Experiment") -> str:
-        """
-        Generate an HTML report from test results.
-        
-        Args:
-            results: Dictionary containing test results
-            experiment_name: Name of the experiment
-            
-        Returns:
-            HTML string containing the report
-        """
-        pass
-    
-    @abstractmethod
-    def save_report(self, path: t.Union[str, Path], results: TestResultsDict, 
-                   experiment_name: str = "Experiment") -> Path:
-        """
-        Generate and save an HTML report to the specified path.
-        
-        Args:
-            path: Directory or file path to save the report
-            results: Dictionary containing test results
-            experiment_name: Name of the experiment
-            
-        Returns:
-            Path to the saved report file
-        """
-        pass
-        
-    @abstractmethod
-    def get_template(self, template_name: str) -> t.Optional[str]:
-        """
-        Get a report template by name.
-        
-        Args:
-            template_name: Name of the template to retrieve
-            
-        Returns:
-            Template string or None if not found
-        """
-        pass
+# These interfaces have been removed as part of the visualization/reporting cleanup
 
 # Experiment Interface
 class IExperiment(ABC):
@@ -308,18 +209,7 @@ class IExperiment(ABC):
         """
         pass
     
-    @abstractmethod
-    def save_report(self, report_path: t.Union[str, Path]) -> str:
-        """
-        Generate and save an HTML report with all experiment results.
-        
-        Args:
-            report_path: Path to save the report
-            
-        Returns:
-            Path to the saved report file
-        """
-        pass
+    # save_report method has been removed as part of the visualization/reporting cleanup
         
     @abstractmethod
     def fit(self, **kwargs) -> 'IExperiment':

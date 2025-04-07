@@ -9,15 +9,13 @@ from deepbridge.core.experiment.experiment import Experiment
 # Try to import new interfaces and implementations
 try:
     from deepbridge.core.experiment.interfaces import (
-        IExperiment, ITestRunner, IVisualizationManager, IReportGenerator, 
-        TestResult, ModelResult
+        IExperiment, ITestRunner, TestResult, ModelResult
     )
     from deepbridge.core.experiment.results import (
         ExperimentResult, RobustnessResult, UncertaintyResult, 
         ResilienceResult, HyperparameterResult, wrap_results
     )
     from deepbridge.core.experiment.runner import TestRunner
-    from deepbridge.core.experiment.visualization import VisualizationManager
     
     # Import new model result classes
     try:
@@ -39,9 +37,8 @@ try:
     
     if all_required_installed:
         __all__ = [
-            'Experiment', 'TestRunner', 'VisualizationManager',
-            'IExperiment', 'ITestRunner', 'IVisualizationManager', 'IReportGenerator',
-            'TestResult', 'ModelResult',
+            'Experiment', 'TestRunner',
+            'IExperiment', 'ITestRunner', 'TestResult', 'ModelResult',
             'ExperimentResult', 'RobustnessResult', 'UncertaintyResult', 
             'ResilienceResult', 'HyperparameterResult', 'wrap_results',
             'check_dependencies', 'print_dependency_status'
@@ -87,29 +84,10 @@ except ImportError as e:
     print(f"Warning: Some experiment functionality is not available: {str(e)}")
     __all__ = ['Experiment', 'check_dependencies', 'print_dependency_status']
     
-    # For backward compatibility, import these from report_exporter if available
-    try:
-        from deepbridge.core.experiment.report_exporter import export_report, wrap_results, ResultsDict
-        __all__.extend(['export_report', 'wrap_results', 'ResultsDict'])
-    except ImportError:
-        # Create dummy classes for backward compatibility
-        def export_report(*args, **kwargs):
-            """Placeholder for export_report when dependencies are missing."""
-            print("Error: Unable to export report due to missing dependencies.")
-            print_dependency_status()
-            return None
-        
-        class ResultsDict(dict):
-            """Dummy implementation when dependencies are missing."""
-            def save_report(self, *args, **kwargs):
-                print("Error: Unable to save report due to missing dependencies.")
-                print_dependency_status()
-                return None
-        
-        def wrap_results(results):
-            """Dummy implementation when dependencies are missing."""
-            print("Warning: Report generation functionality is limited due to missing dependencies.")
-            print_dependency_status()
-            return ResultsDict(results)
+    # Create dummy functions for backward compatibility
+    def wrap_results(results):
+        """Dummy implementation when dependencies are missing."""
+        print("Warning: Report generation functionality has been removed.")
+        return results
             
-        __all__.extend(['export_report', 'wrap_results', 'ResultsDict'])
+    __all__.extend(['wrap_results'])
