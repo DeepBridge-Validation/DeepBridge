@@ -33,7 +33,7 @@ class HyperparameterSuite:
         ]
     }
     
-    def __init__(self, dataset, verbose: bool = False, random_state: Optional[int] = None, metric: str = 'accuracy'):
+    def __init__(self, dataset, verbose: bool = False, random_state: Optional[int] = None, metric: str = 'accuracy', feature_subset: Optional[List[str]] = None):
         """
         Initialize the hyperparameter importance testing suite.
         
@@ -47,11 +47,14 @@ class HyperparameterSuite:
             Random seed for reproducibility
         metric : str
             Performance metric to use ('accuracy', 'auc', 'f1', 'mse', etc.)
+        feature_subset : List[str] or None
+            Specific features to focus on for testing (None for all features)
         """
         self.dataset = dataset
         self.verbose = verbose
         self.random_state = random_state
         self.metric = metric
+        self.feature_subset = feature_subset
         
         # Store current configuration
         self.current_config = None
@@ -159,7 +162,7 @@ class HyperparameterSuite:
             # Return a minimal grid that should work for most models
             return {'random_state': [self.random_state or 42]}
     
-    def config(self, config_name: str = 'quick') -> 'HyperparameterSuite':
+    def config(self, config_name: str = 'quick', feature_subset: Optional[List[str]] = None) -> 'HyperparameterSuite':
         """
         Set a predefined configuration for hyperparameter importance tests.
         
@@ -167,26 +170,40 @@ class HyperparameterSuite:
         -----------
         config_name : str
             Name of the configuration to use: 'quick', 'medium', or 'full'
+        feature_subset : List[str] or None
+            Specific features to focus on for testing (overrides the one set in constructor)
                 
         Returns:
         --------
         self : Returns self to allow method chaining
         """
+        self.feature_subset = feature_subset if feature_subset is not None else self.feature_subset
+        
         if config_name not in self._CONFIG_TEMPLATES:
             raise ValueError(f"Unknown configuration: {config_name}. Available options: {list(self._CONFIG_TEMPLATES.keys())}")
         
         # Clone the configuration template
         self.current_config = self._clone_config(self._CONFIG_TEMPLATES[config_name])
         
+        # Update feature_subset in tests if specified
+        if self.feature_subset:
+            for test in self.current_config:
+                if 'params' in test:
+                    test['params']['feature_subset'] = self.feature_subset
+        
         if self.verbose:
             print(f"\nConfigured for {config_name} hyperparameter importance test suite")
+            if self.feature_subset:
+                print(f"Feature subset: {self.feature_subset}")
             print(f"\nTests that will be executed:")
             
             # Print all configured tests
             for i, test in enumerate(self.current_config, 1):
                 test_method = test['method']
                 params = test.get('params', {})
-                param_str = ', '.join(f"{k}={v}" for k, v in params.items())
+                # Filter out feature_subset from display for cleaner output
+                display_params = {k: v for k, v in params.items() if k != 'feature_subset'}
+                param_str = ', '.join(f"{k}={v}" for k, v in display_params.items())
                 print(f"  {i}. {test_method} ({param_str})")
         
         return self
@@ -272,6 +289,7 @@ class HyperparameterSuite:
         cv = params.get('cv', 5)
         n_subsamples = params.get('n_subsamples', 10)
         subsample_size = params.get('subsample_size', 0.5)
+        feature_subset = params.get('feature_subset', self.feature_subset)
         
         # Get dataset
         X = self.dataset.get_feature_data()
@@ -282,6 +300,28 @@ class HyperparameterSuite:
             X = pd.DataFrame(X)
         if not isinstance(y, pd.Series):
             y = pd.Series(y)
+        
+        # Create a copy of the full feature set for model predictions
+        X_full = X.copy()
+            
+        # Create a filtered version for analysis if feature_subset is provided
+        X_analysis = X.copy()
+        if feature_subset:
+            if self.verbose:
+                print(f"Focusing on feature subset: {feature_subset}")
+            # Make sure all features in feature_subset are in X
+            valid_features = [f for f in feature_subset if f in X.columns]
+            if len(valid_features) < len(feature_subset):
+                missing = set(feature_subset) - set(valid_features)
+                if self.verbose:
+                    print(f"Warning: Some requested features not found in dataset: {missing}")
+            if valid_features:
+                X_analysis = X[valid_features]
+                # For hyperparameter importance evaluation, we need to set X to X_analysis
+                # as we're training models on this subset
+                X = X_analysis
+            elif self.verbose:
+                print("No valid features in subset. Using all features.")
         
         # Initialize dictionary to store variation in performance for each parameter
         param_variations = {param: [] for param in self.param_grid.keys()}
@@ -372,6 +412,8 @@ class HyperparameterSuite:
                 
         if self.verbose:
             print(f"Running hyperparameter importance test suite...")
+            if self.feature_subset:
+                print(f"Using feature subset: {self.feature_subset}")
             start_time = time.time()
         
         # Initialize results
@@ -430,7 +472,7 @@ class HyperparameterSuite:
         # Add execution time
         if self.verbose:
             elapsed_time = time.time() - start_time
-            results['execution_time'] = elapsed_time
+            # Não armazenamos mais o tempo de execução nos resultados
             print(f"Test suite completed in {elapsed_time:.2f} seconds")
             
             # Print importance scores

@@ -15,7 +15,7 @@ class RobustnessManager(BaseManager):
     Implements the BaseManager interface.
     """
     
-    def run_tests(self, config_name='full', **kwargs) -> dict:
+    def run_tests(self, config_name='quick', **kwargs) -> dict:
         """
         Run robustness tests using RobustnessSuite and compare
         the original model with alternative models.
@@ -23,13 +23,17 @@ class RobustnessManager(BaseManager):
         Args:
             config_name: Configuration profile ('quick', 'medium', 'full')
             **kwargs: Additional test parameters
+                - n_iterations: Number of iterations per perturbation level (default: 1)
             
         Returns:
             dict: Results of robustness tests
         """
         from deepbridge.validation.wrappers.robustness_suite import RobustnessSuite
         
-        self.log("Running robustness tests...")
+        # Extract n_iterations from kwargs with default value
+        n_iterations = kwargs.get('n_iterations', 1)
+        
+        self.log(f"Running robustness tests with {n_iterations} iterations per perturbation level...")
             
         # Initialize results storage
         results = {
@@ -38,8 +42,13 @@ class RobustnessManager(BaseManager):
             'visualizations': {}
         }
         
-        # Test main model
-        suite = RobustnessSuite(self.dataset, verbose=self.verbose)
+        # Test main model with n_iterations
+        suite = RobustnessSuite(
+            dataset=self.dataset, 
+            verbose=self.verbose,
+            n_iterations=n_iterations
+        )
+        
         results['main_model'] = suite.config(config_name).run()
         
         # Generate a report for the main model
@@ -82,7 +91,7 @@ class RobustnessManager(BaseManager):
         
         return results
     
-    def compare_models(self, config_name='full', **kwargs) -> dict:
+    def compare_models(self, config_name='quick', **kwargs) -> dict:
         """
         Compare robustness of multiple models.
         

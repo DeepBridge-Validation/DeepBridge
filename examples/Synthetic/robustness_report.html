@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robustness Analysis Report</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        // Função global para troca de abas - definida no topo
+        function showTab(tabId) {
+            // Esconde todos os conteúdos das abas
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Desativa todas as abas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Mostra o conteúdo da aba selecionada
+            let selectedContent = document.getElementById(tabId);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+
+                // Encontra todos os containers de plot nesta aba e dispara um redesenho
+                // Isso é importante porque Plotly pode não renderizar corretamente em divs escondidas
+                let plots = selectedContent.querySelectorAll('.plot-container');
+                if (plots.length > 0) {
+                    setTimeout(() => {
+                        // Dispara um evento de redimensionamento que força o Plotly a redesenhar
+                        window.dispatchEvent(new Event('resize'));
+                    }, 50); // Pequeno delay para garantir que a aba esteja visível
+                }
+            }
+
+            // Ativa a aba selecionada
+            document.querySelectorAll('.tab').forEach(tab => {
+                // Ativa a aba cujo texto (ignorando espaços e caixa) contém o ID da aba
+                 if (tab.textContent.trim().toLowerCase().includes(tabId.replace('-', ' ').toLowerCase())) {
+                    tab.classList.add('active');
+                }
+            });
+
+            return false; // Previne comportamento padrão do link/botão
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 20px auto; /* Adiciona margem superior/inferior */
+            padding: 20px;
+            background-color: #f4f7f6; /* Fundo suave */
+        }
+        h1 {
+            color: #2c3e50; /* Azul escuro */
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #bdc3c7; /* Cinza claro */
+        }
+        h2 {
+            color: #3498db; /* Azul brilhante */
+            margin-top: 40px; /* Mais espaço antes das seções */
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ecf0f1; /* Cinza muito claro */
+        }
+        .summary {
+            background-color: #ffffff; /* Fundo branco */
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db; /* Destaque azul */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .summary h2, .summary h3 {
+            margin-top: 0;
+            border-bottom: none;
+            color: #3498db; /* Títulos do sumário em azul */
+        }
+        .summary h3 {
+             margin-bottom: 10px;
+             font-size: 1.1em;
+             color: #2980b9; /* Azul um pouco mais escuro */
+        }
+        .metric {
+            font-weight: bold;
+            color: #555;
+            margin-right: 5px;
+        }
+        .plot-container {
+            margin: 30px 0;
+            padding: 20px; /* Mais padding interno */
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Sombra mais pronunciada */
+            border-radius: 8px;
+            overflow: hidden; /* Garante que plots grandes não vazem */
+        }
+        .two-column {
+            display: grid; /* Usa Grid para melhor controle */
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Colunas responsivas */
+            gap: 30px; /* Mais espaço entre colunas */
+        }
+        /* Remove min-width for grid items */
+        /* .two-column > div { min-width: 350px; } */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-radius: 5px; /* Borda arredondada para tabela */
+            overflow: hidden; /* Para aplicar border-radius */
+        }
+        th, td {
+            border: 1px solid #e0e0e0; /* Borda mais suave */
+            padding: 10px 14px; /* Mais padding */
+            text-align: left;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #ecf0f1; /* Fundo do header cinza claro */
+            font-weight: bold;
+            color: #34495e; /* Texto do header cinza escuro */
+        }
+        tr:nth-child(even) {
+            background-color: #fdfdfd; /* Fundo alternado muito sutil */
+        }
+        tr:hover {
+            background-color: #f1f8ff; /* Destaque azul claro no hover */
+        }
+        .note {
+            background-color: #fffadf; /* Amarelo claro */
+            padding: 15px;
+            border-left: 4px solid #f1c40f; /* Amarelo */
+            margin: 25px 0;
+            font-size: 0.95em; /* Tamanho de fonte ligeiramente maior */
+            border-radius: 4px;
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap; /* Permite que abas quebrem linha em telas menores */
+            border-bottom: 2px solid #3498db; /* Borda azul mais grossa */
+            margin-bottom: 25px;
+        }
+        .tab {
+            padding: 12px 22px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            background-color: #e9ecef; /* Fundo da aba inativa */
+            color: #495057;
+            margin-right: 5px;
+            margin-bottom: -2px; /* Alinha com a borda inferior */
+            border-radius: 6px 6px 0 0;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-weight: 500;
+        }
+        .tab:hover {
+             background-color: #dfe6ed;
+             color: #343a40;
+        }
+        .tab.active {
+            background-color: white;
+            border-color: #3498db #3498db white; /* Borda azul nas laterais/topo */
+            border-width: 2px;
+            border-bottom: 2px solid white; /* Cobre a borda da div .tabs */
+            color: #3498db; /* Texto ativo em azul */
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px 5px; /* Padding apenas horizontal */
+            border-top: none; /* Remove borda superior redundante */
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Adiciona estilo para código/pre */
+        pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Análise de Robustez</h1>
+
+    <div class="summary">
+        <h2>Sumário</h2>
+        <div class="two-column">
+            <div>
+                <h3>Configuração do Experimento</h3>
+                <p><span class="metric">Modelo Primário:</span> Unknown</p>
+                <p><span class="metric">Tipo de Experimento:</span> binary_classification</p>
+                <p><span class="metric">Tamanho do Teste:</span> 0.2</p>
+                <p><span class="metric">Random State:</span> 42</p>
+                
+                
+            </div>
+            <div>
+                <h3>Resultados de Robustez</h3>
+                 <p><span class="metric">Score Base (AUC):</span> 0.9709</p>
+                <p><span class="metric">Pontuação Geral de Robustez:</span> 0.7559</p>
+                <p><span class="metric">Impacto Médio - Perturbação Raw:</span> 0.0035</p>
+                <p><span class="metric">Impacto Médio - Perturbação Quantile:</span> 0.4847</p>
+                <p><span class="metric">Número de Iterações:</span> 3</p>
+                
+                <p><span class="metric">Features Analisadas:</span> feature_0, feature_1</p>
+                
+            </div>
+        </div>
+
+        <div class="alternative-models" style="margin-top: 20px;">
+            <h3>Modelos Alternativos Comparados</h3>
+            
+                <p>Resultados de robustez comparados com 3 modelo(s) alternativo(s): DECISION_TREE, LOGISTIC_REGRESSION, GBM</p>
+            
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('raw')">Perturbação Raw</div>
+        <div class="tab" onclick="showTab('quantile')">Perturbação Quantile</div>
+        <div class="tab" onclick="showTab('models')">Comparação de Modelos</div>
+        <div class="tab" onclick="showTab('features')">Análise de Features</div>
+        <div class="tab" onclick="showTab('metrics')">Comparação de Métricas</div>
+        <div class="tab" onclick="showTab('detailed')">Resultados Detalhados</div>
+    </div>
+
+    <div id="raw" class="tab-content active">
+        <h2>Análise de Perturbação Raw</h2>
+        <div class="plot-container" id="raw-models-plot"></div>
+
+        <h2>Distribuição da Pontuação (Perturbação Raw)</h2>
+        <div class="plot-container" id="raw-distribution-plot"></div>
+    </div>
+
+    <div id="quantile" class="tab-content">
+        <h2>Análise de Perturbação Quantile</h2>
+        <div class="plot-container" id="quantile-models-plot"></div>
+
+        <h2>Distribuição da Pontuação (Perturbação Quantile)</h2>
+        <div class="plot-container" id="quantile-distribution-plot"></div>
+    </div>
+
+    <div id="models" class="tab-content">
+        <h2>Comparação dos Métodos de Perturbação (Modelo Primário)</h2>
+        <div class="plot-container" id="perturbation-methods-plot"></div>
+
+        <h2>Comparação de Robustez entre Modelos (Impacto Médio)</h2>
+        <div class="plot-container" id="model-comparison-plot"></div>
+        <p class="note">Nota: O gráfico acima mostra o impacto médio combinado das perturbações Raw e Quantile. Valores menores indicam maior robustez.</p>
+    </div>
+
+    <div id="features" class="tab-content">
+        <h2>Importância das Features para Robustez (%)</h2>
+        <div class="plot-container" id="feature-importance-plot"></div>
+        <p class="note">Nota: A importância representa o quanto a perturbação de cada feature contribui para a degradação da métrica do modelo. Valores maiores indicam maior sensibilidade.</p>
+
+        
+        <h2>Análise de Subconjunto de Features (Perturbação Raw)</h2>
+        <div class="plot-container" id="feature-subset-comparison-plot"></div>
+        
+    </div>
+
+    <div id="metrics" class="tab-content">
+        <h2>Comparação de Métricas de Desempenho</h2>
+        <div class="plot-container" id="metrics-comparison-plot"></div>
+
+        <h2>Métricas Detalhadas</h2>
+        
+        <p class="note">Dados de comparação de métricas não disponíveis ou vazios.</p>
+        
+        <p class="note">Nota: A pontuação de robustez é calculada como 1 - Impacto Médio. Valores mais altos são melhores. 'N/A' indica que a robustez não foi calculada para aquele modelo.</p>
+    </div>
+
+    <div id="detailed" class="tab-content">
+        <div class="two-column">
+            <div>
+                <h2>Resultados Detalhados (Perturbação Raw)</h2>
+                
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Nível</th>
+                        <th>Score Médio</th>
+                        <th>Desvio Padrão</th>
+                        <th>Pior Score</th>
+                        <th>Impacto</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    
+                    <tr>
+                        <td>0.1</td>
+                        <td>0.9694</td>
+                        <td>0.0</td>
+                        <td>0.9688</td>
+                        <td>0.0015</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>0.2</td>
+                        <td>0.9655</td>
+                        <td>0.0</td>
+                        <td>0.9648</td>
+                        <td>0.0055</td>
+                    </tr>
+                    
+                    </tbody>
+                </table>
+                
+            </div>
+
+            <div>
+                <h2>Resultados Detalhados (Perturbação Quantile)</h2>
+                 
+                <table>
+                     <thead>
+                    <tr>
+                        <th>Nível</th>
+                        <th>Score Médio</th>
+                        <th>Desvio Padrão</th>
+                        <th>Pior Score</th>
+                        <th>Impacto</th>
+                    </tr>
+                     </thead>
+                     <tbody>
+                    
+                    <tr>
+                        <td>0.1</td>
+                         <td>0.5066</td>
+                        <td>0.0</td>
+                        <td>0.5064</td>
+                        <td>0.4782</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>0.2</td>
+                         <td>0.494</td>
+                        <td>0.0</td>
+                        <td>0.4751</td>
+                        <td>0.4912</td>
+                    </tr>
+                    
+                     </tbody>
+                </table>
+                 
+            </div>
+        </div>
+
+        <h2>Importância Detalhada das Features (%)</h2>
+        
+        <table>
+             <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Importância (%)</th>
+            </tr>
+             </thead>
+             <tbody>
+            
+            <tr>
+                <td>feature_1</td>
+                <td>11.94%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_14</td>
+                <td>10.65%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_12</td>
+                <td>9.95%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_19</td>
+                <td>9.08%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_5</td>
+                <td>8.87%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_11</td>
+                <td>7.99%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_15</td>
+                <td>6.73%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_0</td>
+                <td>5.9%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_16</td>
+                <td>4.95%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_2</td>
+                <td>4.82%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_18</td>
+                <td>3.67%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_13</td>
+                <td>3.4%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_7</td>
+                <td>2.64%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_4</td>
+                <td>2.05%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_17</td>
+                <td>1.89%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_10</td>
+                <td>1.5%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_8</td>
+                <td>1.38%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_9</td>
+                <td>1.07%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_3</td>
+                <td>0.86%</td> 
+            </tr>
+            
+            <tr>
+                <td>feature_6</td>
+                <td>0.66%</td> 
+            </tr>
+            
+             </tbody>
+        </table>
+        
+    </div>
+
+    <div class="note">
+        <p><strong>Nota:</strong> Este relatório analisa a robustez do modelo contra perturbações nos dados de entrada. A perturbação 'Raw' aplica ruído gaussiano proporcional ao desvio padrão da feature, enquanto a perturbação 'Quantile' modifica as features com base nos quantis de sua distribuição.</p>
+        <p>A importância das features indica o quanto cada feature contribui para a degradação da métrica de desempenho do modelo quando perturbada.</p>
+    </div>
+
+    <script>
+        // Função de troca de abas (definida no <head>)
+
+        // Geração dos plots Plotly
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // --- Variáveis de Dados (com defaults seguros via tojson) ---
+                // O filtro 'tojson' agora é seguro para tipos não serializáveis (converte para string)
+                const perturbationLevels = [0.1, 0.2];
+                const rawMeanScores = [0.9694346233476668, 0.9655437653010958];
+                const quantileMeanScores = [0.5066267402971144, 0.4939792664362937];
+                const rawWorstScores = [0.968827653640596, 0.9647529416993522];
+                const quantileWorstScores = [0.5064114045711618, 0.47511216791297683];
+                const modelNames = ["DECISION_TREE", "LOGISTIC_REGRESSION", "GBM"]; // Nomes dos modelos alternativos testados
+                const rawModelScores = [[0.9693083997229598, 0.9643524928054755], [0.9706235995214761, 0.9646104956721743], [0.9702102615954992, 0.9631890724711756]];
+                const quantileModelScores = [[0.4981207939347474, 0.49345111241976763], [0.49860724378419014, 0.489888998766653], [0.493606966003326, 0.5083632781104974]];
+                const alternativeModelsImpact = [0.24675057238268072, 0.24713745714378146, 0.24414034484568717]; // Impactos para gráfico de barras
+                const rawDistributions = {"0.1": [0.968827653640596, 0.9700574450827231, 0.9694187713196813], "0.2": [0.9653067256302847, 0.9647529416993522, 0.9665716285736506]};
+                const quantileDistributions = {"0.1": [0.5069707441193791, 0.5064980722008023, 0.5064114045711618], "0.2": [0.5163812931254791, 0.49044433827042516, 0.47511216791297683]};
+                const featureNamesImp = ["feature_1", "feature_14", "feature_12", "feature_19", "feature_5", "feature_11", "feature_15", "feature_0", "feature_16", "feature_2", "feature_18", "feature_13", "feature_7", "feature_4", "feature_17", "feature_10", "feature_8", "feature_9", "feature_3", "feature_6"]; // Nomes ordenados
+                const featureImportancePctValues = [11.943809651838576, 10.653313617418416, 9.94757359860006, 9.08052157548233, 8.865438903077573, 7.991665546441003, 6.728054846079415, 5.897970157284243, 4.9536227987594605, 4.819196128508584, 3.6698480978648558, 3.404355424111611, 2.6381234036858174, 2.0533673880940886, 1.8853340502825924, 1.4988573732993624, 1.3812340368329945, 1.0720526952551408, 0.8569700228537396, 0.6586906842301303]; // % para plot
+                const featureSubsetComparison = {"all_features": [0.9694346233476668, 0.9655437653010958], "feature_subset": [0.9703692263247371, 0.9677883828338834]};
+                const primaryMetricsValuesPlot = [0, 0, 0, 0, 0]; // Métricas primárias para plot
+                const altMetricsValuesPlot = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]; // Métricas alternativas para plot
+                const primaryModelName = "Primary Model";
+                const baseMetricName = "AUC";
+
+                // --- Plot: Perturbação Raw - Comparação de Modelos ---
+                const rawModelsData = [];
+                if (perturbationLevels.length > 0 && rawMeanScores.length === perturbationLevels.length) {
+                    rawModelsData.push({
+                        x: perturbationLevels, y: rawMeanScores, type: 'scatter', mode: 'lines+markers',
+                        name: primaryModelName + ' (Raw Mean)', line: { color: 'rgb(31, 119, 180)', width: 2 }, marker: { size: 8 }
+                    });
+                    // Adiciona modelos alternativos se existirem dados
+                    if (Array.isArray(modelNames) && Array.isArray(rawModelScores)) {
+                         modelNames.forEach((name, i) => {
+                            if (rawModelScores[i] && rawModelScores[i].length === perturbationLevels.length) {
+                                rawModelsData.push({
+                                    x: perturbationLevels, y: rawModelScores[i], type: 'scatter', mode: 'lines+markers',
+                                    name: name + ' (Raw Mean)', line: { width: 2 }, marker: { size: 8 }
+                                });
+                            }
+                        });
+                    }
+                }
+                const rawModelsLayout = {
+                    title: 'Desempenho sob Perturbação Raw', xaxis: { title: 'Nível de Perturbação' },
+                    yaxis: { title: baseMetricName + ' Médio', rangemode: 'tozero' }, hovermode: 'closest',
+                    legend: { orientation: 'h', y: -0.2 }
+                };
+                if (rawModelsData.length > 0) Plotly.newPlot('raw-models-plot', rawModelsData, rawModelsLayout, {responsive: true}); else document.getElementById('raw-models-plot').innerHTML = '<p>Dados insuficientes para plotar.</p>';
+
+
+                // --- Plot: Perturbação Quantile - Comparação de Modelos ---
+                const quantileModelsData = [];
+                 if (perturbationLevels.length > 0 && quantileMeanScores.length === perturbationLevels.length) {
+                    quantileModelsData.push({
+                        x: perturbationLevels, y: quantileMeanScores, type: 'scatter', mode: 'lines+markers',
+                        name: primaryModelName + ' (Quantile Mean)', line: { color: 'rgb(44, 160, 44)', width: 2 }, marker: { size: 8 }
+                    });
+                     // Adiciona modelos alternativos
+                     if (Array.isArray(modelNames) && Array.isArray(quantileModelScores)) {
+                         modelNames.forEach((name, i) => {
+                            if (quantileModelScores[i] && quantileModelScores[i].length === perturbationLevels.length) {
+                                quantileModelsData.push({
+                                    x: perturbationLevels, y: quantileModelScores[i], type: 'scatter', mode: 'lines+markers',
+                                    name: name + ' (Quantile Mean)', line: { width: 2 }, marker: { size: 8 }
+                                });
+                            }
+                        });
+                    }
+                }
+                const quantileModelsLayout = {
+                    title: 'Desempenho sob Perturbação Quantile', xaxis: { title: 'Nível de Perturbação' },
+                    yaxis: { title: baseMetricName + ' Médio', rangemode: 'tozero' }, hovermode: 'closest',
+                    legend: { orientation: 'h', y: -0.2 }
+                };
+                if (quantileModelsData.length > 0) Plotly.newPlot('quantile-models-plot', quantileModelsData, quantileModelsLayout, {responsive: true}); else document.getElementById('quantile-models-plot').innerHTML = '<p>Dados insuficientes para plotar.</p>';
+
+
+                // --- Plot: Comparação dos Métodos de Perturbação (Modelo Primário) ---
+                 const perturbationMethodsData = [];
+                 if (perturbationLevels.length > 0) {
+                     if(rawMeanScores.length === perturbationLevels.length) perturbationMethodsData.push({ x: perturbationLevels, y: rawMeanScores, type: 'scatter', mode: 'lines+markers', name: 'Raw (Mean)', line: { color: 'rgb(31, 119, 180)' } });
+                     if(quantileMeanScores.length === perturbationLevels.length) perturbationMethodsData.push({ x: perturbationLevels, y: quantileMeanScores, type: 'scatter', mode: 'lines+markers', name: 'Quantile (Mean)', line: { color: 'rgb(44, 160, 44)' } });
+                     if(rawWorstScores.length === perturbationLevels.length) perturbationMethodsData.push({ x: perturbationLevels, y: rawWorstScores, type: 'scatter', mode: 'lines', name: 'Raw (Worst)', line: { color: 'rgb(31, 119, 180)', dash: 'dash' } });
+                     if(quantileWorstScores.length === perturbationLevels.length) perturbationMethodsData.push({ x: perturbationLevels, y: quantileWorstScores, type: 'scatter', mode: 'lines', name: 'Quantile (Worst)', line: { color: 'rgb(44, 160, 44)', dash: 'dash' } });
+                 }
+                const perturbationMethodsLayout = {
+                    title: 'Comparação de Métodos de Perturbação (' + primaryModelName + ')',
+                    xaxis: { title: 'Nível de Perturbação' }, yaxis: { title: baseMetricName, rangemode: 'tozero' },
+                    hovermode: 'closest', legend: { orientation: 'h', y: -0.2 }
+                };
+                 if (perturbationMethodsData.length > 0) Plotly.newPlot('perturbation-methods-plot', perturbationMethodsData, perturbationMethodsLayout, {responsive: true}); else document.getElementById('perturbation-methods-plot').innerHTML = '<p>Dados insuficientes para plotar.</p>';
+
+
+                // --- Plot: Comparação de Robustez entre Modelos (Impacto) ---
+                const modelComparisonData = [];
+                const primaryImpact = ((0.003483507871139409 || 0) + (0.4846865506702875 || 0)) / 2;
+                const allModelNamesBar = [primaryModelName].concat(modelNames);
+                const allImpactsBar = [primaryImpact].concat(alternativeModelsImpact);
+
+                if(allImpactsBar.length > 0) {
+                     modelComparisonData.push({
+                         x: allModelNamesBar, y: allImpactsBar, type: 'bar',
+                         text: allImpactsBar.map(val => (val !== null && val !== undefined) ? val.toFixed(4) : 'N/A'),
+                         textposition: 'auto',
+                         marker: { color: allModelNamesBar.map((name, i) => i === 0 ? 'rgb(31, 119, 180)' : Plotly.Colors.DEFAULT[i % Plotly.Colors.DEFAULT.length]) }
+                     });
+                 }
+                const modelComparisonLayout = {
+                    title: 'Impacto Médio por Modelo (Menor é Melhor)',
+                    xaxis: { title: 'Modelo', tickangle: -30 }, yaxis: { title: 'Impacto Médio na Métrica' },
+                    bargap: 0.2
+                };
+                 if (modelComparisonData.length > 0) Plotly.newPlot('model-comparison-plot', modelComparisonData, modelComparisonLayout, {responsive: true}); else document.getElementById('model-comparison-plot').innerHTML = '<p>Dados insuficientes para plotar.</p>';
+
+
+                // --- Plot: Distribuição Raw (Box Plot) ---
+                 const rawDistributionData = [];
+                 const sortedRawDistLevels = Object.keys(rawDistributions).sort((a, b) => parseFloat(a) - parseFloat(b));
+                 sortedRawDistLevels.forEach(level => {
+                    if (rawDistributions[level] && rawDistributions[level].length > 0) {
+                        rawDistributionData.push({ y: rawDistributions[level], type: 'box', name: `Level ${level}`, boxpoints: 'all', jitter: 0.3, pointpos: -1.8 });
+                    }
+                 });
+                const rawDistributionLayout = {
+                    title: 'Distribuição das Pontuações (Perturbação Raw)',
+                    yaxis: { title: baseMetricName }, xaxis: { title: 'Nível de Perturbação' }, boxmode: 'group', showlegend: false
+                };
+                 if (rawDistributionData.length > 0) Plotly.newPlot('raw-distribution-plot', rawDistributionData, rawDistributionLayout, {responsive: true}); else document.getElementById('raw-distribution-plot').innerHTML = '<p>Dados de distribuição Raw não disponíveis.</p>';
+
+                // --- Plot: Distribuição Quantile (Box Plot) ---
+                 const quantileDistributionData = [];
+                 const sortedQuantileDistLevels = Object.keys(quantileDistributions).sort((a, b) => parseFloat(a) - parseFloat(b));
+                 sortedQuantileDistLevels.forEach(level => {
+                     if (quantileDistributions[level] && quantileDistributions[level].length > 0) {
+                        quantileDistributionData.push({ y: quantileDistributions[level], type: 'box', name: `Level ${level}`, boxpoints: 'all', jitter: 0.3, pointpos: -1.8 });
+                     }
+                 });
+                const quantileDistributionLayout = {
+                    title: 'Distribuição das Pontuações (Perturbação Quantile)',
+                    yaxis: { title: baseMetricName }, xaxis: { title: 'Nível de Perturbação' }, boxmode: 'group', showlegend: false
+                };
+                 if (quantileDistributionData.length > 0) Plotly.newPlot('quantile-distribution-plot', quantileDistributionData, quantileDistributionLayout, {responsive: true}); else document.getElementById('quantile-distribution-plot').innerHTML = '<p>Dados de distribuição Quantile não disponíveis.</p>';
+
+
+                // --- Plot: Importância das Features (%) ---
+                // Usa os nomes e valores percentuais ordenados
+                const topNFeatures = 15; // Mostrar top N features
+                const featureImportanceData = [];
+                 if (featureNamesImp.length > 0 && featureImportancePctValues.length > 0) {
+                     const topFeaturesData = featureNamesImp.slice(0, topNFeatures).map((name, i) => ({
+                         name: name,
+                         importance: featureImportancePctValues[i] || 0 // Usa 0 se valor for None/undefined
+                     })).filter(item => item.importance > 0); // Filtra features com 0% importância (opcional)
+
+                     // Reordena para Plotly (eixo Y)
+                     topFeaturesData.reverse();
+
+                     featureImportanceData.push({
+                         x: topFeaturesData.map(f => f.importance), y: topFeaturesData.map(f => f.name),
+                         type: 'bar', orientation: 'h',
+                         text: topFeaturesData.map(f => f.importance.toFixed(2) + '%'), textposition: 'auto',
+                         marker: { color: 'rgb(44, 160, 44)' } // Verde para importância
+                     });
+                 }
+                const featureImportanceLayout = {
+                    title: 'Importância das Features para Robustez (%)' + (featureNamesImp.length > topNFeatures ? ' - Top ' + topNFeatures : ''),
+                    xaxis: { title: 'Importância Relativa (%)', ticksuffix: '%' },
+                    yaxis: { title: '', automargin: true }, // Título vazio e margem automática
+                    margin: { l: 200 } // Aumenta margem esquerda para nomes longos
+                };
+                 if (featureImportanceData.length > 0) Plotly.newPlot('feature-importance-plot', featureImportanceData, featureImportanceLayout, {responsive: true}); else document.getElementById('feature-importance-plot').innerHTML = '<p>Dados de importância de features não disponíveis.</p>';
+
+
+                 // --- Plot: Comparação de Métricas de Desempenho ---
+                 const metricsToPlot = ['Accuracy', 'AUC', 'F1', 'Precision', 'Recall'];
+                 const metricsComparisonData = [];
+                 const metricsPlotModelNames = [primaryModelName].concat(modelNames); // Nomes para este plot
+
+                 // Adiciona métricas do modelo primário
+                 if (primaryMetricsValuesPlot && primaryMetricsValuesPlot.length === metricsToPlot.length) {
+                    metricsComparisonData.push({
+                         x: metricsToPlot, y: primaryMetricsValuesPlot, type: 'bar', name: primaryModelName,
+                         text: primaryMetricsValuesPlot.map(v => (v !== null && v !== undefined) ? v.toFixed(4) : 'N/A'), textposition: 'auto'
+                    });
+                 }
+                 // Adiciona métricas dos modelos alternativos
+                 if (Array.isArray(modelNames) && Array.isArray(altMetricsValuesPlot)) {
+                    modelNames.forEach((name, i) => {
+                         if (altMetricsValuesPlot[i] && altMetricsValuesPlot[i].length === metricsToPlot.length) {
+                             metricsComparisonData.push({
+                                 x: metricsToPlot, y: altMetricsValuesPlot[i], type: 'bar', name: name,
+                                 text: altMetricsValuesPlot[i].map(v => (v !== null && v !== undefined) ? v.toFixed(4) : 'N/A'), textposition: 'auto'
+                             });
+                         }
+                    });
+                 }
+                 const metricsLayout = {
+                     title: 'Comparação de Métricas de Desempenho',
+                     xaxis: { title: 'Métrica' }, yaxis: { title: 'Score', range: [0, 1.05] },
+                     barmode: 'group', legend: { orientation: 'h', y: -0.2 }, bargap: 0.15
+                 };
+                 if (metricsComparisonData.length > 0) Plotly.newPlot('metrics-comparison-plot', metricsComparisonData, metricsLayout, {responsive: true}); else document.getElementById('metrics-comparison-plot').innerHTML = '<p>Dados de métricas não disponíveis para plotar.</p>';
+
+
+                 // --- Plot: Comparação de Subconjunto de Features (se aplicável) ---
+                 
+                 const featureSubsetData = [];
+                  if (perturbationLevels.length > 0) {
+                     if (featureSubsetComparison.all_features && featureSubsetComparison.all_features.length === perturbationLevels.length) {
+                         featureSubsetData.push({ x: perturbationLevels, y: featureSubsetComparison.all_features, type: 'scatter', mode: 'lines+markers', name: 'Todas Features (Raw Mean)', line: { color: 'rgb(31, 119, 180)' } });
+                     }
+                     if (featureSubsetComparison.feature_subset && featureSubsetComparison.feature_subset.length === perturbationLevels.length) {
+                          featureSubsetData.push({ x: perturbationLevels, y: featureSubsetComparison.feature_subset, type: 'scatter', mode: 'lines+markers', name: 'Subconjunto (' + feature_subset.length + ' Features)', line: { color: 'rgb(255, 127, 14)' } });
+                     }
+                  }
+                 const featureSubsetLayout = {
+                     title: 'Comparação: Todas Features vs. Subconjunto (' + baseMetricName + ' Médio)',
+                     xaxis: { title: 'Nível de Perturbação Raw' }, yaxis: { title: baseMetricName + ' Médio', rangemode: 'tozero'},
+                     hovermode: 'closest', legend: { orientation: 'h', y: -0.2 }
+                 };
+                  if (featureSubsetData.length >= 2) Plotly.newPlot('feature-subset-comparison-plot', featureSubsetData, featureSubsetLayout, {responsive: true}); else document.getElementById('feature-subset-comparison-plot').innerHTML = '<p>Dados insuficientes para plotar a comparação de subconjunto.</p>';
+                 
+
+            } catch(error) {
+                console.error("Erro ao criar plots Plotly:", error);
+                // Mostra mensagem de erro amigável na UI
+                document.getElementById('raw').innerHTML = // Ou outra aba visível
+                    '<div style="color:red; padding:20px; border: 1px solid red; background-color: #ffebee; border-radius: 5px;">' +
+                    '<strong>Erro ao gerar gráficos:</strong> ' + (error.message || error) +
+                    '<br><br>Verifique o console do navegador (F12) para mais detalhes e o formato dos dados passados.' +
+                    '</div>';
+            }
+
+            // Garante que a aba inicial (raw) seja exibida corretamente no carregamento
+            // e força o redesenho dos gráficos nela.
+            showTab('raw');
+
+        });
+    </script>
+</body>
+</html>

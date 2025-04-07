@@ -7,7 +7,7 @@ import io
 import base64
 from typing import Dict, List, Optional, Union, Any
 
-def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=True):
+def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=True, feature_subset=None):
     """
     Run resilience tests on a dataset to evaluate model performance under distribution shifts.
     
@@ -21,6 +21,8 @@ def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=Tru
         Performance metric to use for evaluation ('auc', 'f1', 'accuracy', etc.)
     verbose : bool
         Whether to print progress information
+    feature_subset : List[str] or None
+        Specific features to focus on for testing (None for all features)
         
     Returns:
     --------
@@ -29,10 +31,10 @@ def run_resilience_tests(dataset, config_name='quick', metric='auc', verbose=Tru
     from deepbridge.validation.wrappers.resilience_suite import ResilienceSuite
     
     # Initialize resilience suite
-    resilience = ResilienceSuite(dataset, verbose=verbose, metric=metric)
+    resilience = ResilienceSuite(dataset, verbose=verbose, metric=metric, feature_subset=feature_subset)
     
-    # Configure and run tests
-    results = resilience.config(config_name).run()
+    # Configure and run tests with feature subset if specified
+    results = resilience.config(config_name, feature_subset=feature_subset).run()
     
     if verbose:
         print(f"\nResilience Test Summary:")

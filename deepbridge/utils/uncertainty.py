@@ -7,7 +7,7 @@ import io
 import base64
 from typing import Dict, List, Optional, Union, Any
 
-def run_uncertainty_tests(dataset, config_name='full', verbose=True):
+def run_uncertainty_tests(dataset, config_name='full', verbose=True, feature_subset=None):
     """
     Run uncertainty quantification tests on a dataset to estimate prediction intervals.
     
@@ -19,6 +19,8 @@ def run_uncertainty_tests(dataset, config_name='full', verbose=True):
         Name of the configuration to use: 'quick', 'medium', or 'full'
     verbose : bool
         Whether to print progress information
+    feature_subset : List[str] or None
+        Specific features to focus on for testing (None for all features)
         
     Returns:
     --------
@@ -27,10 +29,10 @@ def run_uncertainty_tests(dataset, config_name='full', verbose=True):
     from deepbridge.validation.wrappers.uncertainty_suite import UncertaintySuite
     
     # Initialize uncertainty suite
-    uncertainty = UncertaintySuite(dataset, verbose=verbose)
+    uncertainty = UncertaintySuite(dataset, verbose=verbose, feature_subset=feature_subset)
     
-    # Configure and run tests
-    results = uncertainty.config(config_name).run()
+    # Configure and run tests with feature subset if specified
+    results = uncertainty.config(config_name, feature_subset=feature_subset).run()
     
     if verbose:
         print(f"\nUncertainty Test Summary:")

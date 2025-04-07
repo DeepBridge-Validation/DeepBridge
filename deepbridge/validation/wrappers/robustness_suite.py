@@ -60,7 +60,13 @@ class RobustnessSuite:
         ]
     }
     
-    def __init__(self, dataset, verbose: bool = False, metric: str = 'AUC', feature_subset: Optional[List[str]] = None, random_state: Optional[int] = None):
+    def __init__(self, 
+                 dataset, 
+                 verbose: bool = False, 
+                 metric: str = 'AUC', 
+                 feature_subset: Optional[List[str]] = None, 
+                 random_state: Optional[int] = None,
+                 n_iterations: int = 1):
         """
         Initialize the robustness testing suite.
         
@@ -76,18 +82,21 @@ class RobustnessSuite:
             Subset of features to test (None for all features)
         random_state : int or None
             Random seed for reproducibility
+        n_iterations : int
+            Number of iterations to perform for each perturbation level to get statistical robustness
         """
         self.dataset = dataset
         self.verbose = verbose
         self.feature_subset = feature_subset
         self.metric = metric
+        self.n_iterations = n_iterations
         
         # Initialize components
         self.data_perturber = DataPerturber()
         if random_state is not None:
             self.data_perturber.set_random_state(random_state)
             
-        self.evaluator = RobustnessEvaluator(dataset, metric, verbose, random_state)
+        self.evaluator = RobustnessEvaluator(dataset, metric, verbose, random_state, n_iterations)
         self.visualizer = RobustnessVisualizer()
         self.reporter = RobustnessReporter(verbose)
         
@@ -99,6 +108,7 @@ class RobustnessSuite:
         
         if self.verbose:
             print(f"Robustness Suite initialized with metric: {self.metric}")
+            print(f"Using {self.n_iterations} iterations per perturbation level")
     
     def config(self, config_name: str = 'quick', feature_subset: Optional[List[str]] = None) -> 'RobustnessSuite':
         """
@@ -188,7 +198,7 @@ class RobustnessSuite:
             'raw': {'by_level': {}, 'overall': {}},
             'quantile': {'by_level': {}, 'overall': {}},
             'feature_importance': {},
-            'visualizations': {}
+            'feature_subset': self.feature_subset  # Store the feature subset used in the test
         }
         
         # Calculate baseline score
@@ -221,42 +231,65 @@ class RobustnessSuite:
             
             # Store result by level
             level_key = str(level)
+            # Simplify to just use the current run state
+            run_key = 'feature_subset' if self.feature_subset else 'all_features'
+            
             if test_type == 'raw':
                 if level_key not in results['raw']['by_level']:
-                    results['raw']['by_level'][level_key] = {'runs': [], 'overall_result': {}}
+                    results['raw']['by_level'][level_key] = {'runs': {}, 'overall_result': {}}
                 
-                results['raw']['by_level'][level_key]['runs'].append(eval_result)
+                # Initialize storage for both all_features and feature_subset if they don't exist
+                if 'all_features' not in results['raw']['by_level'][level_key]['runs']:
+                    results['raw']['by_level'][level_key]['runs']['all_features'] = []
+                if 'feature_subset' not in results['raw']['by_level'][level_key]['runs']:
+                    results['raw']['by_level'][level_key]['runs']['feature_subset'] = []
+                
+                # Add result to the appropriate category
+                results['raw']['by_level'][level_key]['runs'][run_key].append(eval_result)
                 all_raw_impacts.append(eval_result['impact'])
                 all_impacts.append(eval_result['impact'])
                 
-                # Calculate overall result for this level
-                runs = results['raw']['by_level'][level_key]['runs']
+                # Calculate overall result for this level and run_key
+                runs = results['raw']['by_level'][level_key]['runs'][run_key]
                 mean_score = np.mean([run['perturbed_score'] for run in runs])
                 std_score = np.std([run['perturbed_score'] for run in runs])
+                worst_scores = [run.get('worst_score', 0) for run in runs]
                 
-                results['raw']['by_level'][level_key]['overall_result'] = {
+                # Store results under the appropriate key
+                results['raw']['by_level'][level_key]['overall_result'][run_key] = {
                     'mean_score': mean_score,
                     'std_score': std_score,
-                    'impact': np.mean([run['impact'] for run in runs])
+                    'impact': np.mean([run['impact'] for run in runs]),
+                    'worst_score': np.mean(worst_scores) if worst_scores else 0
                 }
                 
             elif test_type == 'quantile':
                 if level_key not in results['quantile']['by_level']:
-                    results['quantile']['by_level'][level_key] = {'runs': [], 'overall_result': {}}
+                    results['quantile']['by_level'][level_key] = {'runs': {}, 'overall_result': {}}
                 
-                results['quantile']['by_level'][level_key]['runs'].append(eval_result)
+                # Initialize storage for both all_features and feature_subset if they don't exist
+                if 'all_features' not in results['quantile']['by_level'][level_key]['runs']:
+                    results['quantile']['by_level'][level_key]['runs']['all_features'] = []
+                if 'feature_subset' not in results['quantile']['by_level'][level_key]['runs']:
+                    results['quantile']['by_level'][level_key]['runs']['feature_subset'] = []
+                
+                # Add result to the appropriate category
+                results['quantile']['by_level'][level_key]['runs'][run_key].append(eval_result)
                 all_quantile_impacts.append(eval_result['impact'])
                 all_impacts.append(eval_result['impact'])
                 
-                # Calculate overall result for this level
-                runs = results['quantile']['by_level'][level_key]['runs']
+                # Calculate overall result for this level and run_key
+                runs = results['quantile']['by_level'][level_key]['runs'][run_key]
                 mean_score = np.mean([run['perturbed_score'] for run in runs])
                 std_score = np.std([run['perturbed_score'] for run in runs])
+                worst_scores = [run.get('worst_score', 0) for run in runs]
                 
-                results['quantile']['by_level'][level_key]['overall_result'] = {
+                # Store results under the appropriate key
+                results['quantile']['by_level'][level_key]['overall_result'][run_key] = {
                     'mean_score': mean_score,
                     'std_score': std_score,
-                    'impact': np.mean([run['impact'] for run in runs])
+                    'impact': np.mean([run['impact'] for run in runs]),
+                    'worst_score': np.mean(worst_scores) if worst_scores else 0
                 }
         
         # Evaluate feature importance using the median level from configurations
@@ -280,27 +313,13 @@ class RobustnessSuite:
         results['avg_quantile_impact'] = np.mean(all_quantile_impacts) if all_quantile_impacts else 0
         results['avg_overall_impact'] = np.mean(all_impacts) if all_impacts else 0
         
-        # Create visualizations
+        # No longer storing visualizations in the results dictionary
         if self.verbose:
-            print("\nGenerating visualizations...")
-            
-        # Generate score distribution plot
-        results['visualizations']['score_distribution'] = self.visualizer.create_score_distribution_plot(results)
+            print("\nVisualizations available through the VisualizationManager")
         
-        # Generate feature importance plot if available
-        if results['feature_importance']:
-            results['visualizations']['feature_importance'] = self.visualizer.create_feature_importance_plot(
-                results['feature_importance']
-            )
-        
-        # Generate methods comparison plot
-        results['visualizations']['perturbation_methods'] = self.visualizer.create_methods_comparison_plot(results)
-        
-        # Record execution time
-        execution_time = time.time() - start_time
-        results['execution_time'] = execution_time
-        
+        # Calculando tempo apenas para impressão, sem armazenar no dicionário
         if self.verbose:
+            execution_time = time.time() - start_time
             print(f"\nTests completed in {execution_time:.2f} seconds")
             print(f"Average raw impact: {results['avg_raw_impact']:.3f}")
             print(f"Average quantile impact: {results['avg_quantile_impact']:.3f}")

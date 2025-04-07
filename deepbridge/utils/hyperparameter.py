@@ -5,7 +5,7 @@ Utility functions for hyperparameter importance testing.
 import numpy as np
 from typing import Dict, List, Optional, Union, Any
 
-def run_hyperparameter_tests(dataset, config_name='quick', metric='accuracy', verbose=True):
+def run_hyperparameter_tests(dataset, config_name='quick', metric='accuracy', verbose=True, feature_subset=None):
     """
     Run hyperparameter importance tests on a dataset to identify the most influential parameters.
     
@@ -19,6 +19,8 @@ def run_hyperparameter_tests(dataset, config_name='quick', metric='accuracy', ve
         Performance metric to use for evaluation ('accuracy', 'auc', 'f1', etc.)
     verbose : bool
         Whether to print progress information
+    feature_subset : List[str] or None
+        Specific features to focus on for testing (None for all features)
         
     Returns:
     --------
@@ -27,10 +29,10 @@ def run_hyperparameter_tests(dataset, config_name='quick', metric='accuracy', ve
     from deepbridge.validation.wrappers.hyperparameter_suite import HyperparameterSuite
     
     # Initialize hyperparameter suite
-    hyperparameter = HyperparameterSuite(dataset, verbose=verbose, metric=metric)
+    hyperparameter = HyperparameterSuite(dataset, verbose=verbose, metric=metric, feature_subset=feature_subset)
     
-    # Configure and run tests
-    results = hyperparameter.config(config_name).run()
+    # Configure and run tests with feature subset if specified
+    results = hyperparameter.config(config_name, feature_subset=feature_subset).run()
     
     if verbose:
         print(f"\nHyperparameter Importance Summary:")

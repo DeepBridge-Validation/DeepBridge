@@ -91,9 +91,7 @@ class RobustnessReporter:
         for feature, value in sorted_features:
             report_lines.append(f"- {feature}: {value:.3f}")
         
-        # Add execution time
-        if 'execution_time' in test_results:
-            report_lines.append(f"\nExecution time: {test_results['execution_time']:.2f} seconds")
+        # Não mais exibimos o tempo de execução
         
         return '\n'.join(report_lines)
     
@@ -152,21 +150,96 @@ class RobustnessReporter:
         --------
         str : HTML report content
         """
-        # Import template if available
+        # Initialize variables to be populated in the template
+        report_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Prepare data for template context
+        # Set defaults for required template variables
+        template_context = {
+            'model_name': model_name,
+            'test_results': test_results,
+            'visualizations': visualizations,
+            'generation_time': report_date,
+            'report_date': report_date,
+            'models_evaluated': model_name,
+            'key_finding': f"Model shows {test_results.get('avg_overall_impact', 0):.3f} impact under perturbation",
+            'summary_text': f"Baseline performance: {test_results.get('base_score', 0):.3f}",
+            'best_model': model_name,
+            'model_metrics': [
+                {'name': model_name, 
+                 'robustness_index': f"{(1 - test_results.get('avg_overall_impact', 0)):.3f}",
+                 'color': '#3a6ea5',
+                 'baseline': f"{test_results.get('base_score', 0):.3f}",
+                 'perturbed': '0.000', 
+                 'drop': f"{test_results.get('avg_overall_impact', 0)*100:.1f}"}
+            ],
+            'perturbation_levels': [],
+            'boxplot_chart': '{"data":[], "layout":{}}',
+            'feature_importance_chart': '{"data":[], "layout":{}}',
+            'recommendations': [
+                {'title': 'Improve Robustness Training',
+                 'content': 'Consider adding noise to training data or using adversarial training techniques.'}
+            ]
+        }
+        
+        # Extract perturbation levels used
+        if 'raw' in test_results and 'by_level' in test_results['raw']:
+            levels = sorted(test_results['raw']['by_level'].keys())
+            template_context['perturbation_levels'] = levels
+            
+            # Create detailed model results
+            model_detailed_results = [
+                {'name': model_name, 
+                 'robustness_index': f"{(1 - test_results.get('avg_overall_impact', 0)):.3f}", 
+                 'scores': []}
+            ]
+            
+            # Add scores by level
+            for level in levels:
+                level_data = test_results['raw']['by_level'].get(level, {})
+                overall = level_data.get('overall_result', {})
+                if overall:
+                    model_detailed_results[0]['scores'].append(f"{overall.get('mean_score', 0):.3f}")
+                else:
+                    model_detailed_results[0]['scores'].append("N/A")
+                    
+            template_context['model_detailed_results'] = model_detailed_results
+        
+        # Extract top features
+        top_features = []
+        if 'feature_importance' in test_results:
+            # Sort features by importance
+            sorted_features = sorted(test_results['feature_importance'].items(), 
+                                    key=lambda x: x[1], reverse=True)
+            
+            # Get top 5 or less
+            for i, (feature, value) in enumerate(sorted_features[:5]):
+                # Calculate percentage for visualization
+                percentage = min(100, max(5, value * 100))  # Ensure it's at least 5% for visibility
+                top_features.append({
+                    'name': feature,
+                    'value': f"{value:.3f}",
+                    'percentage': percentage
+                })
+                
+            template_context['top_features'] = top_features
+            
+        # Try to import the template module
         try:
+            # First, try to import the module
             from deepbridge.reports.templates.robustness_report_template import get_template
             template = get_template()
             
             # Fill template with data
-            html_content = template.render(
-                model_name=model_name,
-                test_results=test_results,
-                visualizations=visualizations,
-                generation_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            )
+            html_content = template.render(**template_context)
             
             return html_content
-        except ImportError:
+            
+        except (ImportError, Exception) as e:
+            if self.verbose:
+                print(f"Error using template: {str(e)}")
+                print("Falling back to simple HTML report")
+                
             # Fallback to a simple HTML report if template not available
             report_lines = ['<!DOCTYPE html>',
                            '<html>',

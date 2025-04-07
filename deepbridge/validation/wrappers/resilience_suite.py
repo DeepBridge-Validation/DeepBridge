@@ -370,37 +370,54 @@ class ResilienceSuite:
         if not isinstance(y, pd.Series):
             y = pd.Series(y)
         
-        # Apply feature subset if specified
+        # Store original full feature set for predictions
+        X_full = X.copy()
+        
+        # Create feature subset view for analysis only
+        X_analysis = X.copy()
         if self.feature_subset:
-            X = X[self.feature_subset]
+            # Ensure all features in feature_subset are in X
+            valid_features = [f for f in self.feature_subset if f in X.columns]
+            if len(valid_features) < len(self.feature_subset):
+                missing = set(self.feature_subset) - set(valid_features)
+                if self.verbose:
+                    print(f"Warning: Some requested features not found in dataset: {missing}")
+            if valid_features:
+                X_analysis = X[valid_features]
+            elif self.verbose:
+                print("No valid features in subset. Using all features.")
         
         # Get model
         model = self.dataset.model
         
-        # Get predictions
+        # Get predictions using the FULL feature set to avoid scikit-learn feature name mismatch error
         if self._problem_type == "classification" and hasattr(model, "predict_proba"):
-            y_pred = model.predict_proba(X)[:, 1]
+            y_pred = model.predict_proba(X_full)[:, 1]
         else:
-            y_pred = model.predict(X)
+            y_pred = model.predict(X_full)
         
         # Calculate residuals
         residuals = self._calculate_residuals(y, y_pred)
         
-        # Select worst samples
-        worst_samples, remaining_samples, worst_indices, remaining_indices = self._select_worst_samples(X, residuals, alpha)
+        # Select worst samples using the analysis feature set (subset if specified)
+        worst_samples, remaining_samples, worst_indices, remaining_indices = self._select_worst_samples(X_analysis, residuals, alpha)
         
         # Split target values
         y_worst = y.iloc[worst_indices]
         y_remaining = y.iloc[remaining_indices]
         
-        # Calculate performance metrics
+        # Create full feature views of the worst and remaining samples for prediction
+        X_worst_full = X_full.iloc[worst_indices]
+        X_remaining_full = X_full.iloc[remaining_indices]
+        
+        # Calculate performance metrics using the FULL feature set for predictions
         if self._problem_type == "classification":
             if hasattr(model, "predict_proba"):
-                worst_pred = model.predict_proba(worst_samples)[:, 1]
-                remaining_pred = model.predict_proba(remaining_samples)[:, 1]
+                worst_pred = model.predict_proba(X_worst_full)[:, 1]
+                remaining_pred = model.predict_proba(X_remaining_full)[:, 1]
             else:
-                worst_pred = model.predict(worst_samples)
-                remaining_pred = model.predict(remaining_samples)
+                worst_pred = model.predict(X_worst_full)
+                remaining_pred = model.predict(X_remaining_full)
                 
             # Calculate appropriate metrics based on problem type
             if metric == "auc":
@@ -432,8 +449,8 @@ class ResilienceSuite:
             else:
                 raise ValueError(f"Unsupported metric for classification: {metric}")
         else:  # regression
-            worst_pred = model.predict(worst_samples)
-            remaining_pred = model.predict(remaining_samples)
+            worst_pred = model.predict(X_worst_full)
+            remaining_pred = model.predict(X_remaining_full)
             
             if metric == "mse":
                 worst_metric = mean_squared_error(y_worst, worst_pred)
@@ -599,7 +616,7 @@ class ResilienceSuite:
         # Add execution time
         if self.verbose:
             elapsed_time = time.time() - start_time
-            results['execution_time'] = elapsed_time
+            # Não armazenamos mais o tempo de execução nos resultados
             print(f"Test suite completed in {elapsed_time:.2f} seconds")
             print(f"Overall resilience score: {results['resilience_score']:.3f}")
         

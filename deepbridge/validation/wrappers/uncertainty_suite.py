@@ -371,7 +371,7 @@ class UncertaintySuite:
         # Add execution time
         if self.verbose:
             elapsed_time = time.time() - start_time
-            results['execution_time'] = elapsed_time
+            # Não armazenamos mais o tempo de execução nos resultados
             print(f"Test suite completed in {elapsed_time:.2f} seconds")
             print(f"Overall uncertainty quality score: {results['uncertainty_quality_score']:.3f}")
         
@@ -495,19 +495,39 @@ class UncertaintySuite:
         
         model = self.uncertainty_models[model_key]
         
-        # Get feature subset if needed
-        if self.feature_subset and isinstance(X, pd.DataFrame):
-            X = X[self.feature_subset]
+        # Create a copy of the original X for predictions
+        X_full = X.copy()
         
-        # Predict intervals and point estimates
-        lower_bound, upper_bound = model.predict_interval(X)
-        point_pred = model.predict(X)
+        # Check if we need to create a separate view for feature analysis
+        X_analysis = X.copy()
+        if self.feature_subset and isinstance(X, pd.DataFrame):
+            # Ensure all features in feature_subset are in X
+            valid_features = [f for f in self.feature_subset if f in X.columns]
+            if len(valid_features) < len(self.feature_subset) and self.verbose:
+                missing = set(self.feature_subset) - set(valid_features)
+                print(f"Warning: Some requested features not found in dataset: {missing}")
+            if valid_features:
+                X_analysis = X[valid_features]
+            elif self.verbose:
+                print("No valid features in subset. Using all features.")
+        
+        # For uncertainty models like CRQR, we can use the subset
+        # as they are trained specifically for the subset during evaluation
+        # But for regular models we should use full feature set
+        if isinstance(model, dict) and "model" in model:
+            # This is a CRQR model that can handle the subset directly
+            lower_bound, upper_bound = model.predict_interval(X_analysis)
+            point_pred = model.predict(X_analysis)
+        else:
+            # For standard models, use the full feature set to avoid feature mismatch errors
+            lower_bound, upper_bound = model.predict_interval(X_full)
+            point_pred = model.predict(X_full)
         
         return lower_bound, upper_bound, point_pred
     
     def save_report(self, output_path: str) -> None:
         """
-        Save uncertainty test results to a simple text report file.
+        Save uncertainty test results to an HTML report file.
         
         Parameters:
         -----------
@@ -521,59 +541,82 @@ class UncertaintySuite:
         last_test_key = list(self.results.keys())[-1]
         test_results = self.results[last_test_key]
         
-        # Create a simple report
-        report_lines = [
-            "# Uncertainty Estimation Report",
-            f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Model: {self.dataset.model.__class__.__name__}",
-            f"Problem type: {self._problem_type}",
-            "",
-            "## Summary",
-            f"Overall uncertainty quality score: {test_results.get('uncertainty_quality_score', 0):.3f}",
-            f"Average coverage error: {test_results.get('avg_coverage_error', 0):.3f}",
-            f"Average normalized width: {test_results.get('avg_normalized_width', 0):.3f}",
-            "",
-            "## CRQR Results"
-        ]
-        
-        # Add CRQR results by alpha
-        for alpha, alpha_data in sorted(test_results.get('crqr', {}).get('by_alpha', {}).items()):
-            overall = alpha_data.get('overall_result', {})
-            if overall:
-                report_lines.append(f"\n### Alpha = {alpha} (Expected coverage: {(1-alpha)*100:.1f}%)")
-                report_lines.append(f"Actual coverage: {overall.get('coverage', 0)*100:.1f}%")
-                report_lines.append(f"Mean interval width: {overall.get('mean_width', 0):.3f}")
-                report_lines.append(f"Median interval width: {overall.get('median_width', 0):.3f}")
-        
-        # Add feature importance section
-        report_lines.append("\n## Feature Importance")
-        
-        # Get feature importance
-        importance = test_results.get('feature_importance', {})
-        
-        # Sort features by importance
-        sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
-        
-        # Limit to top 10 features
-        if len(sorted_features) > 10:
-            sorted_features = sorted_features[:10]
-            report_lines.append("Top 10 most important features:")
-        else:
-            report_lines.append("Feature importance:")
+        # Import the reporter
+        try:
+            from deepbridge.validation.wrappers.uncertainty_reporter import UncertaintyReporter
+            reporter = UncertaintyReporter(verbose=self.verbose)
             
-        for feature, value in sorted_features:
-            report_lines.append(f"- {feature}: {value:.3f}")
-        
-        # Add execution time
-        if 'execution_time' in test_results:
-            report_lines.append(f"\nExecution time: {test_results['execution_time']:.2f} seconds")
-        
-        # Write report to file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(report_lines))
+            # Determine report type based on file extension
+            if output_path.endswith('.html'):
+                # Save as HTML report
+                model_name = getattr(self.dataset.model, '__class__', type(self.dataset.model)).__name__
+                reporter.save_html_report(output_path, test_results, model_name)
+            else:
+                # Save as text report
+                model_name = getattr(self.dataset.model, '__class__', type(self.dataset.model)).__name__
+                reporter.save_text_report(output_path, test_results, model_name)
+                
+            if self.verbose:
+                print(f"Report saved to {output_path}")
+        except ImportError as e:
+            if self.verbose:
+                print(f"Error importing UncertaintyReporter: {str(e)}")
+                print("Falling back to simple text report")
             
-        if self.verbose:
-            print(f"Report saved to {output_path}")
+            # Fallback to the old method
+            # Create a simple report
+            report_lines = [
+                "# Uncertainty Estimation Report",
+                f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                f"Model: {self.dataset.model.__class__.__name__}",
+                f"Problem type: {self._problem_type}",
+                "",
+                "## Summary",
+                f"Overall uncertainty quality score: {test_results.get('uncertainty_quality_score', 0):.3f}",
+                f"Average coverage error: {test_results.get('avg_coverage_error', 0):.3f}",
+                f"Average normalized width: {test_results.get('avg_normalized_width', 0):.3f}",
+                "",
+                "## CRQR Results"
+            ]
+            
+            # Add CRQR results by alpha
+            for alpha, alpha_data in sorted(test_results.get('crqr', {}).get('by_alpha', {}).items()):
+                overall = alpha_data.get('overall_result', {})
+                if overall:
+                    report_lines.append(f"\n### Alpha = {alpha} (Expected coverage: {(1-alpha)*100:.1f}%)")
+                    report_lines.append(f"Actual coverage: {overall.get('coverage', 0)*100:.1f}%")
+                    report_lines.append(f"Mean interval width: {overall.get('mean_width', 0):.3f}")
+                    report_lines.append(f"Median interval width: {overall.get('median_width', 0):.3f}")
+            
+            # Add feature importance section
+            report_lines.append("\n## Feature Importance")
+            
+            # Get feature importance
+            importance = test_results.get('feature_importance', {})
+            
+            # Sort features by importance
+            sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
+            
+            # Limit to top 10 features
+            if len(sorted_features) > 10:
+                sorted_features = sorted_features[:10]
+                report_lines.append("Top 10 most important features:")
+            else:
+                report_lines.append("Feature importance:")
+                
+            for feature, value in sorted_features:
+                report_lines.append(f"- {feature}: {value:.3f}")
+            
+            # Add execution time
+            if 'execution_time' in test_results:
+                report_lines.append(f"\nExecution time: {test_results['execution_time']:.2f} seconds")
+            
+            # Write report to file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(report_lines))
+                
+            if self.verbose:
+                print(f"Report saved to {output_path}")
 
 
 class CRQR:

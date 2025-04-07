@@ -369,18 +369,31 @@ class TestRunner:
                 model_name="primary_model"
             )
             
-            # Add initial metrics to results if available
-            if 'models' in self.test_results and 'primary_model' in self.test_results['models']:
+            # IMPORTANTE: Use real metrics directly from initial_results if available
+            # This is the primary source of truth for metrics - use a complete COPY to ensure no reference issues
+            if hasattr(self, 'test_results') and 'models' in self.test_results and 'primary_model' in self.test_results['models']:
                 primary_metrics = self.test_results['models']['primary_model'].get('metrics', {})
-                if 'metrics' not in primary_results:
-                    primary_results['metrics'] = {}
+                if primary_metrics and isinstance(primary_metrics, dict):
+                    # Create a deep copy of the metrics to avoid any reference issues
+                    metrics_copy = {}
+                    for key, value in primary_metrics.items():
+                        metrics_copy[key] = value
                     
-                # Copy all metrics from initial tests
-                primary_results['metrics'].update(primary_metrics)
-                
-                # Debug output
-                if self.verbose:
-                    print(f"DEBUG: Primary model metrics after merge: {primary_results.get('metrics', {})}")
+                    # Ensure the metrics exist in the results
+                    if 'metrics' not in primary_results:
+                        primary_results['metrics'] = {}
+                    # Replace with the real metrics
+                    primary_results['metrics'] = metrics_copy
+                    
+                    # Make sure both 'auc' and 'roc_auc' are consistent
+                    if 'roc_auc' in metrics_copy and 'auc' not in metrics_copy:
+                        primary_results['metrics']['auc'] = primary_results['metrics']['roc_auc']
+                    elif 'auc' in metrics_copy and 'roc_auc' not in metrics_copy:
+                        primary_results['metrics']['roc_auc'] = primary_results['metrics']['auc']
+                    
+                    # Debug output
+                    if self.verbose:
+                        print(f"DEBUG: Primary model metrics from initial_results: {primary_results.get('metrics', {})}")
             robustness_results['primary_model'] = primary_results
             
             # Test alternative models
@@ -402,70 +415,75 @@ class TestRunner:
                         model_name=model_name
                     )
                     
-                    # Check if we have metrics from initial tests
+                    # Use real metrics from initial_results directly - this is the primary source of truth
+                    if hasattr(self, 'test_results') and 'models' in self.test_results and model_name in self.test_results['models']:
+                        model_metrics = self.test_results['models'][model_name].get('metrics', {})
+                        if model_metrics and isinstance(model_metrics, dict):
+                            # Ensure the metrics exist in the results
+                            if 'metrics' not in alt_results:
+                                alt_results['metrics'] = {}
+                            # COMPLETELY REPLACE metrics with real values from initial_results
+                            alt_results['metrics'] = model_metrics.copy()
+                            if self.verbose:
+                                print(f"DEBUG: Completely replaced metrics for {model_name} with real metrics from initial_results: {model_metrics}")
+                    
+                    # Store original metrics for reference and avoid duplicating the code below
                     alt_metrics_from_initial = None
                     if 'models' in self.test_results and model_name in self.test_results['models']:
                         alt_metrics_from_initial = self.test_results['models'][model_name].get('metrics', {})
                         if alt_metrics_from_initial and self.verbose:
                             print(f"DEBUG: Initial metrics available for {model_name}: {alt_metrics_from_initial}")
                     
-                    # Calculate metrics directly to ensure unique values for each model
-                    try:
-                        print(f"DEBUG: Calculating direct metrics for alternative model {model_name}")
-                        from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
-                        
-                        X_test = alt_dataset.get_feature_data('test')
-                        y_test = alt_dataset.get_target_data('test')
-                        
-                        # Make predictions
-                        y_pred = model.predict(X_test)
-                        
-                        # Add metrics to results
-                        if 'metrics' not in alt_results:
-                            alt_results['metrics'] = {}
-                            
-                        # Add basic metrics
-                        alt_results['metrics']['accuracy'] = accuracy_score(y_test, y_pred)
-                        
-                        # Calculate AUC if possible
-                        if hasattr(model, 'predict_proba'):
-                            try:
-                                y_prob = model.predict_proba(X_test)
-                                if y_prob.shape[1] > 1:
-                                    alt_results['metrics']['auc'] = roc_auc_score(y_test, y_prob[:, 1])
-                            except Exception as e:
-                                print(f"DEBUG: Error calculating AUC for {model_name}: {e}")
-                                
-                        # Calculate F1, precision, recall
+                    # Skip direct calculation of metrics if we already have metrics from initial_results
+                    # This is to avoid overwriting the real metrics with potentially inconsistent values
+                    if 'metrics' not in alt_results or not alt_results['metrics']:
                         try:
-                            alt_results['metrics']['f1'] = f1_score(y_test, y_pred)
-                            alt_results['metrics']['precision'] = precision_score(y_test, y_pred)
-                            alt_results['metrics']['recall'] = recall_score(y_test, y_pred)
-                        except Exception as e:
-                            print(f"DEBUG: Error calculating classification metrics for {model_name}: {e}")
-                        
-                        # If we have initial metrics, use them to fill any missing metrics
-                        if alt_metrics_from_initial:
-                            # First copy any missing metrics from initial metrics
-                            for metric_name, metric_value in alt_metrics_from_initial.items():
-                                if metric_name not in alt_results['metrics']:
-                                    alt_results['metrics'][metric_name] = metric_value
+                            print(f"DEBUG: Initial metrics missing, calculating direct metrics for alternative model {model_name}")
+                            from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
                             
-                            # Make sure we have an AUC value
-                            if 'auc' not in alt_results['metrics'] and ('auc' in alt_metrics_from_initial or 'roc_auc' in alt_metrics_from_initial):
-                                auc_value = alt_metrics_from_initial.get('auc', alt_metrics_from_initial.get('roc_auc'))
-                                alt_results['metrics']['auc'] = auc_value
+                            X_test = alt_dataset.get_feature_data('test')
+                            y_test = alt_dataset.get_target_data('test')
                             
-                        print(f"DEBUG: Direct metrics for {model_name}: {alt_results['metrics']}")
-                    except Exception as e:
-                        print(f"DEBUG: Failed to calculate direct metrics for {model_name}: {e}")
-                        
-                        # If direct calculation failed but we have initial metrics, use those
-                        if alt_metrics_from_initial:
+                            # Make predictions
+                            y_pred = model.predict(X_test)
+                            
+                            # Add metrics to results
                             if 'metrics' not in alt_results:
                                 alt_results['metrics'] = {}
-                            alt_results['metrics'].update(alt_metrics_from_initial)
-                            print(f"DEBUG: Using initial metrics for {model_name} instead: {alt_results['metrics']}")
+                                
+                            # Add basic metrics
+                            alt_results['metrics']['accuracy'] = accuracy_score(y_test, y_pred)
+                            
+                            # Calculate AUC if possible
+                            if hasattr(model, 'predict_proba'):
+                                try:
+                                    y_prob = model.predict_proba(X_test)
+                                    if y_prob.shape[1] > 1:
+                                        alt_results['metrics']['roc_auc'] = roc_auc_score(y_test, y_prob[:, 1])
+                                        alt_results['metrics']['auc'] = alt_results['metrics']['roc_auc']
+                                except Exception as e:
+                                    print(f"DEBUG: Error calculating AUC for {model_name}: {e}")
+                                    
+                            # Calculate F1, precision, recall
+                            try:
+                                alt_results['metrics']['f1'] = f1_score(y_test, y_pred)
+                                alt_results['metrics']['precision'] = precision_score(y_test, y_pred)
+                                alt_results['metrics']['recall'] = recall_score(y_test, y_pred)
+                            except Exception as e:
+                                print(f"DEBUG: Error calculating classification metrics for {model_name}: {e}")
+                                
+                            print(f"DEBUG: Direct metrics for {model_name}: {alt_results['metrics']}")
+                        except Exception as e:
+                            print(f"DEBUG: Failed to calculate direct metrics for {model_name}: {e}")
+                            
+                            # If direct calculation failed but we have initial metrics, use those
+                            if alt_metrics_from_initial:
+                                if 'metrics' not in alt_results:
+                                    alt_results['metrics'] = {}
+                                alt_results['metrics'] = alt_metrics_from_initial.copy()
+                                print(f"DEBUG: Using initial metrics for {model_name} instead: {alt_results['metrics']}")
+                    else:
+                        print(f"DEBUG: Skipping direct metrics calculation for {model_name} as we already have metrics from initial_results")
                     
                     # Store results
                     robustness_results['alternative_models'][model_name] = alt_results
