@@ -14,9 +14,7 @@ import os
 
 from deepbridge.validation.wrappers.robustness import (
     DataPerturber, 
-    RobustnessEvaluator, 
-    RobustnessVisualizer, 
-    RobustnessReporter
+    RobustnessEvaluator
 )
 
 class RobustnessSuite:
@@ -97,8 +95,7 @@ class RobustnessSuite:
             self.data_perturber.set_random_state(random_state)
             
         self.evaluator = RobustnessEvaluator(dataset, metric, verbose, random_state, n_iterations)
-        self.visualizer = RobustnessVisualizer()
-        self.reporter = RobustnessReporter(verbose)
+        # Visualization and reporting functionality has been removed
         
         # Store current configuration
         self.current_config = None
@@ -388,18 +385,9 @@ class RobustnessSuite:
             # Store results
             all_results[model_name] = model_results
         
-        # Create model comparison visualization
+        # Model comparison visualization has been removed
         if self.verbose:
-            print("\nGenerating model comparison visualization...")
-            
-        # Generate model comparison plot
-        model_comparison = self.visualizer.create_model_comparison_plot(
-            primary_results,
-            {name: results for name, results in all_results.items() if name != 'primary_model'}
-        )
-        
-        # Add to primary model results
-        all_results['primary_model']['visualizations']['models_comparison'] = model_comparison
+            print("\nModel comparison visualization has been removed in this version.")
         
         # Update stored results
         self.results = all_results['primary_model']
@@ -408,53 +396,22 @@ class RobustnessSuite:
     
     def save_report(self, output_path: str = None, model_name: str = "Main Model", format: str = "html") -> str:
         """
-        Generate and save a report with the test results.
+        This method has been deprecated as reporting functionality has been removed.
         
-        Parameters:
-        -----------
-        output_path : str, optional
-            Path to save the report (if None, will use default path)
-        model_name : str
-            Name of the model for the report
-        format : str
-            Report format ('text' or 'html')
-            
-        Returns:
-        --------
-        str : Path to the saved report
+        Raises:
+            NotImplementedError: Always raises this exception
         """
-        if not self.results:
-            raise ValueError("No results available. Run tests first.")
-        
-        # Use default path if none provided
-        if output_path is None:
-            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            model_name_clean = model_name.replace(' ', '_').lower()
-            output_path = f"robustness_report_{model_name_clean}_{timestamp}.{'html' if format == 'html' else 'txt'}"
-            
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        
-        if format.lower() == 'html':
-            # Generate HTML report
-            return self.reporter.save_html_report(
-                output_path,
-                self.results,
-                self.results.get('visualizations', {}),
-                model_name
-            )
-        else:
-            # Generate text report
-            return self.reporter.save_text_report(
-                output_path,
-                self.results,
-                model_name
-            )
+        raise NotImplementedError("Report generation functionality has been removed from this version.")
     
     def get_results(self) -> Dict[str, Any]:
         """Get the test results."""
         return self.results
     
     def get_visualizations(self) -> Dict[str, Any]:
-        """Get the visualizations generated during testing."""
-        return self.results.get('visualizations', {})
+        """
+        This method has been deprecated as visualization functionality has been removed.
+        
+        Raises:
+            NotImplementedError: Always raises this exception
+        """
+        raise NotImplementedError("Visualization functionality has been removed from this version.")

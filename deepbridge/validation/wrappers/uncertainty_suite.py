@@ -527,96 +527,12 @@ class UncertaintySuite:
     
     def save_report(self, output_path: str) -> None:
         """
-        Save uncertainty test results to an HTML report file.
+        This method has been deprecated as reporting functionality has been removed.
         
-        Parameters:
-        -----------
-        output_path : str
-            Path where the report should be saved
+        Raises:
+            NotImplementedError: Always raises this exception
         """
-        if not self.results:
-            raise ValueError("No results available. Run a test first.")
-        
-        # Get the most recent test result
-        last_test_key = list(self.results.keys())[-1]
-        test_results = self.results[last_test_key]
-        
-        # Import the reporter
-        try:
-            from deepbridge.validation.wrappers.uncertainty_reporter import UncertaintyReporter
-            reporter = UncertaintyReporter(verbose=self.verbose)
-            
-            # Determine report type based on file extension
-            if output_path.endswith('.html'):
-                # Save as HTML report
-                model_name = getattr(self.dataset.model, '__class__', type(self.dataset.model)).__name__
-                reporter.save_html_report(output_path, test_results, model_name)
-            else:
-                # Save as text report
-                model_name = getattr(self.dataset.model, '__class__', type(self.dataset.model)).__name__
-                reporter.save_text_report(output_path, test_results, model_name)
-                
-            if self.verbose:
-                print(f"Report saved to {output_path}")
-        except ImportError as e:
-            if self.verbose:
-                print(f"Error importing UncertaintyReporter: {str(e)}")
-                print("Falling back to simple text report")
-            
-            # Fallback to the old method
-            # Create a simple report
-            report_lines = [
-                "# Uncertainty Estimation Report",
-                f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                f"Model: {self.dataset.model.__class__.__name__}",
-                f"Problem type: {self._problem_type}",
-                "",
-                "## Summary",
-                f"Overall uncertainty quality score: {test_results.get('uncertainty_quality_score', 0):.3f}",
-                f"Average coverage error: {test_results.get('avg_coverage_error', 0):.3f}",
-                f"Average normalized width: {test_results.get('avg_normalized_width', 0):.3f}",
-                "",
-                "## CRQR Results"
-            ]
-            
-            # Add CRQR results by alpha
-            for alpha, alpha_data in sorted(test_results.get('crqr', {}).get('by_alpha', {}).items()):
-                overall = alpha_data.get('overall_result', {})
-                if overall:
-                    report_lines.append(f"\n### Alpha = {alpha} (Expected coverage: {(1-alpha)*100:.1f}%)")
-                    report_lines.append(f"Actual coverage: {overall.get('coverage', 0)*100:.1f}%")
-                    report_lines.append(f"Mean interval width: {overall.get('mean_width', 0):.3f}")
-                    report_lines.append(f"Median interval width: {overall.get('median_width', 0):.3f}")
-            
-            # Add feature importance section
-            report_lines.append("\n## Feature Importance")
-            
-            # Get feature importance
-            importance = test_results.get('feature_importance', {})
-            
-            # Sort features by importance
-            sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
-            
-            # Limit to top 10 features
-            if len(sorted_features) > 10:
-                sorted_features = sorted_features[:10]
-                report_lines.append("Top 10 most important features:")
-            else:
-                report_lines.append("Feature importance:")
-                
-            for feature, value in sorted_features:
-                report_lines.append(f"- {feature}: {value:.3f}")
-            
-            # Add execution time
-            if 'execution_time' in test_results:
-                report_lines.append(f"\nExecution time: {test_results['execution_time']:.2f} seconds")
-            
-            # Write report to file
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(report_lines))
-                
-            if self.verbose:
-                print(f"Report saved to {output_path}")
+        raise NotImplementedError("Report generation functionality has been removed from this version.")
 
 
 class CRQR:
