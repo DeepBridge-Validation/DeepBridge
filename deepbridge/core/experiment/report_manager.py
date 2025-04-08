@@ -6,6 +6,7 @@ import os
 import json
 import math
 import datetime
+import base64
 from typing import Dict, Any, Optional, Union
 
 try:
@@ -50,6 +51,11 @@ class ReportManager:
             self.np = np
         except ImportError:
             self.np = None
+            
+        # Set up paths for favicon and logo - use absolute paths
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        self.favicon_path = os.path.join(project_root, 'docs', 'assets', 'images', 'favicon.png')
+        self.logo_path = os.path.join(project_root, 'docs', 'assets', 'images', 'logo.png')
     
     def convert_numpy_types(self, data):
         """
@@ -109,6 +115,26 @@ class ReportManager:
         else:
             return data
     
+    def get_base64_image(self, image_path):
+        """
+        Convert image to base64 string.
+        
+        Parameters:
+        -----------
+        image_path : str
+            Path to the image file
+            
+        Returns:
+        --------
+        str : Base64 encoded image string
+        """
+        try:
+            with open(image_path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode('utf-8')
+        except Exception as e:
+            print(f"Error encoding image {image_path}: {str(e)}")
+            return ""
+
     def generate_robustness_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """
         Generate HTML report for robustness test results.
@@ -166,6 +192,10 @@ class ReportManager:
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Get base64 encoded favicon and logo
+            favicon_base64 = self.get_base64_image(self.favicon_path)
+            logo_base64 = self.get_base64_image(self.logo_path)
             
             # No need to import numpy here as we're using the class method
             
@@ -379,12 +409,14 @@ class ReportManager:
                 
             print("Rendering template...")
             
-            # Render the template
+            # Render the template with favicon and logo base64 data
             rendered_html = template.render(
                 report_data=json.dumps(report_data, default=json_serializer),
                 model_name=model_name,
                 timestamp=timestamp,
-                current_year=datetime.datetime.now().year
+                current_year=datetime.datetime.now().year,
+                favicon=favicon_base64,
+                logo=logo_base64
             )
             
             print(f"Template rendered successfully (size: {len(rendered_html)} bytes)")
@@ -563,12 +595,18 @@ class ReportManager:
             for key in report_data:
                 print(f"- {key}: {type(report_data[key])}")
             
-            # Render the template
+            # Get base64 encoded favicon and logo
+            favicon_base64 = self.get_base64_image(self.favicon_path)
+            logo_base64 = self.get_base64_image(self.logo_path)
+            
+            # Render the template with favicon and logo base64 data
             rendered_html = template.render(
                 report_data=json.dumps(report_data, default=json_serializer),
                 model_name=model_name,
                 timestamp=timestamp,
-                current_year=datetime.datetime.now().year
+                current_year=datetime.datetime.now().year,
+                favicon=favicon_base64,
+                logo=logo_base64
             )
             
             # Create output directory if it doesn't exist
@@ -736,12 +774,18 @@ class ReportManager:
             for key in report_data:
                 print(f"- {key}: {type(report_data[key])}")
             
-            # Render the template
+            # Get base64 encoded favicon and logo
+            favicon_base64 = self.get_base64_image(self.favicon_path)
+            logo_base64 = self.get_base64_image(self.logo_path)
+            
+            # Render the template with favicon and logo base64 data
             rendered_html = template.render(
                 report_data=json.dumps(report_data, default=json_serializer),
                 model_name=model_name,
                 timestamp=timestamp,
-                current_year=datetime.datetime.now().year
+                current_year=datetime.datetime.now().year,
+                favicon=favicon_base64,
+                logo=logo_base64
             )
             
             # Create output directory if it doesn't exist
@@ -874,12 +918,18 @@ class ReportManager:
             for key in report_data:
                 print(f"- {key}: {type(report_data[key])}")
             
-            # Render the template
+            # Get base64 encoded favicon and logo
+            favicon_base64 = self.get_base64_image(self.favicon_path)
+            logo_base64 = self.get_base64_image(self.logo_path)
+            
+            # Render the template with favicon and logo base64 data
             rendered_html = template.render(
                 report_data=json.dumps(report_data, default=json_serializer),
                 model_name=model_name,
                 timestamp=timestamp,
-                current_year=datetime.datetime.now().year
+                current_year=datetime.datetime.now().year,
+                favicon=favicon_base64,
+                logo=logo_base64
             )
             
             # Create output directory if it doesn't exist

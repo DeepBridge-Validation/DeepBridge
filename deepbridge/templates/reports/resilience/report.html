@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeepBridge Resilience Analysis Report</title>
-    <!-- External Dependencies -->
+    <link rel="icon" href="data:image/png;base64, {{ favicon }}" type="image/png">
     <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
     <!-- Internal Styles -->
     <style>
         :root {
-            --primary-color: #16a085;
-            --secondary-color: #2c3e50;
+            --primary-color: #1b78de;  /* Bright blue */
+            --secondary-color: #2c3e50; /* Dark blue/slate */
             --background-color: #f8f9fa;
             --text-color: #333;
             --border-color: #ddd;
@@ -28,6 +28,45 @@
             padding: 0;
         }
         
+        /* Header styles */
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .logo-container {
+            flex: 0 0 200px;
+            padding-right: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            max-height: 80px;
+            object-fit: contain;
+        }
+        
+        .title-container {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .report-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            font-size: 16px;
+            color: #555;
+            margin-top: 10px;
+        }
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -35,11 +74,13 @@
         }
         
         header {
-            background-color: var(--secondary-color);
+            background: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
             color: white;
-            padding: 1rem;
+            padding: 1.5rem;
             text-align: center;
             margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
         h1, h2, h3, h4 {
@@ -71,11 +112,13 @@
         }
         
         .card-header {
-            background-color: var(--primary-color);
+            background: linear-gradient(to right, var(--primary-color), var(--primary-color) 85%, #3498db);
             color: white;
             padding: 15px 20px;
             font-weight: bold;
             font-size: 1.2rem;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
         }
         
         .card-body {
@@ -116,7 +159,17 @@
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 20px;
         }
-        
+
+        .logo-container {
+        flex: 0 0 120px; /* Ajuste este valor proporcionalmente, se precisar */
+        padding-right: 20px;
+        }
+
+        .logo {
+            max-width: 100px; /* Ajuste este valor para alterar o tamanho da logo */
+            height: auto;
+        }
+                
         .tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -125,7 +178,7 @@
         }
         
         .tab:hover {
-            background-color: rgba(22, 160, 133, 0.1);
+            background-color: rgba(27, 120, 222, 0.1);
         }
         
         .tab.active {
@@ -171,9 +224,12 @@
             border-top: 1px solid var(--border-color);
             margin-top: 30px;
             padding-top: 20px;
+            padding-bottom: 20px;
             text-align: center;
             color: #777;
             font-size: 0.9rem;
+            background-color: #f1f3f4;
+            border-radius: 8px;
         }
         
         .metric-good {
@@ -231,9 +287,18 @@
 <body>
     <div class="container">
         <header>
-            <h1>DeepBridge Resilience Analysis Report</h1>
-            <div id="model-name">{{ model_name }}</div>
-            <div id="timestamp">Generated on: {{ timestamp }}</div>
+            <div class="header-container">
+                <div class="logo-container">
+                    <img src="data:image/png;base64, {{ logo }}" alt="DeepBridge Logo" class="logo">
+                </div>
+                <div class="title-container">
+                    <h1>DeepBridge Resilience Analysis Report</h1>
+                    <div class="report-info">
+                        <div class="model-name"><strong>Model:</strong> <span id="model-name">{{ model_name }}</span></div>
+                        <div class="timestamp"><strong>Generated on:</strong> <span id="timestamp">{{ timestamp }}</span></div>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <div class="card">
