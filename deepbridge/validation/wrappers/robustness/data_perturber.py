@@ -43,14 +43,24 @@ class DataPerturber:
         --------
         DataFrame or ndarray : Perturbed data
         """
+        # Create a copy of the original data
+        X_perturbed = X.copy()
+        
+        # If perturb_features is None, perturb all features
         if perturb_features is None:
             perturb_features = X.columns if isinstance(X, pd.DataFrame) else range(X.shape[1])
         
-        X_perturbed = X.copy()
+        # Only perturb the specified features, keeping all others unchanged
         for feature in perturb_features:
             if isinstance(X, pd.DataFrame):
+                # Skip if feature doesn't exist in the DataFrame
+                if feature not in X.columns:
+                    continue
                 col = X.columns.get_loc(feature)
             else:
+                # Skip if column index is out of bounds
+                if isinstance(feature, int) and (feature < 0 or feature >= X.shape[1]):
+                    continue
                 col = feature
             
             if perturb_method == 'raw':
@@ -134,21 +144,27 @@ class DataPerturber:
             Level of perturbation to apply
         feature_subset : List[str] or None
             Specific features to perturb (None for all)
+            When specified, only these features will be perturbed one at a time
             
         Returns:
         --------
         Dict[str, DataFrame or ndarray] : Dictionary mapping feature names to perturbed datasets
         """
-        feature_subset = feature_subset or (X.columns if isinstance(X, pd.DataFrame) else range(X.shape[1]))
+        # Determine which features to perturb individually
+        if feature_subset is None:
+            features_to_perturb = X.columns if isinstance(X, pd.DataFrame) else range(X.shape[1])
+        else:
+            features_to_perturb = feature_subset
+            
         perturbed_datasets = {}
         
-        for feature in feature_subset:
-            # Perturb only this feature
+        for feature in features_to_perturb:
+            # Create a copy where only this one feature is perturbed
             perturbed_datasets[feature] = self.perturb_data(
                 X, 
                 perturb_method, 
                 level, 
-                [feature]
+                [feature]  # Only perturb this specific feature
             )
             
         return perturbed_datasets

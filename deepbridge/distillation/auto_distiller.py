@@ -10,10 +10,8 @@ from deepbridge.core.db_data import DBDataset
 from deepbridge.config.settings import DistillationConfig
 from deepbridge.distillation.experiment_runner import ExperimentRunner
 from deepbridge.metrics.evaluator import MetricsEvaluator
-from deepbridge.utils.reporting import ReportGenerator
 
-# Import visualization components to break circular imports
-# This will be done dynamically in _initialize_analysis_components method
+# Visualization and reporting functionality has been removed
 
 class AutoDistiller:
     """
@@ -242,11 +240,7 @@ class AutoDistiller:
             # Initialize components that depend on results
             self._initialize_analysis_components()
             
-            # Create visualizations
-            self.visualizer.create_all_visualizations()
-            
-            # Generate and save report
-            self.report_generator.save_report()
+            # Visualization and report generation have been removed
         
         finally:
             if not verbose_output:
@@ -268,30 +262,13 @@ class AutoDistiller:
             config=self.config
         )
         
-        # Import here to break circular imports
-        from deepbridge.visualization.auto_visualizer import AutoVisualizer
-        
-        # Initialize visualizer
-        self.visualizer = AutoVisualizer(
-            results_df=self.results_df,
-            config=self.config,
-            metrics_evaluator=self.metrics_evaluator
-        )
-        
-        # Initialize report generator
-        self.report_generator = ReportGenerator(
-            results_df=self.results_df,
-            config=self.config,
-            metrics_evaluator=self.metrics_evaluator
-        )
+        # Visualizer and report generator have been removed
+        self.visualizer = None
+        self.report_generator = None
         
     def _ensure_components_initialized(self):
         """Ensure that analysis components are initialized if results are available."""
-        if self.results_df is not None and (
-            self.metrics_evaluator is None or
-            self.visualizer is None or
-            self.report_generator is None
-        ):
+        if self.results_df is not None and self.metrics_evaluator is None:
             self._initialize_analysis_components()
     
     def find_best_model(self, metric: str = 'test_accuracy', minimize: bool = False) -> Dict:
@@ -404,37 +381,30 @@ class AutoDistiller:
     
     def generate_report(self) -> str:
         """
-        Generate a comprehensive report of the distillation results.
+        This method has been deprecated as reporting functionality has been removed.
         
-        Returns:
-            String containing the report
+        Raises:
+            NotImplementedError: Always raises this exception
         """
-        if self.results_df is None:
-            raise ValueError("No results available. Run the distillation process first.")
-            
-        self._ensure_components_initialized()
-        return self.report_generator.generate_report()
+        raise NotImplementedError("Reporting functionality has been removed from this version.")
     
     def generate_summary(self) -> str:
         """
-        Generate a brief summary of the distillation results.
+        This method has been deprecated as reporting functionality has been removed.
         
-        Returns:
-            String containing a summary
+        Raises:
+            NotImplementedError: Always raises this exception
         """
-        if self.results_df is None:
-            raise ValueError("No results available. Run the distillation process first.")
-            
-        self._ensure_components_initialized()
-        return self.report_generator.generate_summary()
+        raise NotImplementedError("Reporting functionality has been removed from this version.")
     
     def create_visualizations(self):
-        """Create and save all visualizations."""
-        if self.results_df is None:
-            raise ValueError("No results available. Run the distillation process first.")
-            
-        self._ensure_components_initialized()
-        self.visualizer.create_all_visualizations()
+        """
+        This method has been deprecated as visualization functionality has been removed.
+        
+        Raises:
+            NotImplementedError: Always raises this exception
+        """
+        raise NotImplementedError("Visualization functionality has been removed from this version.")
     
     def compare_models(self, best_metric: str = 'test_accuracy', minimize: bool = False) -> pd.DataFrame:
         """

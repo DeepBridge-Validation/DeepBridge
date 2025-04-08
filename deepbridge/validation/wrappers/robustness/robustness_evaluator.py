@@ -18,7 +18,8 @@ class RobustnessEvaluator:
                  dataset, 
                  metric: str = 'AUC', 
                  verbose: bool = False,
-                 random_state: Optional[int] = None):
+                 random_state: Optional[int] = None,
+                 n_iterations: int = 1):
         """
         Initialize the robustness evaluator.
         
@@ -32,10 +33,13 @@ class RobustnessEvaluator:
             Whether to print progress information
         random_state : int or None
             Random seed for reproducibility
+        n_iterations : int
+            Number of iterations to perform for each perturbation level to get statistical robustness
         """
         self.dataset = dataset
         self.metric = metric
         self.verbose = verbose
+        self.n_iterations = n_iterations
         
         # Create data perturber
         self.data_perturber = DataPerturber()
@@ -48,6 +52,7 @@ class RobustnessEvaluator:
         if self.verbose:
             print(f"Problem type detected: {self._problem_type}")
             print(f"Using metric: {self.metric}")
+            print(f"Performing {self.n_iterations} iterations per perturbation level")
     
     def _determine_problem_type(self) -> str:
         """Determine if the problem is classification or regression"""
@@ -193,33 +198,80 @@ class RobustnessEvaluator:
         --------
         Dict[str, Any] : Results of the evaluation
         """
-        # Calculate baseline score first
-        base_score = self.calculate_base_score(X, y)
+        # Create a copy of the original X for predictions
+        X_full = X.copy()
         
-        # Perturb all features
-        X_perturbed = self.data_perturber.perturb_data(
-            X, 
-            perturb_method, 
-            level, 
-            feature_subset
-        )
+        # Calculate baseline score first using full feature set
+        base_score = self.calculate_base_score(X_full, y)
         
-        # Calculate score on perturbed data
-        perturbed_score = self.calculate_score_on_perturbed_data(X_perturbed, y)
+        # Run multiple iterations for statistical robustness
+        perturbed_scores = []
+        seed_offset = 0
+        
+        for iteration in range(self.n_iterations):
+            # Use a different random seed for each iteration
+            if iteration > 0:
+                seed_offset = iteration * 1000
+                if hasattr(self.data_perturber.rng, 'seed'):
+                    original_seed = self.data_perturber.rng.get_state()[1][0]
+                    self.data_perturber.set_random_state(original_seed + seed_offset)
+            
+            # Perturb features based on feature_subset
+            X_perturbed = X_full.copy()
+            
+            # Apply perturbation only to the specified features (or all if none specified)
+            perturb_features = feature_subset
+            X_perturbed = self.data_perturber.perturb_data(
+                X_full, 
+                perturb_method, 
+                level, 
+                perturb_features
+            )
+            
+            # Calculate score on perturbed data
+            perturbed_score = self.calculate_score_on_perturbed_data(X_perturbed, y)
+            perturbed_scores.append(perturbed_score)
+        
+        # Calculate statistics across iterations
+        mean_perturbed_score = np.mean(perturbed_scores)
+        std_perturbed_score = np.std(perturbed_scores)
+        
+        # Determine if higher scores are better based on metric
+        higher_is_better = not (self._problem_type == 'regression' and self.metric.upper() in ['MSE', 'MAE', 'RMSE'])
         
         # Calculate impact - for regression metrics like MSE, lower is better
-        if self._problem_type == 'regression' and self.metric.upper() in ['MSE', 'MAE', 'RMSE']:
+        if not higher_is_better:
             # For these metrics, higher values mean worse performance
-            impact = (perturbed_score - base_score) / max(base_score, 1e-10)
+            mean_impact = (mean_perturbed_score - base_score) / max(base_score, 1e-10)
         else:
             # For classification metrics, higher values mean better performance
-            impact = (base_score - perturbed_score) / max(base_score, 1e-10)
+            mean_impact = (base_score - mean_perturbed_score) / max(base_score, 1e-10)
+            
+        # Calculate worst_score based on n_iterations and alpha (default 0.1 or 10%)
+        alpha = 0.1  # Proportion of "worst" cases to consider
+        all_scores_np = np.array(perturbed_scores)
+        worst_count = max(1, int(len(all_scores_np) * alpha))
         
-        # Return comprehensive results
+        if higher_is_better:
+            # For metrics where higher is better, worst scores are the lowest ones
+            worst_indices = np.argsort(all_scores_np)[:worst_count]
+        else:
+            # For metrics where lower is better, worst scores are the highest ones
+            worst_indices = np.argsort(all_scores_np)[-worst_count:]
+            
+        worst_score = np.mean(all_scores_np[worst_indices])
+        
+        # Return comprehensive results with iteration statistics
         return {
             'base_score': base_score,
-            'perturbed_score': perturbed_score,
-            'impact': impact,
+            'perturbed_score': mean_perturbed_score,
+            'std_perturbed_score': std_perturbed_score,
+            'impact': mean_impact,
+            'worst_score': worst_score,
+            'iterations': {
+                'n_iterations': self.n_iterations,
+                'scores': perturbed_scores
+            },
             'perturbation': {
                 'method': perturb_method,
                 'level': level,
@@ -301,38 +353,107 @@ class RobustnessEvaluator:
         --------
         Dict[str, float] : Mapping of feature names to importance scores
         """
-        # Calculate baseline score
-        base_score = self.calculate_base_score(X, y)
+        # Create a copy of the original X for predictions
+        X_full = X.copy()
+        
+        # Calculate baseline score using full feature set
+        base_score = self.calculate_base_score(X_full, y)
         
         # Get features to test
-        feature_subset = feature_subset or X.columns.tolist()
+        features_to_test = feature_subset or X.columns.tolist()
         
-        # Dictionary to store importance scores
+        # Ensure all features in feature_subset are in X
+        if feature_subset:
+            valid_features = [f for f in feature_subset if f in X.columns]
+            if len(valid_features) < len(feature_subset) and self.verbose:
+                missing = set(feature_subset) - set(valid_features)
+                print(f"Warning: Some requested features not found in dataset: {missing}")
+            features_to_test = valid_features
+        
+        # Dictionary to store importance scores and detailed results
         importance_scores = {}
+        feature_results = {}
         
         if self.verbose:
             print(f"Evaluating feature importance with {perturb_method} perturbation at level {level}")
+            print(f"Using {self.n_iterations} iterations per feature for statistical robustness")
+            if feature_subset:
+                print(f"Analyzing subset of {len(features_to_test)} features")
         
-        # Perturb each feature and evaluate
-        for i, feature in enumerate(feature_subset):
+        # Determine if higher scores are better based on metric
+        higher_is_better = not (self._problem_type == 'regression' and self.metric.upper() in ['MSE', 'MAE', 'RMSE'])
+                
+        # Perturb each feature and evaluate with multiple iterations
+        for i, feature in enumerate(features_to_test):
             if self.verbose and (i+1) % 10 == 0:
-                print(f"  - Processed {i+1}/{len(feature_subset)} features")
+                print(f"  - Processed {i+1}/{len(features_to_test)} features")
             
-            # Create perturbed dataset with only this feature perturbed
-            X_perturbed = self.data_perturber.perturb_data(X, perturb_method, level, [feature])
+            # Run multiple iterations for each feature
+            feature_impacts = []
+            feature_scores = []
             
-            # Calculate score on perturbed data
-            perturbed_score = self.calculate_score_on_perturbed_data(X_perturbed, y)
+            for iteration in range(self.n_iterations):
+                # Use a different random seed for each iteration
+                if iteration > 0:
+                    seed_offset = iteration * 1000
+                    if hasattr(self.data_perturber.rng, 'seed'):
+                        original_seed = self.data_perturber.rng.get_state()[1][0]
+                        self.data_perturber.set_random_state(original_seed + seed_offset)
+                
+                # Create perturbed dataset with only this feature perturbed
+                # Always starting from the full feature set to avoid compounding effects
+                X_perturbed = self.data_perturber.perturb_data(X_full.copy(), perturb_method, level, [feature])
+                
+                # Calculate score on perturbed data
+                perturbed_score = self.calculate_score_on_perturbed_data(X_perturbed, y)
+                feature_scores.append(perturbed_score)
+                
+                # Calculate impact - for regression metrics like MSE, lower is better
+                if not higher_is_better:
+                    # For these metrics, higher values mean worse performance
+                    impact = (perturbed_score - base_score) / max(base_score, 1e-10)
+                else:
+                    # For classification metrics, higher values mean better performance
+                    impact = (base_score - perturbed_score) / max(base_score, 1e-10)
+                
+                feature_impacts.append(impact)
             
-            # Calculate impact - for regression metrics like MSE, lower is better
-            if self._problem_type == 'regression' and self.metric.upper() in ['MSE', 'MAE', 'RMSE']:
-                # For these metrics, higher values mean worse performance
-                impact = (perturbed_score - base_score) / max(base_score, 1e-10)
+            # Calculate mean and std of impacts across iterations
+            mean_impact = np.mean(feature_impacts)
+            std_impact = np.std(feature_impacts)
+            
+            # Calculate worst_score based on n_iterations and alpha (default 0.1 or 10%)
+            alpha = 0.1  # Proportion of "worst" cases to consider
+            all_scores_np = np.array(feature_scores)
+            worst_count = max(1, int(len(all_scores_np) * alpha))
+            
+            if higher_is_better:
+                # For metrics where higher is better, worst scores are the lowest ones
+                worst_indices = np.argsort(all_scores_np)[:worst_count]
             else:
-                # For classification metrics, higher values mean better performance
-                impact = (base_score - perturbed_score) / max(base_score, 1e-10)
+                # For metrics where lower is better, worst scores are the highest ones
+                worst_indices = np.argsort(all_scores_np)[-worst_count:]
+                
+            worst_score = np.mean(all_scores_np[worst_indices])
             
-            # Store importance score
-            importance_scores[feature] = impact
+            # Store importance score (mean impact)
+            importance_scores[feature] = mean_impact
+            
+            # Store detailed results for this feature
+            feature_results[feature] = {
+                'mean_impact': mean_impact,
+                'std_impact': std_impact,
+                'mean_score': np.mean(feature_scores),
+                'std_score': np.std(feature_scores),
+                'worst_score': worst_score,
+                'iterations': {
+                    'n_iterations': self.n_iterations,
+                    'impacts': feature_impacts,
+                    'scores': feature_scores
+                }
+            }
+        
+        # Add detailed results to importance_scores dictionary
+        importance_scores['_detailed_results'] = feature_results
         
         return importance_scores

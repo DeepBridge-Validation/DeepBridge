@@ -6,21 +6,86 @@ import logging
 
 from deepbridge.metrics.classification import Classification
 from deepbridge.utils.model_registry import ModelType
+from deepbridge.utils.logger import get_logger
 
 from deepbridge.core.experiment.data_manager import DataManager
 from deepbridge.core.experiment.model_evaluation import ModelEvaluation
-from deepbridge.core.experiment.report_generator import ReportGenerator
 from deepbridge.core.experiment.managers import ModelManager
-from deepbridge.core.experiment.test_runner import TestRunner
-from deepbridge.core.experiment.visualization_manager import VisualizationManager
 
-class Experiment:
+# TestRunner is imported at runtime to avoid circular imports
+# This approach is cleaner than local imports in methods
+
+from deepbridge.core.experiment.interfaces import IExperiment
+
+class Experiment(IExperiment):
     """
     Main Experiment class coordinating different components for modeling tasks.
     This class has been refactored to delegate responsibilities to specialized components.
+    Implements the IExperiment interface for standardized interaction.
     """
+    # Initialize logger for this class
+    logger = get_logger("deepbridge.experiment")
     
     VALID_TYPES = ["binary_classification", "regression", "forecasting"]
+    
+    def _initialize_components(self, dataset, test_size, random_state):
+        """
+        Initialize helper components of the experiment.
+        
+        Args:
+            dataset: Source dataset
+            test_size: Proportion of data to use for testing
+            random_state: Random seed for reproducibility
+        """
+        # Initialize helper components
+        self.data_manager = DataManager(dataset, test_size, random_state)
+        self.model_manager = ModelManager(dataset, self.experiment_type, self.verbose)
+        self.model_evaluation = ModelEvaluation(self.experiment_type, self.metrics_calculator)
+        
+        # Prepare data
+        self.data_manager.prepare_data()
+        self.X_train, self.X_test = self.data_manager.X_train, self.data_manager.X_test
+        self.y_train, self.y_test = self.data_manager.y_train, self.data_manager.y_test
+        self.prob_train, self.prob_test = self.data_manager.prob_train, self.data_manager.prob_test
+        
+        # Initialize alternative models
+        self.alternative_models = self.model_manager.create_alternative_models(self.X_train, self.y_train)
+    
+    def _initialize_test_runner(self):
+        """Initialize the test runner component"""
+        # Import here to avoid circular imports
+        from deepbridge.core.experiment.test_runner import TestRunner
+        self.test_runner = TestRunner(
+            self.dataset,
+            self.alternative_models,
+            self.tests,
+            self.X_train,
+            self.X_test,
+            self.y_train,
+            self.y_test,
+            self.verbose,
+            self.feature_subset
+        )
+        self._test_results = {}
+    
+    def _process_initial_metrics(self):
+        """Calculate initial metrics and standardize format"""
+        # Calculate initial metrics
+        self.initial_results = self.test_runner.run_initial_tests()
+        
+        # Process all models to ensure roc_auc is present and properly formatted
+        if 'models' in self.initial_results:
+            # Process primary model
+            if 'primary_model' in self.initial_results['models']:
+                self._standardize_metrics('primary_model', 
+                              self.initial_results['models']['primary_model'],
+                              self.dataset.model if hasattr(self.dataset, 'model') else None)
+            
+            # Process all alternative models
+            for model_name, model_data in self.initial_results['models'].items():
+                if model_name != 'primary_model':
+                    model_obj = self.alternative_models.get(model_name)
+                    self._standardize_metrics(model_name, model_data, model_obj)
     
     def __init__(
         self,
@@ -30,7 +95,8 @@ class Experiment:
         random_state: int = 42,
         config: t.Optional[dict] = None,
         auto_fit: t.Optional[bool] = None,
-        tests: t.Optional[t.List[str]] = None
+        tests: t.Optional[t.List[str]] = None,
+        feature_subset: t.Optional[t.List[str]] = None
         ):
         """
         Initialize the experiment with configuration and data.
@@ -43,79 +109,62 @@ class Experiment:
             config: Optional configuration dictionary
             auto_fit: Whether to automatically fit a model. If None, will be set to True only if
                       dataset has probabilities but no model.
-            tests: List of tests to run on the model. Available tests: ["robustness", "uncertainty", 
-                   "resilience", "hyperparameters"]
+            tests: List of tests to prepare for the model. Available tests: ["robustness", "uncertainty", 
+                   "resilience", "hyperparameters"]. Tests will only be executed when run_tests() is called.
+            feature_subset: List of feature names to specifically test in the experiments.
+                           In robustness tests, only these features will be perturbed while
+                           all others remain unchanged. For other tests, only these features
+                           will be analyzed in detail.
+                           
+        Note:
+            Initialization does NOT run any tests - it only calculates basic metrics for the models.
+            To run tests, explicitly call experiment.run_tests("quick") after initialization.
         """
         if experiment_type not in self.VALID_TYPES:
             raise ValueError(f"experiment_type must be one of {self.VALID_TYPES}")
             
+        # Set basic properties
         self.experiment_type = experiment_type
         self.dataset = dataset
         self.test_size = test_size
         self.random_state = random_state
         self.config = config or {}
+        # Set verbosity from config
         self.verbose = config.get('verbose', False) if config else False
+        # Set logger level based on verbose setting
+        self.logger.set_verbose(self.verbose)
         self.tests = tests or []
+        self.feature_subset = feature_subset
+        
+        self.logger.debug(f"Initializing experiment with type: {experiment_type}, tests: {tests}")
         
         # Automatically determine auto_fit value based on model presence
         if auto_fit is None:
             # If dataset has a model, auto_fit=False, otherwise auto_fit=True
             auto_fit = not (hasattr(dataset, 'model') and dataset.model is not None)
-        
-        # Store auto_fit value
         self.auto_fit = auto_fit
         
         # Initialize metrics calculator based on experiment type
         if experiment_type == "binary_classification":
             self.metrics_calculator = Classification()
             
-        # Initialize results storage
-        self._results_data = {
-            'train': {},
-            'test': {}
-        }
-        
-        # Initialize distillation model
+        # Initialize results storage and models
+        self._results_data = {'train': {}, 'test': {}}
         self.distillation_model = None
         
-        # Initialize helper components
-        self.data_manager = DataManager(dataset, test_size, random_state)
-        self.model_manager = ModelManager(dataset, self.experiment_type, self.verbose)
-        self.model_evaluation = ModelEvaluation(self.experiment_type, self.metrics_calculator)
-        self.report_generator = ReportGenerator()
-        
-        # Data handling
-        self.data_manager.prepare_data()
-        self.X_train, self.X_test = self.data_manager.X_train, self.data_manager.X_test
-        self.y_train, self.y_test = self.data_manager.y_train, self.data_manager.y_test
-        self.prob_train, self.prob_test = self.data_manager.prob_train, self.data_manager.prob_test
-        
-        # Initialize alternative models
-        self.alternative_models = self.model_manager.create_alternative_models(self.X_train, self.y_train)
+        # Initialize components and prepare data
+        self._initialize_components(dataset, test_size, random_state)
         
         # Initialize test runner
-        self.test_runner = TestRunner(
-            self.dataset,
-            self.alternative_models,
-            self.tests,
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-            self.verbose
-        )
-        self.test_results = {}
-        
-        # Initialize visualization manager
-        self.visualization_manager = VisualizationManager(self.test_runner)
+        self._initialize_test_runner()
         
         # Auto-fit if enabled and dataset has probabilities
         if self.auto_fit and hasattr(dataset, 'original_prob') and dataset.original_prob is not None:
             self._auto_fit_model()
         
-        # Run requested tests if any
-        if self.tests:
-            self.test_results = self.test_runner.run_initial_tests()
+        # Calculate initial metrics
+        self._process_initial_metrics()
+        
     
     def _auto_fit_model(self):
         """Auto-fit a model when probabilities are available but no model is present"""
@@ -129,9 +178,64 @@ class Experiment:
                 use_probabilities=True,
                 verbose=False
             )
-        else:
-            if self.verbose:
-                print("No model types available, skipping auto-fit")
+        # No action needed if no default model type is available
+    
+    def _create_distillation_model(self, distillation_method, student_model_type, student_params,
+                                 temperature, alpha, use_probabilities, n_trials, validation_split):
+        """
+        Create and configure a distillation model.
+        
+        Args:
+            distillation_method: Which distillation approach to use
+            student_model_type: Type of model to use as student
+            student_params: Parameters for student model
+            temperature: Temperature for distillation
+            alpha: Weighting factor for loss combination
+            use_probabilities: Whether to use probabilities for distillation
+            n_trials: Number of hyperparameter optimization trials
+            validation_split: Proportion of data for validation
+            
+        Returns:
+            Configured distillation model instance
+        """
+        return self.model_manager.create_distillation_model(
+            distillation_method, 
+            student_model_type, 
+            student_params,
+            temperature, 
+            alpha, 
+            use_probabilities, 
+            n_trials, 
+            validation_split
+        )
+        
+    def _train_and_evaluate_model(self, model, verbose):
+        """
+        Train the model and evaluate on train and test sets.
+        
+        Args:
+            model: The model to train and evaluate
+            verbose: Whether to output training information
+            
+        Returns:
+            Tuple of (train_metrics, test_metrics)
+        """
+        # Train the model
+        model.fit(self.X_train, self.y_train, verbose=verbose)
+        
+        # Evaluate on train set
+        train_metrics = self.model_evaluation.evaluate_distillation(
+            model, 'train', 
+            self.X_train, self.y_train, self.prob_train
+        )
+        
+        # Evaluate on test set
+        test_metrics = self.model_evaluation.evaluate_distillation(
+            model, 'test', 
+            self.X_test, self.y_test, self.prob_test
+        )
+        
+        return train_metrics, test_metrics
     
     def fit(self, 
              student_model_type=ModelType.LOGISTIC_REGRESSION,
@@ -152,8 +256,8 @@ class Experiment:
         logging_state = self._configure_logging(verbose)
         
         try:
-            # Create and train distillation model
-            self.distillation_model = self.model_manager.create_distillation_model(
+            # Create distillation model
+            self.distillation_model = self._create_distillation_model(
                 distillation_method, 
                 student_model_type, 
                 student_params,
@@ -164,26 +268,60 @@ class Experiment:
                 validation_split
             )
             
-            # Train the model
-            self.distillation_model.fit(self.X_train, self.y_train, verbose=verbose)
+            # Train and evaluate model
+            train_metrics, test_metrics = self._train_and_evaluate_model(self.distillation_model, verbose)
             
-            # Evaluate and store results
-            train_metrics = self.model_evaluation.evaluate_distillation(
-                self.distillation_model, 'train', 
-                self.X_train, self.y_train, self.prob_train
-            )
+            # Store results
             self._results_data['train'] = train_metrics['metrics']
-            
-            test_metrics = self.model_evaluation.evaluate_distillation(
-                self.distillation_model, 'test', 
-                self.X_test, self.y_test, self.prob_test
-            )
             self._results_data['test'] = test_metrics['metrics']
             
             return self
         finally:
             # Restore logging state
             self._restore_logging(logging_state, verbose)
+
+    def _standardize_metrics(self, model_name: str, model_data: dict, model_obj: t.Optional[t.Any] = None) -> None:
+        """
+        Standardize metrics format and naming conventions.
+        Centralized method for metric processing to avoid redundancy.
+        
+        Args:
+            model_name: Name of the model
+            model_data: Model data dictionary 
+            model_obj: The actual model object (optional)
+        """
+        # Skip if no metrics available
+        if 'metrics' not in model_data:
+            return
+                
+        metrics = model_data['metrics']
+        
+        # If we still don't have roc_auc, calculate it if possible
+        if 'roc_auc' not in metrics and model_obj is not None:
+            try:
+                # Only calculate if model has predict_proba
+                if hasattr(model_obj, 'predict_proba'):
+                    from sklearn.metrics import roc_auc_score
+                    y_prob = model_obj.predict_proba(self.X_test)
+                    if y_prob.shape[1] > 1:  # For binary classification
+                        roc_auc = float(roc_auc_score(self.y_test, y_prob[:, 1]))
+                        metrics['roc_auc'] = roc_auc
+                        self.logger.debug(f"Calculated ROC AUC for {model_name}: {roc_auc}")
+            except Exception as e:
+                self.logger.warning(f"Could not calculate ROC AUC for {model_name}: {str(e)}")
+        
+        # Standard metric name is 'roc_auc', convert any 'auc' to 'roc_auc' 
+        if 'auc' in metrics:
+            # Copy 'auc' value to 'roc_auc' if not already present
+            if 'roc_auc' not in metrics:
+                metrics['roc_auc'] = float(metrics['auc'])
+            # Always remove 'auc' to maintain standardization
+            del metrics['auc']
+            
+        # Ensure all metric values are float type for consistency
+        for key, value in metrics.items():
+            if value is not None and not isinstance(value, str):
+                metrics[key] = float(value)
 
     def _configure_logging(self, verbose: bool) -> t.Optional[int]:
         """Configure logging for Optuna based on verbose mode"""
@@ -200,22 +338,64 @@ class Experiment:
             optuna_logger = logging.getLogger("optuna")
             optuna_logger.setLevel(logging_state)
 
-    def run_tests(self, config_name: str = 'quick') -> dict:
+    def run_tests(self, config_name: str = 'quick', **kwargs) -> dict:
         """
         Run all tests specified during initialization with the given configuration.
         
-        Parameters:
-        -----------
-        config_name : str
-            Name of the configuration to use: 'quick', 'medium', or 'full'
+        Args:
+            config_name: Name of the configuration to use: 'quick', 'medium', or 'full'
+            **kwargs: Additional parameters to pass to the test runner
             
         Returns:
-        --------
-        dict : Dictionary with test results
+            dict: Dictionary with initial_results and test results that has a save_report method
         """
-        results = self.test_runner.run_tests(config_name)
-        self.test_results.update(results)
-        return results
+        # Import here to avoid circular imports
+        from deepbridge.core.experiment.results import wrap_results
+        
+        # First, ensure we have initial metrics
+        if not hasattr(self, 'initial_results') or not self.initial_results:
+            self.initial_results = self.test_runner.run_initial_tests()
+            
+        # Run the requested tests
+        test_results = self.test_runner.run_tests(config_name, **kwargs)
+        self._test_results.update(test_results)
+        
+        # Create a combined dictionary with initial_results and test_results
+        combined_results = {
+            'experiment_type': self.experiment_type,
+            'config': {'name': config_name, 'tests': self.tests},
+            # Include initial_results to ensure model metrics are available
+            'initial_results': self.initial_results,
+            # Add test results
+            **test_results
+        }
+        
+        # Log testing completion
+        self.logger.info(f"Tests completed with configuration '{config_name}'")
+        self.logger.debug(f"Tests performed: {list(test_results.keys())}")
+        
+        # Wrap the results in an ExperimentResult object with save_html method
+        experiment_result = wrap_results(combined_results)
+        
+        # Store the experiment result object for later use
+        self._experiment_result = experiment_result
+        
+        return experiment_result
+        
+    def run_test(self, test_type: str, config_name: str = 'quick', **kwargs) -> 'TestResult':
+        """
+        Run a specific test with the given configuration.
+        
+        Args:
+            test_type: Type of test to run (robustness, uncertainty, etc.)
+            config_name: Name of the configuration to use: 'quick', 'medium', or 'full'
+            **kwargs: Additional parameters to pass to the test runner
+            
+        Returns:
+            TestResult: Result object for the specific test
+        """
+        # Delegate to the test runner
+        return self.test_runner.run_test(test_type, config_name, **kwargs)
 
     @property
     def model(self):
@@ -258,112 +438,143 @@ class Experiment:
 
     def get_comprehensive_results(self):
         """Return a comprehensive dictionary with all metrics and information."""
-        return self.report_generator.generate_comprehensive_results(
-            self.experiment_type,
-            self.test_size,
-            self.random_state,
-            self.auto_fit,
-            self.dataset,
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-            self.model,
-            self.alternative_models,
-            self.distillation_model if hasattr(self, 'distillation_model') else None,
-            self.metrics_calculator
-        )
+        # Simplified version that returns basic experiment info
+        return {
+            'experiment_type': self.experiment_type,
+            'config': {
+                'test_size': self.test_size,
+                'random_state': self.random_state,
+                'auto_fit': self.auto_fit
+            },
+            'model_info': {
+                'has_primary_model': self.model is not None,
+                'has_alternative_models': len(self.alternative_models) > 0 if self.alternative_models else False,
+                'has_distillation_model': hasattr(self, 'distillation_model') and self.distillation_model is not None
+            }
+        }
 
-    def save_report(self, report_path: str) -> str:
-        """Generate and save an HTML report with all experiment results."""
-        return self.report_generator.save_report(
-            report_path,
-            self.get_comprehensive_results()
-        )
+    def save_html(self, test_type: str, file_path: str, model_name: str = None) -> str:
+        """
+        Generate and save an HTML report for the specified test.
+        
+        Args:
+            test_type: Type of test ('robustness', 'uncertainty', 'resilience', 'hyperparameter')
+            file_path: Path where the HTML report will be saved (relative or absolute)
+            model_name: Name of the model for display in the report. If None, uses dataset name if available
+            
+        Returns:
+            Path to the generated report file
+            
+        Raises:
+            ValueError: If test results not found or report generation fails
+        """
+        # Check if we have the test results
+        if not hasattr(self, '_test_results') or not self._test_results:
+            raise ValueError("No test results available. Run tests first with experiment.run_tests()")
+        
+        # Get results for the specified test
+        test_results = self._test_results.get(test_type.lower())
+        if not test_results:
+            raise ValueError(f"No {test_type} test results found. Run the test first with experiment.run_tests()")
+        
+        # Import here to avoid circular imports
+        from deepbridge.core.experiment.results import wrap_results, ExperimentResult
+        import os
+        
+        # Ensure file_path is absolute
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+        
+        # If we already have an ExperimentResult object from run_tests(), use that
+        if hasattr(self, '_experiment_result') and isinstance(self._experiment_result, ExperimentResult):
+            return self._experiment_result.save_html(test_type, file_path, model_name or self._get_model_name())
+        
+        # Otherwise, create a new experiment result object
+        combined_results = {
+            'experiment_type': self.experiment_type,
+            'config': {'tests': self.tests},
+            # Add the selected test type
+            test_type.lower(): test_results
+        }
+        
+        # Create an ExperimentResult and use its save_html method
+        experiment_result = wrap_results(combined_results)
+        return experiment_result.save_html(test_type, file_path, model_name or self._get_model_name())
+    
+    def _get_model_name(self) -> str:
+        """Get a displayable model name"""
+        if hasattr(self.dataset, 'name') and self.dataset.name:
+            return f"{self.dataset.name} Model"
+        elif hasattr(self.dataset, 'model') and self.dataset.model is not None:
+            return type(self.dataset.model).__name__
+        else:
+            return "Model"
 
-    # Delegation methods to VisualizationManager
+    # Direct access to test results
     def get_robustness_results(self):
         """Get the robustness test results."""
-        return self.visualization_manager.get_robustness_results()
+        return self.test_results.get('robustness', {})
         
-    def get_robustness_visualizations(self):
-        """Get the robustness visualizations generated by the tests."""
-        return self.visualization_manager.get_robustness_visualizations()
-        
-    def plot_robustness_comparison(self):
-        """Get the plotly figure showing the comparison of robustness across models."""
-        return self.visualization_manager.plot_robustness_comparison()
-    
-    def plot_robustness_distribution(self):
-        """Get the boxplot showing distribution of robustness scores."""
-        return self.visualization_manager.plot_robustness_distribution()
-    
-    def plot_feature_importance_robustness(self):
-        """Get the plotly figure showing feature importance for robustness."""
-        return self.visualization_manager.plot_feature_importance_robustness()
-    
-    def plot_perturbation_methods_comparison(self):
-        """Get the plotly figure comparing different perturbation methods."""
-        return self.visualization_manager.plot_perturbation_methods_comparison()
-        
-    # Delegation methods to VisualizationManager for uncertainty
     def get_uncertainty_results(self):
         """Get the uncertainty test results."""
-        return self.visualization_manager.get_uncertainty_results()
-        
-    def get_uncertainty_visualizations(self):
-        """Get the uncertainty visualizations generated by the tests."""
-        return self.visualization_manager.get_uncertainty_visualizations()
-        
-    def plot_uncertainty_alpha_comparison(self):
-        """Get the plotly figure showing the comparison of different alpha levels."""
-        return self.visualization_manager.plot_uncertainty_alpha_comparison()
+        return self.test_results.get('uncertainty', {})
     
-    def plot_uncertainty_width_distribution(self):
-        """Get the boxplot showing distribution of interval widths."""
-        return self.visualization_manager.plot_uncertainty_width_distribution()
-    
-    def plot_feature_importance_uncertainty(self):
-        """Get the plotly figure showing feature importance for uncertainty."""
-        return self.visualization_manager.plot_feature_importance_uncertainty()
-    
-    def plot_coverage_vs_width(self):
-        """Get the plotly figure showing trade-off between coverage and width."""
-        return self.visualization_manager.plot_coverage_vs_width()
-        
-    # Delegation methods to visualization manager for resilience and hyperparameter
     def get_resilience_results(self):
         """Get the resilience test results."""
-        return self.visualization_manager.get_resilience_results()
+        return self.test_results.get('resilience', {})
     
     def get_hyperparameter_results(self):
         """Get the hyperparameter importance test results."""
-        return self.visualization_manager.get_hyperparameter_results()
-    
-    def get_hyperparameter_importance(self):
-        """Get the hyperparameter importance scores for the primary model."""
-        return self.visualization_manager.get_hyperparameter_importance()
-    
-    def get_hyperparameter_tuning_order(self):
-        """Get the suggested hyperparameter tuning order for the primary model."""
-        return self.visualization_manager.get_hyperparameter_tuning_order()
+        return self.test_results.get('hyperparameters', {})
 
-    # Proxy properties to maintain backward compatibility
+    # Required properties from IExperiment interface
     @property
-    def results(self):
-        """Property to get results data"""
-        return self._results_data
-
-    @results.setter
-    def results(self, value):
-        """Property setter for results"""
-        self._results_data = value
-
+    def experiment_type(self) -> str:
+        """
+        Get the experiment type.
+        
+        Returns:
+            String indicating the experiment type (binary_classification, regression, etc.)
+        """
+        return self._experiment_type
+        
+    @experiment_type.setter
+    def experiment_type(self, value: str):
+        """Set the experiment type."""
+        self._experiment_type = value
+    
     @property
-    def metrics(self):
-        """Get all metrics for both train and test datasets."""
-        # Forward to model_evaluation's get_metrics
-        return {
-            'train': self._results_data.get('train', {}),
-            'test': self._results_data.get('test', {})
-        }
+    def test_results(self):
+        """
+        Get all test results.
+        
+        Returns:
+            Dictionary containing all test results
+        """
+        return self._test_results
+    
+    # Backward compatibility properties removed in this refactoring
+        
+    @property
+    def experiment_info(self):
+        """
+        Get experiment information including configuration and model metrics.
+        This is available immediately after experiment initialization without
+        running full tests.
+        
+        Returns:
+        --------
+        dict : Dictionary with experiment config and model metrics
+        """
+        if hasattr(self, 'initial_results'):
+            return self.initial_results
+        else:
+            return {
+                'config': {
+                    'tests': self.tests,
+                    'experiment_type': self.experiment_type,
+                    'test_size': self.test_size,
+                    'random_state': self.random_state,
+                    'auto_fit': self.auto_fit
+                }
+            }

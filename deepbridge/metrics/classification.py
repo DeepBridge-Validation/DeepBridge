@@ -51,64 +51,45 @@ class Classification:
         # Metrics requiring probabilities
         if y_prob is not None:
             try:
-                metrics['auc_roc'] = float(roc_auc_score(y_true, y_prob))
+                metrics['roc_auc'] = float(roc_auc_score(y_true, y_prob))
                 metrics['auc_pr'] = float(average_precision_score(y_true, y_prob))
                 metrics['log_loss'] = float(log_loss(y_true, y_prob))
             except ValueError as e:
                 print(f"Error calculating AUC/PR/log_loss: {str(e)}")
-                metrics['auc_roc'] = None
+                metrics['roc_auc'] = None
                 metrics['auc_pr'] = None
                 metrics['log_loss'] = None
         
         # Calculate KL divergence if teacher probabilities are provided
         if teacher_prob is not None and y_prob is not None:
             try:
-                # Print debug information about the input shapes and types
-                print(f"Teacher prob type: {type(teacher_prob)}, shape: {getattr(teacher_prob, 'shape', 'unknown')}")
-                print(f"Student prob type: {type(y_prob)}, shape: {getattr(y_prob, 'shape', 'unknown')}")
-                
                 # Ensure we're working with numpy arrays
                 if isinstance(teacher_prob, pd.Series):
                     teacher_prob = teacher_prob.values
                 if isinstance(y_prob, pd.Series):
                     y_prob = y_prob.values
-                    
-                # Print first few values for debugging
-                print(f"Teacher prob first 5 values: {teacher_prob[:5]}")
-                print(f"Student prob first 5 values: {y_prob[:5]}")
                 
                 # Calculate KL divergence
                 metrics['kl_divergence'] = Classification.calculate_kl_divergence(
                     teacher_prob, y_prob
                 )
                 
-                # Calculate KS statistic with detailed error handling
+                # Calculate KS statistic with error handling
                 try:
                     ks_result = Classification.calculate_ks_statistic(teacher_prob, y_prob)
                     metrics['ks_statistic'], metrics['ks_pvalue'] = ks_result
-                    print(f"KS calculation successful: {ks_result}")
-                except Exception as ks_error:
-                    print(f"Error in KS statistic calculation: {str(ks_error)}")
-                    import traceback
-                    print(traceback.format_exc())
+                except Exception:
                     metrics['ks_statistic'] = None
                     metrics['ks_pvalue'] = None
                 
-                # Calculate R² with detailed error handling
+                # Calculate R² with error handling
                 try:
                     r2 = Classification.calculate_r2_score(teacher_prob, y_prob)
                     metrics['r2_score'] = r2
-                    print(f"R² calculation successful: {r2}")
-                except Exception as r2_error:
-                    print(f"Error in R² calculation: {str(r2_error)}")
-                    import traceback
-                    print(traceback.format_exc())
+                except Exception:
                     metrics['r2_score'] = None
                 
-            except Exception as e:
-                print(f"Error calculating distribution comparison metrics: {str(e)}")
-                import traceback
-                print(traceback.format_exc())
+            except Exception:
                 metrics['kl_divergence'] = None
                 metrics['ks_statistic'] = None
                 metrics['ks_pvalue'] = None
@@ -201,42 +182,31 @@ class Classification:
         """
         # Convert inputs to numpy arrays if they're pandas Series or other types
         if not isinstance(teacher_prob, np.ndarray):
-            print(f"Converting teacher_prob from {type(teacher_prob)} to numpy array")
             teacher_prob = np.array(teacher_prob)
         if not isinstance(student_prob, np.ndarray):
-            print(f"Converting student_prob from {type(student_prob)} to numpy array")
             student_prob = np.array(student_prob)
             
         # For binary classification, we only need the probability of positive class
         if len(teacher_prob.shape) > 1:
-            print(f"Extracting positive class from teacher_prob with shape {teacher_prob.shape}")
             teacher_prob = teacher_prob[:, 1]  # Probability of positive class
         if len(student_prob.shape) > 1:
-            print(f"Extracting positive class from student_prob with shape {student_prob.shape}")
             student_prob = student_prob[:, 1]  # Probability of positive class
         
         # Verify that we have valid input data
         if np.isnan(teacher_prob).any() or np.isnan(student_prob).any():
-            print("Warning: NaN values found in probability arrays")
             # Remove NaN values
             valid_indices = ~(np.isnan(teacher_prob) | np.isnan(student_prob))
             teacher_prob = teacher_prob[valid_indices]
             student_prob = student_prob[valid_indices]
             
         if len(teacher_prob) == 0 or len(student_prob) == 0:
-            print("Error: Empty arrays after cleaning")
             return 0.0, 1.0  # Return default values indicating no difference
             
         # Calculate KS statistic and p-value
         try:
             ks_stat, p_value = stats.ks_2samp(teacher_prob, student_prob)
             return float(ks_stat), float(p_value)
-        except Exception as e:
-            print(f"Exception in KS calculation: {str(e)}")
-            print(f"teacher_prob stats: min={np.min(teacher_prob)}, max={np.max(teacher_prob)}, "
-                 f"mean={np.mean(teacher_prob)}, has_nan={np.isnan(teacher_prob).any()}")
-            print(f"student_prob stats: min={np.min(student_prob)}, max={np.max(student_prob)}, "
-                 f"mean={np.mean(student_prob)}, has_nan={np.isnan(student_prob).any()}")
+        except Exception:
             raise
     
     @staticmethod
@@ -256,42 +226,30 @@ class Classification:
         """
         # Convert inputs to numpy arrays if they're pandas Series or other types
         if not isinstance(teacher_prob, np.ndarray):
-            print(f"Converting teacher_prob from {type(teacher_prob)} to numpy array for R²")
             teacher_prob = np.array(teacher_prob)
         if not isinstance(student_prob, np.ndarray):
-            print(f"Converting student_prob from {type(student_prob)} to numpy array for R²")
             student_prob = np.array(student_prob)
             
         # For binary classification, we only need the probability of positive class
         if len(teacher_prob.shape) > 1:
-            print(f"Extracting positive class from teacher_prob with shape {teacher_prob.shape} for R²")
             teacher_prob = teacher_prob[:, 1]  # Probability of positive class
         if len(student_prob.shape) > 1:
-            print(f"Extracting positive class from student_prob with shape {student_prob.shape} for R²")
             student_prob = student_prob[:, 1]  # Probability of positive class
         
         # Verify that we have valid input data
         if np.isnan(teacher_prob).any() or np.isnan(student_prob).any():
-            print("Warning: NaN values found in probability arrays for R² calculation")
             # Remove NaN values
             valid_indices = ~(np.isnan(teacher_prob) | np.isnan(student_prob))
             teacher_prob = teacher_prob[valid_indices]
             student_prob = student_prob[valid_indices]
             
         if len(teacher_prob) == 0 or len(student_prob) == 0:
-            print("Error: Empty arrays after cleaning for R² calculation")
             return 0.0  # Return default value indicating no correlation
             
         try:    
             # Sort distributions to compare in a way that measures shape similarity
             teacher_sorted = np.sort(teacher_prob)
             student_sorted = np.sort(student_prob)
-            
-            # Print sorted distribution statistics for debugging
-            print(f"Sorted teacher dist - min: {np.min(teacher_sorted)}, max: {np.max(teacher_sorted)}, "
-                 f"length: {len(teacher_sorted)}")
-            print(f"Sorted student dist - min: {np.min(student_sorted)}, max: {np.max(student_sorted)}, "
-                 f"length: {len(student_sorted)}")
             
             # Ensure equal length by truncating the longer one
             min_len = min(len(teacher_sorted), len(student_sorted))
@@ -300,17 +258,7 @@ class Classification:
             
             # Calculate R² score
             r2 = r2_score(teacher_sorted, student_sorted)
-            print(f"R² calculation result: {r2}")
             
             return float(r2)
-        except Exception as e:
-            print(f"Exception in R² calculation: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-            print(f"teacher_prob stats: shape={teacher_prob.shape}, "
-                 f"min={np.min(teacher_prob) if len(teacher_prob) > 0 else 'N/A'}, "
-                 f"max={np.max(teacher_prob) if len(teacher_prob) > 0 else 'N/A'}")
-            print(f"student_prob stats: shape={student_prob.shape}, "
-                 f"min={np.min(student_prob) if len(student_prob) > 0 else 'N/A'}, "
-                 f"max={np.max(student_prob) if len(student_prob) > 0 else 'N/A'}")
+        except Exception:
             return None

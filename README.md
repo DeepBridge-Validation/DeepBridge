@@ -27,6 +27,8 @@ pip install -e .
 ### Experiment Framework
 - **Modular Architecture**: Component-based design with specialized managers
 - **Comprehensive Testing**: Robustness, uncertainty, and resilience evaluation
+- **Feature Selection**: Focus testing on specific features with the `features_select` parameter
+- **Test Configuration Levels**: Quick, medium, or full test suites via the `suite` parameter
 - **Visualization System**: Integrated visualization capabilities
 - **Reporting Engine**: Detailed HTML report generation
 
@@ -64,9 +66,9 @@ DeepBridge has been redesigned with a modular, component-based architecture:
 │  │DataManager│  │ModelManager│  │TestRunner    │        │
 │  └───────────┘  └────────────┘  └──────────────┘        │
 │                                                         │
-│  ┌───────────┐  ┌─────────────┐  ┌───────────────┐      │
+│  ┌───────────┐  ┌─────────────┐  ┌────────────────┐     │
 │  │ModelEval  │  │ReportGen    │  │VisualizationMgr│     │
-│  └───────────┘  └─────────────┘  └───────────────┘      │
+│  └───────────┘  └─────────────┘  └────────────────┘     │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -98,7 +100,9 @@ dataset = DBDataset(
 experiment = Experiment(
     dataset=dataset,
     experiment_type='binary_classification',
-    tests=['robustness', 'uncertainty']
+    tests=['robustness', 'uncertainty'],
+    features_select=['feature1', 'feature2', 'feature3'],  # Optional: Specify features to focus on
+    suite='medium'  # Optional: Run tests immediately with this configuration
 )
 
 # Train a distilled model
@@ -108,8 +112,8 @@ experiment.fit(
     temperature=2.0
 )
 
-# Run tests and generate visualizations
-experiment.run_tests(config_name='medium')
+# If suite parameter wasn't provided, run tests manually
+# experiment.run_tests(config_name='medium')
 robustness_plot = experiment.plot_robustness_comparison()
 
 # Save comprehensive report
@@ -169,6 +173,48 @@ deepbridge distill train gbm predictions.csv features.csv -s ./models
 # Run robustness tests
 deepbridge validation test robustness my_experiment --config medium
 ```
+
+## New Features in This Release
+
+### Simplified Experiment Configuration
+
+The Experiment class now supports two new parameters to streamline your workflow:
+
+1. **features_select**: Focus your analysis on specific features of interest
+   ```python
+   # Only test these specific features
+   experiment = Experiment(
+       dataset=dataset,
+       experiment_type='binary_classification',
+       tests=['robustness'],
+       features_select=['feature_1', 'feature_2', 'feature_3']
+   )
+   ```
+
+2. **suite**: Automatically run tests at initialization with a specific configuration level
+   ```python
+   # Tests run automatically with 'quick' configuration
+   experiment = Experiment(
+       dataset=dataset,
+       experiment_type='binary_classification',
+       tests=['robustness'],
+       suite='quick'
+   )
+   # Results are immediately available in experiment.full_results
+   ```
+
+3. **Combined usage**: Use both parameters together for maximum efficiency
+   ```python
+   experiment = Experiment(
+       dataset=dataset,
+       experiment_type='binary_classification',
+       tests=['robustness', 'uncertainty'],
+       features_select=['feature_1', 'feature_2'],
+       suite='medium'
+   )
+   # Now run the report generation directly
+   experiment.full_results.save_report("report.html")
+   ```
 
 ## Documentation
 
