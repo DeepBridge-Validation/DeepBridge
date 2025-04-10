@@ -6,7 +6,7 @@ and performance analysis to create efficient machine learning models.
 """
 
 # Version information
-__version__ = "0.1.21"
+__version__ = "0.1.22"
 __author__ = "Team DeepBridge"
 
 # Core components
