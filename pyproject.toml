@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.27"
+version = "0.1.28"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
@@ -10,7 +10,7 @@ classifiers = [
     "Environment :: Console",
     "Natural Language :: Portuguese (Brazilian)",
     "Development Status :: 5 - Production/Stable",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
 ]
 
 
@@ -19,13 +19,13 @@ classifiers = [
 "Código" = "https://github.com/DeepBridge-Validation/DeepBridge"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.10,<3.12"
 typer = {extras = ["all"], version = "^0.15.1"}
 numpy = ">=1.23.5,<1.27.0"
 pandas = ">=1.5.3,<2.1.0"
 scikit-learn = ">=1.2.2,<1.4.0"
 xgboost = ">=1.7.6,<2.0.0"
-scipy = "==1.9.3"
+scipy = "==1.11.3"
 pygam = "^0.9.1"
 rich = "^13.9.4"
 joblib = "^1.4.2"
