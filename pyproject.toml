@@ -19,7 +19,7 @@ classifiers = [
 "Código" = "https://github.com/DeepBridge-Validation/DeepBridge"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.13"
 typer = {extras = ["all"], version = "^0.15.1"}
 numpy = ">=1.23.5,<1.27.0"
 pandas = ">=1.5.3,<2.1.0"
