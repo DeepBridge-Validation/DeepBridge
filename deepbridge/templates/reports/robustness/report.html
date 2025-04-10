@@ -376,7 +376,6 @@
             <div class="tab" id="tab-feature-comparison">Feature Comparison</div>
             <div class="tab" id="tab-worst-case">Worst-Case Analysis</div>
             <div class="tab" id="tab-boxplot">Performance Boxplot</div>
-            <div class="tab" id="tab-detailed">Detailed Results</div>
         </div>
 
         <div id="raw" class="tab-content active">
@@ -448,26 +447,62 @@
         </div>
 
         <div id="features" class="tab-content">
-            <h2>Feature Importance for Robustness</h2>
-            <div class="plot-container" id="feature-importance-plot"></div>
-            <div class="card">
-                <div class="card-header">Feature Sensitivity Analysis</div>
-                <div class="card-body">
-                    <p>
-                        This analysis shows which features have the most impact on model performance when perturbed.
-                        Features with higher scores have greater impact on model robustness.
-                    </p>
-                    <div class="feature-table">
-                        <table>
-                            <tr>
-                                <th>Feature</th>
-                                <th>Importance Score</th>
-                                <th>Relative Impact (%)</th>
-                            </tr>
-                            <tbody id="feature-table">
-                                <!-- This will be populated by JavaScript -->
-                            </tbody>
-                        </table>
+            <h2>Feature Importance Analysis</h2>
+            
+            <!-- Sub-tabs for feature importance types -->
+            <div class="sub-tabs" style="display: flex; margin-bottom: 15px; border-bottom: 1px solid #ddd;">
+                <div class="sub-tab active" id="subtab-robustness" style="padding: 8px 15px; cursor: pointer; border-bottom: 3px solid #1b78de;">Robustness Feature Importance</div>
+                <div class="sub-tab" id="subtab-model" style="padding: 8px 15px; cursor: pointer; margin-left: 10px;">Model Feature Importance</div>
+            </div>
+            
+            <!-- Robustness feature importance content -->
+            <div id="robustness-features" class="sub-content active" style="display: block;">
+                <div class="plot-container" id="feature-importance-plot"></div>
+                <div class="card">
+                    <div class="card-header">Feature Sensitivity Analysis</div>
+                    <div class="card-body">
+                        <p>
+                            This analysis shows which features have the most impact on model performance when perturbed.
+                            Features with higher scores have greater impact on model robustness.
+                        </p>
+                        <div class="feature-table">
+                            <table>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Importance Score</th>
+                                    <th>Relative Impact (%)</th>
+                                </tr>
+                                <tbody id="feature-table">
+                                    <!-- This will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Model feature importance content -->
+            <div id="model-features" class="sub-content" style="display: none;">
+                <div class="plot-container" id="model-importance-plot"></div>
+                <div class="card">
+                    <div class="card-header">Model Native Feature Importance</div>
+                    <div class="card-body">
+                        <p>
+                            This analysis shows the native feature importance extracted directly from the model.
+                            Features with higher scores have greater impact on the model's predictions.
+                        </p>
+                        <div class="feature-table">
+                            <table>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Importance Score</th>
+                                    <th>Relative Impact (%)</th>
+                                </tr>
+                                <tbody id="model-feature-table">
+                                    <!-- This will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -652,17 +687,6 @@
             </div>
         </div>
 
-        <div id="detailed" class="tab-content">
-            <h2>Detailed Test Results</h2>
-            <div class="card">
-                <div class="card-header">Run Details</div>
-                <div class="card-body">
-                    <pre id="detailed-results" style="overflow-x: auto; max-height: 500px;">
-                        <!-- This will be populated by JavaScript -->
-                    </pre>
-                </div>
-            </div>
-        </div>
 
         <div class="footer">
             <p>Generated using DeepBridge Robustness Analysis</p>
@@ -696,8 +720,6 @@
                 document.getElementById('tab-features').classList.add('active');
             } else if (tabId === 'metrics') {
                 document.getElementById('tab-metrics').classList.add('active');
-            } else if (tabId === 'detailed') {
-                document.getElementById('tab-detailed').classList.add('active');
             }
             
             // Trigger resize event to ensure plots render correctly
@@ -714,7 +736,59 @@
             document.getElementById('tab-feature-comparison').addEventListener('click', function() { showTab('feature-comparison'); });
             document.getElementById('tab-worst-case').addEventListener('click', function() { showTab('worst-case'); });
             document.getElementById('tab-boxplot').addEventListener('click', function() { showTab('boxplot'); });
-            document.getElementById('tab-detailed').addEventListener('click', function() { showTab('detailed'); });
+            
+            // Initialize sub-tabs
+            initializeSubTabs();
+        }
+        
+        // Initialize sub-tabs for feature importance
+        function initializeSubTabs() {
+            try {
+                // Add click events to feature importance sub-tabs
+                document.getElementById('subtab-robustness').addEventListener('click', function() { 
+                    showSubTab('robustness-features'); 
+                });
+                document.getElementById('subtab-model').addEventListener('click', function() { 
+                    showSubTab('model-features'); 
+                });
+            } catch (error) {
+                console.error('Error initializing sub-tabs:', error);
+            }
+        }
+        
+        // Function to show a sub-tab and hide others
+        function showSubTab(tabId) {
+            try {
+                // Hide all sub-tab content
+                const subContents = document.getElementsByClassName('sub-content');
+                for (let i = 0; i < subContents.length; i++) {
+                    subContents[i].style.display = 'none';
+                }
+                
+                // Remove active class from all sub-tabs
+                const subTabs = document.getElementsByClassName('sub-tab');
+                for (let i = 0; i < subTabs.length; i++) {
+                    subTabs[i].classList.remove('active');
+                    subTabs[i].style.borderBottom = 'none';
+                }
+                
+                // Show the selected sub-tab content
+                const selectedTab = document.getElementById(tabId);
+                if (selectedTab) {
+                    selectedTab.style.display = 'block';
+                }
+                
+                // Add active class to the clicked sub-tab
+                if (tabId === 'robustness-features') {
+                    document.getElementById('subtab-robustness').classList.add('active');
+                    document.getElementById('subtab-robustness').style.borderBottom = '3px solid #1b78de';
+                } else if (tabId === 'model-features') {
+                    document.getElementById('subtab-model').classList.add('active');
+                    document.getElementById('subtab-model').style.borderBottom = '3px solid #1b78de';
+                }
+            } catch (error) {
+                console.error('Error showing sub-tab:', error);
+            }
         }
 
         // Load and process the data
@@ -732,7 +806,21 @@
                 
                 // Set basic information with safety checks
                 if (document.getElementById('model-name')) {
-                    document.getElementById('model-name').innerText = reportData.model_name || 'Unnamed Model';
+                    // Try to get model name from different possible locations
+                    let modelName = 'Unnamed Model';
+                    
+                    if (reportData.model_name) {
+                        modelName = reportData.model_name;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model) {
+                        // If model name isn't directly available, try to use the model type
+                        if (reportData.initial_results.models.primary_model.type) {
+                            modelName = reportData.initial_results.models.primary_model.type;
+                        }
+                    }
+                    
+                    document.getElementById('model-name').innerText = modelName;
                 }
                 if (document.getElementById('timestamp')) {
                     document.getElementById('timestamp').innerText = 'Generated on: ' + (reportData.timestamp || new Date().toLocaleString());
@@ -757,7 +845,23 @@
                 }
                 
                 if (document.getElementById('model-type')) {
-                    document.getElementById('model-type').innerText = reportData.model_type || 'Unknown';
+                    // Try to get model type from different possible locations
+                    let modelType = 'Unknown';
+                    
+                    if (reportData.model_type) {
+                        modelType = reportData.model_type;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model && 
+                              reportData.initial_results.models.primary_model.type) {
+                        modelType = reportData.initial_results.models.primary_model.type;
+                    } else if (reportData.models && 
+                              reportData.models.primary_model && 
+                              reportData.models.primary_model.type) {
+                        modelType = reportData.models.primary_model.type;
+                    }
+                    
+                    document.getElementById('model-type').innerText = modelType;
                 }
                 if (document.getElementById('metric-name')) {
                     document.getElementById('metric-name').innerText = reportData.metric || 'Unknown';
@@ -1542,6 +1646,112 @@
                             });
                         } else {
                             console.error("Cannot find feature-table element");
+                        }
+                        
+                        // Create model's native feature importance plot and table
+                        console.log('Creating model native feature importance...');
+                        let modelFeatureImportance = null;
+                        
+                        // Check for model's native feature importance in the report data
+                        if (reportData.models && 
+                            reportData.models.primary_model && 
+                            reportData.models.primary_model.feature_importance) {
+                            modelFeatureImportance = reportData.models.primary_model.feature_importance;
+                            console.log('Model feature importance found in models:', Object.keys(modelFeatureImportance).length);
+                        } else if (reportData.initial_results && 
+                                  reportData.initial_results.models && 
+                                  reportData.initial_results.models.primary_model && 
+                                  reportData.initial_results.models.primary_model.feature_importance) {
+                            modelFeatureImportance = reportData.initial_results.models.primary_model.feature_importance;
+                            console.log('Model feature importance found in initial_results:', Object.keys(modelFeatureImportance).length);
+                        }
+                        
+                        if (modelFeatureImportance && Object.keys(modelFeatureImportance).length > 0) {
+                            // Convert feature importance dictionary to array of [feature, score] pairs
+                            const modelFeatureEntries = Object.entries(modelFeatureImportance);
+                            
+                            // Sort features by importance score
+                            modelFeatureEntries.sort((a, b) => b[1] - a[1]);
+                            const topModelFeatures = modelFeatureEntries.slice(0, 15); // Get top 15 features
+                            
+                            console.log('Top model features:', topModelFeatures);
+                            
+                            // Prepare data for plot
+                            const modelFeatureNames = topModelFeatures.map(item => item[0]);
+                            const modelFeatureScores = topModelFeatures.map(item => item[1]);
+                            
+                            // Create plot
+                            const modelFeaturePlot = document.getElementById('model-importance-plot');
+                            if (!modelFeaturePlot) {
+                                console.error("Cannot find model-importance-plot element");
+                            } else {
+                                console.log('Creating Plotly chart for model feature importance');
+                                Plotly.newPlot(modelFeaturePlot, [{
+                                    y: modelFeatureNames,
+                                    x: modelFeatureScores,
+                                    type: 'bar',
+                                    orientation: 'h',
+                                    marker: {
+                                        color: modelFeatureScores.map(score => {
+                                            // Color gradient based on score
+                                            const normalized = score / Math.max(...modelFeatureScores);
+                                            return `rgba(46, 204, 113, ${0.3 + 0.7 * normalized})`;
+                                        })
+                                    }
+                                }], {
+                                    title: 'Model Native Feature Importance',
+                                    xaxis: {
+                                        title: 'Importance Score',
+                                        tickformat: '.3f'
+                                    },
+                                    yaxis: {
+                                        title: 'Feature',
+                                        automargin: true
+                                    },
+                                    margin: {
+                                        l: 150,
+                                        r: 30,
+                                        t: 80,
+                                        b: 60
+                                    }
+                                }, {responsive: true});
+                            }
+                            
+                            // Fill in the model feature table
+                            const modelFeatureTable = document.getElementById('model-feature-table');
+                            if (modelFeatureTable) {
+                                console.log('Filling model feature importance table');
+                                modelFeatureEntries.forEach(([feature, score]) => {
+                                    try {
+                                        const maxScore = Math.max(...modelFeatureEntries.map(item => item[1]));
+                                        const relativeScore = (score / maxScore) * 100;
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${feature}</td>
+                                            <td>${score.toFixed(4)}</td>
+                                            <td>${relativeScore.toFixed(2)}%</td>
+                                        `;
+                                        modelFeatureTable.appendChild(row);
+                                    } catch (error) {
+                                        console.error(`Error filling model feature table for ${feature}:`, error);
+                                    }
+                                });
+                            } else {
+                                console.error("Cannot find model-feature-table element");
+                            }
+                        } else {
+                            console.log('No model native feature importance data found');
+                            
+                            // Display a message in the model feature importance tab
+                            const modelFeaturePlot = document.getElementById('model-importance-plot');
+                            if (modelFeaturePlot) {
+                                modelFeaturePlot.innerHTML = '<div style="text-align: center; padding: 50px; font-size: 16px; color: #777;">No model native feature importance data available</div>';
+                            }
+                            
+                            const modelFeatureTable = document.getElementById('model-feature-table');
+                            if (modelFeatureTable) {
+                                modelFeatureTable.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #777;">No model native feature importance data available</td></tr>';
+                            }
                         }
                     } catch (error) {
                         console.error("Error creating feature importance visualizations:", error);

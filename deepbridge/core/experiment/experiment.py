@@ -80,12 +80,22 @@ class Experiment(IExperiment):
                 self._standardize_metrics('primary_model', 
                               self.initial_results['models']['primary_model'],
                               self.dataset.model if hasattr(self.dataset, 'model') else None)
+                
+                # Add feature importance for primary model
+                if hasattr(self.dataset, 'model') and self.dataset.model is not None:
+                    self._calculate_model_feature_importance('primary_model', 
+                                      self.initial_results['models']['primary_model'],
+                                      self.dataset.model)
             
             # Process all alternative models
             for model_name, model_data in self.initial_results['models'].items():
                 if model_name != 'primary_model':
                     model_obj = self.alternative_models.get(model_name)
                     self._standardize_metrics(model_name, model_data, model_obj)
+                    
+                    # Add feature importance for alternative models
+                    if model_obj is not None:
+                        self._calculate_model_feature_importance(model_name, model_data, model_obj)
     
     def __init__(
         self,
@@ -280,6 +290,52 @@ class Experiment(IExperiment):
             # Restore logging state
             self._restore_logging(logging_state, verbose)
 
+    def _calculate_model_feature_importance(self, model_name: str, model_data: dict, model_obj: t.Any) -> None:
+        """
+        Calculate feature importance using the model's built-in feature_importance_ attribute
+        
+        Args:
+            model_name: Name of the model
+            model_data: Model data dictionary where results will be stored
+            model_obj: The actual model object
+        """
+        # Check if model has feature_importances_ or coef_ attribute
+        if hasattr(model_obj, 'feature_importances_'):
+            feature_importances = model_obj.feature_importances_
+            feature_names = self.X_train.columns if hasattr(self.X_train, 'columns') else None
+            
+            # Create feature importance dictionary
+            if feature_names is not None and len(feature_names) == len(feature_importances):
+                importance_dict = dict(zip(feature_names, feature_importances))
+                # Sort by importance value (descending)
+                importance_dict = {k: float(v) for k, v in sorted(importance_dict.items(), 
+                                                             key=lambda item: item[1], 
+                                                             reverse=True)}
+                model_data['feature_importance'] = importance_dict
+                self.logger.debug(f"Added feature importance from feature_importances_ for {model_name}")
+                
+        # For linear models that use coef_ instead
+        elif hasattr(model_obj, 'coef_'):
+            coef = model_obj.coef_
+            feature_names = self.X_train.columns if hasattr(self.X_train, 'columns') else None
+            
+            # Handle different coefficient shapes
+            if len(coef.shape) > 1 and coef.shape[0] == 1:
+                # For binary classifiers with shape (1, n_features)
+                coef = coef[0]
+            
+            # Create feature importance dictionary using absolute values of coefficients
+            if feature_names is not None and len(feature_names) == len(coef):
+                # Use absolute values for linear model coefficients
+                importance_values = np.abs(coef)
+                importance_dict = dict(zip(feature_names, importance_values))
+                # Sort by importance value (descending)
+                importance_dict = {k: float(v) for k, v in sorted(importance_dict.items(), 
+                                                             key=lambda item: item[1], 
+                                                             reverse=True)}
+                model_data['feature_importance'] = importance_dict
+                self.logger.debug(f"Added feature importance from coef_ for {model_name}")
+
     def _standardize_metrics(self, model_name: str, model_data: dict, model_obj: t.Optional[t.Any] = None) -> None:
         """
         Standardize metrics format and naming conventions.
@@ -422,6 +478,53 @@ class Experiment(IExperiment):
         return self.model_evaluation.calculate_metrics(
             y_true, y_pred, y_prob, teacher_prob
         )
+        
+    def get_feature_importance(self, model_name='primary_model'):
+        """
+        Get the feature importance for a specific model.
+        
+        Args:
+            model_name: Name of the model (default: 'primary_model')
+            
+        Returns:
+            dict: Feature importance dictionary or None if not available
+            
+        Raises:
+            ValueError: If model not found or feature importance not calculated
+        """
+        # Check if we have initial results
+        if not hasattr(self, 'initial_results') or not self.initial_results:
+            raise ValueError("No model results available. Initialize the experiment first.")
+            
+        # Check if models dictionary exists in results
+        if 'models' not in self.initial_results:
+            raise ValueError("No models found in experiment results.")
+            
+        # Check if requested model exists
+        if model_name not in self.initial_results['models']:
+            available_models = list(self.initial_results['models'].keys())
+            raise ValueError(f"Model '{model_name}' not found. Available models: {available_models}")
+            
+        # Get model data
+        model_data = self.initial_results['models'][model_name]
+        
+        # Check if feature importance is calculated
+        if 'feature_importance' not in model_data:
+            # If model is available, try to calculate feature importance now
+            model_obj = None
+            if model_name == 'primary_model' and hasattr(self.dataset, 'model'):
+                model_obj = self.dataset.model
+            elif model_name in self.alternative_models:
+                model_obj = self.alternative_models[model_name]
+                
+            if model_obj is not None:
+                self._calculate_model_feature_importance(model_name, model_data, model_obj)
+            
+            # Check again if feature importance is now available
+            if 'feature_importance' not in model_data:
+                raise ValueError(f"Feature importance not available for model '{model_name}'. The model may not support feature importance.")
+                
+        return model_data['feature_importance']
 
     def compare_all_models(self, dataset='test'):
         """Compare all models including original, alternative, and distilled."""

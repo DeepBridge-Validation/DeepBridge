@@ -52,10 +52,9 @@ class ReportManager:
         except ImportError:
             self.np = None
             
-        # Set up paths for favicon and logo - use absolute paths
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        self.favicon_path = os.path.join(project_root, 'docs', 'assets', 'images', 'favicon.png')
-        self.logo_path = os.path.join(project_root, 'docs', 'assets', 'images', 'logo.png')
+        # Set up paths for favicon and logo - use templates directory
+        self.favicon_path = os.path.join(self.templates_dir, 'assets', 'images', 'favicon.png')
+        self.logo_path = os.path.join(self.templates_dir, 'assets', 'images', 'logo.png')
     
     def convert_numpy_types(self, data):
         """
@@ -133,7 +132,15 @@ class ReportManager:
                 return base64.b64encode(img_file.read()).decode('utf-8')
         except Exception as e:
             print(f"Error encoding image {image_path}: {str(e)}")
-            return ""
+            
+            # Fallback to embedded transparent 1x1 pixel PNG if original image not found
+            transparent_1px_png = (
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00'
+                b'\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\n'
+                b'IDAT\x08\x99c\x00\x00\x00\x02\x00\x01\xe2\xb5\xc7\xb0\x00'
+                b'\x00\x00\x00IEND\xaeB`\x82'
+            )
+            return base64.b64encode(transparent_1px_png).decode('utf-8')
 
     def generate_robustness_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """

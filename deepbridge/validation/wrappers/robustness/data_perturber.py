@@ -93,7 +93,14 @@ class DataPerturber:
         noise = self.rng.normal(0, level * feature_std, X_perturbed.shape[0])
         
         if isinstance(X, pd.DataFrame):
-            X_perturbed.iloc[:, col] += noise
+            # Get the data type of the original column
+            col_dtype = X.iloc[:, col].dtype
+            # Convert the noise to the appropriate type to avoid pandas dtype warning
+            if pd.api.types.is_integer_dtype(col_dtype):
+                # For integer columns, we need to convert the result to the same type
+                X_perturbed.iloc[:, col] = (X_perturbed.iloc[:, col] + noise).astype(col_dtype)
+            else:
+                X_perturbed.iloc[:, col] += noise
         else:
             X_perturbed[:, col] += noise
                 
@@ -122,7 +129,14 @@ class DataPerturber:
         )
         
         if isinstance(X, pd.DataFrame):
-            X_perturbed.iloc[:, col] = perturbation
+            # Get the data type of the original column
+            col_dtype = X.iloc[:, col].dtype
+            # Convert the perturbation to the appropriate type to avoid pandas dtype warning
+            if pd.api.types.is_integer_dtype(col_dtype):
+                # For integer columns, we need to convert the result to the same type
+                X_perturbed.iloc[:, col] = perturbation.astype(col_dtype)
+            else:
+                X_perturbed.iloc[:, col] = perturbation
         else:
             X_perturbed[:, col] = perturbation
             

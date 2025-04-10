@@ -26,6 +26,9 @@ class ModelManager:
         """
         Create 3 alternative models different from the original model,
         using ModelRegistry directly without SurrogateModel.
+        
+        Priority order for alternative models:
+        GLMClassifier, GAMClassifier, GBM, XGB, LOGISTIC_REGRESSION, DECISION_TREE, RANDOM_FOREST, MLP
         """
         alternative_models = {}
         
@@ -39,16 +42,25 @@ class ModelManager:
         original_model = self.dataset.model
         original_model_name = original_model.__class__.__name__.upper()
         
-        # Get all available model types from the enum
-        all_model_types = list(ModelType)
+        # Define prioritized model types order
+        prioritized_order = [
+            ModelType.GLM_CLASSIFIER,
+            ModelType.GAM_CLASSIFIER,
+            ModelType.GBM,
+            ModelType.XGB,
+            ModelType.LOGISTIC_REGRESSION,
+            ModelType.DECISION_TREE,
+            ModelType.RANDOM_FOREST,
+            ModelType.MLP
+        ]
             
         if self.verbose:
-            print(f"Available model types: {[mt.name for mt in all_model_types]}")
+            print(f"Available model types in priority order: {[mt.name for mt in prioritized_order]}")
             print(f"Original model identified as: {original_model.__class__.__name__}")
         
         # Identify original model type by name
         original_model_type = None
-        for model_type in all_model_types:
+        for model_type in prioritized_order:
             if model_type.name in original_model_name or original_model_name in model_type.name:
                 original_model_type = model_type
                 break
@@ -58,7 +70,7 @@ class ModelManager:
         
         # Create a list of models to generate, excluding the original model if identified
         models_to_create = []
-        for model_type in all_model_types:
+        for model_type in prioritized_order:
             if model_type != original_model_type:
                 models_to_create.append(model_type)
                 if len(models_to_create) >= 3:  # Limit to 3 models

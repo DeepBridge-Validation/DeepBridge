@@ -348,7 +348,6 @@
             <div class="tab active" id="tab-distribution">Distribution Shift</div>
             <div class="tab" id="tab-feature">Feature Analysis</div>
             <div class="tab" id="tab-metrics">Model Metrics</div>
-            <div class="tab" id="tab-detailed">Detailed Results</div>
         </div>
 
         <div id="distribution" class="tab-content active">
@@ -446,17 +445,6 @@
             </div>
         </div>
 
-        <div id="detailed" class="tab-content">
-            <h2>Detailed Test Results</h2>
-            <div class="card">
-                <div class="card-header">Run Details</div>
-                <div class="card-body">
-                    <pre id="detailed-results" style="overflow-x: auto; max-height: 500px;">
-                        <!-- This will be populated by JavaScript -->
-                    </pre>
-                </div>
-            </div>
-        </div>
 
         <div class="footer">
             <p>Generated using DeepBridge Resilience Analysis</p>
@@ -520,7 +508,21 @@
                 
                 // Set basic information with safety checks
                 if (document.getElementById('model-name')) {
-                    document.getElementById('model-name').innerText = reportData.model_name || 'Unnamed Model';
+                    // Try to get model name from different possible locations
+                    let modelName = 'Unnamed Model';
+                    
+                    if (reportData.model_name) {
+                        modelName = reportData.model_name;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model) {
+                        // If model name isn't directly available, try to use the model type
+                        if (reportData.initial_results.models.primary_model.type) {
+                            modelName = reportData.initial_results.models.primary_model.type;
+                        }
+                    }
+                    
+                    document.getElementById('model-name').innerText = modelName;
                 }
                 if (document.getElementById('timestamp')) {
                     document.getElementById('timestamp').innerText = 'Generated on: ' + (reportData.timestamp || new Date().toLocaleString());
@@ -549,7 +551,23 @@
                 }
                 
                 if (document.getElementById('model-type')) {
-                    document.getElementById('model-type').innerText = reportData.model_type || 'Unknown';
+                    // Try to get model type from different possible locations
+                    let modelType = 'Unknown';
+                    
+                    if (reportData.model_type) {
+                        modelType = reportData.model_type;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model && 
+                              reportData.initial_results.models.primary_model.type) {
+                        modelType = reportData.initial_results.models.primary_model.type;
+                    } else if (reportData.models && 
+                              reportData.models.primary_model && 
+                              reportData.models.primary_model.type) {
+                        modelType = reportData.models.primary_model.type;
+                    }
+                    
+                    document.getElementById('model-type').innerText = modelType;
                 }
                 if (document.getElementById('distance-metrics')) {
                     document.getElementById('distance-metrics').innerText = 
