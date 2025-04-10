@@ -41,6 +41,7 @@ statsmodels = "^0.14.4"
 dask = {extras = ["distributed"], version = "^2025.3.0"}
 pyarrow = "^19.0.1"
 chardet = "^5.0.0"
+pygam = "^0.9.1"
 
 
 [tool.poetry.group.dev.dependencies]
