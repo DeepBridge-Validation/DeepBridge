@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import Dict, Type, Any, Callable
 import optuna
 import numpy as np
+import warnings
 
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -49,9 +50,14 @@ class LinearGAM(StatsModelsGAM):
         if self.random_state is not None:
             np.random.seed(self.random_state)
             
-        # Fit the model with Gaussian family (for regression)
-        self.model = GLMGam(y, smoother=self.smoother, family=Gaussian())
-        self.model = self.model.fit(maxiter=self.max_iter)
+        # Suppress statsmodels warnings during fitting
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            
+            # Fit the model with Gaussian family (for regression)
+            self.model = GLMGam(y, smoother=self.smoother, family=Gaussian())
+            self.model = self.model.fit(maxiter=self.max_iter)
+            
         return self
         
     def predict(self, X):
@@ -65,8 +71,19 @@ class LinearGAM(StatsModelsGAM):
         # Create new splines for prediction data if needed
         if X.shape[1] != self.smoother.basis.shape[1]:
             self._create_bsplines(X)
+        
+        # Suppress statsmodels warnings during prediction
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
             
-        return self.model.predict(smoother=self.smoother)
+            # Transform the input data using the smoother
+            exog = self.smoother.transform(X)
+            predictions = self.model.predict(exog)
+            
+            # Handle NaN values that might occur due to numerical issues
+            predictions = np.nan_to_num(predictions)
+            
+        return predictions
         
 class LogisticGAM(StatsModelsGAM):
     """Wrapper for statsmodels GAM with Binomial family (classification)."""
@@ -85,9 +102,14 @@ class LogisticGAM(StatsModelsGAM):
         if self.random_state is not None:
             np.random.seed(self.random_state)
             
-        # Fit the model with Binomial family (for classification)
-        self.model = GLMGam(y, smoother=self.smoother, family=Binomial())
-        self.model = self.model.fit(maxiter=self.max_iter)
+        # Suppress statsmodels warnings during fitting
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            
+            # Fit the model with Binomial family (for classification)
+            self.model = GLMGam(y, smoother=self.smoother, family=Binomial())
+            self.model = self.model.fit(maxiter=self.max_iter)
+        
         return self
         
     def predict(self, X):
@@ -102,9 +124,13 @@ class LogisticGAM(StatsModelsGAM):
         if X.shape[1] != self.smoother.basis.shape[1]:
             self._create_bsplines(X)
             
-        # Return class labels (0 or 1)
-        probs = self.predict_proba(X)
-        return (probs > 0.5).astype(int)
+        # Suppress warnings for prediction pipeline
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            
+            # Return class labels (0 or 1)
+            probs = self.predict_proba(X)
+            return (probs[:, 1] > 0.5).astype(int)
         
     def predict_proba(self, X):
         """Predict class probabilities."""
@@ -118,10 +144,17 @@ class LogisticGAM(StatsModelsGAM):
         if X.shape[1] != self.smoother.basis.shape[1]:
             self._create_bsplines(X)
             
-        # Get predicted probabilities by preparing the exog data with the smoother
-        exog = self.smoother.transform(X)
-        probs = self.model.predict(exog)
+        # Suppress statsmodels warnings during prediction
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            
+            # Get predicted probabilities by preparing the exog data with the smoother
+            exog = self.smoother.transform(X)
+            probs = self.model.predict(exog)
+            
         # Return probabilities in scikit-learn format: array of shape (n_samples, n_classes)
+        # Handle NaN values that might occur due to numerical issues
+        probs = np.nan_to_num(probs, nan=0.5)
         return np.column_stack((1 - probs, probs))
 
 

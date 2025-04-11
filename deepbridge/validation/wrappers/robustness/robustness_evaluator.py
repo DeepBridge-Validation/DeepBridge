@@ -71,6 +71,55 @@ class RobustnessEvaluator:
         # Default to classification
         return 'classification'
     
+    def get_model_feature_importance(self) -> Dict[str, float]:
+        """
+        Extract native feature importance from the model if available.
+        
+        Returns:
+        --------
+        Dict[str, float] : Dictionary mapping feature names to importance scores,
+                         or empty dict if not available
+        """
+        if not hasattr(self.dataset, 'model') or self.dataset.model is None:
+            return {}
+            
+        model = self.dataset.model
+        feature_names = self.dataset.get_feature_names()
+        feature_importance = {}
+        
+        # Try different attributes/methods to get feature importance
+        if hasattr(model, 'feature_importances_'):
+            # For tree-based models (Random Forest, XGBoost, etc.)
+            importances = model.feature_importances_
+            if len(importances) == len(feature_names):
+                feature_importance = dict(zip(feature_names, importances))
+        elif hasattr(model, 'coef_'):
+            # For linear models
+            if hasattr(model.coef_, 'shape') and len(model.coef_.shape) > 1:
+                # For multi-class models, take the average of coefficients
+                importances = np.abs(model.coef_).mean(axis=0)
+            else:
+                importances = np.abs(model.coef_)
+                
+            if len(importances) == len(feature_names):
+                feature_importance = dict(zip(feature_names, importances))
+        elif hasattr(model, 'feature_importance'):
+            # For models with a feature_importance method
+            try:
+                importances = model.feature_importance()
+                if len(importances) == len(feature_names):
+                    feature_importance = dict(zip(feature_names, importances))
+            except:
+                pass
+                
+        # Normalize importances to sum to 1
+        if feature_importance:
+            total = sum(feature_importance.values())
+            if total > 0:
+                feature_importance = {k: v / total for k, v in feature_importance.items()}
+                
+        return feature_importance
+    
     def calculate_base_score(self, X: pd.DataFrame, y: pd.Series) -> float:
         """
         Calculate baseline score on unperturbed data.

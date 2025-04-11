@@ -247,7 +247,12 @@ class ReportManager:
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
-                report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                
+                # Get model type from initial_results if available
+                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                    report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
+                else:
+                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -501,7 +506,12 @@ class ReportManager:
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
-                report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                
+                # Get model type from initial_results if available
+                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                    report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
+                else:
+                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -688,7 +698,12 @@ class ReportManager:
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
-                report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                
+                # Get model type from initial_results if available
+                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                    report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
+                else:
+                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -867,7 +882,12 @@ class ReportManager:
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
-                report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                
+                # Get model type from initial_results if available
+                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                    report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
+                else:
+                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:

@@ -195,6 +195,7 @@ class RobustnessSuite:
             'raw': {'by_level': {}, 'overall': {}},
             'quantile': {'by_level': {}, 'overall': {}},
             'feature_importance': {},
+            'model_feature_importance': self.evaluator.get_model_feature_importance(),  # Add native model feature importance
             'feature_subset': self.feature_subset,  # Store the feature subset used in the test
             'metric': self.metric  # Store the metric used for evaluation
         }
