@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, Type, Any, Callable
 import optuna
+import numpy as np
 
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -10,7 +11,118 @@ from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegress
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.base import BaseEstimator
 import xgboost as xgb
-from pygam import LogisticGAM, LinearGAM
+from statsmodels.gam.api import GLMGam, BSplines
+from statsmodels.genmod.families import Gaussian, Binomial
+
+class StatsModelsGAM:
+    """Base wrapper for statsmodels GAM to provide scikit-learn compatible API."""
+    
+    def __init__(self, n_splines=10, spline_order=3, lam=0.6, max_iter=100, random_state=None):
+        self.n_splines = n_splines
+        self.spline_order = spline_order
+        self.lam = lam
+        self.max_iter = max_iter
+        self.random_state = random_state
+        self.model = None
+        self.smoother = None
+        
+    def _create_bsplines(self, X):
+        """Create B-splines from features."""
+        df = [self.n_splines] * X.shape[1]  # Same df for each feature
+        degree = [self.spline_order] * X.shape[1]  # Same order for each feature
+        self.smoother = BSplines(X, df=df, degree=degree)
+        
+class LinearGAM(StatsModelsGAM):
+    """Wrapper for statsmodels GAM with Gaussian family (regression)."""
+    
+    def fit(self, X, y):
+        """Fit the GAM model for regression."""
+        if hasattr(X, 'values'):
+            X = X.values
+        if hasattr(y, 'values'):
+            y = y.values
+            
+        # Create splines from features
+        self._create_bsplines(X)
+        
+        # Set random seed if provided
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+            
+        # Fit the model with Gaussian family (for regression)
+        self.model = GLMGam(y, smoother=self.smoother, family=Gaussian())
+        self.model = self.model.fit(maxiter=self.max_iter)
+        return self
+        
+    def predict(self, X):
+        """Predict using the fitted GAM model."""
+        if self.model is None:
+            raise ValueError("Model not fitted. Call fit first.")
+            
+        if hasattr(X, 'values'):
+            X = X.values
+            
+        # Create new splines for prediction data if needed
+        if X.shape[1] != self.smoother.basis.shape[1]:
+            self._create_bsplines(X)
+            
+        return self.model.predict(smoother=self.smoother)
+        
+class LogisticGAM(StatsModelsGAM):
+    """Wrapper for statsmodels GAM with Binomial family (classification)."""
+    
+    def fit(self, X, y):
+        """Fit the GAM model for classification."""
+        if hasattr(X, 'values'):
+            X = X.values
+        if hasattr(y, 'values'):
+            y = y.values
+            
+        # Create splines from features
+        self._create_bsplines(X)
+        
+        # Set random seed if provided
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+            
+        # Fit the model with Binomial family (for classification)
+        self.model = GLMGam(y, smoother=self.smoother, family=Binomial())
+        self.model = self.model.fit(maxiter=self.max_iter)
+        return self
+        
+    def predict(self, X):
+        """Predict class labels."""
+        if self.model is None:
+            raise ValueError("Model not fitted. Call fit first.")
+            
+        if hasattr(X, 'values'):
+            X = X.values
+            
+        # Create new splines for prediction data if needed
+        if X.shape[1] != self.smoother.basis.shape[1]:
+            self._create_bsplines(X)
+            
+        # Return class labels (0 or 1)
+        probs = self.predict_proba(X)
+        return (probs > 0.5).astype(int)
+        
+    def predict_proba(self, X):
+        """Predict class probabilities."""
+        if self.model is None:
+            raise ValueError("Model not fitted. Call fit first.")
+            
+        if hasattr(X, 'values'):
+            X = X.values
+            
+        # Create new splines for prediction data if needed
+        if X.shape[1] != self.smoother.basis.shape[1]:
+            self._create_bsplines(X)
+            
+        # Get predicted probabilities
+        probs = self.model.predict(smoother=self.smoother)
+        # Return probabilities in scikit-learn format: array of shape (n_samples, n_classes)
+        return np.column_stack((1 - probs, probs))
+
 
 class ModelType(Enum):
     """Supported model types for knowledge distillation."""

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.28"
+version = "0.1.29"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
@@ -21,12 +21,11 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 typer = {extras = ["all"], version = "^0.15.1"}
-numpy = ">=1.23.5,<1.27.0"
-pandas = ">=1.5.3,<2.1.0"
+numpy = ">=1.24.0,<2.1.0"
+pandas = ">=2.0.0,<2.3.0"
 scikit-learn = ">=1.2.2,<1.4.0"
 xgboost = ">=1.7.6,<2.0.0"
-scipy = "==1.11.3"
-pygam = "^0.9.1"
+scipy = ">=1.11.3,<1.14.0"
 rich = "^13.9.4"
 joblib = "^1.4.2"
 ipython = "^8.32.0"
