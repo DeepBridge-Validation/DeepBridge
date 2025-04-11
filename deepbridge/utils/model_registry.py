@@ -118,8 +118,9 @@ class LogisticGAM(StatsModelsGAM):
         if X.shape[1] != self.smoother.basis.shape[1]:
             self._create_bsplines(X)
             
-        # Get predicted probabilities
-        probs = self.model.predict(smoother=self.smoother)
+        # Get predicted probabilities by preparing the exog data with the smoother
+        exog = self.smoother.transform(X)
+        probs = self.model.predict(exog)
         # Return probabilities in scikit-learn format: array of shape (n_samples, n_classes)
         return np.column_stack((1 - probs, probs))
 
