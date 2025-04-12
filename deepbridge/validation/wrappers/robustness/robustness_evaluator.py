@@ -84,7 +84,7 @@ class RobustnessEvaluator:
             return {}
             
         model = self.dataset.model
-        feature_names = self.dataset.get_feature_names()
+        feature_names = self.dataset.features
         feature_importance = {}
         
         # Try different attributes/methods to get feature importance
