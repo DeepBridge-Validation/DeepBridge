@@ -142,6 +142,11 @@ class TestRunner:
         # Store results for future reference
         self.test_results.update(results)
         
+        # Print initialization completion message
+        if 'models' in results and 'primary_model' in results['models']:
+            model_type = results['models']['primary_model'].get('type', 'Unknown')
+            print(f"✅ Initial model evaluation complete: {model_type}")
+        
         return results
         
     def _get_experiment_config(self) -> dict:
@@ -502,45 +507,61 @@ class TestRunner:
         # Run robustness tests if requested
         if "robustness" in self.tests:
             from deepbridge.utils.robustness import run_robustness_tests
+            self.logger.info("Starting robustness tests...")
             results['robustness'] = self._run_model_test(
                 test_type='robustness',  # Accepts model_name but not metric parameter
                 config_name=config_name,
                 run_test_fn=run_robustness_tests,
                 metric_param=None
             )
+            print("✅ Robustness Tests Finished!")
             
         # Run uncertainty tests if requested
         if "uncertainty" in self.tests:
             from deepbridge.utils.uncertainty import run_uncertainty_tests
+            self.logger.info("Starting uncertainty tests...")
             results['uncertainty'] = self._run_model_test(
                 test_type='uncertainty',  # Doesn't accept model_name or metric
                 config_name=config_name,
                 run_test_fn=run_uncertainty_tests,
                 metric_param=None
             )
+            print("✅ Uncertainty Tests Finished!")
             
         # Run resilience tests if requested
         if "resilience" in self.tests:
             from deepbridge.utils.resilience import run_resilience_tests
+            self.logger.info("Starting resilience tests...")
             results['resilience'] = self._run_model_test(
                 test_type='resilience',  # Accepts metric but not model_name
                 config_name=config_name,
                 run_test_fn=run_resilience_tests,
                 metric_param='metric'  # We keep this one since it's not redundant
             )
+            print("✅ Resilience Tests Finished!")
             
         # Run hyperparameter tests if requested
         if "hyperparameters" in self.tests:
             from deepbridge.utils.hyperparameter import run_hyperparameter_tests
+            self.logger.info("Starting hyperparameter tests...")
             results['hyperparameters'] = self._run_model_test(
                 test_type='hyperparameters',  # Accepts metric but not model_name
                 config_name=config_name,
                 run_test_fn=run_hyperparameter_tests,
                 metric_param='metric'
             )
+            print("✅ Hyperparameter Tests Finished!")
         
         # Store results in the object for future reference
         self.test_results.update(results)
+        
+        # Print completion message for all tests
+        if results:
+            completed_tests = list(results.keys())
+            if len(completed_tests) == 1:
+                print(f"🎉 Test completed successfully: {completed_tests[0]}")
+            else:
+                print(f"🎉 All {len(completed_tests)} tests completed successfully!")
         
         return results
         
