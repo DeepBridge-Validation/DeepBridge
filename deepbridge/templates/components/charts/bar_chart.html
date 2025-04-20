@@ -3,7 +3,12 @@
     {% if title %}<h3 class="chart-title">{{ title }}</h3>{% endif %}
     <div id="{{ container_id }}" style="height: {{ height }};"></div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function render{{ container_id|replace('-', '_') }}BarChart() {
+            if (typeof Plotly === 'undefined') {
+                console.error('Plotly not loaded for {{ container_id }}');
+                return;
+            }
+
             const trace = {
                 x: {{ x_data|tojson }},
                 y: {{ y_data|tojson }},
@@ -34,8 +39,26 @@
                 responsive: true
             };
             
-            Plotly.newPlot('{{ container_id }}', [trace], layout, config);
-        });
+            try {
+                Plotly.newPlot('{{ container_id }}', [trace], layout, config);
+                console.log('Bar chart rendered successfully:', '{{ container_id }}');
+                if (window.debugDeepBridge) {
+                    window.debugDeepBridge.logEvent('BarChartRendered', '{{ container_id }}');
+                }
+            } catch (error) {
+                console.error('Error rendering bar chart:', error);
+                if (window.debugDeepBridge) {
+                    window.debugDeepBridge.logEvent('BarChartError', {
+                        id: '{{ container_id }}',
+                        error: error.message
+                    });
+                }
+            }
+        }
+
+        // Listen for both events
+        document.addEventListener('DOMContentLoaded', render{{ container_id|replace('-', '_') }}BarChart);
+        document.addEventListener('renderCharts', render{{ container_id|replace('-', '_') }}BarChart);
     </script>
 </div>
 {% endmacro %}

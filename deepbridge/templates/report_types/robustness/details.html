@@ -1,151 +1,67 @@
 {% from "components/tables/data_table.html" import data_table %}
+{% include "components/ui/subtabs.html" %}
 
 <div class="details-section">
     <div class="card">
         <h2>Detailed Robustness Results</h2>
+        <p>This section provides detailed breakdown of robustness test results across different levels and metrics.</p>
         
-        <div class="metrics-details">
-            <h3>Model Metrics</h3>
-            <div id="metrics-table-container">
-                <!-- Will be populated by JavaScript -->
+        <div class="subtabs-container">
+            <div class="subtabs" data-parent="details">
+                <div class="subtab active" data-subtab="raw_details" data-parent="details">
+                    Raw Perturbation
+                </div>
+                <div class="subtab" data-subtab="quantile_details" data-parent="details">
+                    Quantile Perturbation
+                </div>
+                <div class="subtab" data-subtab="metrics_details" data-parent="details">
+                    Model Metrics
+                </div>
             </div>
         </div>
         
-        <div class="raw-perturbation-details">
-            <h3>Raw Perturbation Detailed Results</h3>
-            <div id="raw-detailed-results">
-                <!-- Will be populated by JavaScript -->
+        <!-- Raw Perturbation Details Content -->
+        <div id="raw_details" class="subtab-content active" data-parent="details">
+            <div class="raw-details-container">
+                <h3>Raw Perturbation Details</h3>
+                <p>Performance metrics for each perturbation level with raw values.</p>
+                
+                <div id="raw-details-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
         </div>
         
-        <div class="quantile-perturbation-details">
-            <h3>Quantile Perturbation Detailed Results</h3>
-            <div id="quantile-detailed-results">
-                <!-- Will be populated by JavaScript -->
+        <!-- Quantile Perturbation Details Content -->
+        <div id="quantile_details" class="subtab-content" data-parent="details">
+            <div class="quantile-details-container">
+                <h3>Quantile Perturbation Details</h3>
+                <p>Performance metrics for each perturbation level with quantile-based values.</p>
+                
+                <div id="quantile-details-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
+        </div>
+        
+        <!-- Model Metrics Content -->
+        <div id="metrics_details" class="subtab-content" data-parent="details">
+            <div class="metrics-details">
+                <h3>Model Metrics</h3>
+                <p>Key performance metrics for the model across different test conditions.</p>
+                
+                <div id="metrics-table-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Container for all detailed results, dynamically populated -->
+        <div id="detailed-results-container" style="display:none;">
+            <!-- This container is used by the JavaScript but we'll reorganize its content -->
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const reportData = JSON.parse('{{ report_data|safe }}');
-        
-        // Display model metrics
-        const metricsContainer = document.getElementById('metrics-table-container');
-        if (reportData.metrics) {
-            const metricsData = [];
-            for (const [key, value] of Object.entries(reportData.metrics)) {
-                metricsData.push([
-                    key,
-                    typeof value === 'number' ? value.toFixed(4) : value
-                ]);
-            }
-            
-            metricsContainer.innerHTML = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${metricsData.map(row => `
-                            <tr>
-                                <td>${row[0]}</td>
-                                <td>${row[1]}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        } else {
-            metricsContainer.innerHTML = '<p>No metrics data available.</p>';
-        }
-        
-        // Display raw perturbation detailed results
-        if (reportData.raw && reportData.raw.by_level) {
-            const rawDetailsContainer = document.getElementById('raw-detailed-results');
-            const rawLevels = Object.keys(reportData.raw.by_level);
-            rawLevels.sort((a, b) => parseFloat(a) - parseFloat(b));
-            
-            let rawDetailsHTML = '';
-            
-            rawLevels.forEach(level => {
-                const levelData = reportData.raw.by_level[level];
-                
-                // Create a section for each level
-                rawDetailsHTML += `
-                    <div class="level-details">
-                        <h4>Noise Level: ${level}</h4>
-                `;
-                
-                // Add overall result table
-                if (levelData.overall_result) {
-                    rawDetailsHTML += `
-                        <h5>Overall Result</h5>
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Feature Set</th>
-                                    <th>Mean Score</th>
-                                    <th>Impact</th>
-                                    <th>Std Dev</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-                    
-                    // Add all features row
-                    if (levelData.overall_result.all_features) {
-                        const all = levelData.overall_result.all_features;
-                        rawDetailsHTML += `
-                            <tr>
-                                <td>All Features</td>
-                                <td>${all.mean_score.toFixed(4)}</td>
-                                <td>${all.impact.toFixed(4)}</td>
-                                <td>${all.std_score ? all.std_score.toFixed(4) : 'N/A'}</td>
-                            </tr>
-                        `;
-                    }
-                    
-                    // Add feature subset row
-                    if (levelData.overall_result.feature_subset) {
-                        const subset = levelData.overall_result.feature_subset;
-                        rawDetailsHTML += `
-                            <tr>
-                                <td>Feature Subset</td>
-                                <td>${subset.mean_score.toFixed(4)}</td>
-                                <td>${subset.impact.toFixed(4)}</td>
-                                <td>${subset.std_score ? subset.std_score.toFixed(4) : 'N/A'}</td>
-                            </tr>
-                        `;
-                    }
-                    
-                    rawDetailsHTML += `
-                            </tbody>
-                        </table>
-                    `;
-                }
-                
-                rawDetailsHTML += `</div>`;
-            });
-            
-            rawDetailsContainer.innerHTML = rawDetailsHTML;
-        } else {
-            document.getElementById('raw-detailed-results').innerHTML = '<p>No detailed raw perturbation results available.</p>';
-        }
-        
-        // Display quantile perturbation detailed results (similar to raw)
-        if (reportData.quantile && reportData.quantile.by_level) {
-            // Similar implementation for quantile data
-            // Populate 'quantile-detailed-results'
-        } else {
-            document.getElementById('quantile-detailed-results').innerHTML = '<p>No detailed quantile perturbation results available.</p>';
-        }
-    });
-</script>
 
 <style>
     .details-section {
@@ -153,8 +69,8 @@
     }
     
     .metrics-details,
-    .raw-perturbation-details,
-    .quantile-perturbation-details {
+    .raw-details-container,
+    .quantile-details-container {
         margin-bottom: 30px;
     }
     
@@ -166,6 +82,15 @@
     
     .level-details:last-child {
         border-bottom: none;
+    }
+    
+    .raw-details-container h3,
+    .quantile-details-container h3,
+    .metrics-details h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 18px;
+        color: #2c3e50;
     }
     
     .level-details h4 {
@@ -182,3 +107,27 @@
         color: #666;
     }
 </style>
+
+<script>
+document.addEventListener('renderCharts', function() {
+    // Move content from detailed-results-container to appropriate subcontainers
+    setTimeout(function() {
+        const detailedContainer = document.getElementById('detailed-results-container');
+        const rawContainer = document.getElementById('raw-details-container');
+        const quantileContainer = document.getElementById('quantile-details-container');
+        
+        if (detailedContainer && rawContainer) {
+            // Find raw perturbation section
+            const rawSections = detailedContainer.querySelectorAll('.detail-section');
+            rawSections.forEach(section => {
+                const title = section.querySelector('h3');
+                if (title && title.textContent.includes('Raw Perturbation')) {
+                    rawContainer.appendChild(section);
+                } else if (title && title.textContent.includes('Quantile Perturbation') && quantileContainer) {
+                    quantileContainer.appendChild(section);
+                }
+            });
+        }
+    }, 500);
+});
+</script>

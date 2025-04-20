@@ -7,7 +7,7 @@
         <div class="uncertainty-score-indicator">
             <div class="score-circle">
                 <div class="score-inner">
-                    <div class="score-value">{{ (report_data.uncertainty_score * 100)|int }}%</div>
+                    <div class="score-value">{{ (uncertainty_score * 100)|int }}%</div>
                     <div class="score-label">Uncertainty Score</div>
                 </div>
             </div>
@@ -16,30 +16,30 @@
         <div class="metrics-container">
             {{ metric_card(
                 title="Average Coverage", 
-                value=(report_data.avg_coverage * 100)|round(2)|string + "%", 
+                value=(avg_coverage * 100)|round(2)|string + "%", 
                 description="Average prediction interval coverage", 
                 color="primary"
             ) }}
             
             {{ metric_card(
                 title="Average Width", 
-                value=report_data.avg_width|round(4), 
+                value=avg_width|round(4), 
                 description="Average prediction interval width", 
                 color="secondary"
             ) }}
             
             {{ metric_card(
                 title="Method", 
-                value=report_data.method|default("CRQR")|upper, 
+                value=method|default("CRQR")|upper, 
                 description="Uncertainty quantification method", 
                 color="info"
             ) }}
         </div>
         
-        {% if report_data.alpha_levels %}
+        {% if alpha_levels %}
         <div class="alpha-levels">
             <h3>Alpha Levels Used:</h3>
-            <p>{{ report_data.alpha_levels|join(', ') }}</p>
+            <p>{{ alpha_levels|join(', ') }}</p>
         </div>
         {% endif %}
     </div>

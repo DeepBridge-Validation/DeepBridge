@@ -30,12 +30,12 @@ class ReportManager:
         -----------
         templates_dir : str, optional
             Directory containing report templates. If None, use the default
-            templates directory in deepbridge/templates/reports.
+            templates directory in deepbridge/templates.
         """
         if templates_dir is None:
             # Use default templates directory
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            self.templates_dir = os.path.join(base_dir, 'templates', 'reports')
+            self.templates_dir = os.path.join(base_dir, 'templates')
         else:
             self.templates_dir = templates_dir
         
@@ -52,9 +52,23 @@ class ReportManager:
         except ImportError:
             self.np = None
             
-        # Set up paths for favicon and logo - use templates directory
+        # Set up paths for favicon and logo
         self.favicon_path = os.path.join(self.templates_dir, 'assets', 'images', 'favicon.png')
         self.logo_path = os.path.join(self.templates_dir, 'assets', 'images', 'logo.png')
+        
+        # Check if files exist, if not try fallback paths
+        if not os.path.exists(self.favicon_path) or not os.path.exists(self.logo_path):
+            print("Assets not found in expected path, trying alternative paths...")
+            alt_favicon_path = os.path.join(self.templates_dir, 'reports', 'assets', 'images', 'favicon.png')
+            alt_logo_path = os.path.join(self.templates_dir, 'reports', 'assets', 'images', 'logo.png')
+            
+            if os.path.exists(alt_favicon_path):
+                self.favicon_path = alt_favicon_path
+                print(f"Using alternate favicon path: {self.favicon_path}")
+            
+            if os.path.exists(alt_logo_path):
+                self.logo_path = alt_logo_path
+                print(f"Using alternate logo path: {self.logo_path}")
     
     def convert_numpy_types(self, data):
         """
@@ -144,7 +158,7 @@ class ReportManager:
 
     def generate_robustness_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """
-        Generate HTML report for robustness test results.
+        Generate HTML report for robustness test results using modular templates.
         
         Parameters:
         -----------
@@ -164,38 +178,14 @@ class ReportManager:
             print(f"Using templates directory: {self.templates_dir}")
             
             # Check if template exists
-            template_path = os.path.join(self.templates_dir, 'robustness/report.html')
+            template_path = os.path.join(self.templates_dir, 'report_types/robustness/index.html')
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
             print(f"Template file exists: {template_path}")
             
-            # Try reading the template directly to check encoding
-            try:
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
-                    print(f"Successfully read template file (size: {len(template_content)} bytes)")
-            except UnicodeDecodeError as e:
-                print(f"Unicode decode error when reading template: {str(e)}")
-                # Try to fix the encoding
-                try:
-                    import chardet
-                    with open(template_path, 'rb') as f:
-                        raw_data = f.read()
-                    detected = chardet.detect(raw_data)
-                    print(f"Detected encoding: {detected}")
-                    
-                    # Convert to UTF-8
-                    with open(template_path, 'w', encoding='utf-8') as f:
-                        f.write(raw_data.decode(detected['encoding']))
-                    print("Converted template to UTF-8")
-                except ImportError:
-                    print("chardet library not available for automatic encoding detection")
-                except Exception as e:
-                    print(f"Failed to fix encoding: {str(e)}")
-            
             # Load the robustness report template
-            template = self.jinja_env.get_template('robustness/report.html')
+            template = self.jinja_env.get_template('report_types/robustness/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -204,18 +194,9 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # No need to import numpy here as we're using the class method
-            
             # Transform results structure for template compatibility
             def transform_robustness_data(results_raw, local_model_name=model_name, local_timestamp=timestamp):
                 print("Transforming robustness data structure...")
-                
-                # Debug input data
-                print("Raw structure keys:", [k for k in results_raw.keys() if isinstance(results_raw, dict)])
-                if isinstance(results_raw, dict) and 'raw' in results_raw:
-                    print("Raw section exists with keys:", list(results_raw['raw'].keys()))
-                    if 'by_level' in results_raw['raw']:
-                        print("Raw by_level exists with levels:", list(results_raw['raw']['by_level'].keys()))
                 
                 # Convert results to a compatible format for the template
                 if hasattr(results_raw, 'to_dict'):
@@ -406,30 +387,12 @@ class ReportManager:
                     return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
                 
-            # Debug the JSON serialization
-            try:
-                json_data = json.dumps(report_data, default=json_serializer)
-                print(f"JSON data serialized successfully (size: {len(json_data)} bytes)")
-            except Exception as e:
-                print(f"Error serializing to JSON: {str(e)}")
-                # Try to find problematic keys
-                for key in report_data:
-                    try:
-                        json.dumps({key: report_data[key]}, default=json_serializer)
-                    except Exception as e:
-                        print(f"  Problem serializing key '{key}': {str(e)}")
-                        # If key is a dict, go deeper
-                        if isinstance(report_data[key], dict):
-                            for subkey in report_data[key]:
-                                try:
-                                    json.dumps({subkey: report_data[key][subkey]}, default=json_serializer)
-                                except Exception as e:
-                                    print(f"    Problem with subkey '{subkey}': {str(e)}")
-            
-            # Break out the data into smaller chunks for template components
+            # Create template context with structured data for components
             template_context = {
-                # JSON string with complete report data for JavaScript processing
-                'report_data': json.dumps(report_data, default=json_serializer),
+                # Complete report data for template access
+                'report_data': report_data,
+                # JSON string of report data for JavaScript processing
+                'report_data_json': json.dumps(report_data, default=json_serializer),
                 
                 # Basic metadata
                 'model_name': model_name,
@@ -457,6 +420,9 @@ class ReportManager:
                 # For charts
                 'has_feature_importance': 'feature_importance' in report_data and bool(report_data['feature_importance']),
                 'has_model_feature_importance': 'model_feature_importance' in report_data and bool(report_data['model_feature_importance']),
+                
+                # For component display logic
+                'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
             }
             
             print("Rendering template...")
@@ -486,7 +452,7 @@ class ReportManager:
     
     def generate_uncertainty_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """
-        Generate HTML report for uncertainty test results.
+        Generate HTML report for uncertainty test results using modular templates.
         
         Parameters:
         -----------
@@ -505,12 +471,12 @@ class ReportManager:
             print(f"Generating uncertainty report to: {file_path}")
             
             # Check if template exists
-            template_path = os.path.join(self.templates_dir, 'uncertainty/report.html')
+            template_path = os.path.join(self.templates_dir, 'report_types/uncertainty/index.html')
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
             # Load the template
-            template = self.jinja_env.get_template('uncertainty/report.html')
+            template = self.jinja_env.get_template('report_types/uncertainty/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -651,10 +617,12 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Break out the data into smaller chunks for template components
+            # Create template context with structured data for components
             template_context = {
-                # JSON string with complete report data for JavaScript processing
-                'report_data': json.dumps(report_data, default=json_serializer),
+                # Complete report data for template access
+                'report_data': report_data,
+                # JSON string of report data for JavaScript processing
+                'report_data_json': json.dumps(report_data, default=json_serializer),
                 
                 # Basic metadata
                 'model_name': model_name,
@@ -699,7 +667,7 @@ class ReportManager:
     
     def generate_resilience_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """
-        Generate HTML report for resilience test results.
+        Generate HTML report for resilience test results using modular templates.
         
         Parameters:
         -----------
@@ -718,12 +686,12 @@ class ReportManager:
             print(f"Generating resilience report to: {file_path}")
             
             # Check if template exists
-            template_path = os.path.join(self.templates_dir, 'resilience/report.html')
+            template_path = os.path.join(self.templates_dir, 'report_types/resilience/index.html')
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
             # Load the template
-            template = self.jinja_env.get_template('resilience/report.html')
+            template = self.jinja_env.get_template('report_types/resilience/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -856,10 +824,12 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Break out the data into smaller chunks for template components
+            # Create template context with structured data for components
             template_context = {
-                # JSON string with complete report data for JavaScript processing
-                'report_data': json.dumps(report_data, default=json_serializer),
+                # Complete report data for template access
+                'report_data': report_data,
+                # JSON string of report data for JavaScript processing
+                'report_data_json': json.dumps(report_data, default=json_serializer),
                 
                 # Basic metadata
                 'model_name': model_name,
@@ -911,7 +881,7 @@ class ReportManager:
     
     def generate_hyperparameter_report(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
         """
-        Generate HTML report for hyperparameter test results.
+        Generate HTML report for hyperparameter test results using modular templates.
         
         Parameters:
         -----------
@@ -930,12 +900,12 @@ class ReportManager:
             print(f"Generating hyperparameter report to: {file_path}")
             
             # Check if template exists
-            template_path = os.path.join(self.templates_dir, 'hyperparameter/report.html')
+            template_path = os.path.join(self.templates_dir, 'report_types/hyperparameter/index.html')
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
             # Load the template
-            template = self.jinja_env.get_template('hyperparameter/report.html')
+            template = self.jinja_env.get_template('report_types/hyperparameter/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1038,10 +1008,12 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Break out the data into smaller chunks for template components
+            # Create template context with structured data for components
             template_context = {
-                # JSON string with complete report data for JavaScript processing
-                'report_data': json.dumps(report_data, default=json_serializer),
+                # Complete report data for template access
+                'report_data': report_data,
+                # JSON string of report data for JavaScript processing
+                'report_data_json': json.dumps(report_data, default=json_serializer),
                 
                 # Basic metadata
                 'model_name': model_name,

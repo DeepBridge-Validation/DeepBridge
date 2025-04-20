@@ -15,8 +15,8 @@
         height: 150px;
         border-radius: 50%;
         background: conic-gradient(
-            var(--primary-color) calc({{ report_data.resilience_score|float * 360 }}deg),
-            #e9ecef calc({{ report_data.resilience_score|float * 360 }}deg) 360deg
+            var(--primary-color) calc({{ resilience_score|float * 360 }}deg),
+            #e9ecef calc({{ resilience_score|float * 360 }}deg) 360deg
         );
         position: relative;
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -97,10 +97,65 @@
     // Initialize with report data
     document.addEventListener('DOMContentLoaded', function() {
         // Parse the report data
-        const reportData = JSON.parse('{{ report_data|safe }}');
+        window.reportData = JSON.parse('{{ report_data_json|safe }}');
         console.log('Report data loaded:', reportData);
         
-        // Any additional initialization specific to resilience report
+        // Ensure Plotly is loaded
+        if (typeof Plotly === 'undefined') {
+            console.error('Plotly is not loaded. Loading it dynamically...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.plot.ly/plotly-2.29.1.min.js';
+            script.onload = function() {
+                console.log('Plotly loaded successfully');
+                // Trigger rendering of all charts
+                renderAllCharts();
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Plotly is already loaded');
+            // Small delay to ensure the DOM is fully ready
+            setTimeout(renderAllCharts, 100);
+        }
+        
+        // Function to trigger all chart renderings
+        function renderAllCharts() {
+            // Dispatch a custom event that component scripts will listen for
+            document.dispatchEvent(new CustomEvent('renderCharts'));
+        }
     });
+</script>
+{% endblock %}
+
+{% block component_scripts %}
+<script>
+    // Function to render all resilience charts
+    function renderAllResilienceCharts() {
+        if (!window.reportData || typeof Plotly === 'undefined') {
+            console.error('Cannot render resilience charts: reportData or Plotly not available');
+            return;
+        }
+        console.log('Rendering all resilience charts...');
+
+    // Scripts from component templates run here after reportData is initialized
+        // Initialize charts and tables based on reportData
+        
+        // Distribution shift charts
+        const distributionContainer = document.getElementById('distribution-shift-container');
+        if (distributionContainer && reportData.distribution_shift_results) {
+            // Process and display distribution shifts...
+        }
+        
+        // Detail tables
+        const detailsContainer = document.getElementById('shift-results-container');
+        if (detailsContainer && reportData.distribution_shift_results) {
+            // Create detailed tables...
+        }
+    } // End of renderAllResilienceCharts function
+    
+    // Call render function when DOM is loaded
+    document.addEventListener('DOMContentLoaded', renderAllResilienceCharts);
+    
+    // Also listen for the custom event triggered after reportData is loaded
+    document.addEventListener('renderCharts', renderAllResilienceCharts);
 </script>
 {% endblock %}

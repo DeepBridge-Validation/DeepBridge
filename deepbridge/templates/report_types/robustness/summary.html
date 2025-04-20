@@ -7,7 +7,7 @@
         <div class="robustness-score-indicator">
             <div class="score-circle">
                 <div class="score-inner">
-                    <div class="score-value">{{ (report_data.robustness_score * 100)|int }}%</div>
+                    <div class="score-value">{{ (robustness_score * 100)|int }}%</div>
                     <div class="score-label">Robustness Score</div>
                 </div>
             </div>
@@ -16,30 +16,30 @@
         <div class="metrics-container">
             {{ metric_card(
                 title="Raw Impact", 
-                value=(report_data.raw_impact * 100)|round(2)|string + "%", 
+                value=(raw_impact * 100)|round(2)|string + "%", 
                 description="Impact of Gaussian noise on model performance", 
                 color="primary"
             ) }}
             
             {{ metric_card(
                 title="Quantile Impact", 
-                value=(report_data.quantile_impact * 100)|round(2)|string + "%", 
+                value=(quantile_impact * 100)|round(2)|string + "%", 
                 description="Impact of feature quantile perturbation", 
                 color="secondary"
             ) }}
             
             {{ metric_card(
                 title="Base Score", 
-                value=report_data.base_score|round(4), 
+                value=base_score|round(4), 
                 description="Model score on unperturbed data", 
                 color="success"
             ) }}
         </div>
         
-        {% if report_data.feature_subset %}
+        {% if feature_subset %}
         <div class="feature-subset">
             <h3>Features Tested:</h3>
-            <p>{{ report_data.feature_subset_display|default(report_data.feature_subset|join(', ')) }}</p>
+            <p>{{ feature_subset_display|default(feature_subset|join(', ')) }}</p>
         </div>
         {% endif %}
     </div>

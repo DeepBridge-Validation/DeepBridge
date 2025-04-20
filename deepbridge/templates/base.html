@@ -9,7 +9,22 @@
     <link rel="icon" href="data:image/png;base64, {{ favicon }}" type="image/png">
     
     <!-- External Dependencies -->
-    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js" onerror="console.error('Failed to load Plotly from CDN')" onload="console.log('Plotly loaded successfully from CDN')"></script>
+    
+    <!-- Add debugging for browser console -->
+    <script>
+        console.log('Base template loaded');
+        window.debugDeepBridge = {
+            events: [],
+            logEvent: function(eventName, data) {
+                const timestamp = new Date().toISOString();
+                const event = {timestamp, eventName, data};
+                this.events.push(event);
+                console.log(`[DeepBridge] ${eventName}:`, data || '');
+                return event;
+            }
+        };
+    </script>
     
     <!-- CSS -->
     <style>
@@ -135,6 +150,10 @@
     </div>
     
     <script>
+        // Debugging help
+        console.log("%cDeepBridge - Debug Mode", "color: white; background-color: #1b78de; padding: 5px; border-radius: 3px; font-weight: bold;");
+        console.log("%cSe os gráficos não aparecerem, verifique os erros no console e compartilhe os logs de 'DeepBridge'", "color: #e74c3c; font-weight: bold;");
+        
         // Base JavaScript for all reports
         document.addEventListener('DOMContentLoaded', function() {
             // Tab functionality
@@ -161,8 +180,13 @@
         function printReport() {
             window.print();
         }
+
+        // Global data variable for report data
+        let reportData = {};
     </script>
     
     {% block scripts %}{% endblock %}
+    
+    {% block component_scripts %}{% endblock %}
 </body>
 </html>

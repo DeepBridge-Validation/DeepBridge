@@ -7,27 +7,27 @@
         <div class="metrics-container">
             {{ metric_card(
                 title="Optimization Metric", 
-                value=report_data.optimization_metric|default('accuracy')|upper, 
+                value=optimization_metric|default('accuracy')|upper, 
                 description="Metric used for hyperparameter optimization", 
                 color="primary"
             ) }}
             
             {{ metric_card(
                 title="Trials", 
-                value=report_data.n_trials|default(0), 
+                value=n_trials|default(0), 
                 description="Number of hyperparameter combinations tested", 
                 color="secondary"
             ) }}
             
             {{ metric_card(
                 title="Best Score", 
-                value=report_data.best_score|default(0)|round(4), 
+                value=best_score|default(0)|round(4), 
                 description="Best performance achieved during optimization", 
                 color="success"
             ) }}
         </div>
         
-        {% if report_data.best_params %}
+        {% if best_params %}
         <div class="best-params">
             <h3>Best Parameters:</h3>
             <div class="params-table-container">
@@ -39,7 +39,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for param, value in report_data.best_params.items() %}
+                        {% for param, value in best_params.items() %}
                         <tr>
                             <td>{{ param }}</td>
                             <td>{{ value }}</td>

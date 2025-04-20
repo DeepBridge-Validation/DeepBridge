@@ -15,8 +15,8 @@
         height: 150px;
         border-radius: 50%;
         background: conic-gradient(
-            var(--primary-color) calc({{ report_data.uncertainty_score|float * 360 }}deg),
-            #e9ecef calc({{ report_data.uncertainty_score|float * 360 }}deg) 360deg
+            var(--primary-color) calc({{ uncertainty_score|float * 360 }}deg),
+            #e9ecef calc({{ uncertainty_score|float * 360 }}deg) 360deg
         );
         position: relative;
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -97,10 +97,65 @@
     // Initialize with report data
     document.addEventListener('DOMContentLoaded', function() {
         // Parse the report data
-        const reportData = JSON.parse('{{ report_data|safe }}');
+        window.reportData = JSON.parse('{{ report_data_json|safe }}');
         console.log('Report data loaded:', reportData);
         
-        // Any additional initialization specific to uncertainty report
+        // Ensure Plotly is loaded
+        if (typeof Plotly === 'undefined') {
+            console.error('Plotly is not loaded. Loading it dynamically...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.plot.ly/plotly-2.29.1.min.js';
+            script.onload = function() {
+                console.log('Plotly loaded successfully');
+                // Trigger rendering of all charts
+                renderAllCharts();
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Plotly is already loaded');
+            // Small delay to ensure the DOM is fully ready
+            setTimeout(renderAllCharts, 100);
+        }
+        
+        // Function to trigger all chart renderings
+        function renderAllCharts() {
+            // Dispatch a custom event that component scripts will listen for
+            document.dispatchEvent(new CustomEvent('renderCharts'));
+        }
     });
+</script>
+{% endblock %}
+
+{% block component_scripts %}
+<script>
+    // Function to render all uncertainty charts
+    function renderAllUncertaintyCharts() {
+        if (!window.reportData || typeof Plotly === 'undefined') {
+            console.error('Cannot render uncertainty charts: reportData or Plotly not available');
+            return;
+        }
+        console.log('Rendering all uncertainty charts...');
+
+    // Scripts from component templates run here after reportData is initialized
+        // Initialize charts and tables based on reportData
+        
+        // Overview charts
+        const calibrationContainer = document.getElementById('calibration-chart-container');
+        if (calibrationContainer && reportData.crqr && reportData.crqr.by_alpha) {
+            // Process and display calibration chart...
+        }
+        
+        // Detail tables
+        const detailsContainer = document.getElementById('uncertainty-details-container');
+        if (detailsContainer && reportData.crqr && reportData.crqr.by_alpha) {
+            // Create detailed tables...
+        }
+    } // End of renderAllUncertaintyCharts function
+    
+    // Call render function when DOM is loaded
+    document.addEventListener('DOMContentLoaded', renderAllUncertaintyCharts);
+    
+    // Also listen for the custom event triggered after reportData is loaded
+    document.addEventListener('renderCharts', renderAllUncertaintyCharts);
 </script>
 {% endblock %}
