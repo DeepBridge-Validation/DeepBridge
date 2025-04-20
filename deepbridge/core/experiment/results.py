@@ -155,6 +155,10 @@ class ExperimentResult:
         # Add experiment type
         results_dict['experiment_type'] = self.experiment_type
         
+        # Add model_type directly - using the value from the primary model if available
+        if 'primary_model' in results_dict and 'model_type' in results_dict['primary_model']:
+            results_dict['model_type'] = results_dict['primary_model']['model_type']
+        
         # Ensure file_path is absolute
         if not os.path.isabs(file_path):
             file_path = os.path.abspath(file_path)

@@ -1,4 +1,5 @@
 import typing as t
+import numpy as np
 
 # Import dataset factory directly since it doesn't create circular dependencies
 from deepbridge.utils.dataset_factory import DBDatasetFactory
@@ -88,6 +89,34 @@ class TestRunner:
         # Calculate metrics for primary model
         primary_metrics = self._calculate_model_metrics(self.dataset.model, "primary_model")
         results['models']['primary_model'] = primary_metrics
+        
+        # Get model feature importance if available for primary model
+        try:
+            if hasattr(self.dataset.model, 'feature_importances_') and hasattr(self.dataset, 'features'):
+                features = self.dataset.features
+                importances = self.dataset.model.feature_importances_
+                if len(importances) == len(features):
+                    total = sum(importances)
+                    if total > 0:
+                        results['models']['primary_model']['feature_importance'] = {
+                            features[i]: float(importances[i]) / total for i in range(len(features))
+                        }
+            elif hasattr(self.dataset.model, 'coef_') and hasattr(self.dataset, 'features'):
+                features = self.dataset.features
+                if hasattr(self.dataset.model.coef_, 'shape') and len(self.dataset.model.coef_.shape) > 1:
+                    # For multi-class models, take the average of coefficients
+                    importances = np.abs(self.dataset.model.coef_).mean(axis=0)
+                else:
+                    importances = np.abs(self.dataset.model.coef_)
+                    
+                if len(importances) == len(features):
+                    total = sum(importances)
+                    if total > 0:
+                        results['models']['primary_model']['feature_importance'] = {
+                            features[i]: float(importances[i]) / total for i in range(len(features))
+                        }
+        except Exception as e:
+            self.logger.debug(f"Could not extract feature importances: {str(e)}")
             
         # Calculate metrics for alternative models
         if self.alternative_models:
@@ -406,6 +435,10 @@ class TestRunner:
         # Store primary model results
         test_results['primary_model'] = primary_results
         
+        # Add model_type to primary model results
+        if hasattr(self.dataset, 'model'):
+            test_results['primary_model']['model_type'] = type(self.dataset.model).__name__
+        
         # Test alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
@@ -433,6 +466,9 @@ class TestRunner:
                 
                 # Store results for this alternative model
                 test_results['alternative_models'][model_name] = alt_results
+                
+                # Add model_type to alternative model results
+                test_results['alternative_models'][model_name]['model_type'] = type(model).__name__
         
         return test_results
     

@@ -233,26 +233,35 @@ class ReportManager:
                     primary_data = report_data['primary_model']
                     # Copy fields from primary_model to the top level
                     for key, value in primary_data.items():
-                        if key not in report_data or key == 'raw' or key == 'quantile' or key == 'feature_importance':
+                        if key not in report_data or key == 'raw' or key == 'quantile' or key == 'feature_importance' or key == 'model_feature_importance':
                             report_data[key] = value
                     
-                    # If raw, quantile, or feature_importance exists at the top level, don't overwrite
+                    # If raw, quantile, feature_importance, or model_feature_importance exists at the top level, don't overwrite
                     if 'raw' not in report_data and 'raw' in primary_data:
                         report_data['raw'] = primary_data['raw']
                     if 'quantile' not in report_data and 'quantile' in primary_data:
                         report_data['quantile'] = primary_data['quantile']
                     if 'feature_importance' not in report_data and 'feature_importance' in primary_data:
                         report_data['feature_importance'] = primary_data['feature_importance']
+                    if 'model_feature_importance' not in report_data and 'model_feature_importance' in primary_data:
+                        report_data['model_feature_importance'] = primary_data['model_feature_importance']
                         
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
                 
-                # Get model type from initial_results if available
-                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                # Set model_type - use direct model_type if available
+                if 'model_type' in report_data:
+                    # Already has model_type, keep it
+                    pass
+                # Use model_type from primary_model if available
+                elif 'primary_model' in report_data and 'model_type' in report_data['primary_model']:
+                    report_data['model_type'] = report_data['primary_model']['model_type']
+                # Use type from initial_results if available
+                elif 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
                     report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
                 else:
-                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                    report_data['model_type'] = "Unknown Model"
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -392,12 +401,10 @@ class ReportManager:
             def json_serializer(obj):
                 if isinstance(obj, (datetime.datetime, datetime.date)):
                     return obj.isoformat()
+                # Handle NaN/inf values
+                if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                    return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
-                
-            # Print the structure of report_data for debugging
-            print("Report data structure after transformation:")
-            for key in report_data:
-                print(f"- {key}: {type(report_data[key])}")
                 
             # Debug the JSON serialization
             try:
@@ -418,18 +425,44 @@ class ReportManager:
                                     json.dumps({subkey: report_data[key][subkey]}, default=json_serializer)
                                 except Exception as e:
                                     print(f"    Problem with subkey '{subkey}': {str(e)}")
+            
+            # Break out the data into smaller chunks for template components
+            template_context = {
+                # JSON string with complete report data for JavaScript processing
+                'report_data': json.dumps(report_data, default=json_serializer),
                 
+                # Basic metadata
+                'model_name': model_name,
+                'timestamp': timestamp,
+                'current_year': datetime.datetime.now().year,
+                'favicon': favicon_base64,
+                'logo': logo_base64,
+                'block_title': f"Robustness Analysis: {model_name}",
+                
+                # Main metrics for direct access in templates
+                'robustness_score': report_data.get('robustness_score', 0),
+                'raw_impact': report_data.get('raw_impact', 0),
+                'quantile_impact': report_data.get('quantile_impact', 0),
+                'base_score': report_data.get('base_score', 0),
+                'metric': report_data.get('metric', 'score'),
+                'model_type': report_data.get('model_type', 'Unknown Model'),
+                
+                # Feature details
+                'feature_subset': report_data.get('feature_subset', []),
+                'feature_subset_display': report_data.get('feature_subset_display', 'All Features'),
+                
+                # Configuration details
+                'iterations': report_data.get('iterations', 3),
+                
+                # For charts
+                'has_feature_importance': 'feature_importance' in report_data and bool(report_data['feature_importance']),
+                'has_model_feature_importance': 'model_feature_importance' in report_data and bool(report_data['model_feature_importance']),
+            }
+            
             print("Rendering template...")
             
-            # Render the template with favicon and logo base64 data
-            rendered_html = template.render(
-                report_data=json.dumps(report_data, default=json_serializer),
-                model_name=model_name,
-                timestamp=timestamp,
-                current_year=datetime.datetime.now().year,
-                favicon=favicon_base64,
-                logo=logo_base64
-            )
+            # Render the template with detailed context
+            rendered_html = template.render(**template_context)
             
             print(f"Template rendered successfully (size: {len(rendered_html)} bytes)")
             
@@ -507,11 +540,18 @@ class ReportManager:
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
                 
-                # Get model type from initial_results if available
-                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                # Set model_type - use direct model_type if available
+                if 'model_type' in report_data:
+                    # Already has model_type, keep it
+                    pass
+                # Use model_type from primary_model if available
+                elif 'primary_model' in report_data and 'model_type' in report_data['primary_model']:
+                    report_data['model_type'] = report_data['primary_model']['model_type']
+                # Use type from initial_results if available
+                elif 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
                     report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
                 else:
-                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                    report_data['model_type'] = "Unknown Model"
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -607,24 +647,38 @@ class ReportManager:
                     return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
             
-            # Print the structure of report_data for debugging
-            print("Report data structure after transformation:")
-            for key in report_data:
-                print(f"- {key}: {type(report_data[key])}")
-            
             # Get base64 encoded favicon and logo
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Render the template with favicon and logo base64 data
-            rendered_html = template.render(
-                report_data=json.dumps(report_data, default=json_serializer),
-                model_name=model_name,
-                timestamp=timestamp,
-                current_year=datetime.datetime.now().year,
-                favicon=favicon_base64,
-                logo=logo_base64
-            )
+            # Break out the data into smaller chunks for template components
+            template_context = {
+                # JSON string with complete report data for JavaScript processing
+                'report_data': json.dumps(report_data, default=json_serializer),
+                
+                # Basic metadata
+                'model_name': model_name,
+                'timestamp': timestamp,
+                'current_year': datetime.datetime.now().year,
+                'favicon': favicon_base64,
+                'logo': logo_base64,
+                'block_title': f"Uncertainty Analysis: {model_name}",
+                
+                # Main metrics for direct access in templates
+                'uncertainty_score': report_data.get('uncertainty_score', 0),
+                'avg_coverage': report_data.get('avg_coverage', 0),
+                'avg_width': report_data.get('avg_width', 0),
+                'method': report_data.get('method', 'crqr'),
+                'metric': report_data.get('metric', 'score'),
+                'model_type': report_data.get('model_type', 'Unknown Model'),
+                'alpha_levels': report_data.get('alpha_levels', []),
+                
+                # Configuration details
+                'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
+            }
+            
+            # Render the template with detailed context
+            rendered_html = template.render(**template_context)
             
             # Create output directory if it doesn't exist
             output_dir = os.path.dirname(os.path.abspath(file_path))
@@ -699,11 +753,18 @@ class ReportManager:
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
                 
-                # Get model type from initial_results if available
-                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                # Set model_type - use direct model_type if available
+                if 'model_type' in report_data:
+                    # Already has model_type, keep it
+                    pass
+                # Use model_type from primary_model if available
+                elif 'primary_model' in report_data and 'model_type' in report_data['primary_model']:
+                    report_data['model_type'] = report_data['primary_model']['model_type']
+                # Use type from initial_results if available
+                elif 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
                     report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
                 else:
-                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                    report_data['model_type'] = "Unknown Model"
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -791,24 +852,45 @@ class ReportManager:
                     return None
                 raise TypeError(f"Type not serializable: {type(obj)}")
             
-            # Print the structure of report_data for debugging
-            print("Report data structure after transformation:")
-            for key in report_data:
-                print(f"- {key}: {type(report_data[key])}")
-            
             # Get base64 encoded favicon and logo
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Render the template with favicon and logo base64 data
-            rendered_html = template.render(
-                report_data=json.dumps(report_data, default=json_serializer),
-                model_name=model_name,
-                timestamp=timestamp,
-                current_year=datetime.datetime.now().year,
-                favicon=favicon_base64,
-                logo=logo_base64
-            )
+            # Break out the data into smaller chunks for template components
+            template_context = {
+                # JSON string with complete report data for JavaScript processing
+                'report_data': json.dumps(report_data, default=json_serializer),
+                
+                # Basic metadata
+                'model_name': model_name,
+                'timestamp': timestamp,
+                'current_year': datetime.datetime.now().year,
+                'favicon': favicon_base64,
+                'logo': logo_base64,
+                'block_title': f"Resilience Analysis: {model_name}",
+                
+                # Main metrics for direct access in templates
+                'resilience_score': report_data.get('resilience_score', 0),
+                'avg_performance_gap': report_data.get('avg_performance_gap', 0),
+                'base_score': report_data.get('base_score', 0),
+                'distance_metrics': report_data.get('distance_metrics', []),
+                'metric': report_data.get('metric', 'score'),
+                'model_type': report_data.get('model_type', 'Unknown Model'),
+                
+                # Feature details
+                'feature_subset': report_data.get('feature_subset', []),
+                'feature_subset_display': report_data.get('feature_subset_display', 'All Features'),
+                
+                # Results data
+                'distribution_shift_results': report_data.get('distribution_shift_results', []),
+                'alphas': report_data.get('alphas', []),
+                
+                # Model comparisons
+                'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
+            }
+            
+            # Render the template with detailed context
+            rendered_html = template.render(**template_context)
             
             # Create output directory if it doesn't exist
             output_dir = os.path.dirname(os.path.abspath(file_path))
@@ -883,11 +965,18 @@ class ReportManager:
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
                 report_data['timestamp'] = report_data.get('timestamp', local_timestamp)
                 
-                # Get model type from initial_results if available
-                if 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
+                # Set model_type - use direct model_type if available
+                if 'model_type' in report_data:
+                    # Already has model_type, keep it
+                    pass
+                # Use model_type from primary_model if available
+                elif 'primary_model' in report_data and 'model_type' in report_data['primary_model']:
+                    report_data['model_type'] = report_data['primary_model']['model_type']
+                # Use type from initial_results if available
+                elif 'initial_results' in report_data and 'models' in report_data['initial_results'] and 'primary_model' in report_data['initial_results']['models'] and 'type' in report_data['initial_results']['models']['primary_model']:
                     report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
                 else:
-                    report_data['model_type'] = report_data.get('model_type', "Unknown Model")
+                    report_data['model_type'] = "Unknown Model"
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -949,15 +1038,40 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
-            # Render the template with favicon and logo base64 data
-            rendered_html = template.render(
-                report_data=json.dumps(report_data, default=json_serializer),
-                model_name=model_name,
-                timestamp=timestamp,
-                current_year=datetime.datetime.now().year,
-                favicon=favicon_base64,
-                logo=logo_base64
-            )
+            # Break out the data into smaller chunks for template components
+            template_context = {
+                # JSON string with complete report data for JavaScript processing
+                'report_data': json.dumps(report_data, default=json_serializer),
+                
+                # Basic metadata
+                'model_name': model_name,
+                'timestamp': timestamp,
+                'current_year': datetime.datetime.now().year,
+                'favicon': favicon_base64,
+                'logo': logo_base64,
+                'block_title': f"Hyperparameter Analysis: {model_name}",
+                
+                # Main metrics for direct access in templates
+                'model_type': report_data.get('model_type', 'Unknown Model'),
+                'metric': report_data.get('metric', 'score'),
+                'base_score': report_data.get('base_score', 0),
+                
+                # Hyperparameter specific data
+                'importance_scores': report_data.get('importance_scores', {}),
+                'tuning_order': report_data.get('tuning_order', []),
+                'importance_results': report_data.get('importance_results', []),
+                'optimization_results': report_data.get('optimization_results', []),
+                
+                # Feature details if available
+                'feature_subset': report_data.get('feature_subset', []),
+                'feature_subset_display': report_data.get('feature_subset_display', 'All Features'),
+                
+                # Model comparisons
+                'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
+            }
+            
+            # Render the template with detailed context
+            rendered_html = template.render(**template_context)
             
             # Create output directory if it doesn't exist
             output_dir = os.path.dirname(os.path.abspath(file_path))
