@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}DeepBridge Robustness Report{% endblock %}
+
+{% block head %}
+<style>
+    .robustness-score-indicator {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .score-circle {
+        display: inline-block;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: conic-gradient(
+            var(--primary-color) calc({{ report_data.robustness_score|float * 360 }}deg),
+            #e9ecef calc({{ report_data.robustness_score|float * 360 }}deg) 360deg
+        );
+        position: relative;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .score-inner {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .score-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+    
+    .score-label {
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .metrics-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .metrics-container > div {
+        flex: 1 0 250px;
+    }
+    
+    @media (max-width: 768px) {
+        .metrics-container > div {
+            flex: 1 0 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    {# Summary Section #}
+    {% include "report_types/robustness/summary.html" %}
+    
+    {# Tabs Navigation #}
+    {% from "components/ui/tabs.html" import tabs %}
+    {{ tabs([
+        {"id": "overview", "title": "Overview", "active": true},
+        {"id": "details", "title": "Detailed Results"},
+        {"id": "features", "title": "Feature Impact"},
+        {"id": "model_features", "title": "Model Features"}
+    ]) }}
+    
+    {# Tab Contents #}
+    <div id="overview" class="tab-content active">
+        {% include "report_types/robustness/overview.html" %}
+    </div>
+    
+    <div id="details" class="tab-content">
+        {% include "report_types/robustness/details.html" %}
+    </div>
+    
+    <div id="features" class="tab-content">
+        {% include "report_types/robustness/feature_impact.html" %}
+    </div>
+    
+    <div id="model_features" class="tab-content">
+        {% include "report_types/robustness/model_features.html" %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize with report data
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the report data
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        console.log('Report data loaded:', reportData);
+        
+        // Any additional initialization specific to robustness report
+    });
+</script>
+{% endblock %}

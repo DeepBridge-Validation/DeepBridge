@@ -5,6 +5,7 @@ This module provides a standardized way to run different types of tests.
 
 import typing as t
 from abc import ABC, abstractmethod
+import numpy as np
 
 from deepbridge.core.experiment.interfaces import ITestRunner, TestResult
 from deepbridge.core.experiment.parameter_standards import TestConfigDict, TestResultsDict
@@ -563,6 +564,35 @@ class TestRunner(ITestRunner):
         # Calculate metrics for primary model
         primary_metrics = self._calculate_model_metrics(self.dataset.model, "primary_model")
         results['models']['primary_model'] = primary_metrics
+        
+        # Get model feature importance if available for primary model
+        try:
+            if hasattr(self.dataset.model, 'feature_importances_') and hasattr(self.dataset, 'features'):
+                features = self.dataset.features
+                importances = self.dataset.model.feature_importances_
+                if len(importances) == len(features):
+                    total = sum(importances)
+                    if total > 0:
+                        results['models']['primary_model']['feature_importance'] = {
+                            features[i]: float(importances[i]) / total for i in range(len(features))
+                        }
+            elif hasattr(self.dataset.model, 'coef_') and hasattr(self.dataset, 'features'):
+                features = self.dataset.features
+                if hasattr(self.dataset.model.coef_, 'shape') and len(self.dataset.model.coef_.shape) > 1:
+                    # For multi-class models, take the average of coefficients
+                    importances = np.abs(self.dataset.model.coef_).mean(axis=0)
+                else:
+                    importances = np.abs(self.dataset.model.coef_)
+                    
+                if len(importances) == len(features):
+                    total = sum(importances)
+                    if total > 0:
+                        results['models']['primary_model']['feature_importance'] = {
+                            features[i]: float(importances[i]) / total for i in range(len(features))
+                        }
+        except Exception as e:
+            if self.verbose:
+                print(f"Could not extract feature importances: {str(e)}")
             
         # Calculate metrics for alternative models
         if self.alternative_models:

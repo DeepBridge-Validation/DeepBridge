@@ -1,0 +1,128 @@
+{% from "components/charts/bar_chart.html" import bar_chart %}
+
+<div class="overview-section">
+    <div class="card">
+        <h2>Uncertainty Quantification Overview</h2>
+        <p>This section provides an overview of the model's uncertainty quantification performance.</p>
+        
+        <div id="alpha-coverage-chart-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Create alpha vs coverage chart
+        if (reportData.crqr && reportData.crqr.by_alpha) {
+            const alphas = Object.keys(reportData.crqr.by_alpha).map(a => parseFloat(a));
+            alphas.sort((a, b) => a - b);
+            
+            const alphaLabels = alphas.map(a => a.toString());
+            const coverages = [];
+            const expectedCoverages = [];
+            
+            alphas.forEach(alpha => {
+                const alphaStr = alpha.toString();
+                const alphaData = reportData.crqr.by_alpha[alphaStr];
+                
+                if (alphaData && alphaData.overall_result) {
+                    coverages.push(alphaData.overall_result.coverage);
+                    expectedCoverages.push(alphaData.overall_result.expected_coverage);
+                } else {
+                    coverages.push(null);
+                    expectedCoverages.push(null);
+                }
+            });
+            
+            // Create chart container
+            const chartContainer = document.getElementById('alpha-coverage-chart-container');
+            const chartId = 'alpha-coverage-chart';
+            chartContainer.innerHTML = `
+                <div id="${chartId}" style="height: 400px;"></div>
+            `;
+            
+            // Create chart
+            Plotly.newPlot(chartId, [
+                {
+                    x: alphaLabels,
+                    y: coverages,
+                    type: 'bar',
+                    name: 'Actual Coverage',
+                    marker: {
+                        color: 'rgba(27, 120, 222, 0.7)'
+                    }
+                },
+                {
+                    x: alphaLabels,
+                    y: expectedCoverages,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Expected Coverage',
+                    line: {
+                        color: 'rgba(231, 76, 60, 0.8)',
+                        width: 3,
+                        dash: 'dot'
+                    },
+                    marker: {
+                        color: 'rgba(231, 76, 60, 0.8)',
+                        size: 8
+                    }
+                }
+            ], {
+                title: 'Coverage by Alpha Level',
+                xaxis: {
+                    title: 'Alpha Level',
+                    tickformat: '.2f'
+                },
+                yaxis: {
+                    title: 'Coverage Ratio',
+                    tickformat: '.0%',
+                    range: [0, 1.05]
+                },
+                barmode: 'group',
+                legend: {
+                    orientation: 'h',
+                    y: 1.1
+                },
+                margin: {
+                    l: 60,
+                    r: 30,
+                    t: 50,
+                    b: 60
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(248,249,250,0.5)'
+            }, {
+                responsive: true
+            });
+        } else {
+            // No CRQR data available
+            document.getElementById('alpha-coverage-chart-container').innerHTML = `
+                <div class="alert alert-info">
+                    <p>No uncertainty quantification data available for this model.</p>
+                </div>
+            `;
+        }
+    });
+</script>
+
+<style>
+    .overview-section {
+        margin-bottom: 30px;
+    }
+    
+    .alert {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+</style>

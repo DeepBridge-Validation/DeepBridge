@@ -189,6 +189,12 @@ class RobustnessSuite:
             'metric': self.metric  # Store the metric used for evaluation
         }
         
+        # For debugging model feature importance
+        if self.verbose and results['model_feature_importance']:
+            print(f"Model feature importance detected with {len(results['model_feature_importance'])} features")
+            top_features = sorted(results['model_feature_importance'].items(), key=lambda x: x[1], reverse=True)[:5]
+            print(f"Top 5 important features: {top_features}")
+        
         # Calculate baseline score
         base_score = self.evaluator.calculate_base_score(X, y)
         results['base_score'] = base_score

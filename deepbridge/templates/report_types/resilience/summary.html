@@ -1,0 +1,68 @@
+{% from "components/cards/metric_card.html" import metric_card %}
+
+<div class="summary-section">
+    <div class="card">
+        <h2>Resilience Analysis Summary</h2>
+        
+        <div class="resilience-score-indicator">
+            <div class="score-circle">
+                <div class="score-inner">
+                    <div class="score-value">{{ (report_data.resilience_score * 100)|int }}%</div>
+                    <div class="score-label">Resilience Score</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics-container">
+            {{ metric_card(
+                title="Performance Gap", 
+                value=(report_data.avg_performance_gap * 100)|round(2)|string + "%", 
+                description="Average performance gap under distribution shift", 
+                color="primary"
+            ) }}
+            
+            {{ metric_card(
+                title="Base Score", 
+                value=report_data.base_score|round(4), 
+                description="Model score on original distribution", 
+                color="success"
+            ) }}
+            
+            {{ metric_card(
+                title="Distance Metrics", 
+                value=report_data.distance_metrics|join(", "), 
+                description="Distribution distance metrics used", 
+                color="info"
+            ) }}
+        </div>
+        
+        {% if report_data.feature_subset %}
+        <div class="feature-subset">
+            <h3>Features Tested:</h3>
+            <p>{{ report_data.feature_subset_display|default(report_data.feature_subset|join(', ')) }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .summary-section {
+        margin-bottom: 30px;
+    }
+    
+    .feature-subset {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 20px;
+    }
+    
+    .feature-subset h3 {
+        margin-top: 0;
+        font-size: 16px;
+    }
+    
+    .feature-subset p {
+        margin-bottom: 0;
+    }
+</style>

@@ -1,0 +1,140 @@
+{% from "components/charts/bar_chart.html" import bar_chart %}
+
+<div class="overview-section">
+    <div class="card">
+        <h2>Resilience Test Overview</h2>
+        <p>This section provides an overview of how the model performs under different distribution shifts.</p>
+        
+        <div id="performance-gap-chart-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Create performance gap chart
+        if (reportData.distribution_shift_results && reportData.distribution_shift_results.length > 0) {
+            // Group results by drift type
+            const results = reportData.distribution_shift_results;
+            const driftTypes = [...new Set(results.map(r => r.drift_type))];
+            
+            // For each drift type, get average performance gap
+            const driftData = driftTypes.map(driftType => {
+                const typeResults = results.filter(r => r.drift_type === driftType);
+                const avgGap = typeResults.reduce((sum, r) => sum + r.performance_gap, 0) / typeResults.length;
+                return {
+                    drift_type: driftType,
+                    avg_gap: avgGap
+                };
+            });
+            
+            // Sort by gap size (descending)
+            driftData.sort((a, b) => b.avg_gap - a.avg_gap);
+            
+            // Create chart
+            const chartContainer = document.getElementById('performance-gap-chart-container');
+            const chartId = 'performance-gap-chart';
+            chartContainer.innerHTML = `
+                <div id="${chartId}" style="height: 400px;"></div>
+            `;
+            
+            // Plot chart
+            Plotly.newPlot(chartId, [
+                {
+                    x: driftData.map(d => d.drift_type),
+                    y: driftData.map(d => d.avg_gap),
+                    type: 'bar',
+                    marker: {
+                        color: driftData.map(d => {
+                            // Color based on gap size
+                            return `rgba(231, 76, 60, ${0.3 + d.avg_gap * 0.7})`;
+                        })
+                    }
+                }
+            ], {
+                title: 'Performance Gap by Drift Type',
+                xaxis: {
+                    title: 'Drift Type',
+                    tickangle: -45
+                },
+                yaxis: {
+                    title: 'Performance Gap',
+                    tickformat: '.0%',
+                    range: [0, Math.max(0.1, ...driftData.map(d => d.avg_gap)) * 1.1]
+                },
+                margin: {
+                    l: 60,
+                    r: 30,
+                    t: 50,
+                    b: 100
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(248,249,250,0.5)'
+            }, {
+                responsive: true
+            });
+            
+            // Add a summary table below the chart
+            chartContainer.innerHTML += `
+                <div class="drift-summary-table">
+                    <h3>Summary by Drift Type</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Drift Type</th>
+                                <th>Performance Gap</th>
+                                <th>Relative Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${driftData.map(d => `
+                                <tr>
+                                    <td>${d.drift_type}</td>
+                                    <td>${(d.avg_gap * 100).toFixed(2)}%</td>
+                                    <td>${(d.avg_gap / driftData[0].avg_gap * 100).toFixed(0)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            // No data available
+            document.getElementById('performance-gap-chart-container').innerHTML = `
+                <div class="alert alert-info">
+                    <p>No distribution shift data available for this model.</p>
+                </div>
+            `;
+        }
+    });
+</script>
+
+<style>
+    .overview-section {
+        margin-bottom: 30px;
+    }
+    
+    .drift-summary-table {
+        margin-top: 30px;
+    }
+    
+    .drift-summary-table h3 {
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+    
+    .alert {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+</style>

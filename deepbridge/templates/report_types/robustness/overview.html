@@ -1,0 +1,174 @@
+{% from "components/charts/line_chart.html" import line_chart %}
+{% from "components/tables/data_table.html" import data_table %}
+
+<div class="overview-section">
+    <div class="card">
+        <h2>Performance Under Perturbation</h2>
+        <p>This chart shows how model performance changes as perturbation intensity increases.</p>
+        
+        <div id="perturbation-chart-container">
+            <!-- Placeholder that will be populated by JavaScript -->
+        </div>
+        
+        <div class="perturbation-tables">
+            <h3>Raw Perturbation Results</h3>
+            <div id="raw-perturbation-table">
+                <!-- Populated by JavaScript -->
+            </div>
+            
+            <h3>Quantile Perturbation Results</h3>
+            <div id="quantile-perturbation-table">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Create perturbation effect chart
+        if (reportData.raw && reportData.raw.by_level) {
+            const levels = Object.keys(reportData.raw.by_level);
+            levels.sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            const scores = [];
+            
+            levels.forEach(level => {
+                let score = 0;
+                const levelData = reportData.raw.by_level[level];
+                
+                if (levelData.overall_result) {
+                    if (levelData.overall_result.all_features) {
+                        score = levelData.overall_result.all_features.mean_score;
+                    } else if (levelData.overall_result.feature_subset) {
+                        score = levelData.overall_result.feature_subset.mean_score;
+                    }
+                }
+                
+                scores.push(score);
+            });
+            
+            // Create the chart container
+            const chartContainer = document.getElementById('perturbation-chart-container');
+            const chartId = 'raw-perturbation-chart';
+            chartContainer.innerHTML = `
+                <div id="${chartId}" style="height: 400px;"></div>
+            `;
+            
+            // Use Plotly to create the chart
+            Plotly.newPlot(chartId, [{
+                x: levels,
+                y: scores,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Model Performance',
+                marker: {
+                    size: 10,
+                    color: '#1b78de'
+                },
+                line: {
+                    width: 3,
+                    color: '#1b78de'
+                }
+            }], {
+                title: 'Model Performance Under Gaussian Noise',
+                xaxis: {
+                    title: 'Noise Level (Std Dev)',
+                    tickformat: '.2f'
+                },
+                yaxis: {
+                    title: reportData.metric ? reportData.metric : 'Performance Metric',
+                    tickformat: '.3f'
+                },
+                margin: {
+                    l: 60,
+                    r: 30,
+                    t: 40,
+                    b: 60
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(248,249,250,0.5)'
+            }, {responsive: true});
+            
+            // Create the raw perturbation table
+            const rawTableData = [];
+            levels.forEach((level, index) => {
+                const levelData = reportData.raw.by_level[level];
+                let impact = 0;
+                let score = 0;
+                
+                if (levelData.overall_result) {
+                    if (levelData.overall_result.all_features) {
+                        impact = levelData.overall_result.all_features.impact;
+                        score = levelData.overall_result.all_features.mean_score;
+                    } else if (levelData.overall_result.feature_subset) {
+                        impact = levelData.overall_result.feature_subset.impact;
+                        score = levelData.overall_result.feature_subset.mean_score;
+                    }
+                }
+                
+                rawTableData.push([
+                    level,
+                    score.toFixed(4),
+                    impact.toFixed(4),
+                    (impact * 100).toFixed(2) + '%'
+                ]);
+            });
+            
+            // Create table
+            const rawTableElement = document.getElementById('raw-perturbation-table');
+            rawTableElement.innerHTML = '';
+            const rawTableContainer = document.createElement('div');
+            rawTableElement.appendChild(rawTableContainer);
+            
+            const rawTableHtml = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Noise Level</th>
+                            <th>Score</th>
+                            <th>Impact</th>
+                            <th>Relative Drop (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rawTableData.map(row => `
+                            <tr>
+                                <td>${row[0]}</td>
+                                <td>${row[1]}</td>
+                                <td>${row[2]}</td>
+                                <td>${row[3]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            rawTableContainer.innerHTML = rawTableHtml;
+            
+            // Similar for quantile perturbation if available
+            if (reportData.quantile && reportData.quantile.by_level) {
+                // Same approach for quantile data
+                // Display table for quantile perturbation
+            }
+        }
+    });
+</script>
+
+<style>
+    .overview-section {
+        margin-bottom: 30px;
+    }
+    
+    .perturbation-tables {
+        margin-top: 30px;
+    }
+    
+    .perturbation-tables h3 {
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+</style>

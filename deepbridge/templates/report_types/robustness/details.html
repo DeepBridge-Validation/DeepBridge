@@ -1,0 +1,184 @@
+{% from "components/tables/data_table.html" import data_table %}
+
+<div class="details-section">
+    <div class="card">
+        <h2>Detailed Robustness Results</h2>
+        
+        <div class="metrics-details">
+            <h3>Model Metrics</h3>
+            <div id="metrics-table-container">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="raw-perturbation-details">
+            <h3>Raw Perturbation Detailed Results</h3>
+            <div id="raw-detailed-results">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="quantile-perturbation-details">
+            <h3>Quantile Perturbation Detailed Results</h3>
+            <div id="quantile-detailed-results">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Display model metrics
+        const metricsContainer = document.getElementById('metrics-table-container');
+        if (reportData.metrics) {
+            const metricsData = [];
+            for (const [key, value] of Object.entries(reportData.metrics)) {
+                metricsData.push([
+                    key,
+                    typeof value === 'number' ? value.toFixed(4) : value
+                ]);
+            }
+            
+            metricsContainer.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${metricsData.map(row => `
+                            <tr>
+                                <td>${row[0]}</td>
+                                <td>${row[1]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            metricsContainer.innerHTML = '<p>No metrics data available.</p>';
+        }
+        
+        // Display raw perturbation detailed results
+        if (reportData.raw && reportData.raw.by_level) {
+            const rawDetailsContainer = document.getElementById('raw-detailed-results');
+            const rawLevels = Object.keys(reportData.raw.by_level);
+            rawLevels.sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            let rawDetailsHTML = '';
+            
+            rawLevels.forEach(level => {
+                const levelData = reportData.raw.by_level[level];
+                
+                // Create a section for each level
+                rawDetailsHTML += `
+                    <div class="level-details">
+                        <h4>Noise Level: ${level}</h4>
+                `;
+                
+                // Add overall result table
+                if (levelData.overall_result) {
+                    rawDetailsHTML += `
+                        <h5>Overall Result</h5>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Feature Set</th>
+                                    <th>Mean Score</th>
+                                    <th>Impact</th>
+                                    <th>Std Dev</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    // Add all features row
+                    if (levelData.overall_result.all_features) {
+                        const all = levelData.overall_result.all_features;
+                        rawDetailsHTML += `
+                            <tr>
+                                <td>All Features</td>
+                                <td>${all.mean_score.toFixed(4)}</td>
+                                <td>${all.impact.toFixed(4)}</td>
+                                <td>${all.std_score ? all.std_score.toFixed(4) : 'N/A'}</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    // Add feature subset row
+                    if (levelData.overall_result.feature_subset) {
+                        const subset = levelData.overall_result.feature_subset;
+                        rawDetailsHTML += `
+                            <tr>
+                                <td>Feature Subset</td>
+                                <td>${subset.mean_score.toFixed(4)}</td>
+                                <td>${subset.impact.toFixed(4)}</td>
+                                <td>${subset.std_score ? subset.std_score.toFixed(4) : 'N/A'}</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    rawDetailsHTML += `
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                rawDetailsHTML += `</div>`;
+            });
+            
+            rawDetailsContainer.innerHTML = rawDetailsHTML;
+        } else {
+            document.getElementById('raw-detailed-results').innerHTML = '<p>No detailed raw perturbation results available.</p>';
+        }
+        
+        // Display quantile perturbation detailed results (similar to raw)
+        if (reportData.quantile && reportData.quantile.by_level) {
+            // Similar implementation for quantile data
+            // Populate 'quantile-detailed-results'
+        } else {
+            document.getElementById('quantile-detailed-results').innerHTML = '<p>No detailed quantile perturbation results available.</p>';
+        }
+    });
+</script>
+
+<style>
+    .details-section {
+        margin-bottom: 30px;
+    }
+    
+    .metrics-details,
+    .raw-perturbation-details,
+    .quantile-perturbation-details {
+        margin-bottom: 30px;
+    }
+    
+    .level-details {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .level-details:last-child {
+        border-bottom: none;
+    }
+    
+    .level-details h4 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: #444;
+    }
+    
+    .level-details h5 {
+        margin-top: 15px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #666;
+    }
+</style>

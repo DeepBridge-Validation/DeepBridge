@@ -1,0 +1,184 @@
+{% from "components/charts/line_chart.html" import line_chart %}
+
+<div class="distribution-section">
+    <div class="card">
+        <h2>Distribution Shift Analysis</h2>
+        <p>This section analyzes model performance across different intensities of distribution shift.</p>
+        
+        <div id="intensity-chart-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div id="distance-metrics-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Create performance vs intensity chart
+        if (reportData.distribution_shift_results && reportData.distribution_shift_results.length > 0) {
+            const results = reportData.distribution_shift_results;
+            
+            // Group results by drift type
+            const driftTypes = [...new Set(results.map(r => r.drift_type))];
+            
+            // Group by intensity for each drift type
+            const driftTypeData = {};
+            
+            driftTypes.forEach(driftType => {
+                const typeResults = results.filter(r => r.drift_type === driftType);
+                
+                // Get unique intensities
+                const intensities = [...new Set(typeResults.map(r => r.alpha))];
+                intensities.sort((a, b) => a - b);
+                
+                // Calculate average performance for each intensity
+                const performanceByIntensity = intensities.map(intensity => {
+                    const intensityResults = typeResults.filter(r => r.alpha === intensity);
+                    const avgShiftedScore = intensityResults.reduce((sum, r) => sum + r.shifted_score, 0) / intensityResults.length;
+                    return {
+                        intensity,
+                        score: avgShiftedScore
+                    };
+                });
+                
+                driftTypeData[driftType] = performanceByIntensity;
+            });
+            
+            // Create intensity chart
+            const chartContainer = document.getElementById('intensity-chart-container');
+            const chartId = 'intensity-chart';
+            chartContainer.innerHTML = `
+                <h3>Performance vs. Drift Intensity</h3>
+                <div id="${chartId}" style="height: 400px;"></div>
+            `;
+            
+            // Plot traces for each drift type
+            const traces = [];
+            const colors = ['rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 1)', 'rgba(155, 89, 182, 1)', 'rgba(241, 196, 15, 1)'];
+            
+            Object.entries(driftTypeData).forEach(([driftType, data], index) => {
+                traces.push({
+                    x: data.map(d => d.intensity),
+                    y: data.map(d => d.score),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: driftType,
+                    marker: {
+                        size: 8,
+                        color: colors[index % colors.length]
+                    },
+                    line: {
+                        width: 3,
+                        color: colors[index % colors.length]
+                    }
+                });
+            });
+            
+            // Add baseline performance
+            if (reportData.base_score) {
+                const intensities = [...new Set(results.map(r => r.alpha))];
+                intensities.sort((a, b) => a - b);
+                
+                traces.push({
+                    x: intensities,
+                    y: Array(intensities.length).fill(reportData.base_score),
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: 'Baseline',
+                    line: {
+                        color: 'rgba(0, 0, 0, 0.4)',
+                        width: 2,
+                        dash: 'dash'
+                    }
+                });
+            }
+            
+            // Plot chart
+            Plotly.newPlot(chartId, traces, {
+                xaxis: {
+                    title: 'Drift Intensity (α)',
+                    tickformat: '.2f'
+                },
+                yaxis: {
+                    title: reportData.metric ? reportData.metric : 'Performance Score',
+                    tickformat: '.3f'
+                },
+                margin: {
+                    l: 60,
+                    r: 30,
+                    t: 20,
+                    b: 60
+                },
+                legend: {
+                    orientation: 'h',
+                    y: 1.1
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(248,249,250,0.5)'
+            }, {
+                responsive: true
+            });
+            
+            // Create distance metrics table
+            const distanceContainer = document.getElementById('distance-metrics-container');
+            distanceContainer.innerHTML = `
+                <h3>Distribution Distance Metrics</h3>
+                <p>The following metrics were used to measure distribution shift:</p>
+                <ul class="metrics-list">
+                    ${reportData.distance_metrics.map(metric => `
+                        <li><strong>${metric}</strong> - ${getMetricDescription(metric)}</li>
+                    `).join('')}
+                </ul>
+            `;
+        } else {
+            // No data available
+            document.getElementById('intensity-chart-container').innerHTML = `
+                <div class="alert alert-info">
+                    <p>No distribution shift data available for this model.</p>
+                </div>
+            `;
+            
+            document.getElementById('distance-metrics-container').innerHTML = '';
+        }
+    });
+    
+    // Helper function to get metric descriptions
+    function getMetricDescription(metric) {
+        const descriptions = {
+            'PSI': 'Population Stability Index - Measures population stability between distributions',
+            'KS': 'Kolmogorov-Smirnov - Measures maximum distance between cumulative distributions',
+            'KL': 'Kullback-Leibler Divergence - Measures relative entropy between distributions',
+            'JS': 'Jensen-Shannon Divergence - Symmetric version of KL divergence',
+            'WD1': 'Wasserstein Distance (1) - Measures earth mover\'s distance between distributions',
+            'EMD': 'Earth Mover\'s Distance - Measures minimum cost to transform one distribution to another',
+            'TVD': 'Total Variation Distance - Measures maximum absolute difference between distributions'
+        };
+        
+        return descriptions[metric] || 'Distribution distance metric';
+    }
+</script>
+
+<style>
+    .distribution-section {
+        margin-bottom: 30px;
+    }
+    
+    .distribution-section h3 {
+        margin-top: 30px;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+    
+    .metrics-list {
+        padding-left: 20px;
+    }
+    
+    .metrics-list li {
+        margin-bottom: 10px;
+    }
+</style>

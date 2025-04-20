@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}DeepBridge Hyperparameter Analysis{% endblock %}
+
+{% block head %}
+<style>
+    .metrics-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .metrics-container > div {
+        flex: 1 0 250px;
+    }
+    
+    @media (max-width: 768px) {
+        .metrics-container > div {
+            flex: 1 0 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    {# Summary Section #}
+    {% include "report_types/hyperparameter/summary.html" %}
+    
+    {# Tabs Navigation #}
+    {% from "components/ui/tabs.html" import tabs %}
+    {{ tabs([
+        {"id": "importance", "title": "Importance", "active": true},
+        {"id": "tuning", "title": "Tuning Order"},
+        {"id": "details", "title": "Detailed Results"}
+    ]) }}
+    
+    {# Tab Contents #}
+    <div id="importance" class="tab-content active">
+        {% include "report_types/hyperparameter/importance.html" %}
+    </div>
+    
+    <div id="tuning" class="tab-content">
+        {% include "report_types/hyperparameter/tuning.html" %}
+    </div>
+    
+    <div id="details" class="tab-content">
+        {% include "report_types/hyperparameter/details.html" %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize with report data
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the report data
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        console.log('Report data loaded:', reportData);
+        
+        // Any additional initialization specific to hyperparameter report
+    });
+</script>
+{% endblock %}

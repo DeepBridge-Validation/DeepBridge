@@ -1,0 +1,158 @@
+{% from "components/tables/data_table.html" import data_table %}
+
+<div class="tuning-section">
+    <div class="card">
+        <h2>Recommended Hyperparameter Tuning Order</h2>
+        <p>Based on importance analysis, this is the recommended order for tuning hyperparameters.</p>
+        
+        <div id="tuning-order-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div class="tuning-tips">
+            <h3>Tuning Tips</h3>
+            <ul>
+                <li><strong>Focus on high-impact parameters</strong> - Parameters at the top of the list have the biggest impact on model performance</li>
+                <li><strong>Use a hierarchical approach</strong> - Fix less important parameters while tuning the most important ones</li>
+                <li><strong>Consider parameter interactions</strong> - Some parameters may interact with each other in complex ways</li>
+                <li><strong>Use grid search for critical parameters</strong> - For the most important parameters, a systematic grid search may be more effective than random search</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Display tuning order
+        const tuningOrderContainer = document.getElementById('tuning-order-container');
+        
+        if (reportData.tuning_order && reportData.tuning_order.length > 0) {
+            // Get hyperparameter importance scores if available
+            const importanceScores = reportData.importance_scores || {};
+            
+            tuningOrderContainer.innerHTML = `
+                <div class="tuning-order-list">
+                    <ol class="ordered-list">
+                        ${reportData.tuning_order.map((param, index) => `
+                            <li class="param-item">
+                                <div class="param-name">${param}</div>
+                                ${importanceScores[param] ? 
+                                    `<div class="param-score">Importance: ${importanceScores[param].toFixed(4)}</div>` : 
+                                    ''}
+                                ${getParamDescription(param)}
+                            </li>
+                        `).join('')}
+                    </ol>
+                </div>
+            `;
+        } else if (reportData.importance_scores) {
+            // If we have importance scores but no explicit tuning order,
+            // create a tuning order based on importance scores
+            const importanceEntries = Object.entries(reportData.importance_scores);
+            importanceEntries.sort((a, b) => b[1] - a[1]);
+            
+            tuningOrderContainer.innerHTML = `
+                <div class="tuning-order-list">
+                    <ol class="ordered-list">
+                        ${importanceEntries.map(([param, score], index) => `
+                            <li class="param-item">
+                                <div class="param-name">${param}</div>
+                                <div class="param-score">Importance: ${score.toFixed(4)}</div>
+                                ${getParamDescription(param)}
+                            </li>
+                        `).join('')}
+                    </ol>
+                </div>
+            `;
+        } else {
+            // No tuning order or importance scores available
+            tuningOrderContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <p>No hyperparameter tuning order available for this model.</p>
+                </div>
+            `;
+        }
+    });
+    
+    // Helper function to provide descriptions for common hyperparameters
+    function getParamDescription(param) {
+        const descriptions = {
+            'learning_rate': '<div class="param-desc">Controls step size during optimization. Lower values are more precise but slower.</div>',
+            'n_estimators': '<div class="param-desc">Number of trees in ensemble methods. More trees usually improve performance but increase training time.</div>',
+            'max_depth': '<div class="param-desc">Maximum depth of trees. Controls complexity and potential overfitting.</div>',
+            'min_samples_split': '<div class="param-desc">Minimum samples required to split a node. Higher values prevent overfitting.</div>',
+            'min_samples_leaf': '<div class="param-desc">Minimum samples required in a leaf node. Higher values prevent overfitting.</div>',
+            'subsample': '<div class="param-desc">Fraction of samples used for fitting trees. Values < 1.0 can help prevent overfitting.</div>',
+            'colsample_bytree': '<div class="param-desc">Fraction of features used when constructing each tree. Helps control overfitting.</div>',
+            'reg_alpha': '<div class="param-desc">L1 regularization term. Higher values increase regularization.</div>',
+            'reg_lambda': '<div class="param-desc">L2 regularization term. Higher values increase regularization.</div>',
+            'gamma': '<div class="param-desc">Minimum loss reduction required for a split. Higher values prevent overfitting.</div>',
+            'C': '<div class="param-desc">Inverse of regularization strength for linear models. Smaller values specify stronger regularization.</div>',
+            'kernel': '<div class="param-desc">Kernel type for SVM. Different kernels capture different relationships in data.</div>',
+            'hidden_layer_sizes': '<div class="param-desc">Size and number of hidden layers in neural networks. Controls model complexity.</div>',
+            'alpha': '<div class="param-desc">Regularization parameter. Higher values specify stronger regularization.</div>'
+        };
+        
+        return descriptions[param] || '';
+    }
+</script>
+
+<style>
+    .tuning-section {
+        margin-bottom: 30px;
+    }
+    
+    .tuning-order-list {
+        margin-bottom: 30px;
+    }
+    
+    .ordered-list {
+        padding-left: 25px;
+    }
+    
+    .param-item {
+        margin-bottom: 15px;
+        padding-left: 10px;
+    }
+    
+    .param-name {
+        font-weight: bold;
+        font-size: 16px;
+        color: var(--primary-color);
+    }
+    
+    .param-score {
+        font-size: 14px;
+        color: #666;
+        margin: 5px 0;
+    }
+    
+    .param-desc {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #444;
+    }
+    
+    .tuning-tips {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 4px;
+        margin-top: 20px;
+    }
+    
+    .tuning-tips h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+    
+    .tuning-tips ul {
+        padding-left: 20px;
+    }
+    
+    .tuning-tips li {
+        margin-bottom: 10px;
+    }
+</style>

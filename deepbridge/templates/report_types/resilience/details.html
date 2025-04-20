@@ -1,0 +1,112 @@
+{% from "components/tables/data_table.html" import data_table %}
+
+<div class="details-section">
+    <div class="card">
+        <h2>Detailed Resilience Results</h2>
+        
+        <div class="metrics-details">
+            <h3>Model Metrics</h3>
+            <div id="metrics-table-container">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="shift-results-details">
+            <h3>All Distribution Shift Results</h3>
+            <div id="shift-results-container">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Display model metrics
+        const metricsContainer = document.getElementById('metrics-table-container');
+        if (reportData.metrics) {
+            const metricsData = [];
+            for (const [key, value] of Object.entries(reportData.metrics)) {
+                metricsData.push([
+                    key,
+                    typeof value === 'number' ? value.toFixed(4) : value
+                ]);
+            }
+            
+            metricsContainer.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${metricsData.map(row => `
+                            <tr>
+                                <td>${row[0]}</td>
+                                <td>${row[1]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            metricsContainer.innerHTML = '<p>No metrics data available.</p>';
+        }
+        
+        // Display all distribution shift results
+        const shiftResultsContainer = document.getElementById('shift-results-container');
+        if (reportData.distribution_shift_results && reportData.distribution_shift_results.length > 0) {
+            const results = reportData.distribution_shift_results;
+            
+            shiftResultsContainer.innerHTML = `
+                <table class="data-table sortable">
+                    <thead>
+                        <tr>
+                            <th>Drift Type</th>
+                            <th>Intensity (α)</th>
+                            <th>Distance Metric</th>
+                            <th>Original Score</th>
+                            <th>Shifted Score</th>
+                            <th>Performance Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(result => `
+                            <tr>
+                                <td>${result.drift_type}</td>
+                                <td>${typeof result.alpha === 'number' ? result.alpha.toFixed(2) : result.alpha}</td>
+                                <td>${result.distance_metric || 'N/A'}</td>
+                                <td>${typeof result.base_score === 'number' ? result.base_score.toFixed(4) : 'N/A'}</td>
+                                <td>${typeof result.shifted_score === 'number' ? result.shifted_score.toFixed(4) : 'N/A'}</td>
+                                <td>${typeof result.performance_gap === 'number' ? (result.performance_gap * 100).toFixed(2) + '%' : 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            shiftResultsContainer.innerHTML = '<p>No detailed distribution shift results available.</p>';
+        }
+    });
+</script>
+
+<style>
+    .details-section {
+        margin-bottom: 30px;
+    }
+    
+    .metrics-details,
+    .shift-results-details {
+        margin-bottom: 30px;
+    }
+    
+    .metrics-details h3,
+    .shift-results-details h3 {
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+</style>

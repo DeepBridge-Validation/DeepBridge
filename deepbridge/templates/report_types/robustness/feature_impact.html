@@ -1,0 +1,138 @@
+{% from "components/charts/bar_chart.html" import bar_chart %}
+{% from "components/tables/data_table.html" import data_table %}
+
+<div class="feature-impact-section">
+    <div class="card">
+        <h2>Robustness Feature Importance</h2>
+        <p>This analysis shows how each feature's perturbation affects model performance. Higher values indicate features that have a greater impact on model robustness.</p>
+        
+        <div id="feature-impact-chart-container">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div id="feature-impact-table">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reportData = JSON.parse('{{ report_data|safe }}');
+        
+        // Check if feature importance data is available
+        if (reportData.feature_importance) {
+            const featureImportance = reportData.feature_importance;
+            
+            // Remove _detailed_results key if present
+            if (featureImportance._detailed_results) {
+                delete featureImportance._detailed_results;
+            }
+            
+            // Convert to array of [feature, importance] pairs
+            const featureEntries = Object.entries(featureImportance);
+            
+            // Sort by importance (descending)
+            featureEntries.sort((a, b) => b[1] - a[1]);
+            
+            // Take top 15 for visualization
+            const topFeatures = featureEntries.slice(0, 15);
+            
+            // Prepare data for chart
+            const featureNames = topFeatures.map(item => item[0]);
+            const importanceValues = topFeatures.map(item => item[1]);
+            
+            // Create the chart container
+            const chartContainer = document.getElementById('feature-impact-chart-container');
+            const chartId = 'feature-impact-chart';
+            chartContainer.innerHTML = `
+                <div id="${chartId}" style="height: 500px;"></div>
+            `;
+            
+            // Create horizontal bar chart
+            Plotly.newPlot(chartId, [{
+                y: featureNames,
+                x: importanceValues,
+                type: 'bar',
+                orientation: 'h',
+                marker: {
+                    color: importanceValues.map(score => {
+                        // Color gradient based on score
+                        const normalizedScore = score / Math.max(...importanceValues);
+                        return `rgba(27, 120, 222, ${0.3 + 0.7 * normalizedScore})`;
+                    })
+                }
+            }], {
+                title: 'Feature Impact on Robustness',
+                xaxis: { 
+                    title: 'Impact Score',
+                    tickformat: '.3f'
+                },
+                yaxis: {
+                    title: 'Feature',
+                    automargin: true
+                },
+                margin: { l: 150, r: 30, t: 40, b: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(248,249,250,0.5)'
+            }, { responsive: true });
+            
+            // Create feature importance table with all features
+            const tableContainer = document.getElementById('feature-impact-table');
+            const tableData = featureEntries.map(([feature, importance]) => {
+                return [
+                    feature,
+                    importance.toFixed(4),
+                    ((importance / featureEntries[0][1]) * 100).toFixed(1) + '%'
+                ];
+            });
+            
+            tableContainer.innerHTML = `
+                <h3>Feature Impact Rankings</h3>
+                <table class="data-table sortable">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Impact Score</th>
+                            <th>Relative Impact (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableData.map(row => `
+                            <tr>
+                                <td>${row[0]}</td>
+                                <td>${row[1]}</td>
+                                <td>${row[2]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            // No feature importance data available
+            document.getElementById('feature-impact-chart-container').innerHTML = `
+                <div class="alert alert-info">
+                    <p>No feature importance data available for this model.</p>
+                </div>
+            `;
+        }
+    });
+</script>
+
+<style>
+    .feature-impact-section {
+        margin-bottom: 30px;
+    }
+    
+    .alert {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+</style>

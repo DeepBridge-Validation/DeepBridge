@@ -1,0 +1,123 @@
+{% macro data_table(headers, rows, id="data-table", sortable=true) %}
+<div class="table-container">
+    <table id="{{ id }}" class="data-table {% if sortable %}sortable{% endif %}">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for cell in row %}
+                <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if sortable %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize sortable table
+        const table = document.getElementById('{{ id }}');
+        if (table) {
+            const headers = table.querySelectorAll('th');
+            
+            headers.forEach((header, index) => {
+                header.addEventListener('click', function() {
+                    sortTable(table, index);
+                });
+                header.style.cursor = 'pointer';
+                header.title = 'Click to sort';
+            });
+        }
+    });
+    
+    function sortTable(table, column) {
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Determine sort direction
+        const currentSortDir = tbody.getAttribute('data-sort-dir') || 'asc';
+        const newSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+        
+        // Update sort direction attribute
+        tbody.setAttribute('data-sort-dir', newSortDir);
+        
+        // Sort rows
+        rows.sort((a, b) => {
+            const aValue = a.cells[column].textContent.trim();
+            const bValue = b.cells[column].textContent.trim();
+            
+            // Check if values are numeric
+            const aNum = parseFloat(aValue);
+            const bNum = parseFloat(bValue);
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return newSortDir === 'asc' ? aNum - bNum : bNum - aNum;
+            } else {
+                return newSortDir === 'asc' 
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            }
+        });
+        
+        // Reorder rows in the tbody
+        rows.forEach(row => {
+            tbody.appendChild(row);
+        });
+    }
+</script>
+{% endif %}
+
+<style>
+    .table-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .data-table th {
+        background-color: #f1f3f5;
+        font-weight: 600;
+        text-align: left;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .data-table td {
+        padding: 8px 10px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .data-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tr:hover {
+        background-color: #e9ecef;
+    }
+    
+    .data-table.sortable th {
+        position: relative;
+    }
+    
+    .data-table.sortable th:after {
+        content: "↕";
+        position: absolute;
+        right: 5px;
+        opacity: 0.3;
+    }
+</style>
+{% endmacro %}

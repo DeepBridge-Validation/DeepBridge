@@ -416,6 +416,13 @@ class Experiment(IExperiment):
         test_results = self.test_runner.run_tests(config_name, **kwargs)
         self._test_results.update(test_results)
         
+        # Make model feature importance available in test_results for the report
+        if 'models' in self.initial_results:
+            if 'primary_model' in self.initial_results['models']:
+                if 'feature_importance' in self.initial_results['models']['primary_model']:
+                    feature_importance = self.initial_results['models']['primary_model']['feature_importance']
+                    self._test_results['model_feature_importance'] = feature_importance
+        
         # Create a combined dictionary with initial_results and test_results
         combined_results = {
             'experiment_type': self.experiment_type,
