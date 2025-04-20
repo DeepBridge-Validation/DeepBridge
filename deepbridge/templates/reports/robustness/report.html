@@ -802,6 +802,119 @@
             let reportData;
             try {
                 reportData = {{ report_data|safe }};
+                
+                // Create model feature importance plot and table
+                console.log('Creating model feature importance plot...');
+                // Look for model feature importance data in various locations
+                let modelFeatureData = null;
+                
+                // First check direct model_feature_importance field
+                if (reportData.model_feature_importance && Object.keys(reportData.model_feature_importance).length > 0) {
+                    console.log('Model feature importance data found in reportData.model_feature_importance');
+                    modelFeatureData = reportData.model_feature_importance;
+                } 
+                // Then try nested paths
+                else if (reportData.models && 
+                        reportData.models.primary_model && 
+                        reportData.models.primary_model.feature_importance &&
+                        Object.keys(reportData.models.primary_model.feature_importance).length > 0) {
+                    console.log('Model feature importance found in reportData.models.primary_model.feature_importance');
+                    modelFeatureData = reportData.models.primary_model.feature_importance;
+                } 
+                // Final fallback
+                else if (reportData.initial_results && 
+                        reportData.initial_results.models && 
+                        reportData.initial_results.models.primary_model && 
+                        reportData.initial_results.models.primary_model.feature_importance &&
+                        Object.keys(reportData.initial_results.models.primary_model.feature_importance).length > 0) {
+                    console.log('Model feature importance found in reportData.initial_results.models.primary_model.feature_importance');
+                    modelFeatureData = reportData.initial_results.models.primary_model.feature_importance;
+                }
+                
+                // Process model feature importance if found
+                if (modelFeatureData) {
+                    try {
+                        // Sort and get top features
+                        const featureEntries = Object.entries(modelFeatureData);
+                        featureEntries.sort((a, b) => b[1] - a[1]);
+                        const topFeatures = featureEntries.slice(0, 15); // Get top 15 features
+                        
+                        console.log('Top model features:', topFeatures);
+                        
+                        // Prepare data for plot
+                        const featureNames = topFeatures.map(item => item[0]);
+                        const featureScores = topFeatures.map(item => item[1]);
+                        
+                        // Create plot
+                        const modelFeaturePlot = document.getElementById('model-importance-plot');
+                        if (!modelFeaturePlot) {
+                            console.error("Cannot find model-importance-plot element");
+                        } else {
+                            console.log('Creating Plotly chart for model feature importance');
+                            Plotly.newPlot(modelFeaturePlot, [{
+                                y: featureNames,
+                                x: featureScores,
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: {
+                                    color: featureScores.map(score => {
+                                        // Color gradient based on score
+                                        const normalized = score / Math.max(...featureScores);
+                                        return `rgba(46, 204, 113, ${0.3 + 0.7 * normalized})`;
+                                    })
+                                },
+                                name: 'Model Feature Importance'
+                            }], {
+                                title: 'Model Native Feature Importance',
+                                xaxis: { 
+                                    title: 'Importance Score',
+                                    tickformat: '.3f'
+                                },
+                                yaxis: {
+                                    title: 'Feature',
+                                    automargin: true
+                                },
+                                margin: { l: 150, r: 30, t: 60, b: 60 }
+                            }, { responsive: true });
+                        }
+                        
+                        // Fill feature importance table
+                        const modelFeatureTable = document.getElementById('model-feature-table');
+                        if (modelFeatureTable) {
+                            // Calculate total importance for relative percentages
+                            const totalImportance = featureEntries.reduce((sum, [_, value]) => sum + value, 0);
+                            
+                            featureEntries.forEach(([feature, importance]) => {
+                                const row = document.createElement('tr');
+                                const relativeImportance = (importance / totalImportance) * 100;
+                                
+                                row.innerHTML = `
+                                    <td>${feature}</td>
+                                    <td>${importance.toFixed(4)}</td>
+                                    <td>${relativeImportance.toFixed(2)}%</td>
+                                `;
+                                modelFeatureTable.appendChild(row);
+                            });
+                        } else {
+                            console.error("Cannot find model-feature-table element");
+                        }
+                    } catch (error) {
+                        console.error('Error creating model feature importance visualizations:', error);
+                    }
+                } else {
+                    console.log("No model feature importance data found in report");
+                    
+                    // Display a message if no data found
+                    const modelFeaturePlot = document.getElementById('model-importance-plot');
+                    if (modelFeaturePlot) {
+                        modelFeaturePlot.innerHTML = '<div style="text-align: center; padding: 50px; font-size: 16px; color: #777;">No model native feature importance data available</div>';
+                    }
+                    
+                    const modelFeatureTable = document.getElementById('model-feature-table');
+                    if (modelFeatureTable) {
+                        modelFeatureTable.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #777;">No model native feature importance data available</td></tr>';
+                    }
+                }
                 console.log('Report data loaded successfully:', Object.keys(reportData));
                 
                 // Set basic information with safety checks

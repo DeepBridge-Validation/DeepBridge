@@ -28,18 +28,13 @@ class RobustnessSuite:
     _CONFIG_TEMPLATES = {
         'quick': [
             {'type': 'raw', 'params': {'level': 0.1}},
-            {'type': 'raw', 'params': {'level': 0.2}},
-            {'type': 'quantile', 'params': {'level': 0.1}},
-            {'type': 'quantile', 'params': {'level': 0.2}}
+            {'type': 'raw', 'params': {'level': 0.2}}
         ],
         
         'medium': [
             {'type': 'raw', 'params': {'level': 0.1}},
             {'type': 'raw', 'params': {'level': 0.2}},
-            {'type': 'raw', 'params': {'level': 0.4}},
-            {'type': 'quantile', 'params': {'level': 0.1}},
-            {'type': 'quantile', 'params': {'level': 0.2}},
-            {'type': 'quantile', 'params': {'level': 0.4}}
+            {'type': 'raw', 'params': {'level': 0.4}}
         ],
         
         'full': [
@@ -48,13 +43,7 @@ class RobustnessSuite:
             {'type': 'raw', 'params': {'level': 0.4}},
             {'type': 'raw', 'params': {'level': 0.6}},
             {'type': 'raw', 'params': {'level': 0.8}},
-            {'type': 'raw', 'params': {'level': 1.0}},
-            {'type': 'quantile', 'params': {'level': 0.1}},
-            {'type': 'quantile', 'params': {'level': 0.2}},
-            {'type': 'quantile', 'params': {'level': 0.4}},
-            {'type': 'quantile', 'params': {'level': 0.6}},
-            {'type': 'quantile', 'params': {'level': 0.8}},
-            {'type': 'quantile', 'params': {'level': 1.0}}
+            {'type': 'raw', 'params': {'level': 1.0}}
         ]
     }
     
@@ -327,6 +316,10 @@ class RobustnessSuite:
         # Store results
         self.results = results
         
+        # Add the model_type to the results
+        if hasattr(self.dataset, 'model'):
+            results['model_type'] = type(self.dataset.model).__name__
+        
         return results
     
     def compare(self, alternative_models: Dict[str, Any], X: Optional[pd.DataFrame] = None, y: Optional[pd.Series] = None) -> Dict[str, Dict[str, Any]]:
@@ -368,6 +361,10 @@ class RobustnessSuite:
         all_results = {
             'primary_model': primary_results
         }
+        
+        # Add the model_type to the primary_model results
+        if hasattr(self.dataset, 'model'):
+            all_results['primary_model']['model_type'] = type(self.dataset.model).__name__
         
         # Test alternative models
         for model_name, model in alternative_models.items():
@@ -417,3 +414,48 @@ class RobustnessSuite:
             NotImplementedError: Always raises this exception
         """
         raise NotImplementedError("Visualization functionality has been removed from this version.")
+        
+    def update_model_name(self, original_results: Dict, model_type: str) -> Dict:
+        """
+        Update model name in results dictionary, replacing 'primary_model' with the actual model type.
+        
+        Parameters:
+        -----------
+        original_results : Dict
+            Original results dictionary to update
+        model_type : str
+            Actual model type name to replace 'primary_model' with
+        
+        Returns:
+        --------
+        Dict : Updated results dictionary
+        """
+        # Create a copy to avoid modifying the original
+        import copy
+        results = copy.deepcopy(original_results)
+        
+        # Replace 'primary_model' with model_type in the top level
+        if 'primary_model' in results:
+            results[model_type] = results['primary_model']
+            del results['primary_model']
+        
+        # Handle nested dictionaries
+        for key, value in results.items():
+            if isinstance(value, dict):
+                # Update model_name in current level
+                if 'model_name' in value and value['model_name'] == 'primary_model':
+                    value['model_name'] = model_type
+                
+                # Process alternative_models if present
+                if key == 'alternative_models' and isinstance(value, dict):
+                    # Keep alternative_models as is, they should retain their original names
+                    continue
+                
+                # Recursively process deeper nested dictionaries
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, dict):
+                        # Update model_name in nested level
+                        if 'model_name' in sub_value and sub_value['model_name'] == 'primary_model':
+                            sub_value['model_name'] = model_type
+        
+        return results
