@@ -1,0 +1,93 @@
+site_name: DeepBridge
+site_description: A Python library for model validation and distillation
+site_author: Gustavo Haase
+repo_url: https://github.com/DeepBridge-Validation/DeepBridge
+repo_name: deepbridge
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  logo: assets/images/deepbridge-logo.svg
+  favicon: assets/images/deepbridge-logo.svg
+  features:
+    - navigation.tabs
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.highlight
+    - search.share
+  font:
+    text: Roboto
+    code: Roboto Mono
+  language: en
+  mathjax: true 
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Quick Start: tutorials/quickstart.md
+    - Auto Distiller: tutorials/AutoDistiller.md
+    - Model Validation: guides/validation.md
+    - Model Distillation: guides/distillation.md
+    - CLI Usage: guides/cli.md
+  - API Reference:
+    - Data: api/db_data.md
+    - Experiment: api/experiment.md
+    - CLI: api/cli.md
+  - Synthetic Data: 
+      - Synthesizer: api/synthetic.md
+      - Methods: 
+          - UltraLightGenerator: concepts/synthetic_UltraLightGenerator.md
+          - Gaussian Copula: concepts/synthetic_gaussian_copula.md
+          - CTGAN: concepts/synthetic_ctgan.md          
+  - Distiller Models:
+    - Knowledge Distillation: concepts/knowledge_distillation.md
+    - How a Student Model Learns from a Teacher Model: concepts/model_learns.md
+    - What is Knowledge Distillation?: concepts/what_Knowledge.md
+    - Auto Distiller: concepts/auto_distillation.md
+  - Advanced Topics:
+    - Custom Models: advanced/custom_models.md
+    - Optimization: advanced/optimization.md
+    - Deployment: advanced/deployment.md
+  - Contributing: contributing.md
+  - License: license.md
+
+extra_css:
+  - assets/custom.css
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tasklist
+  - toc:
+      permalink: true
+
+plugins:
+- macros
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [deepbridge]
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/DeepBridge-Validation/DeepBridge
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/deepbridge/
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+copyright: Copyright &copy; 2025 DeepBridge-Validation
