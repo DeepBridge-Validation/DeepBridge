@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Resilience Analysis Report</title>
+    <link rel="icon" href="data:image/png;base64, {{ favicon }}" type="image/png">
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <!-- Internal Styles -->
+    <style>
+        :root {
+            --primary-color: #1b78de;  /* Bright blue */
+            --secondary-color: #2c3e50; /* Dark blue/slate */
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header styles */
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .logo-container {
+            flex: 0 0 200px;
+            padding-right: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            max-height: 80px;
+            object-fit: contain;
+        }
+        
+        .title-container {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .report-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            font-size: 16px;
+            color: #555;
+            margin-top: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--secondary-color);
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(to right, var(--primary-color), var(--primary-color) 85%, #3498db);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: var(--secondary-color);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .logo-container {
+        flex: 0 0 120px; /* Ajuste este valor proporcionalmente, se precisar */
+        padding-right: 20px;
+        }
+
+        .logo {
+            max-width: 100px; /* Ajuste este valor para alterar o tamanho da logo */
+            height: auto;
+        }
+                
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .tab:hover {
+            background-color: rgba(27, 120, 222, 0.1);
+        }
+        
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .plot-container {
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        table th, table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+        
+        table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .footer {
+            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            text-align: center;
+            color: #777;
+            font-size: 0.9rem;
+            background-color: #f1f3f4;
+            border-radius: 8px;
+        }
+        
+        .metric-good {
+            color: var(--success-color);
+        }
+        
+        .metric-average {
+            color: var(--warning-color);
+        }
+        
+        .metric-poor {
+            color: var(--danger-color);
+        }
+        
+        @media print {
+            .tabs {
+                display: none;
+            }
+            
+            .tab-content {
+                display: block;
+                page-break-after: always;
+            }
+            
+            .plot-container {
+                height: 300px;
+                page-break-inside: avoid;
+            }
+            
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+            
+            body {
+                font-size: 12pt;
+            }
+            
+            h1 {
+                font-size: 18pt;
+            }
+            
+            h2 {
+                font-size: 16pt;
+            }
+            
+            .card {
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-container">
+                <div class="logo-container">
+                    <img src="data:image/png;base64, {{ logo }}" alt="DeepBridge Logo" class="logo">
+                </div>
+                <div class="title-container">
+                    <h1>DeepBridge Resilience Analysis Report</h1>
+                    <div class="report-info">
+                        <div class="model-name"><strong>Model:</strong> <span id="model-name">{{ model_name }}</span></div>
+                        <div class="timestamp"><strong>Generated on:</strong> <span id="timestamp">{{ timestamp }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card-header">Resilience Summary</div>
+            <div class="card-body">
+                <div class="summary-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Resilience Score</div>
+                        <div class="stat-value" id="resilience-score">{{ resilience_score }}</div>
+                        <div class="stat-description">Higher is better (0-1 scale)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Average Performance Gap</div>
+                        <div class="stat-value" id="avg-performance-gap">{{ avg_performance_gap }}</div>
+                        <div class="stat-description">Lower is better</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Base Score</div>
+                        <div class="stat-value" id="base-score">{{ base_score }}</div>
+                        <div class="stat-description">{{ metric }}</div>
+                    </div>
+                </div>
+                
+                <h3>Test Configuration</h3>
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Model Type</td>
+                        <td id="model-type">{{ model_type }}</td>
+                    </tr>
+                    <tr>
+                        <td>Distance Metrics</td>
+                        <td id="distance-metrics">{{ distance_metrics }}</td>
+                    </tr>
+                    <tr>
+                        <td>Alpha Levels</td>
+                        <td id="alpha-levels">{{ alphas }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" id="tab-distribution">Distribution Shift</div>
+            <div class="tab" id="tab-feature">Feature Analysis</div>
+            <div class="tab" id="tab-metrics">Model Metrics</div>
+        </div>
+
+        <div id="distribution" class="tab-content active">
+            <h2>Distribution Shift Analysis</h2>
+            <div class="plot-container" id="distribution-plot"></div>
+            <div class="card">
+                <div class="card-header">Performance Under Distribution Shift</div>
+                <div class="card-body">
+                    <p>
+                        This analysis shows how model performance changes under different levels of distribution shift.
+                        Lower performance gap indicates higher resilience to shifts in data distribution.
+                    </p>
+                    
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Shift Intensity (Alpha)</th>
+                            <th>Distance Metric</th>
+                            <th>Performance on Worst Subset</th>
+                            <th>Performance Gap</th>
+                        </tr>
+                        <tbody id="distribution-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-distribution-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-distribution-tables">
+                            <!-- Alternative model tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="feature" class="tab-content">
+            <h2>Feature Sensitivity Analysis</h2>
+            <div class="plot-container" id="feature-plot"></div>
+            <div class="card">
+                <div class="card-header">Feature Distance Analysis</div>
+                <div class="card-body">
+                    <p>
+                        This analysis shows which features contribute most to distribution shifts.
+                        Features with higher distance values have greater distribution shifts between the worst-performing
+                        subset and the rest of the data.
+                    </p>
+                    
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Feature</th>
+                            <th>PSI Distance</th>
+                            <th>KS Distance</th>
+                            <th>Wasserstein Distance</th>
+                        </tr>
+                        <tbody id="feature-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-feature-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-feature-tables">
+                            <!-- Alternative model tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <h2>Model Performance Metrics</h2>
+            <div class="card">
+                <div class="card-header">Model Metrics</div>
+                <div class="card-body">
+                    <h4>Primary Model</h4>
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                        <tbody id="metrics-table">
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="alternative-models-metrics-section" style="display: none; margin-top: 20px;">
+                        <h4>Alternative Models</h4>
+                        <div id="alternative-models-metrics-tables">
+                            <!-- Alternative model metrics tables will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="footer">
+            <p>Generated using DeepBridge Resilience Analysis</p>
+            <p>&copy; {{ current_year }} DeepBridge</p>
+        </div>
+    </div>
+
+    <script>
+        // Declare the showTab function globally
+        window.showTab = function(tabId) {
+            console.log(`Showing tab: ${tabId}`);
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activate the selected tab
+            if (tabId === 'distribution') {
+                document.getElementById('tab-distribution').classList.add('active');
+            } else if (tabId === 'feature') {
+                document.getElementById('tab-feature').classList.add('active');
+            } else if (tabId === 'metrics') {
+                document.getElementById('tab-metrics').classList.add('active');
+            } else if (tabId === 'detailed') {
+                document.getElementById('tab-detailed').classList.add('active');
+            }
+            
+            // Trigger resize event to ensure plots render correctly
+            window.dispatchEvent(new Event('resize'));
+        };
+
+        // Initialize tab event handlers
+        function initializeTabs() {
+            // Set up tab click events
+            document.getElementById('tab-distribution').addEventListener('click', function() { showTab('distribution'); });
+            document.getElementById('tab-feature').addEventListener('click', function() { showTab('feature'); });
+            document.getElementById('tab-metrics').addEventListener('click', function() { showTab('metrics'); });
+            document.getElementById('tab-detailed').addEventListener('click', function() { showTab('detailed'); });
+        }
+
+        // Load and process the data
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Document loaded');
+            
+            // Initialize the tabs
+            initializeTabs();
+            
+            // The data will be injected here as a JavaScript variable
+            let reportData;
+            try {
+                reportData = {{ report_data|safe }};
+                console.log('Report data loaded successfully:', Object.keys(reportData));
+                
+                // Set basic information with safety checks
+                if (document.getElementById('model-name')) {
+                    // Try to get model name from different possible locations
+                    let modelName = 'Unnamed Model';
+                    
+                    if (reportData.model_name) {
+                        modelName = reportData.model_name;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model) {
+                        // If model name isn't directly available, try to use the model type
+                        if (reportData.initial_results.models.primary_model.type) {
+                            modelName = reportData.initial_results.models.primary_model.type;
+                        }
+                    }
+                    
+                    document.getElementById('model-name').innerText = modelName;
+                }
+                if (document.getElementById('timestamp')) {
+                    document.getElementById('timestamp').innerText = 'Generated on: ' + (reportData.timestamp || new Date().toLocaleString());
+                }
+                if (document.getElementById('resilience-score')) {
+                    const resilienceScore = reportData.resilience_score !== undefined ? 
+                        reportData.resilience_score : 0.5;
+                    document.getElementById('resilience-score').innerText = typeof resilienceScore === 'number' ? 
+                        resilienceScore.toFixed(3) : resilienceScore;
+                }
+                if (document.getElementById('avg-performance-gap')) {
+                    // Either use avg_performance_gap directly or calculate it from resilience_score
+                    let performanceGap = reportData.avg_performance_gap;
+                    if (performanceGap === undefined && reportData.resilience_score !== undefined) {
+                        performanceGap = 1 - reportData.resilience_score;
+                    }
+                    performanceGap = performanceGap || 0;
+                    
+                    document.getElementById('avg-performance-gap').innerText = typeof performanceGap === 'number' ? 
+                        performanceGap.toFixed(3) : performanceGap;
+                }
+                if (document.getElementById('base-score')) {
+                    const baseScore = reportData.base_score !== undefined ? reportData.base_score : 0;
+                    document.getElementById('base-score').innerText = typeof baseScore === 'number' ? 
+                        baseScore.toFixed(3) : baseScore;
+                }
+                
+                if (document.getElementById('model-type')) {
+                    // Try to get model type from different possible locations
+                    let modelType = 'Unknown';
+                    
+                    if (reportData.model_type) {
+                        modelType = reportData.model_type;
+                    } else if (reportData.initial_results && 
+                              reportData.initial_results.models && 
+                              reportData.initial_results.models.primary_model && 
+                              reportData.initial_results.models.primary_model.type) {
+                        modelType = reportData.initial_results.models.primary_model.type;
+                    } else if (reportData.models && 
+                              reportData.models.primary_model && 
+                              reportData.models.primary_model.type) {
+                        modelType = reportData.models.primary_model.type;
+                    }
+                    
+                    document.getElementById('model-type').innerText = modelType;
+                }
+                if (document.getElementById('distance-metrics')) {
+                    document.getElementById('distance-metrics').innerText = 
+                        reportData.distance_metrics && Array.isArray(reportData.distance_metrics) ? 
+                        reportData.distance_metrics.join(', ') : 'Not specified';
+                }
+                if (document.getElementById('alpha-levels')) {
+                    document.getElementById('alpha-levels').innerText = 
+                        reportData.alphas && Array.isArray(reportData.alphas) ? 
+                        reportData.alphas.join(', ') : 'Not specified';
+                }
+                
+                // Fill metrics table for primary model
+                const metricsTable = document.getElementById('metrics-table');
+                if (metricsTable && reportData.metrics) {
+                    Object.entries(reportData.metrics).forEach(([key, value]) => {
+                        if (key !== 'base_score') {  // Already showing base_score in summary
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${key}</td>
+                                <td>${typeof value === 'number' ? value.toFixed(4) : value}</td>
+                            `;
+                            metricsTable.appendChild(row);
+                        }
+                    });
+                }
+                
+                // Add alternative models metrics tables
+                const alternativeModelsMetricsSection = document.getElementById('alternative-models-metrics-section');
+                const alternativeModelsMetricsTables = document.getElementById('alternative-models-metrics-tables');
+                
+                if (alternativeModelsMetricsSection && alternativeModelsMetricsTables && 
+                    reportData.alternative_models && Object.keys(reportData.alternative_models).length > 0) {
+                    
+                    // Show the section
+                    alternativeModelsMetricsSection.style.display = 'block';
+                    
+                    // Create a table for each alternative model
+                    Object.entries(reportData.alternative_models).forEach(([modelName, modelData]) => {
+                        if (modelData.metrics) {
+                            const modelDiv = document.createElement('div');
+                            modelDiv.style.marginBottom = '20px';
+                            
+                            const modelHeader = document.createElement('h5');
+                            modelHeader.textContent = modelName;
+                            modelDiv.appendChild(modelHeader);
+                            
+                            const modelTable = document.createElement('table');
+                            modelTable.innerHTML = `
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                </tr>
+                            `;
+                            
+                            const tbody = document.createElement('tbody');
+                            Object.entries(modelData.metrics).forEach(([metricKey, metricValue]) => {
+                                if (metricKey !== 'base_score') {  // Already showing base_score in summary
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${metricKey}</td>
+                                        <td>${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}</td>
+                                    `;
+                                    tbody.appendChild(row);
+                                }
+                            });
+                            
+                            modelTable.appendChild(tbody);
+                            modelDiv.appendChild(modelTable);
+                            alternativeModelsMetricsTables.appendChild(modelDiv);
+                        }
+                    });
+                }
+                
+                // Process distribution shift data
+                console.log('Processing distribution shift data...');
+                if (reportData.distribution_shift_results && Array.isArray(reportData.distribution_shift_results)) {
+                    const results = reportData.distribution_shift_results;
+                    console.log('Distribution shift results:', results);
+                    
+                    // Fill distribution table
+                    const distributionTable = document.getElementById('distribution-table');
+                    if (distributionTable) {
+                        results.forEach(result => {
+                            if (result.method === 'distribution_shift') {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${result.alpha !== undefined ? result.alpha.toFixed(2) : 'N/A'}</td>
+                                    <td>${result.distance_metric || 'N/A'}</td>
+                                    <td>${result.worst_metric !== undefined ? result.worst_metric.toFixed(4) : 'N/A'}</td>
+                                    <td>${result.performance_gap !== undefined ? result.performance_gap.toFixed(4) : 'N/A'}</td>
+                                `;
+                                distributionTable.appendChild(row);
+                            }
+                        });
+                    }
+                    
+                    // Create distribution shift plot
+                    const distributionPlot = document.getElementById('distribution-plot');
+                    if (distributionPlot) {
+                        // Group results by distance metric
+                        const metricGroups = {};
+                        results.forEach(result => {
+                            if (result.method === 'distribution_shift' && result.distance_metric) {
+                                if (!metricGroups[result.distance_metric]) {
+                                    metricGroups[result.distance_metric] = {
+                                        alphas: [],
+                                        gaps: []
+                                    };
+                                }
+                                metricGroups[result.distance_metric].alphas.push(result.alpha);
+                                metricGroups[result.distance_metric].gaps.push(result.performance_gap);
+                            }
+                        });
+                        
+                        // Create traces for each distance metric
+                        const traces = [];
+                        const colors = {
+                            'PSI': '#16a085',
+                            'KS': '#9b59b6',
+                            'WD1': '#3498db',
+                            'EMD': '#f39c12',
+                            'JSD': '#e74c3c'
+                        };
+                        
+                        Object.entries(metricGroups).forEach(([metric, data]) => {
+                            traces.push({
+                                x: data.alphas,
+                                y: data.gaps,
+                                mode: 'lines+markers',
+                                type: 'scatter',
+                                name: `${metric} Distance`,
+                                marker: {
+                                    size: 10,
+                                    color: colors[metric] || '#16a085'
+                                },
+                                line: {
+                                    width: 3,
+                                    color: colors[metric] || '#16a085'
+                                }
+                            });
+                        });
+                        
+                        // Create plot
+                        Plotly.newPlot(distributionPlot, traces, {
+                            title: 'Performance Gap Under Distribution Shift',
+                            xaxis: {
+                                title: 'Alpha (Shift Intensity)',
+                                tickformat: '.2f'
+                            },
+                            yaxis: {
+                                title: 'Performance Gap',
+                                tickformat: '.3f'
+                            },
+                            showlegend: true,
+                            legend: {
+                                x: 0.01,
+                                y: 0.99,
+                                bgcolor: 'rgba(255, 255, 255, 0.8)'
+                            },
+                            margin: {
+                                l: 60,
+                                r: 30,
+                                t: 80,
+                                b: 60
+                            }
+                        }, {responsive: true});
+                    }
+                    
+                    // Process feature analysis
+                    const featurePlot = document.getElementById('feature-plot');
+                    const featureTable = document.getElementById('feature-table');
+                    
+                    if (featurePlot && featureTable && results.length > 0 && results[0].feature_distances) {
+                        // Collect all feature names and metrics
+                        const allFeatures = new Set();
+                        const metricTypes = new Set();
+                        
+                        // Create a map to store distances by feature and metric
+                        const featureDistances = {};
+                        
+                        results.forEach(result => {
+                            if (result.feature_distances && result.feature_distances.all_feature_distances) {
+                                const metric = result.distance_metric || 'Unknown';
+                                metricTypes.add(metric);
+                                
+                                Object.entries(result.feature_distances.all_feature_distances).forEach(([feature, distance]) => {
+                                    allFeatures.add(feature);
+                                    
+                                    if (!featureDistances[feature]) {
+                                        featureDistances[feature] = {};
+                                    }
+                                    featureDistances[feature][metric] = distance;
+                                });
+                            }
+                        });
+                        
+                        // Convert to arrays for plotting
+                        const featureNames = Array.from(allFeatures);
+                        const metricNames = Array.from(metricTypes);
+                        
+                        // Create plot traces
+                        const plotTraces = [];
+                        const barColors = ['#16a085', '#9b59b6', '#3498db', '#f39c12', '#e74c3c'];
+                        
+                        metricNames.forEach((metric, index) => {
+                            const distances = featureNames.map(feature => 
+                                featureDistances[feature][metric] !== undefined ? 
+                                featureDistances[feature][metric] : 0
+                            );
+                            
+                            plotTraces.push({
+                                x: distances,
+                                y: featureNames,
+                                type: 'bar',
+                                name: `${metric} Distance`,
+                                orientation: 'h',
+                                marker: {
+                                    color: barColors[index % barColors.length]
+                                }
+                            });
+                        });
+                        
+                        // Create plot
+                        Plotly.newPlot(featurePlot, plotTraces, {
+                            title: 'Feature Distance Analysis',
+                            barmode: 'group',
+                            xaxis: {
+                                title: 'Distance Value',
+                                tickformat: '.3f'
+                            },
+                            yaxis: {
+                                title: 'Feature',
+                                automargin: true
+                            },
+                            showlegend: true,
+                            legend: {
+                                x: 0.01,
+                                y: 0.99,
+                                bgcolor: 'rgba(255, 255, 255, 0.8)'
+                            },
+                            margin: {
+                                l: 120,
+                                r: 30,
+                                t: 80,
+                                b: 60
+                            }
+                        }, {responsive: true});
+                        
+                        // Fill feature table
+                        featureNames.forEach(feature => {
+                            const row = document.createElement('tr');
+                            const cells = [
+                                `<td>${feature}</td>`
+                            ];
+                            
+                            // Add a column for each metric type
+                            ['PSI', 'KS', 'WD1'].forEach(metric => {
+                                const distance = featureDistances[feature][metric];
+                                cells.push(`<td>${distance !== undefined ? distance.toFixed(4) : 'N/A'}</td>`);
+                            });
+                            
+                            row.innerHTML = cells.join('');
+                            featureTable.appendChild(row);
+                        });
+                    }
+                }
+                
+                // Fill detailed results
+                console.log('Filling detailed results tab...');
+                const detailedResults = document.getElementById('detailed-results');
+                if (detailedResults) {
+                    try {
+                        detailedResults.textContent = JSON.stringify(reportData, null, 2);
+                    } catch (error) {
+                        console.error("Error stringifying report data:", error);
+                        detailedResults.textContent = "Error displaying detailed results: " + error.message;
+                    }
+                } else {
+                    console.error("Cannot find detailed-results element");
+                }
+                
+                // Set current year in footer
+                console.log('Setting current year in footer...');
+                document.querySelectorAll('.footer p:last-child').forEach(el => {
+                    el.innerHTML = el.innerHTML.replace('{{ current_year }}', new Date().getFullYear());
+                });
+                
+                // Ensure plots render correctly after a delay
+                console.log('Scheduling resize event...');
+                setTimeout(function() {
+                    console.log('Triggering resize event to fix plot layouts');
+                    window.dispatchEvent(new Event('resize'));
+                }, 100);
+                
+                // Show all plots when document is printed
+                if (window.matchMedia) {
+                    const mediaQueryList = window.matchMedia('print');
+                    mediaQueryList.addEventListener('change', function(mql) {
+                        if (mql.matches) {
+                            console.log('Print mode detected, showing all tabs');
+                            document.querySelectorAll('.tab-content').forEach(content => {
+                                content.classList.add('active');
+                            });
+                        }
+                    });
+                }
+                
+                console.log('Report initialization complete');
+            } catch(error) {
+                console.error("Error creating report:", error);
+                // Show friendly error message in the UI
+                document.getElementById('distribution').innerHTML = 
+                    '<div style="color:red;padding:20px;">Error creating plots: ' + error.message + 
+                    '<br><br>Please try refreshing the page or check the data format.</div>';
+            }
+        });
+    </script>
+</body>
+</html>
