@@ -1,6 +1,12 @@
 {% from "components/charts/bar_chart.html" import bar_chart %}
 {% from "components/tables/data_table.html" import data_table %}
 
+<!-- Make feature importance data available globally for JavaScript functions -->
+<script>
+    window.model_feature_importance = {{ model_feature_importance | tojson }};
+    window.feature_subset = {{ feature_subset | tojson }};
+</script>
+
 <div class="model-features-section">
     <div class="card">
         <h2>Model Feature Importance</h2>
@@ -16,7 +22,263 @@
     </div>
 </div>
 
-<!-- Scripts moved to parent index.html component_scripts block -->
+<!-- Contains scripts to ensure model features are rendered properly -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded - initializing model feature importance chart");
+    initializeModelFeatureChart();
+});
+
+document.addEventListener('renderCharts', function() {
+    console.log("renderCharts event received - initializing model feature importance chart");
+    initializeModelFeatureChart();
+});
+
+function initializeModelFeatureChart() {
+    try {
+        console.log("Initializing model feature chart");
+        renderModelFeatureImportanceChart();
+    } catch (e) {
+        console.warn("First attempt to render model feature chart failed:", e);
+        
+        // Second attempt with delay
+        setTimeout(function() {
+            try {
+                console.log("Second attempt to render model feature chart");
+                renderModelFeatureImportanceChart();
+            } catch (e) {
+                console.warn("Second attempt to render model feature chart failed:", e);
+                
+                // Third attempt with longer delay
+                setTimeout(function() {
+                    try {
+                        console.log("Final attempt to render model feature chart");
+                        renderModelFeatureImportanceChart();
+                    } catch (e) {
+                        console.error("All attempts to render model feature chart failed:", e);
+                        showNoDataMessage();
+                    }
+                }, 2000);
+            }
+        }, 500);
+    }
+}
+
+function renderModelFeatureImportanceChart() {
+    const chartContainer = document.getElementById('model-feature-chart-container');
+    const tableContainer = document.getElementById('model-feature-table');
+    
+    if (!chartContainer || !tableContainer) {
+        console.error("Chart or table container not found");
+        return;
+    }
+    
+    // Debug: check what data is directly available from window globals
+    console.log("Direct debug check of window globals in model_features.html:");
+    console.log("- window.model_feature_importance:", window.model_feature_importance);
+    console.log("- window.feature_subset:", window.feature_subset);
+    
+    let modelFeatureImportance = getModelFeatureImportance();
+    
+    if (!modelFeatureImportance) {
+        showNoDataMessage();
+        return;
+    }
+    
+    // Create chart container
+    chartContainer.innerHTML = '<div id="model-features-chart" style="height: 500px;"></div>';
+    
+    // Extract and sort feature importance data
+    const features = Object.keys(modelFeatureImportance);
+    const importanceValues = Object.values(modelFeatureImportance);
+    
+    // Sort by importance value (descending)
+    const combined = features.map((feature, i) => ({
+        feature: feature,
+        importance: importanceValues[i]
+    })).sort((a, b) => b.importance - a.importance);
+    
+    // Create horizontal bar chart
+    const trace = {
+        x: combined.map(item => item.importance),
+        y: combined.map(item => item.feature),
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+            color: 'rgba(27, 120, 222, 0.8)',
+            line: {
+                color: 'rgba(27, 120, 222, 1.0)',
+                width: 1
+            }
+        }
+    };
+    
+    const layout = {
+        title: 'Model Feature Importance',
+        xaxis: {
+            title: 'Importance Score'
+        },
+        yaxis: {
+            title: 'Feature',
+            automargin: true
+        },
+        margin: {
+            l: 150,
+            r: 30,
+            t: 50,
+            b: 50
+        }
+    };
+    
+    if (window.Plotly) {
+        Plotly.newPlot('model-features-chart', [trace], layout, {responsive: true});
+    } else {
+        console.error("Plotly is not available");
+        chartContainer.innerHTML = '<div class="alert alert-warning">Error: Plotly library not loaded. Cannot render chart.</div>';
+    }
+    
+    // Create table
+    let tableHTML = `
+        <h4>Model Feature Importance Ranking</h4>
+        <table class="feature-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Importance Score</th>
+                    <th>Rank</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    combined.forEach((item, index) => {
+        tableHTML += `
+            <tr>
+                <td>${item.feature}</td>
+                <td>${item.importance.toFixed(4)}</td>
+                <td>${index + 1}</td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+        <p class="mt-4"><small>Features with higher importance scores have greater impact on the model's predictions according to the model's internal metrics.</small></p>
+    `;
+    
+    tableContainer.innerHTML = tableHTML;
+}
+
+function getModelFeatureImportance() {
+    console.log("Attempting to get model feature importance data");
+    
+    // CHANGE: First check for global template variables - prioritize these over other data sources
+    if (window.model_feature_importance && Object.keys(window.model_feature_importance).length > 0) {
+        console.log("Found model feature importance in global template variable with", Object.keys(window.model_feature_importance).length, "features");
+        return window.model_feature_importance;
+    }
+    // If not available in global variables, try reportData
+    else {
+        console.log("Falling back to reportData for model feature importance data");
+        
+        if (!window.reportData) {
+            console.error("reportData not available");
+            return null;
+        }
+        
+        let modelFeatureImportance = null;
+        
+        // Log all possible paths for debugging
+        console.log("Looking for model feature importance data in reportData");
+        console.log("reportData keys:", Object.keys(window.reportData));
+        
+        // Check direct paths in priority order
+        if (window.reportData.model_feature_importance && Object.keys(window.reportData.model_feature_importance).length > 0) {
+            console.log("Found model feature importance in direct path with", Object.keys(window.reportData.model_feature_importance).length, "features");
+            modelFeatureImportance = window.reportData.model_feature_importance;
+        }
+        // Check if nested in primary_model
+        else if (window.reportData.primary_model && 
+                window.reportData.primary_model.model_feature_importance &&
+                Object.keys(window.reportData.primary_model.model_feature_importance).length > 0) {
+            console.log("Found model feature importance in primary_model path");
+            modelFeatureImportance = window.reportData.primary_model.model_feature_importance;
+        }
+        // Check for the nested results.robustness path
+        else if (window.reportData.results && 
+                window.reportData.results.robustness && 
+                window.reportData.results.robustness.results && 
+                window.reportData.results.robustness.results.primary_model && 
+                window.reportData.results.robustness.results.primary_model.model_feature_importance) {
+            console.log("Found model feature importance in nested results path");
+            modelFeatureImportance = window.reportData.results.robustness.results.primary_model.model_feature_importance;
+        }
+        // Try alternate paths as well
+        else if (window.reportData.report_data && window.reportData.report_data.model_feature_importance) {
+            console.log("Found model feature importance in report_data path");
+            modelFeatureImportance = window.reportData.report_data.model_feature_importance;
+        }
+        // Return the feature importance from reportData sources
+        if (!modelFeatureImportance) {
+            console.warn("No model feature importance data found");
+            return null;
+        }
+        
+        console.log("Found model feature importance with", Object.keys(modelFeatureImportance).length, "features");
+        return modelFeatureImportance;
+    }
+}
+
+function showNoDataMessage() {
+    const chartContainer = document.getElementById('model-feature-chart-container');
+    const tableContainer = document.getElementById('model-feature-table');
+    
+    const noDataMessage = `
+        <div class="alert alert-info">
+            <h4>No Feature Importance Data Available</h4>
+            <p>Model feature importance data is not available for this analysis. This may occur if:</p>
+            <ul>
+                <li>The model does not provide native feature importance</li>
+                <li>Feature importance calculation failed</li>
+                <li>The model type doesn't support feature importance extraction</li>
+            </ul>
+        </div>
+    `;
+    
+    if (chartContainer) chartContainer.innerHTML = noDataMessage;
+    if (tableContainer) tableContainer.innerHTML = '';
+}
+</script>
+
+<style>
+.feature-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.feature-table th, 
+.feature-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.feature-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.feature-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.mt-4 {
+    margin-top: 25px;
+}
+</style>
 
 <style>
     .model-features-section {
