@@ -1,0 +1,53 @@
+<!-- perturbation_results_table.html - placeholder -->
+<div class="perturbation-results-table-container" data-perturbation-type="{{ type }}">
+    <div class="table-info">
+        {% if type == "raw" %}
+        <p>This table shows model performance metrics at different levels of Gaussian (raw) perturbation.</p>
+        {% elif type == "quantile" %}
+        <p>This table shows model performance metrics at different levels of quantile-based perturbation.</p>
+        {% endif %}
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table perturbation-table" id="perturbation-table-{{ type }}">
+            <thead>
+                <tr>
+                    <th class="level-col">Perturbation Level</th>
+                    <th class="score-col">Mean Score</th>
+                    <th class="worst-score-col">Worst Score</th>
+                    <th class="impact-col">Performance Impact</th>
+                    <th class="std-col">Standard Deviation</th>
+                    {% if has_alternative_models %}
+                    <th class="best-model-col">Best Model</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="{% if has_alternative_models %}6{% else %}5{% endif %}">
+                        <div class="loading-indicator">Loading perturbation data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-notes">
+        <div class="note-item">
+            <span class="note-icon">ℹ️</span>
+            <span class="note-text">
+                <strong>Performance Impact</strong> represents the percentage decrease in performance compared to the base score.
+                Lower values indicate better robustness.
+            </span>
+        </div>
+        {% if has_alternative_models %}
+        <div class="note-item">
+            <span class="note-icon">🔄</span>
+            <span class="note-text">
+                <strong>Best Model</strong> indicates which model performed best at each perturbation level.
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</div>

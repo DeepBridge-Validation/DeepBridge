@@ -1,0 +1,104 @@
+<div class="importance-comparison-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="importance-comparison-plot-{{ type }}" class="chart-plot"></div>
+    
+    <div class="chart-controls">
+        {% if type == "bar" or type == "radar" or type == "heatmap" %}
+        <div class="feature-filter">
+            <label for="feature-count-comparison-{{ type }}">Show top:</label>
+            <select id="feature-count-comparison-{{ type }}" class="feature-count-selector" data-chart-id="comparison-{{ type }}">
+                <option value="10" {% if type == "radar" %}selected{% endif %}>10 features</option>
+                <option value="15" {% if type != "radar" %}selected{% endif %}>15 features</option>
+                <option value="20">20 features</option>
+            </select>
+        </div>
+        {% endif %}
+        
+        {% if type == "scatter" %}
+        <div class="label-filter">
+            <label>
+                <input type="checkbox" id="show-feature-labels-{{ type }}" class="show-feature-labels" checked>
+                Show feature labels
+            </label>
+        </div>
+        <div class="quadrant-filter">
+            <label>
+                <input type="checkbox" id="show-quadrants-{{ type }}" class="show-quadrants" checked>
+                Show quadrant divisions
+            </label>
+        </div>
+        {% endif %}
+        
+        {% if type == "ranking" %}
+        <div class="sorting-filter">
+            <label for="ranking-sort-{{ type }}">Sort by:</label>
+            <select id="ranking-sort-{{ type }}" class="ranking-sort-selector">
+                <option value="rank-diff" selected>Rank Difference</option>
+                <option value="model-rank">Model Importance Rank</option>
+                <option value="robustness-rank">Robustness Importance Rank</option>
+            </select>
+        </div>
+        {% endif %}
+        
+        <div class="feature-highlight">
+            <label>
+                <input type="checkbox" id="highlight-subset-comparison-{{ type }}" class="highlight-subset" data-chart-id="comparison-{{ type }}" checked>
+                Highlight optimal feature subset
+            </label>
+        </div>
+    </div>
+    
+    <div class="chart-legend">
+        <!-- Will be populated by JavaScript based on chart type -->
+        {% if type == "bar" %}
+        <div class="legend-item">
+            <div class="legend-color model-importance"></div>
+            <div class="legend-label">Model Importance</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color robustness-importance"></div>
+            <div class="legend-label">Robustness Importance</div>
+        </div>
+        {% endif %}
+        
+        {% if type == "scatter" %}
+        <div class="legend-item">
+            <div class="legend-color subset-feature"></div>
+            <div class="legend-label">In optimal subset</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color non-subset-feature"></div>
+            <div class="legend-label">Other features</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="chart-notes">
+        {% if type == "bar" %}
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">This chart compares model importance vs. robustness importance for top features.</span>
+        </div>
+        {% elif type == "scatter" %}
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">Features in the upper-right quadrant have both high model importance and high robustness.</span>
+        </div>
+        {% elif type == "radar" %}
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">The radar chart shows the relative importance profiles for top features.</span>
+        </div>
+        {% elif type == "heatmap" %}
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">This heatmap shows intensity of importance across features and importance types.</span>
+        </div>
+        {% elif type == "ranking" %}
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">This chart highlights features with the biggest discrepancy between model importance and robustness importance rankings.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>

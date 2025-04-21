@@ -1,0 +1,62 @@
+<!-- tab_navigation.html - placeholder -->
+<!-- tab_navigation.html - Tab navigation widget -->
+<div class="tab-navigation-widget" id="{{ id|default('tab-navigation') }}">
+    <div class="tab-buttons">
+        {% for tab in tabs %}
+            <button 
+                class="tab-btn {% if tab == activeTab %}active{% endif %}" 
+                data-tab="{{ tab|lower|replace(' ', '-') }}"
+                data-controller="{{ controller }}"
+                {% if tabTooltips %}title="{{ tabTooltips[loop.index0] }}"{% endif %}
+            >
+                {{ tab }}
+            </button>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initTabNavigation('{{ id|default("tab-navigation") }}', '{{ controller }}');
+    });
+
+    function initTabNavigation(navigationId, controllerName) {
+        const navigationWidget = document.getElementById(navigationId);
+        if (!navigationWidget) return;
+
+        const buttons = navigationWidget.querySelectorAll('.tab-btn');
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Update active button state
+                buttons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Call the controller function if it exists
+                if (controllerName && window[controllerName]) {
+                    window[controllerName](tabId);
+                } else {
+                    // Fallback: basic tab switching
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        const contentTabId = content.getAttribute('data-tab-id');
+                        if (contentTabId === tabId) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                }
+                
+                // Dispatch event for tab change
+                window.dispatchEvent(new CustomEvent('tabChanged', {
+                    detail: { tabId: tabId, navigationId: navigationId }
+                }));
+                
+                // Trigger resize event to ensure charts render properly
+                window.dispatchEvent(new Event('resize'));
+            });
+        });
+    }
+</script>

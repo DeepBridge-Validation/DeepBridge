@@ -1,0 +1,169 @@
+{% macro data_table(id, headers=[], rows=[], sortable=true, pagination=true, searchable=true, items_per_page=10) %}
+<div class="data-table-component" id="{{ id }}-container">
+    {% if searchable and rows|length > 7 %}
+    <div class="table-controls">
+        <div class="search-control">
+            <label for="{{ id }}-search">Search:</label>
+            <input type="text" id="{{ id }}-search" class="search-input" placeholder="Filter results...">
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="table-container">
+        <table class="data-table" id="{{ id }}">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th {% if sortable %}class="sortable" data-sort-col="{{ loop.index0 }}"{% endif %}>
+                        {{ header }}
+                        {% if sortable %}
+                        <span class="sort-icon">↕</span>
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if pagination and rows|length > items_per_page %}
+    <div class="pagination-controls" id="{{ id }}-pagination">
+        <button class="prev-page" disabled>«</button>
+        <span class="page-info">Page <span class="current-page">1</span> of <span class="total-pages">{{ (rows|length / items_per_page)|round(0, 'ceil')|int }}</span></span>
+        <button class="next-page" {% if rows|length <= items_per_page %}disabled{% endif %}>»</button>
+        
+        <div class="page-size-control">
+            <label for="{{ id }}-page-size">Items per page:</label>
+            <select id="{{ id }}-page-size" class="page-size-select">
+                <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if sortable or pagination or searchable %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initDataTable_{{ id }}();
+        });
+        
+        function initDataTable_{{ id }}() {
+            const tableContainer = document.getElementById('{{ id }}-container');
+            if (!tableContainer) return;
+            
+            {% if sortable %}
+            // Set up sorting
+            const sortableHeaders = tableContainer.querySelectorAll('th.sortable');
+            sortableHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const colIndex = parseInt(this.dataset.sortCol);
+                    sortTable_{{ id }}(colIndex);
+                });
+            });
+            {% endif %}
+            
+            {% if searchable and rows|length > 7 %}
+            // Set up search
+            const searchInput = document.getElementById('{{ id }}-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    filterTable_{{ id }}(this.value);
+                });
+            }
+            {% endif %}
+            
+            {% if pagination and rows|length > items_per_page %}
+            // Set up pagination
+            const pageSize = document.getElementById('{{ id }}-page-size');
+            if (pageSize) {
+                pageSize.addEventListener('change', function() {
+                    updatePageSize_{{ id }}(parseInt(this.value));
+                });
+            }
+            
+            const prevButton = tableContainer.querySelector('.prev-page');
+            const nextButton = tableContainer.querySelector('.next-page');
+            
+            if (prevButton) {
+                prevButton.addEventListener('click', function() {
+                    changePage_{{ id }}(-1);
+                });
+            }
+            
+            if (nextButton) {
+                nextButton.addEventListener('click', function() {
+                    changePage_{{ id }}(1);
+                });
+            }
+            
+            // Initial pagination setup
+            setupPagination_{{ id }}();
+            {% endif %}
+        }
+        
+        {% if sortable %}
+        function sortTable_{{ id }}(colIndex) {
+            // Implementation will be provided in the page's JavaScript
+            if (typeof sortTable_{{ id }}_implementation === 'function') {
+                sortTable_{{ id }}_implementation(colIndex);
+            } else {
+                console.error('Sort implementation for {{ id }} not found');
+            }
+        }
+        {% endif %}
+        
+        {% if searchable and rows|length > 7 %}
+        function filterTable_{{ id }}(searchTerm) {
+            // Implementation will be provided in the page's JavaScript
+            if (typeof filterTable_{{ id }}_implementation === 'function') {
+                filterTable_{{ id }}_implementation(searchTerm);
+            } else {
+                console.error('Filter implementation for {{ id }} not found');
+            }
+        }
+        {% endif %}
+        
+        {% if pagination and rows|length > items_per_page %}
+        function setupPagination_{{ id }}() {
+            // Implementation will be provided in the page's JavaScript
+            if (typeof setupPagination_{{ id }}_implementation === 'function') {
+                setupPagination_{{ id }}_implementation();
+            } else {
+                console.error('Pagination implementation for {{ id }} not found');
+            }
+        }
+        
+        function changePage_{{ id }}(direction) {
+            // Implementation will be provided in the page's JavaScript
+            if (typeof changePage_{{ id }}_implementation === 'function') {
+                changePage_{{ id }}_implementation(direction);
+            } else {
+                console.error('Change page implementation for {{ id }} not found');
+            }
+        }
+        
+        function updatePageSize_{{ id }}(newSize) {
+            // Implementation will be provided in the page's JavaScript
+            if (typeof updatePageSize_{{ id }}_implementation === 'function') {
+                updatePageSize_{{ id }}_implementation(newSize);
+            } else {
+                console.error('Update page size implementation for {{ id }} not found');
+            }
+        }
+        {% endif %}
+    </script>
+    {% endif %}
+</div>
+{% endmacro %}

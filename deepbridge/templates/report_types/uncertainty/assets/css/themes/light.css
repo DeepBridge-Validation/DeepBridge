@@ -1,0 +1,121 @@
+/* light.css - Light theme for uncertainty quantification report */
+
+:root {
+    /* Base color variables */
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --accent-color: #9b59b6;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #1abc9c;
+    
+    /* Text colors */
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-muted: #999;
+    
+    /* Background colors */
+    --bg-primary: #fff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    
+    /* Border colors */
+    --border-light: #dee2e6;
+    --border-medium: #ced4da;
+    --border-dark: #adb5bd;
+    
+    /* Chart colors */
+    --chart-primary: #3498db;
+    --chart-secondary: #2ecc71;
+    --chart-tertiary: #9b59b6;
+    --chart-quaternary: #f39c12;
+    --chart-quinary: #e74c3c;
+    
+    /* Specific component colors */
+    --uncertainty-score-color: #3498db;
+    --coverage-color: #2ecc71;
+    --width-color: #9b59b6;
+    --calibration-color: #f39c12;
+    
+    /* Table colors */
+    --table-header-bg: #f8f9fa;
+    --table-header-text: #444;
+    --table-border: #e0e0e0;
+    --table-hover: #f5f5f5;
+    
+    /* Card and box shadows */
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --box-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --box-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Light theme specific overrides */
+  body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+  
+  .card {
+    background-color: var(--bg-primary);
+    box-shadow: var(--box-shadow);
+  }
+  
+  .tab-btn.active:after {
+    background-color: var(--primary-color);
+  }
+  
+  .tab-btn.active {
+    color: var(--primary-color);
+  }
+  
+  .data-table th {
+    background-color: var(--table-header-bg);
+    color: var(--table-header-text);
+    border-bottom: 2px solid var(--table-border);
+  }
+  
+  .data-table tr:hover {
+    background-color: var(--table-hover);
+  }
+  
+  .data-table td {
+    border-bottom: 1px solid var(--table-border);
+  }
+  
+  .score-circle {
+    background: conic-gradient(
+      var(--uncertainty-score-color) var(--uncertainty-score, 0deg),
+      #e9ecef var(--uncertainty-score, 0deg) 360deg
+    );
+  }
+  
+  .score-value {
+    color: var(--uncertainty-score-color);
+  }
+  
+  /* Chart color overrides for light theme */
+  .alpha-coverage-chart .legend-color.actual {
+    background-color: var(--chart-primary);
+  }
+  
+  .alpha-coverage-chart .legend-color.target {
+    background-color: var(--chart-quinary);
+    border: 1px dashed #000;
+  }
+  
+  .calibration-chart .legend-color.calibration {
+    background-color: var(--chart-secondary);
+  }
+  
+  .calibration-chart .legend-color.ideal {
+    background-color: #95a5a6;
+    border: 1px dashed #000;
+  }
+  
+  .interval-width-chart .legend-color.width {
+    background-color: var(--chart-tertiary);
+  }
+  
+  .uncertainty-distribution-chart .legend-color.distribution {
+    background-color: var(--chart-quaternary);
+  }

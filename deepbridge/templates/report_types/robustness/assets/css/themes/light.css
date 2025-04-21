@@ -1,0 +1,183 @@
+/* 
+ * light.css
+ * Light theme for the robustness report
+ */
+
+ :root {
+   /* Color system */
+   --primary-color: #1b78de;
+   --primary-color-rgb: 27, 120, 222;
+   --primary-light-color: #5098e8;
+   --primary-dark-color: #0c58b3;
+   
+   --secondary-color: #6c757d;
+   --secondary-color-rgb: 108, 117, 125;
+   
+   --success-color: #2ecc71;
+   --success-color-rgb: 46, 204, 113;
+   --success-light-color: #5edea0;
+   --success-dark-color: #25a25a;
+   
+   --warning-color: #f39c12;
+   --warning-color-rgb: 243, 156, 18;
+   
+   --danger-color: #e74c3c;
+   --danger-color-rgb: 231, 76, 60;
+   
+   --accent-color: #ff7300;
+   --accent-color-rgb: 255, 115, 0;
+   
+   /* Grays */
+   --gray-100: #f8f9fa;
+   --gray-200: #e9ecef;
+   --gray-300: #dee2e6;
+   --gray-400: #ced4da;
+   --gray-500: #adb5bd;
+   --gray-600: #6c757d;
+   --gray-700: #495057;
+   --gray-800: #343a40;
+   --gray-900: #212529;
+   
+   /* Performance indicators */
+   --excellent-color: #2ecc71;
+   --good-color: #27ae60;
+   --moderate-color: #f39c12;
+   --fair-color: #e67e22;
+   --poor-color: #e74c3c;
+   
+   /* Text */
+   --text-color: #212529;
+   --text-secondary-color: #6c757d;
+   --link-color: #1b78de;
+   --link-hover-color: #0c58b3;
+   --heading-color: #212529;
+   
+   /* Layout */
+   --body-bg-color: #f8f9fa;
+   --card-bg-color: #ffffff;
+   --card-secondary-bg-color: #f8f9fa;
+   --card-header-bg-color: #f8f9fa;
+   --card-header-hover-bg-color: #e9ecef;
+   --card-border-color: #e9ecef;
+   --border-color: #dee2e6;
+   --border-light-color: #e9ecef;
+   
+   /* UI Elements */
+   --button-bg-color: #f8f9fa;
+   --button-color: #212529;
+   --button-border-color: #dee2e6;
+   --button-hover-bg-color: #e9ecef;
+   --button-active-bg-color: #1b78de;
+   --button-active-color: #ffffff;
+   --button-active-border-color: #1b78de;
+   
+   --input-bg-color: #ffffff;
+   --input-border-color: #ced4da;
+   --input-color: #212529;
+   --input-placeholder-color: #adb5bd;
+   --input-focus-border-color: #80bdff;
+   
+   --control-bg-color: #f8f9fa;
+   
+   --tab-border-color: #dee2e6;
+   
+   /* Tables */
+   --table-bg-color: #ffffff;
+   --table-header-bg-color: #f8f9fa;
+   --table-header-color: #495057;
+   --table-border-color: #dee2e6;
+   --table-row-alt-bg-color: #f8f9fa;
+   --table-row-hover-bg-color: #e9ecef;
+   --table-row-highlight-bg: rgba(255, 243, 205, 0.5);
+   
+   /* Charts */
+   --chart-bg-color: #ffffff;
+   --legend-bg-color: rgba(248, 249, 250, 0.7);
+   --note-bg-color: #f8f9fa;
+   --note-border-color: #dee2e6;
+   
+   /* Info Elements */
+   --info-bg-color: #f8f9fa;
+   --info-panel-bg-color: #ffffff;
+   
+   /* Progress and Metrics */
+   --progress-bg-color: #e9ecef;
+   
+   /* Tooltips */
+   --tooltip-bg-color: #343a40;
+   --tooltip-color: #ffffff;
+   --tooltip-border-color: #495057;
+   --tooltip-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+   
+   /* Shadows */
+   --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+   --modal-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+   
+   /* Radius */
+   --border-radius: 6px;
+   --border-radius-sm: 4px;
+   --border-radius-lg: 8px;
+   
+   /* Animation */
+   --transition-speed: 0.2s;
+}
+
+/* Additional light theme specific styles */
+.robustness-report {
+   color: var(--text-color);
+   background-color: var(--body-bg-color);
+}
+
+.card {
+   background-color: var(--card-bg-color);
+   box-shadow: var(--card-shadow);
+   border-radius: var(--border-radius);
+}
+
+.report-header {
+   background-color: var(--card-bg-color);
+   border-left: 5px solid var(--primary-color);
+}
+
+/* Fix for select elements to show properly in light theme */
+select {
+   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23333' d='M0 0l4 4 4-4H0z'/%3E%3C/svg%3E");
+}
+
+/* Main tab navigation light style */
+.main-tabs {
+   background-color: var(--card-bg-color);
+   border-radius: var(--border-radius);
+   box-shadow: var(--card-shadow);
+}
+
+/* Light theme table tweaks */
+.data-table tbody tr:hover {
+   background-color: rgba(27, 120, 222, 0.05);
+}
+
+/* Light theme chart tweaks */
+.chart-notes {
+   background-color: rgba(248, 249, 250, 0.7);
+   border-left-color: var(--primary-color);
+}
+
+/* Light theme specific progress bars */
+.progress-bar-container {
+   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced metric cards for light theme */
+.metric-card {
+   transition: transform 0.2s;
+}
+
+.metric-card:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Light theme for modal backdrop */
+.modal-backdrop {
+   background-color: rgba(0, 0, 0, 0.3);
+}

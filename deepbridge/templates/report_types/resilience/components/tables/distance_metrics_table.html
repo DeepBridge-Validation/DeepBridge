@@ -1,0 +1,125 @@
+<!-- distance_metrics_table.html - placeholder -->
+<!-- distance_metrics_table.html - Distance metrics details table -->
+<div class="distance-metrics-table-container">
+    <div class="table-info">
+        <p>This table provides detailed statistical distance metrics between baseline and target distributions for each feature.</p>
+    </div>
+
+    <div class="table-controls">
+        <div class="search-filter">
+            <input type="text" id="feature-search-distance" class="feature-search" placeholder="Search features...">
+        </div>
+        
+        <div class="sorting-control">
+            <label for="sort-by-distance">Sort by:</label>
+            <select id="sort-by-distance" class="sort-selector">
+                <option value="kl" selected>KL Divergence (High to Low)</option>
+                <option value="js">JS Distance (High to Low)</option>
+                <option value="wasserstein">Wasserstein Distance (High to Low)</option>
+                <option value="feature">Feature Name (A-Z)</option>
+                <option value="importance">Feature Importance (High to Low)</option>
+            </select>
+        </div>
+        
+        <div class="display-control">
+            <label for="rows-display-distance">Show:</label>
+            <select id="rows-display-distance" class="rows-selector">
+                <option value="10">10 rows</option>
+                <option value="25" selected>25 rows</option>
+                <option value="50">50 rows</option>
+                <option value="all">All rows</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table distance-metrics-table" id="distance-metrics-table">
+            <thead>
+                <tr>
+                    <th class="feature-col sortable" data-sort="feature">Feature</th>
+                    <th class="type-col sortable" data-sort="type">Type</th>
+                    <th class="kl-div-col sortable" data-sort="kl">KL Divergence</th>
+                    <th class="js-dist-col sortable" data-sort="js">JS Distance</th>
+                    <th class="wasserstein-col sortable" data-sort="wasserstein">Wasserstein Distance</th>
+                    <th class="hellinger-col sortable" data-sort="hellinger">Hellinger Distance</th>
+                    <th class="shift-severity-col sortable" data-sort="severity">Shift Severity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="7">
+                        <div class="loading-indicator">Loading distance metrics data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prev-page-distance" disabled>&laquo; Previous</button>
+            <span class="pagination-info" id="pagination-info-distance">Page 1 of 1</span>
+            <button class="pagination-btn" id="next-page-distance" disabled>Next &raquo;</button>
+        </div>
+    </div>
+
+    <div class="metrics-interpretation">
+        <h4>Distance Metrics Interpretation</h4>
+        <table class="interpretation-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Range</th>
+                    <th>Minor Shift</th>
+                    <th>Moderate Shift</th>
+                    <th>Significant Shift</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>KL Divergence</td>
+                    <td>[0, ∞)</td>
+                    <td>0 - 0.5</td>
+                    <td>0.5 - 2.0</td>
+                    <td>> 2.0</td>
+                    <td>Measures information gain when updating from baseline to target distribution</td>
+                </tr>
+                <tr>
+                    <td>JS Distance</td>
+                    <td>[0, 1]</td>
+                    <td>0 - 0.2</td>
+                    <td>0.2 - 0.4</td>
+                    <td>> 0.4</td>
+                    <td>Symmetric measure of similarity between distributions</td>
+                </tr>
+                <tr>
+                    <td>Wasserstein</td>
+                    <td>[0, ∞)</td>
+                    <td>0 - 0.1</td>
+                    <td>0.1 - 0.3</td>
+                    <td>> 0.3</td>
+                    <td>Earth mover's distance between distributions</td>
+                </tr>
+                <tr>
+                    <td>Hellinger</td>
+                    <td>[0, 1]</td>
+                    <td>0 - 0.2</td>
+                    <td>0.2 - 0.5</td>
+                    <td>> 0.5</td>
+                    <td>Probabilistic measure of distribution similarity</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-notes">
+        <div class="note-item">
+            <span class="note-icon">⚠️</span>
+            <span class="note-text">
+                Different distance metrics may be more appropriate for different feature types. For numerical features, Wasserstein distance is often more interpretable. For categorical features, KL divergence or JS distance are typically used.
+            </span>
+        </div>
+    </div>
+</div>

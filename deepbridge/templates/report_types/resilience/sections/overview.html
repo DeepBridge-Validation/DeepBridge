@@ -1,0 +1,211 @@
+<!-- overview.html - placeholder -->
+<!-- overview.html - Overview section of the resilience report -->
+{% block content %}
+
+<div class="overview-section">
+    <div class="card">
+        <h2>Overview</h2>
+        <p>This overview provides a high-level assessment of the model's resilience to distribution shifts between baseline and target distributions.</p>
+        
+        <!-- Summary Components -->
+        <div class="overview-summary">
+            {% include "report_types/resilience/components/summary/summary_overview.html" %}
+        </div>
+        
+        <!-- Main Overview Charts -->
+        <!-- Chart selector -->
+        <div class="chart-selector" id="overview_charts_selector">
+            <div class="chart-options">
+                <button class="chart-option active" data-option="Performance Gap">Performance Gap</button>
+                <button class="chart-option" data-option="Distribution Shift">Distribution Shift</button>
+                <button class="chart-option" data-option="Feature Impact">Feature Impact</button>
+            </div>
+        </div>
+        
+        <div class="overview-charts-container">
+            <div id="performance-gap-container" class="chart-container active" data-chart-type="performance-gap">
+                <h3 class="chart-title">Performance Gap Analysis</h3>
+                {% include "report_types/resilience/components/charts/performance_gap_chart.html" %}
+                <div class="chart-placeholder">
+                    <p>Performance gap chart data will display here.</p>
+                </div>
+            </div>
+            
+            <div id="distribution-shift-container" class="chart-container" data-chart-type="distribution-shift">
+                <h3 class="chart-title">Distribution Shift Analysis</h3>
+                {% include "report_types/resilience/components/charts/distribution_chart.html" %}
+                <div class="chart-placeholder">
+                    <p>Distribution shift chart data will display here.</p>
+                </div>
+            </div>
+            
+            <div id="feature-impact-container" class="chart-container" data-chart-type="feature-impact">
+                <h3 class="chart-title">Feature Impact Analysis</h3>
+                {% include "report_types/resilience/components/charts/intensity_chart.html" %}
+                <div class="chart-placeholder">
+                    <p>Feature impact chart data will display here.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h4>Key Insights</h4>
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <h5>Performance Impact</h5>
+                        <div class="insight-icon">📉</div>
+                    </div>
+                    <div class="insight-content">
+                        {% if performance_gap is defined %}
+                            <p>The model experiences a {% if performance_gap > 0.2 %}significant{% elif performance_gap > 0.1 %}moderate{% else %}minor{% endif %} impact when exposed to distribution shifts, with an average performance gap of {{ (performance_gap * 100)|round(1) }}%.</p>
+                            <div class="insight-metric">
+                                <div class="metric-label">Average Gap:</div>
+                                <div class="metric-value" data-value="{{ performance_gap }}">{{ (performance_gap * 100)|round(1) }}%</div>
+                            </div>
+                        {% else %}
+                            <p>Information about model performance impact is not available from test results.</p>
+                            <div class="insight-metric">
+                                <div class="metric-label">Average Gap:</div>
+                                <div class="neutral">Data not available</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <h5>Distribution Shift</h5>
+                        <div class="insight-icon">🔄</div>
+                    </div>
+                    <div class="insight-content">
+                        {% if avg_dist_shift is defined %}
+                            <p>The dataset exhibits {% if avg_dist_shift > 0.5 %}significant{% elif avg_dist_shift > 0.2 %}moderate{% else %}minor{% endif %} distribution shifts, with an average distance metric of {{ avg_dist_shift|round(2) }}.</p>
+                            <div class="insight-metric">
+                                <div class="metric-label">Shift Magnitude:</div>
+                                <div class="metric-value" data-value="{{ avg_dist_shift }}">{{ avg_dist_shift|round(2) }}</div>
+                            </div>
+                        {% else %}
+                            <p>Information about distribution shift magnitude is not available from test results.</p>
+                            <div class="insight-metric">
+                                <div class="metric-label">Shift Magnitude:</div>
+                                <div class="neutral">Data not available</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <h5>Sensitive Features</h5>
+                        <div class="insight-icon">⚠️</div>
+                    </div>
+                    <div class="insight-content">
+                        <p>{% if sensitive_features|length > 0 %}{{ sensitive_features|length }} features show high sensitivity to distribution shifts, with the greatest impact observed in the most affected features.{% else %}No high sensitivity features were identified in the analysis.{% endif %}</p>
+                        <button class="view-features-btn" id="view-sensitive-features">View Features</button>
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <h5>Scenario Analysis</h5>
+                        <div class="insight-icon">🔍</div>
+                    </div>
+                    <div class="insight-content">
+                        <p>{% if shift_scenarios|length > 0 %}{{ shift_scenarios|length }} different shift scenarios were analyzed to evaluate the model's resilience under various conditions.{% else %}No shift scenarios were available for analysis.{% endif %}</p>
+                        <button class="view-scenarios-btn" id="view-shift-scenarios">View Scenarios</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Tables Section -->
+        <div class="results-tables-section">
+            <h3>Shift Results</h3>
+            
+            <div class="tab-container">
+                <!-- Tab navigation -->
+                <div class="tab-navigation" id="results_tables_tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="Shift Results">Shift Results</button>
+                        <button class="tab-btn" data-tab="Feature Impact">Feature Impact</button>
+                    </div>
+                </div>
+                
+                <div id="shift-results-table-container" class="tab-content active" data-tab-id="Shift Results">
+                    {% include "report_types/resilience/components/tables/shift_results_table.html" %}
+                </div>
+                
+                <div id="feature-impact-table-container" class="tab-content" data-tab-id="Feature Impact">
+                    {% include "report_types/resilience/components/tables/feature_impact_table.html" %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendations Section -->
+        <div class="recommendations-section">
+            <h3>Resilience Recommendations</h3>
+            <div class="recommendation-cards">
+                <!-- Dynamic recommendations based on test results -->
+                {% if resilience_score is defined and resilience_score is not none and resilience_score < 0.7 %}
+                <div class="recommendation-card high">
+                    <div class="recommendation-header">
+                        <div class="recommendation-icon">🔍</div>
+                        <h4 class="recommendation-title">Investigate Feature Distributions</h4>
+                        <div class="recommendation-priority-badge">High</div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>Analyze the distribution patterns of the most sensitive features to understand sources of instability.</p>
+                    </div>
+                    <div class="recommendation-actions">
+                        <div class="actions-list">
+                            <div class="action-item">
+                                <div class="action-icon">▶</div>
+                                <div class="action-text">Review the Distribution Analysis tab for detailed insights</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if performance_gap is defined and performance_gap is not none and performance_gap > 0.15 %}
+                <div class="recommendation-card high">
+                    <div class="recommendation-header">
+                        <div class="recommendation-icon">⚖️</div>
+                        <h4 class="recommendation-title">Balance Training Data</h4>
+                        <div class="recommendation-priority-badge">High</div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>Enhance training data with examples from underrepresented regions to improve model performance under distribution shifts.</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="recommendation-card medium">
+                    <div class="recommendation-header">
+                        <div class="recommendation-icon">🔄</div>
+                        <h4 class="recommendation-title">Regular Monitoring</h4>
+                        <div class="recommendation-priority-badge">Medium</div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>Set up ongoing monitoring of feature distributions in production to detect shifts early.</p>
+                    </div>
+                </div>
+                
+                {% if avg_dist_shift is defined and avg_dist_shift is not none and avg_dist_shift > 0.3 %}
+                <div class="recommendation-card medium">
+                    <div class="recommendation-header">
+                        <div class="recommendation-icon">🛡️</div>
+                        <h4 class="recommendation-title">Implement Robust Features</h4>
+                        <div class="recommendation-priority-badge">Medium</div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>Consider feature engineering techniques that are more robust to distribution changes.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

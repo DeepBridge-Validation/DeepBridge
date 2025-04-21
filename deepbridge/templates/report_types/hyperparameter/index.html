@@ -3,24 +3,7 @@
 {% block title %}DeepBridge Hyperparameter Analysis{% endblock %}
 
 {% block head %}
-<style>
-    .metrics-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .metrics-container > div {
-        flex: 1 0 250px;
-    }
-    
-    @media (max-width: 768px) {
-        .metrics-container > div {
-            flex: 1 0 100%;
-        }
-    }
-</style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/hyperparameter/hyperparameter.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -50,68 +33,12 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    // Initialize with report data
-    document.addEventListener('DOMContentLoaded', function() {
-        // Parse the report data
-        window.reportData = JSON.parse('{{ report_data_json|safe }}');
-        console.log('Report data loaded:', reportData);
-        
-        // Ensure Plotly is loaded
-        if (typeof Plotly === 'undefined') {
-            console.error('Plotly is not loaded. Loading it dynamically...');
-            var script = document.createElement('script');
-            script.src = 'https://cdn.plot.ly/plotly-2.29.1.min.js';
-            script.onload = function() {
-                console.log('Plotly loaded successfully');
-                // Trigger rendering of all charts
-                renderAllCharts();
-            };
-            document.head.appendChild(script);
-        } else {
-            console.log('Plotly is already loaded');
-            // Small delay to ensure the DOM is fully ready
-            setTimeout(renderAllCharts, 100);
-        }
-        
-        // Function to trigger all chart renderings
-        function renderAllCharts() {
-            // Dispatch a custom event that component scripts will listen for
-            document.dispatchEvent(new CustomEvent('renderCharts'));
-        }
-    });
-</script>
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/hyperparameter.js') }}"></script>
 {% endblock %}
 
 {% block component_scripts %}
-<script>
-    // Function to render all hyperparameter charts
-    function renderAllHyperparameterCharts() {
-        if (!window.reportData || typeof Plotly === 'undefined') {
-            console.error('Cannot render hyperparameter charts: reportData or Plotly not available');
-            return;
-        }
-        console.log('Rendering all hyperparameter charts...');
-        
-        // Scripts from component templates run here after reportData is initialized
-        
-        // Importance charts
-        const importanceContainer = document.getElementById('importance-chart-container');
-        if (importanceContainer && reportData.importance_scores) {
-            // Process and display importance scores...
-        }
-        
-        // Tuning charts
-        const tuningContainer = document.getElementById('tuning-chart-container');
-        if (tuningContainer && reportData.tuning_order) {
-            // Create tuning charts...
-        }
-    } // End of renderAllHyperparameterCharts function
-    
-    // Call render function when DOM is loaded
-    document.addEventListener('DOMContentLoaded', renderAllHyperparameterCharts);
-    
-    // Also listen for the custom event triggered after reportData is loaded
-    document.addEventListener('renderCharts', renderAllHyperparameterCharts);
-</script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/importance.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/tuning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/details.js') }}"></script>
 {% endblock %}

@@ -5,6 +5,11 @@
         <h2>Hyperparameter Importance</h2>
         <p>This analysis shows the relative importance of each hyperparameter to model performance.</p>
         
+        <div class="importance-method-info">
+            <p><strong>Method:</strong> {{ importance_method|default('Feature Importance') }}</p>
+            <p>{{ importance_description|default('Calculated using permutation importance by measuring the drop in performance when each hyperparameter is randomized.') }}</p>
+        </div>
+        
         <div id="importance-chart-container">
             <!-- Will be populated by JavaScript -->
         </div>
@@ -14,29 +19,3 @@
         </div>
     </div>
 </div>
-
-<!-- Scripts moved to parent index.html component_scripts block -->
-
-<style>
-    .importance-section {
-        margin-bottom: 30px;
-    }
-    
-    .importance-section h3 {
-        margin-top: 30px;
-        margin-bottom: 15px;
-        font-size: 18px;
-    }
-    
-    .alert {
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-    }
-    
-    .alert-info {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        color: #0c5460;
-    }
-</style>

@@ -1,0 +1,54 @@
+<!-- boxplot_chart.html - placeholder -->
+<div class="boxplot-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="boxplot-plot-{{ mode }}" class="chart-plot"></div>
+    
+    {% if mode == "primary" %}
+    <div class="chart-legend">
+        <div class="legend-item">
+            <div class="legend-color box-color"></div>
+            <div class="legend-label">Performance Distribution</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color mean-line"></div>
+            <div class="legend-label">Mean Score</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color base-line"></div>
+            <div class="legend-label">Base Score</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if mode == "comparison" %}
+    <div class="chart-controls">
+        <div class="level-filter">
+            <label for="level-selector">Perturbation Levels:</label>
+            <select id="level-selector" class="level-selector">
+                <option value="all">All levels</option>
+                <option value="subset" selected>Key levels (0.1, 0.4, 1.0)</option>
+            </select>
+        </div>
+        <div class="model-filter">
+            <label for="boxplot-model-selector">Models:</label>
+            <select id="boxplot-model-selector" class="model-selector" multiple>
+                <!-- Will be populated by JavaScript based on available models -->
+            </select>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="chart-notes">
+        {% if mode == "primary" %}
+        <div class="note-item">
+            <span class="note-icon">📦</span>
+            <span class="note-text">Box plots show the distribution of performance scores across multiple test runs, with boxes representing the interquartile range (middle 50% of values).</span>
+        </div>
+        {% elif mode == "comparison" %}
+        <div class="note-item">
+            <span class="note-icon">🔄</span>
+            <span class="note-text">This comparison shows how different models' performance distributions vary under the same perturbation conditions.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>

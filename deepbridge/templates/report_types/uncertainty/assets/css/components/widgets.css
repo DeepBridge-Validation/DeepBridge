@@ -1,0 +1,347 @@
+/* widgets.css - Styles for UI widgets in uncertainty report */
+
+/* Tab Navigation */
+.tab-navigation-widget {
+    margin-bottom: 20px;
+  }
+  
+  .tab-buttons {
+    display: flex;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 20px;
+  }
+  
+  .tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6c757d;
+    position: relative;
+  }
+  
+  .tab-btn.active {
+    color: #3498db;
+  }
+  
+  .tab-btn.active:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #3498db;
+  }
+  
+  .tab-btn:hover {
+    color: #3498db;
+    background-color: #f8f9fa;
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  
+  /* Chart Selector */
+  .chart-selector-widget {
+    margin-bottom: 20px;
+  }
+  
+  .selector-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .selector-btn {
+    padding: 8px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .selector-btn.active {
+    background-color: #3498db;
+    color: #fff;
+    border-color: #3498db;
+  }
+  
+  .selector-btn:hover:not(.active) {
+    background-color: #e9ecef;
+  }
+  
+  /* Expandable Panel */
+  .expandable-panel-widget {
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .panel-header {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    cursor: pointer;
+  }
+  
+  .panel-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #444;
+  }
+  
+  .panel-toggle {
+    color: #6c757d;
+  }
+  
+  .panel-content {
+    padding: 15px;
+    border-top: 1px solid #dee2e6;
+    background-color: #fff;
+  }
+  
+  .panel-description {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  /* Interactive Tooltip */
+  .interactive-tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tooltip-trigger {
+    cursor: help;
+    color: #3498db;
+    text-decoration: underline dotted;
+  }
+  
+  .tooltip-content {
+    position: absolute;
+    z-index: 100;
+    width: 250px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    padding: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+  
+  .tooltip-content.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .tooltip-arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #fff;
+    transform: rotate(45deg);
+  }
+  
+  .position-top .tooltip-arrow {
+    bottom: -5px;
+    left: 50%;
+    margin-left: -5px;
+  }
+  
+  .position-bottom .tooltip-arrow {
+    top: -5px;
+    left: 50%;
+    margin-left: -5px;
+  }
+  
+  .position-left .tooltip-arrow {
+    right: -5px;
+    top: 50%;
+    margin-top: -5px;
+  }
+  
+  .position-right .tooltip-arrow {
+    left: -5px;
+    top: 50%;
+    margin-top: -5px;
+  }
+  
+  .tooltip-inner {
+    padding: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .tooltip-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #444;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+  
+  .tooltip-body {
+    font-size: 13px;
+    color: #666;
+  }
+  
+  /* Metric Card */
+  .metric-card-widget {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .metric-card-content {
+    display: flex;
+    align-items: center;
+  }
+  
+  .metric-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    border-radius: 50%;
+    background-color: rgba(52, 152, 219, 0.1);
+  }
+  
+  .metric-details {
+    flex: 1;
+  }
+  
+  .metric-title {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  
+  .metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .metric-description {
+    font-size: 13px;
+    color: #888;
+  }
+  
+  .metric-trend {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+  }
+  
+  .trend-icon {
+    margin-right: 5px;
+  }
+  
+  .metric-trend.up {
+    color: #2ecc71;
+  }
+  
+  .metric-trend.down {
+    color: #e74c3c;
+  }
+  
+  .metric-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 15px;
+  }
+  
+  .indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  
+  .indicator-dot.excellent { background-color: #2ecc71; }
+  .indicator-dot.good { background-color: #3498db; }
+  .indicator-dot.moderate { background-color: #f39c12; }
+  .indicator-dot.fair { background-color: #e67e22; }
+  .indicator-dot.poor { background-color: #e74c3c; }
+  .indicator-dot.neutral { background-color: #95a5a6; }
+  
+  .metric-details-toggle {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    color: #3498db;
+    font-size: 13px;
+  }
+  
+  .metric-extended-details {
+    margin-top: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 10px;
+  }
+  
+  .metric-detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  
+  .detail-label {
+    color: #777;
+  }
+  
+  .detail-value {
+    font-weight: 500;
+    color: #444;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .tab-buttons {
+      flex-wrap: wrap;
+    }
+    
+    .selector-buttons {
+      flex-direction: column;
+    }
+    
+    .metric-card-content {
+      flex-direction: column;
+      text-align: center;
+    }
+    
+    .metric-icon {
+      margin-right: 0;
+      margin-bottom: 15px;
+    }
+    
+    .metric-indicator {
+      margin-left: 0;
+      margin-top: 15px;
+    }
+  }

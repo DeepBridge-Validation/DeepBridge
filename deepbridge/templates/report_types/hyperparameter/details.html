@@ -1,50 +1,44 @@
-{% from "components/tables/data_table.html" import data_table %}
+{% extends "base.html" %}
 
-<div class="details-section">
-    <div class="card">
-        <h2>Detailed Hyperparameter Results</h2>
-        
-        <div class="metrics-details">
-            <h3>Model Metrics</h3>
-            <div id="metrics-table-container">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-        
-        <div class="trials-details">
-            <h3>Trial Results</h3>
-            <div id="trials-container">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
+{% block title %}DeepBridge Hyperparameter Analysis{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/hyperparameter/hyperparameter.css') }}">
+{% endblock %}
+
+{% block content %}
+    {# Summary Section #}
+    {% include "report_types/hyperparameter/summary.html" %}
+    
+    {# Tabs Navigation #}
+    {% from "components/ui/tabs.html" import tabs %}
+    {{ tabs([
+        {"id": "importance", "title": "Importance", "active": true},
+        {"id": "tuning", "title": "Tuning Order"},
+        {"id": "details", "title": "Detailed Results"}
+    ]) }}
+    
+    {# Tab Contents #}
+    <div id="importance" class="tab-content active">
+        {% include "report_types/hyperparameter/importance.html" %}
     </div>
-</div>
+    
+    <div id="tuning" class="tab-content">
+        {% include "report_types/hyperparameter/tuning.html" %}
+    </div>
+    
+    <div id="details" class="tab-content">
+        {% include "report_types/hyperparameter/details.html" %}
+    </div>
+{% endblock %}
 
-<!-- Scripts moved to parent index.html component_scripts block -->
+{% block scripts %}
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/hyperparameter.js') }}"></script>
+{% endblock %}
 
-<style>
-    .details-section {
-        margin-bottom: 30px;
-    }
-    
-    .metrics-details,
-    .trials-details {
-        margin-bottom: 30px;
-    }
-    
-    .best-trial {
-        background-color: rgba(46, 204, 113, 0.1) !important;
-        font-weight: bold;
-    }
-    
-    .importance-method-info {
-        margin-bottom: 15px;
-        padding: 10px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-    }
-    
-    .importance-method-info p {
-        margin: 0;
-    }
-</style>
+{% block component_scripts %}
+    <script src="{{ url_for('static', filename='js/hyperparameter/importance.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/tuning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hyperparameter/details.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!-- intensity_chart.html - placeholder -->
+<!-- intensity_chart.html - Distribution shift intensity visualization -->
+<div class="intensity-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="intensity-chart-plot" class="chart-plot"></div>
+    
+    <div class="chart-controls">
+        <div class="feature-filter">
+            <label for="intensity-feature-selector">Feature:</label>
+            <select id="intensity-feature-selector" class="feature-selector">
+                <!-- Will be populated by JavaScript based on available features -->
+                <option value="all" selected>All Features</option>
+            </select>
+        </div>
+        
+        <div class="metric-filter">
+            <label for="intensity-metric-selector">Metric:</label>
+            <select id="intensity-metric-selector" class="metric-selector">
+                <option value="kl_divergence" selected>KL Divergence</option>
+                <option value="js_distance">JS Distance</option>
+                <option value="wasserstein">Wasserstein Distance</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="chart-legend">
+        <div class="legend-item">
+            <div class="legend-color high-intensity"></div>
+            <div class="legend-label">High Intensity</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color medium-intensity"></div>
+            <div class="legend-label">Medium Intensity</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color low-intensity"></div>
+            <div class="legend-label">Low Intensity</div>
+        </div>
+    </div>
+    
+    <div class="chart-notes">
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">This chart shows the intensity of distribution shifts across features, using statistical distance metrics to quantify the severity of shifts.</span>
+        </div>
+    </div>
+</div>

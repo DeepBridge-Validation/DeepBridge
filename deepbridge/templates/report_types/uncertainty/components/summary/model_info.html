@@ -1,0 +1,58 @@
+<!-- model_info.html - Model information display component -->
+<div class="model-info">
+    <div class="model-header">
+        <h3 class="model-title">Model Information</h3>
+    </div>
+
+    <div class="model-details">
+        <div class="model-detail-item">
+            <div class="detail-label">Model Type:</div>
+            <div class="detail-value">{{ model_type }}</div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Uncertainty Method:</div>
+            <div class="detail-value">{{ uncertainty_method }}</div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Target Variable:</div>
+            <div class="detail-value">{{ target_variable }}</div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Test Dataset:</div>
+            <div class="detail-value">{{ test_dataset }}</div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Number of Predictions:</div>
+            <div class="detail-value">{{ prediction_count }}</div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Alpha Levels:</div>
+            <div class="detail-value alpha-levels-info" data-tooltip="Confidence levels analyzed">
+                <span class="alpha-level-count">{{ alpha_levels|length }} levels</span>
+                <button class="alpha-levels-toggle" data-target="alpha-levels-list">View</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="alpha-levels-list" class="alpha-levels-list hidden">
+        <div class="alpha-levels-list-header">
+            <h4>Alpha Levels ({{ alpha_levels|length }})</h4>
+            <button class="alpha-levels-close">×</button>
+        </div>
+        <ul class="level-list">
+            {% for alpha in alpha_levels %}
+            <li class="level-item">α = {{ alpha }} ({{ (100 * (1 - alpha))|int }}% confidence)</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="uncertainty-timestamp">
+        <div class="timestamp-label">Analysis Completed:</div>
+        <div class="timestamp-value">{{ timestamp }}</div>
+    </div>
+</div>

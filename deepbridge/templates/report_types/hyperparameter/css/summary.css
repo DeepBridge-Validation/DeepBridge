@@ -1,0 +1,61 @@
+/* Styles for summary section */
+
+.summary-section {
+    margin-bottom: 30px;
+}
+
+.best-params {
+    margin-top: 20px;
+}
+
+.best-params h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.params-table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+/* Metric card styling - could alternatively be in the component CSS */
+.metric-card {
+    background-color: #fff;
+    border-radius: 4px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.metric-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #555;
+}
+
+.metric-description {
+    font-size: 14px;
+    color: #777;
+    margin-top: 5px;
+}
+
+/* Color variants for metric cards */
+.metric-card.primary {
+    border-left: 4px solid var(--primary-color, #4a6feb);
+}
+
+.metric-card.secondary {
+    border-left: 4px solid var(--secondary-color, #6c757d);
+}
+
+.metric-card.success {
+    border-left: 4px solid var(--success-color, #28a745);
+}

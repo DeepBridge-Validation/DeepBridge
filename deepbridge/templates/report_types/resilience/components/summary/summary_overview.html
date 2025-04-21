@@ -1,0 +1,135 @@
+<!-- summary_overview.html - placeholder -->
+<!-- summary_overview.html - Overall summary component -->
+<div class="summary-overview">
+    <div class="overview-header">
+        <h3 class="overview-title">Distribution Shift Resilience Analysis</h3>
+    </div>
+
+    <div class="overview-description">
+        <p>
+            This analysis evaluates how the model's performance changes when data distributions shift.
+            A resilient model maintains consistent performance despite distribution shifts between training and deployment data.
+        </p>
+    </div>
+
+    <div class="key-findings">
+        <h4 class="findings-title">Key Findings</h4>
+        
+        <div class="finding-item">
+            <div class="finding-icon">
+                <i class="icon-resilience"></i>
+            </div>
+            <div class="finding-content">
+                <div class="finding-label">Overall Resilience</div>
+                <div class="finding-value">
+                    {% if resilience_score is not defined or resilience_score is none %}
+                        <span class="neutral">Data not available</span>
+                    {% elif resilience_score >= 0.9 %}
+                        <span class="excellent">Excellent ({{ (resilience_score * 100)|int }}%)</span>
+                    {% elif resilience_score >= 0.8 %}
+                        <span class="good">Good ({{ (resilience_score * 100)|int }}%)</span>
+                    {% elif resilience_score >= 0.7 %}
+                        <span class="moderate">Moderate ({{ (resilience_score * 100)|int }}%)</span>
+                    {% elif resilience_score >= 0.6 %}
+                        <span class="fair">Fair ({{ (resilience_score * 100)|int }}%)</span>
+                    {% else %}
+                        <span class="poor">Limited ({{ (resilience_score * 100)|int }}%)</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="finding-item">
+            <div class="finding-icon">
+                <i class="icon-gap"></i>
+            </div>
+            <div class="finding-content">
+                <div class="finding-label">Performance Gap</div>
+                <div class="finding-value">
+                    {% if performance_gap is not defined or performance_gap is none %}
+                        <span class="neutral">Data not available</span>
+                    {% elif performance_gap < 0.05 %}
+                        <span class="excellent">Minimal ({{ (performance_gap * 100)|round(1) }}%)</span>
+                    {% elif performance_gap < 0.1 %}
+                        <span class="good">Small ({{ (performance_gap * 100)|round(1) }}%)</span>
+                    {% elif performance_gap < 0.15 %}
+                        <span class="moderate">Moderate ({{ (performance_gap * 100)|round(1) }}%)</span>
+                    {% elif performance_gap < 0.25 %}
+                        <span class="fair">Significant ({{ (performance_gap * 100)|round(1) }}%)</span>
+                    {% else %}
+                        <span class="poor">Large ({{ (performance_gap * 100)|round(1) }}%)</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="finding-item">
+            <div class="finding-icon">
+                <i class="icon-features"></i>
+            </div>
+            <div class="finding-content">
+                <div class="finding-label">Feature Sensitivity</div>
+                <div class="finding-value">
+                    <span class="info">{% if sensitive_features is defined %}{{ sensitive_features|length }}{% else %}0{% endif %} highly sensitive features</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="finding-item">
+            <div class="finding-icon">
+                <i class="icon-shift"></i>
+            </div>
+            <div class="finding-content">
+                <div class="finding-label">Most Affected Scenario</div>
+                <div class="finding-value">
+                    {% if most_affected_scenario is defined and max_gap is defined %}
+                        <span class="info">{{ most_affected_scenario }} ({{ (max_gap * 100)|round(1) }}% gap)</span>
+                    {% else %}
+                        <span class="info">Data not available</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="recommendations">
+        <h4 class="recommendations-title">Recommendations</h4>
+        
+        <ul class="recommendation-list">
+            {% if resilience_score is defined and resilience_score is not none and resilience_score < 0.7 %}
+            <li class="recommendation-item">
+                Consider retraining the model with augmented data that better represents potential distribution shifts
+            </li>
+            {% endif %}
+            
+            {% if performance_gap is defined and performance_gap is not none and performance_gap > 0.15 %}
+            <li class="recommendation-item">
+                Significant performance gap detected; implement targeted monitoring for distribution shifts in production
+            </li>
+            {% endif %}
+            
+            {% if sensitive_features is defined and sensitive_features|length > 0 %}
+            <li class="recommendation-item">
+                Focus on feature engineering for the {{ sensitive_features|length }} most sensitive features to improve resilience
+            </li>
+            {% endif %}
+            
+            {% if most_affected_scenario is defined and most_affected_scenario %}
+            <li class="recommendation-item">
+                Prioritize addressing the "{{ most_affected_scenario }}" scenario which shows the largest performance gap
+            </li>
+            {% endif %}
+            
+            {% if resilience_score is defined and resilience_score is not none and resilience_score >= 0.8 %}
+            <li class="recommendation-item">
+                Model demonstrates good resilience; continue monitoring with expanded distribution shift scenarios
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+    
+    <div class="summary-action-buttons">
+        <button class="action-button view-details">View Detailed Analysis</button>
+        <button class="action-button export-report">Export Report</button>
+    </div>
+</div>

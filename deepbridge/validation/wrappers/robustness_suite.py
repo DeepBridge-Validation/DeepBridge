@@ -184,16 +184,29 @@ class RobustnessSuite:
             'raw': {'by_level': {}, 'overall': {}},
             'quantile': {'by_level': {}, 'overall': {}},
             'feature_importance': {},
-            'model_feature_importance': self.evaluator.get_model_feature_importance(),  # Add native model feature importance
             'feature_subset': self.feature_subset,  # Store the feature subset used in the test
             'metric': self.metric  # Store the metric used for evaluation
         }
         
-        # For debugging model feature importance
-        if self.verbose and results['model_feature_importance']:
-            print(f"Model feature importance detected with {len(results['model_feature_importance'])} features")
-            top_features = sorted(results['model_feature_importance'].items(), key=lambda x: x[1], reverse=True)[:5]
-            print(f"Top 5 important features: {top_features}")
+        # Get model's native feature importance
+        try:
+            model_feature_importance = self.evaluator.get_model_feature_importance()
+            
+            if model_feature_importance:
+                if self.verbose:
+                    print(f"Model feature importance detected with {len(model_feature_importance)} features")
+                    top_features = sorted(model_feature_importance.items(), key=lambda x: x[1], reverse=True)[:5]
+                    print(f"Top 5 important features: {top_features}")
+                results['model_feature_importance'] = model_feature_importance
+            else:
+                if self.verbose:
+                    print("WARNING: Model does not provide native feature importance")
+                # Initialize with empty dictionary to avoid None
+                results['model_feature_importance'] = {}
+        except Exception as e:
+            print(f"ERROR getting model feature importance: {str(e)}")
+            # Initialize with empty dictionary
+            results['model_feature_importance'] = {}
         
         # Calculate baseline score
         base_score = self.evaluator.calculate_base_score(X, y)
@@ -295,12 +308,31 @@ class RobustnessSuite:
         if raw_levels:
             median_level = np.median(raw_levels)
             
-            # Evaluate feature importance
-            feature_importance = self.evaluator.evaluate_feature_importance(
-                X, y, 'raw', median_level, self.feature_subset
-            )
-            
-            results['feature_importance'] = feature_importance
+            try:
+                # Evaluate feature importance
+                if self.verbose:
+                    print(f"Calculating feature importance using raw perturbation at level {median_level}")
+                    
+                feature_importance = self.evaluator.evaluate_feature_importance(
+                    X, y, 'raw', median_level, self.feature_subset
+                )
+                
+                if feature_importance:
+                    if self.verbose:
+                        print(f"Feature importance calculation successful - found {len(feature_importance)} features")
+                        # Print top 5 features by importance
+                        top_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:5]
+                        print(f"Top 5 features by robustness importance: {top_features}")
+                    
+                    results['feature_importance'] = feature_importance
+                else:
+                    print("WARNING: Feature importance calculation returned empty results")
+                    # Initialize with empty dictionary to avoid None
+                    results['feature_importance'] = {}
+            except Exception as e:
+                print(f"ERROR calculating feature importance: {str(e)}")
+                # Initialize with empty dictionary
+                results['feature_importance'] = {}
         
         # Calculate average impacts
         results['avg_raw_impact'] = np.mean(all_raw_impacts) if all_raw_impacts else 0
@@ -401,12 +433,53 @@ class RobustnessSuite:
     
     def save_report(self, output_path: str = None, model_name: str = "Main Model", format: str = "html") -> str:
         """
-        This method has been deprecated as reporting functionality has been removed.
+        Generate and save a HTML report of robustness test results.
         
-        Raises:
-            NotImplementedError: Always raises this exception
+        Parameters:
+        -----------
+        output_path : str, optional
+            Path where to save the report. If None, use a timestamped filename in current directory.
+        model_name : str, optional
+            Name to display in the report
+        format : str, optional
+            Report format ('html' only for now)
+            
+        Returns:
+        --------
+        str : Path to the saved report
         """
-        raise NotImplementedError("Report generation functionality has been removed from this version.")
+        if not self.results:
+            raise ValueError("No results to generate report from. Run tests first.")
+            
+        if format.lower() != 'html':
+            raise ValueError("Only HTML report format is supported")
+            
+        # Create default output path if none specified
+        if output_path is None:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = f"robustness_report_{timestamp}.html"
+            
+        # Import report manager here to avoid circular imports
+        from deepbridge.core.experiment.report_manager import ReportManager
+        
+        # Create report manager and generate report
+        report_manager = ReportManager()
+        try:
+            report_path = report_manager.generate_robustness_report(
+                self.results, 
+                output_path, 
+                model_name
+            )
+            
+            if self.verbose:
+                print(f"Report saved to: {report_path}")
+                
+            return report_path
+            
+        except Exception as e:
+            print(f"Error generating report: {str(e)}")
+            raise
     
     def get_results(self) -> Dict[str, Any]:
         """Get the test results."""
@@ -414,12 +487,21 @@ class RobustnessSuite:
     
     def get_visualizations(self) -> Dict[str, Any]:
         """
-        This method has been deprecated as visualization functionality has been removed.
+        Get visualizations for the robustness tests.
         
-        Raises:
-            NotImplementedError: Always raises this exception
+        This method now returns a simple message instructing to use the HTML report
+        for visualizations as they are generated dynamically in the report.
+        
+        Returns:
+        --------
+        Dict[str, Any]: Empty dict with a message about using the HTML report
         """
-        raise NotImplementedError("Visualization functionality has been removed from this version.")
+        print("Visualizations are now generated in the HTML report.")
+        print("Please use save_report() to generate a full interactive HTML report.")
+        
+        return {
+            "message": "Visualizations are available in the HTML report. Use save_report() method."
+        }
         
     def update_model_name(self, original_results: Dict, model_type: str) -> Dict:
         """

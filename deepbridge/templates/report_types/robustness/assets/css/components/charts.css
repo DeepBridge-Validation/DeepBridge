@@ -1,0 +1,293 @@
+/* 
+ * charts.css
+ * Styling for chart components in the robustness report
+ */
+
+/* Common chart container styles */
+.chart-container {
+    position: relative;
+    min-height: 400px;
+    margin: 15px 0;
+    background-color: var(--chart-bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chart-plot {
+    width: 100%;
+    height: 100%;
+    min-height: 380px;
+}
+
+/* Chart loading state */
+.chart-container.loading .chart-plot {
+    opacity: 0.5;
+}
+
+.chart-loading-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Chart legend styles */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+    padding: 5px;
+    font-size: 0.9rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 10px 5px 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: var(--legend-bg-color);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    border-radius: 2px;
+}
+
+.legend-label {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.primary-model {
+    background-color: var(--primary-color);
+}
+
+.primary-model-ci {
+    background-color: rgba(var(--primary-color-rgb), 0.3);
+}
+
+.threshold-line {
+    background-color: var(--warning-color);
+}
+
+.avg-trend {
+    background-color: var(--gray-600);
+}
+
+/* Chart notes */
+.chart-notes {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background-color: var(--note-bg-color);
+    border-left: 3px solid var(--note-border-color);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.85rem;
+}
+
+.note-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.note-icon {
+    flex-shrink: 0;
+    margin-right: 8px;
+    font-size: 1rem;
+}
+
+.note-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+/* Chart controls */
+.chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background-color: var(--control-bg-color);
+    border-radius: var(--border-radius);
+}
+
+.chart-controls > div {
+    margin-right: 15px;
+    margin-bottom: 5px;
+}
+
+.chart-controls label {
+    margin-right: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.chart-controls select,
+.chart-controls input[type="checkbox"] {
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+/* Feature importance charts specific styles */
+.feature-importance-chart .chart-plot {
+    height: 450px;
+}
+
+.robustness-highlight {
+    background-color: var(--success-color);
+}
+
+.robustness-normal {
+    background-color: rgba(var(--success-color-rgb), 0.4);
+}
+
+.model-highlight {
+    background-color: var(--primary-color);
+}
+
+.model-normal {
+    background-color: rgba(var(--primary-color-rgb), 0.4);
+}
+
+.model-importance {
+    background-color: var(--primary-color);
+}
+
+.robustness-importance {
+    background-color: var(--success-color);
+}
+
+/* Model comparison charts specific styles */
+.model-comparison-chart .chart-plot {
+    height: 450px;
+}
+
+/* Comparison charts */
+.comparison-charts-container {
+    position: relative;
+}
+
+.comparison-chart {
+    display: none;
+    min-height: 450px;
+}
+
+.comparison-chart.active {
+    display: block;
+}
+
+/* Subset feature vs non-subset feature */
+.subset-feature {
+    background-color: var(--accent-color);
+}
+
+.non-subset-feature {
+    background-color: var(--gray-400);
+}
+
+/* Feature correlation chart */
+.feature-correlation-chart .chart-plot {
+    height: 500px;
+}
+
+/* Boxplot charts */
+.boxplot-chart .chart-plot {
+    height: 450px;
+}
+
+.box-color {
+    background-color: rgba(var(--primary-color-rgb), 0.6);
+}
+
+.mean-line {
+    background-color: var(--accent-color);
+}
+
+.base-line {
+    background-color: var(--success-color);
+}
+
+/* Distribution chart */
+.distribution-chart .chart-plot {
+    height: 450px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container,
+    .chart-plot {
+        min-height: 300px;
+    }
+    
+    .feature-importance-chart .chart-plot,
+    .model-comparison-chart .chart-plot,
+    .comparison-chart,
+    .feature-correlation-chart .chart-plot,
+    .boxplot-chart .chart-plot,
+    .distribution-chart .chart-plot {
+        height: 350px;
+    }
+    
+    .chart-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .chart-controls > div {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container,
+    .chart-plot {
+        min-height: 250px;
+    }
+    
+    .feature-importance-chart .chart-plot,
+    .model-comparison-chart .chart-plot,
+    .comparison-chart,
+    .feature-correlation-chart .chart-plot,
+    .boxplot-chart .chart-plot,
+    .distribution-chart .chart-plot {
+        height: 300px;
+    }
+    
+    .chart-legend {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .legend-item {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+}

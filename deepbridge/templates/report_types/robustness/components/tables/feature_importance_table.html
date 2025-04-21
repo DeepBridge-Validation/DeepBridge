@@ -1,0 +1,78 @@
+<!-- feature_importance_table.html - placeholder -->
+<div class="feature-importance-table-container">
+    <div class="table-controls">
+        <div class="search-filter">
+            <input type="text" id="feature-search-{{ type }}" class="feature-search" placeholder="Search features...">
+        </div>
+        
+        <div class="sorting-control">
+            <label for="sort-by-{{ type }}">Sort by:</label>
+            <select id="sort-by-{{ type }}" class="sort-selector">
+                <option value="importance" selected>Importance (High to Low)</option>
+                <option value="importance-asc">Importance (Low to High)</option>
+                <option value="name">Feature Name (A-Z)</option>
+                <option value="name-desc">Feature Name (Z-A)</option>
+                {% if type == "robustness" %}
+                <option value="subset">Optimal Subset First</option>
+                {% endif %}
+            </select>
+        </div>
+        
+        <div class="display-control">
+            <label for="rows-display-{{ type }}">Show:</label>
+            <select id="rows-display-{{ type }}" class="rows-selector">
+                <option value="10">10 rows</option>
+                <option value="25" selected>25 rows</option>
+                <option value="50">50 rows</option>
+                <option value="all">All rows</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table feature-table" id="feature-table-{{ type }}">
+            <thead>
+                <tr>
+                    <th class="feature-rank-col sortable" data-sort="rank">Rank</th>
+                    <th class="feature-name-col sortable" data-sort="name">Feature</th>
+                    <th class="feature-importance-col sortable" data-sort="importance">
+                        {% if type == "robustness" %}
+                        Robustness Importance
+                        {% elif type == "model" %}
+                        Model Importance
+                        {% else %}
+                        Importance Score
+                        {% endif %}
+                    </th>
+                    {% if type == "robustness" or type == "model" %}
+                    <th class="feature-subset-col sortable" data-sort="subset">In Optimal Subset</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="{% if type == 'robustness' or type == 'model' %}4{% else %}3{% endif %}">
+                        <div class="loading-indicator">Loading feature data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prev-page-{{ type }}" disabled>&laquo; Previous</button>
+            <span class="pagination-info" id="pagination-info-{{ type }}">Page 1 of 1</span>
+            <button class="pagination-btn" id="next-page-{{ type }}" disabled>Next &raquo;</button>
+        </div>
+    </div>
+
+    <div class="table-info">
+        {% if type == "robustness" %}
+        <p>Features with higher robustness importance scores have greater impact on model performance when perturbed. Features in the optimal subset are highlighted.</p>
+        {% elif type == "model" %}
+        <p>Features with higher model importance scores have greater influence on the model's predictions according to the model's internal metrics. Features in the optimal subset are highlighted.</p>
+        {% endif %}
+    </div>
+</div>

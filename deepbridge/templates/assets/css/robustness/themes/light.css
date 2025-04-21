@@ -1,0 +1,14 @@
+/* Light theme */
+:root {
+    --primary-color: #1b78de;
+    --secondary-color: #2c3e50;
+    --background-color: #f8f9fa;
+    --text-color: #333;
+    --border-color: #ddd;
+    --card-bg-color: #fff;
+    --chart-bg-color: #fff;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+}

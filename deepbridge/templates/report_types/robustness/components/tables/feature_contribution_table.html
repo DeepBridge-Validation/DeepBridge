@@ -1,0 +1,86 @@
+<div class="feature-contribution-table-container">
+    <div class="table-controls">
+        <div class="search-filter">
+            <input type="text" id="feature-search-contribution" class="feature-search" placeholder="Search features...">
+        </div>
+        
+        <div class="sorting-control">
+            <label for="sort-by-contribution">Sort by:</label>
+            <select id="sort-by-contribution" class="sort-selector">
+                <option value="importance" selected>Importance (High to Low)</option>
+                <option value="impact">Impact on Robustness (High to Low)</option>
+                <option value="name">Feature Name (A-Z)</option>
+                <option value="subset">Optimal Subset First</option>
+            </select>
+        </div>
+        
+        <div class="display-control">
+            <label for="rows-display-contribution">Show:</label>
+            <select id="rows-display-contribution" class="rows-selector">
+                <option value="10">10 rows</option>
+                <option value="25" selected>25 rows</option>
+                <option value="50">50 rows</option>
+                <option value="all">All rows</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table feature-contribution-table" id="feature-contribution-table">
+            <thead>
+                <tr>
+                    <th class="feature-name-col sortable" data-sort="name">Feature</th>
+                    <th class="importance-col sortable" data-sort="importance">Model Importance</th>
+                    <th class="contribution-col sortable" data-sort="contribution">Contribution to Model</th>
+                    <th class="impact-col sortable" data-sort="impact">Impact on Robustness</th>
+                    <th class="stability-col sortable" data-sort="stability">Stability Score</th>
+                    <th class="feature-subset-col sortable" data-sort="subset">In Optimal Subset</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="6">
+                        <div class="loading-indicator">Loading feature contribution data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prev-page-contribution" disabled>&laquo; Previous</button>
+            <span class="pagination-info" id="pagination-info-contribution">Page 1 of 1</span>
+            <button class="pagination-btn" id="next-page-contribution" disabled>Next &raquo;</button>
+        </div>
+    </div>
+
+    <div class="table-info">
+        <div class="info-panel">
+            <h4>Understanding Feature Contributions</h4>
+            <div class="info-columns">
+                <div class="info-column">
+                    <div class="info-item">
+                        <span class="info-term">Model Importance:</span>
+                        <span class="info-desc">The relative importance of the feature in the model's predictions</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-term">Contribution to Model:</span>
+                        <span class="info-desc">How the feature affects the model's output (positive or negative direction)</span>
+                    </div>
+                </div>
+                <div class="info-column">
+                    <div class="info-item">
+                        <span class="info-term">Impact on Robustness:</span>
+                        <span class="info-desc">How much the feature affects model robustness when perturbed</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-term">Stability Score:</span>
+                        <span class="info-desc">How consistently the feature behaves across different perturbation levels (higher is better)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,717 @@
+/* 
+ * widgets.css
+ * Styling for widget components in the robustness report
+ */
+
+/* Chart Selector Widget */
+.chart-selector-widget {
+    margin: 15px 0;
+}
+
+.selector-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.selector-btn {
+    padding: 8px 16px;
+    background-color: var(--button-bg-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: var(--border-radius);
+    color: var(--button-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.selector-btn:hover {
+    background-color: var(--button-hover-bg-color);
+}
+
+.selector-btn.active {
+    background-color: var(--button-active-bg-color);
+    color: var(--button-active-color);
+    border-color: var(--button-active-border-color);
+    font-weight: 500;
+}
+
+/* Tab Navigation Widget */
+.tab-navigation-widget {
+    margin-bottom: 20px;
+}
+
+.tab-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--tab-border-color);
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--text-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 500;
+}
+
+.tab-content {
+    display: none;
+    padding: 15px 0;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Feature Filter Widget */
+.feature-filter-widget {
+    margin: 15px 0;
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: var(--card-header-bg-color);
+    border-bottom: 1px solid var(--card-border-color);
+}
+
+.filter-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--heading-color);
+}
+
+.filter-toggle {
+    background: none;
+    border: none;
+    color: var(--text-secondary-color);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.filter-content {
+    padding: 15px;
+}
+
+.filter-section {
+    margin-bottom: 15px;
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 0.85rem;
+}
+
+.filter-option input[type="radio"] {
+    margin-right: 5px;
+}
+
+.range-selector {
+    display: flex;
+    align-items: center;
+}
+
+.range-input {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.range-value {
+    min-width: 30px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.filter-actions {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.apply-filter-btn {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.apply-filter-btn:hover {
+    background-color: var(--primary-dark-color);
+}
+
+/* Metric Card Widget */
+.metric-card-widget {
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.metric-card-content {
+    display: flex;
+    padding: 15px;
+}
+
+.metric-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    margin-right: 15px;
+    border-radius: 50%;
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.metric-icon-default::before {
+    content: "📊";
+}
+
+.metric-icon-raw::before {
+    content: "📈";
+}
+
+.metric-icon-quantile::before {
+    content: "📉";
+}
+
+.metric-icon-base::before {
+    content: "🎯";
+}
+
+.metric-details {
+    flex: 1;
+}
+
+.metric-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary-color);
+    margin-bottom: 5px;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+
+.metric-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary-color);
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
+.trend-icon {
+    margin-right: 5px;
+}
+
+.metric-trend.up {
+    color: var(--success-color);
+}
+
+.metric-trend.up .trend-icon::before {
+    content: "↑";
+}
+
+.metric-trend.down {
+    color: var(--danger-color);
+}
+
+.metric-trend.down .trend-icon::before {
+    content: "↓";
+}
+
+.metric-indicator {
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+}
+
+.indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.indicator-dot.excellent {
+    background-color: var(--excellent-color);
+}
+
+.indicator-dot.good {
+    background-color: var(--good-color);
+}
+
+.indicator-dot.moderate {
+    background-color: var(--moderate-color);
+}
+
+.indicator-dot.fair {
+    background-color: var(--fair-color);
+}
+
+.indicator-dot.poor {
+    background-color: var(--poor-color);
+}
+
+.indicator-dot.neutral {
+    background-color: var(--gray-400);
+}
+
+.metric-details-toggle {
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-header-bg-color);
+    border-top: 1px solid var(--card-border-color);
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-secondary-color);
+    transition: background-color 0.2s ease;
+}
+
+.metric-details-toggle:hover {
+    background-color: var(--card-header-hover-bg-color);
+}
+
+.toggle-text {
+    font-weight: 600;
+}
+
+.metric-extended-details {
+    padding: 15px;
+    background-color: var(--card-secondary-bg-color);
+    border-top: 1px solid var(--card-border-color);
+}
+
+.metric-detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.detail-label {
+    color: var(--text-secondary-color);
+}
+
+.detail-value {
+    font-weight: 600;
+}
+
+/* Interactive Tooltip Widget */
+.interactive-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary-color);
+    transition: color 0.2s ease;
+}
+
+.tooltip-trigger:hover {
+    color: var(--text-color);
+}
+
+.info-icon, 
+.question-icon,
+.warning-icon,
+.custom-icon {
+    font-size: 1rem;
+}
+
+.tooltip-content {
+    position: absolute;
+    z-index: 100;
+    min-width: 200px;
+    max-width: 300px;
+    background-color: var(--tooltip-bg-color);
+    color: var(--tooltip-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--tooltip-shadow);
+    padding: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.tooltip-content.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.tooltip-arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: var(--tooltip-bg-color);
+    transform: rotate(45deg);
+}
+
+.position-top .tooltip-arrow {
+    bottom: -5px;
+    left: 50%;
+    margin-left: -5px;
+}
+
+.position-bottom .tooltip-arrow {
+    top: -5px;
+    left: 50%;
+    margin-left: -5px;
+}
+
+.position-left .tooltip-arrow {
+    right: -5px;
+    top: 50%;
+    margin-top: -5px;
+}
+
+.position-right .tooltip-arrow {
+    left: -5px;
+    top: 50%;
+    margin-top: -5px;
+}
+
+.tooltip-inner {
+    position: relative;
+    padding: 10px;
+    z-index: 1;
+}
+
+.tooltip-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--tooltip-border-color);
+}
+
+.tooltip-body {
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.tooltip-body p {
+    margin: 0 0 5px 0;
+}
+
+.tooltip-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* Progress Bar Widget */
+.progress-bar-widget {
+    margin: 15px 0;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.progress-value {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.progress-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary-color);
+}
+
+.progress-bar-container {
+    position: relative;
+    background-color: var(--progress-bg-color);
+    border-radius: var(--border-radius-sm);
+    height: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0;
+    border-radius: var(--border-radius-sm);
+    transition: width 1s ease;
+}
+
+.progress-bar.default {
+    background-color: var(--primary-color);
+}
+
+.progress-bar.excellent {
+    background-color: var(--excellent-color);
+}
+
+.progress-bar.good {
+    background-color: var(--good-color);
+}
+
+.progress-bar.moderate {
+    background-color: var(--moderate-color);
+}
+
+.progress-bar.fair {
+    background-color: var(--fair-color);
+}
+
+.progress-bar.poor {
+    background-color: var(--poor-color);
+}
+
+.progress-thresholds {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.progress-threshold {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.threshold-line {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 2px;
+    height: calc(100% + 4px);
+    background-color: var(--text-secondary-color);
+}
+
+.threshold-label {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    color: var(--text-secondary-color);
+}
+
+.progress-segments {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.progress-segment {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.segment-label {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    color: var(--text-secondary-color);
+}
+
+.progress-legend {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 5px;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    border-radius: 2px;
+}
+
+.legend-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary-color);
+}
+
+.progress-description {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary-color);
+}
+
+/* Expandable Panel Widget */
+.expandable-panel-widget {
+    margin: 15px 0;
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: var(--card-header-bg-color);
+    border-bottom: 1px solid var(--card-border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.panel-header:hover {
+    background-color: var(--card-header-hover-bg-color);
+}
+
+.panel-title {
+    font-weight: 600;
+    color: var(--heading-color);
+}
+
+.panel-toggle {
+    color: var(--text-secondary-color);
+}
+
+.panel-content {
+    overflow: hidden;
+}
+
+.panel-description {
+    padding: 15px 15px 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+.panel-body {
+    padding: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .selector-buttons,
+    .tab-buttons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+    
+    .selector-btn,
+    .tab-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .filter-options {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .filter-option {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+    
+    .metric-card-content {
+        flex-direction: column;
+    }
+    
+    .metric-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .metric-indicator {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .selector-btn,
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .tooltip-content {
+        min-width: 150px;
+        max-width: 250px;
+    }
+}

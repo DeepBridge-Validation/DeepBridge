@@ -1,0 +1,91 @@
+<!-- distance_metric_chart.html - placeholder -->
+<!-- distance_metric_chart.html - Distribution distance metrics visualization -->
+<div class="distance-metric-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="distance-metric-chart-plot" class="chart-plot"></div>
+    
+    <div class="chart-controls">
+        <div class="feature-group-filter">
+            <label for="feature-group-selector">Feature Group:</label>
+            <select id="feature-group-selector" class="feature-group-selector">
+                <option value="all" selected>All Features</option>
+                <option value="numerical">Numerical Features</option>
+                <option value="categorical">Categorical Features</option>
+                <option value="most_shifted">Most Shifted Features</option>
+                <option value="least_shifted">Least Shifted Features</option>
+            </select>
+        </div>
+        
+        <div class="metric-selection">
+            <label for="primary-distance-metric">Primary Metric:</label>
+            <select id="primary-distance-metric" class="metric-selector">
+                <option value="kl_divergence" selected>KL Divergence</option>
+                <option value="js_distance">JS Distance</option>
+                <option value="wasserstein">Wasserstein Distance</option>
+                <option value="hellinger">Hellinger Distance</option>
+                <option value="tv_distance">Total Variation Distance</option>
+            </select>
+        </div>
+        
+        <div class="chart-type-selection">
+            <label for="chart-type-selector">Chart Type:</label>
+            <select id="chart-type-selector" class="chart-type-selector">
+                <option value="bar" selected>Bar Chart</option>
+                <option value="radar">Radar Chart</option>
+                <option value="heatmap">Heatmap</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="chart-legend">
+        <div class="legend-item">
+            <div class="legend-color high-distance"></div>
+            <div class="legend-label">High Distance (Significant Shift)</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color medium-distance"></div>
+            <div class="legend-label">Medium Distance</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color low-distance"></div>
+            <div class="legend-label">Low Distance (Minor Shift)</div>
+        </div>
+    </div>
+    
+    <div class="chart-interpretation">
+        <h4>Interpretation Guidelines</h4>
+        <div class="interpretation-table">
+            <div class="interpretation-row">
+                <div class="metric-name">KL Divergence</div>
+                <div class="threshold-ranges">
+                    <span class="low-range">0-0.5: Minor</span>
+                    <span class="medium-range">0.5-2.0: Moderate</span>
+                    <span class="high-range">>2.0: Significant</span>
+                </div>
+            </div>
+            <div class="interpretation-row">
+                <div class="metric-name">JS Distance</div>
+                <div class="threshold-ranges">
+                    <span class="low-range">0-0.2: Minor</span>
+                    <span class="medium-range">0.2-0.4: Moderate</span>
+                    <span class="high-range">>0.4: Significant</span>
+                </div>
+            </div>
+            <div class="interpretation-row">
+                <div class="metric-name">Wasserstein</div>
+                <div class="threshold-ranges">
+                    <span class="low-range">0-0.1: Minor</span>
+                    <span class="medium-range">0.1-0.3: Moderate</span>
+                    <span class="high-range">>0.3: Significant</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chart-notes">
+        <div class="note-item">
+            <span class="note-icon">📏</span>
+            <span class="note-text">This chart visualizes various statistical distance metrics between baseline and target distributions for each feature, helping identify which features have undergone the most significant shifts.</span>
+        </div>
+    </div>
+</div>

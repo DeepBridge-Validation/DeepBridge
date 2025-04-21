@@ -1,0 +1,30 @@
+<!-- metrics_summary.html -->
+<div class="metrics-summary">
+    <h3 class="metrics-summary-title">Performance Metrics</h3>
+    
+    <div class="metrics-summary-item">
+        <span class="metrics-summary-label">Base Score ({{ metric }})</span>
+        <span class="metrics-summary-value">{{ base_score|round(3) }}</span>
+    </div>
+    
+    <div class="metrics-summary-item">
+        <span class="metrics-summary-label">Raw Impact</span>
+        <span class="metrics-summary-value">{{ (raw_impact * 100)|round(1) }}%</span>
+    </div>
+    
+    <div class="metrics-summary-item">
+        <span class="metrics-summary-label">Quantile Impact</span>
+        <span class="metrics-summary-value">{{ (quantile_impact * 100)|round(1) }}%</span>
+    </div>
+    
+    <div class="metrics-summary-item">
+        <span class="metrics-summary-label">Feature Subset</span>
+        <span class="metrics-summary-value">
+            {% if feature_subset %}
+                {{ feature_subset|length }} features
+            {% else %}
+                All features
+            {% endif %}
+        </span>
+    </div>
+</div>

@@ -1,0 +1,120 @@
+<!-- calibration.html - Calibration analysis section of the uncertainty report -->
+{% extends "../components/widgets/tab_navigation.html" %}
+
+{% block tab_content %}
+<div class="calibration-section">
+    <div class="card">
+        <h2>Calibration Analysis</h2>
+        <p>This section analyzes how well the model's uncertainty estimates are calibrated, measuring the alignment between predicted probabilities and observed outcomes.</p>
+        
+        <!-- Summary Components -->
+        <div class="calibration-summary">
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-icon">
+                        <i class="icon-calibration"></i>
+                    </div>
+                    <div class="card-content">
+                        <h4>Expected Calibration Error</h4>
+                        <div class="card-value">{{ calibration_error|round(4) }}</div>
+                        <div class="card-description">Weighted average of calibration errors across probability bins</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="card-icon">
+                        <i class="icon-max-error"></i>
+                    </div>
+                    <div class="card-content">
+                        <h4>Maximum Calibration Error</h4>
+                        <div class="card-value">{{ max_calibration_error|round(4) }}</div>
+                        <div class="card-description">Largest calibration error observed in any bin</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="card-icon">
+                        <i class="icon-brier"></i>
+                    </div>
+                    <div class="card-content">
+                        <h4>Brier Score</h4>
+                        <div class="card-value">{{ brier_score|round(4) }}</div>
+                        <div class="card-description">Mean squared error of probability predictions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Calibration Chart -->
+        <div class="calibration-chart-container">
+            <h3>Reliability Diagram</h3>
+            {% include "../components/charts/calibration_chart.html" %}
+        </div>
+        
+        <!-- Calibration by Group Analysis -->
+        <div class="calibration-group-analysis">
+            <h3>Calibration by Group</h3>
+            <p>Analysis of calibration performance across different data subgroups or features</p>
+            
+            <div class="group-selector">
+                <label for="group-by-feature">Group By:</label>
+                <select id="group-by-feature" class="feature-select">
+                    <option value="none" selected>No Grouping</option>
+                    {% for feature in categorical_features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="group-calibration-chart" class="chart-container">
+                <!-- Group calibration chart will be rendered here -->
+            </div>
+            
+            <div class="group-insights">
+                <h4>Key Insights</h4>
+                <div id="group-calibration-insights" class="insights-container">
+                    <!-- Insights will be rendered here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Calibration Table -->
+        <div class="calibration-details">
+            <h3>Detailed Calibration Metrics</h3>
+            {% include "../components/tables/calibration_table.html" %}
+        </div>
+        
+        <!-- Recommendations -->
+        <div class="calibration-recommendations">
+            <h3>Calibration Recommendations</h3>
+            
+            <div class="recommendation-cards">
+                {% for recommendation in calibration_recommendations %}
+                <div class="recommendation-card {{ recommendation.priority }}">
+                    <div class="recommendation-header">
+                        <div class="recommendation-icon">{{ recommendation.icon }}</div>
+                        <h4 class="recommendation-title">{{ recommendation.title }}</h4>
+                        <div class="recommendation-priority-badge">{{ recommendation.priority }}</div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>{{ recommendation.description }}</p>
+                    </div>
+                    <div class="recommendation-actions">
+                        {% if recommendation.actions %}
+                        <div class="actions-list">
+                            {% for action in recommendation.actions %}
+                            <div class="action-item">
+                                <div class="action-icon">▶</div>
+                                <div class="action-text">{{ action }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

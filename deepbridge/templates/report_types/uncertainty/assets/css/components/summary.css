@@ -1,0 +1,174 @@
+/* summary.css - Styles for uncertainty report summary components */
+
+.summary-section {
+    margin-bottom: 30px;
+  }
+  
+  .uncertainty-score-indicator {
+    text-align: center;
+    margin: 30px 0;
+  }
+  
+  .score-circle {
+    display: inline-block;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .score-inner {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    bottom: 15px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  
+  .score-value {
+    font-size: 32px;
+    font-weight: bold;
+  }
+  
+  .score-label {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .score-description {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 15px;
+  }
+  
+  .score-text {
+    font-size: 16px;
+    color: #555;
+  }
+  
+  /* Metrics summary */
+  .metrics-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 20px 0;
+  }
+  
+  .metric-card {
+    flex: 1 0 250px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    position: relative;
+  }
+  
+  .metric-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    border-radius: 50%;
+    background-color: rgba(52, 152, 219, 0.1);
+  }
+  
+  .metric-content {
+    flex: 1;
+  }
+  
+  .metric-title {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  
+  .metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .metric-description {
+    font-size: 13px;
+    color: #888;
+  }
+  
+  .metric-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+  
+  .indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  .excellent { background-color: #2ecc71; }
+  .good { background-color: #3498db; }
+  .moderate { background-color: #f39c12; }
+  .fair { background-color: #e67e22; }
+  .poor { background-color: #e74c3c; }
+  
+  /* Model info */
+  .model-info {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+  
+  .model-header {
+    margin-bottom: 15px;
+  }
+  
+  .model-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .model-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+  }
+  
+  .model-detail-item {
+    display: flex;
+    margin-bottom: 10px;
+  }
+  
+  .detail-label {
+    min-width: 120px;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .detail-value {
+    color: #333;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .metrics-summary {
+      flex-direction: column;
+    }
+    
+    .model-details {
+      grid-template-columns: 1fr;
+    }
+  }

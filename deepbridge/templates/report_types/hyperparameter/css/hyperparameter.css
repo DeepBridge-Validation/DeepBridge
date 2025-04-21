@@ -1,0 +1,75 @@
+/* Main styles for hyperparameter analysis reports */
+
+/* Layout for metrics container */
+.metrics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metrics-container > div {
+    flex: 1 0 250px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .metrics-container > div {
+        flex: 1 0 100%;
+    }
+}
+
+/* Common section styling */
+.summary-section,
+.importance-section,
+.tuning-section,
+.details-section {
+    margin-bottom: 30px;
+}
+
+/* Card styling */
+.card {
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Tab styling */
+.tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Table styling */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+/* Chart containers */
+#importance-chart-container,
+#tuning-chart-container,
+#trials-container,
+#metrics-table-container,
+#importance-table-container {
+    margin: 20px 0;
+    min-height: 100px;
+}

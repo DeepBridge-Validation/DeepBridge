@@ -1,0 +1,393 @@
+/* widgets.css - Styles for widgets in the resilience module */
+
+/* Tab Navigation Widget */
+.tab-navigation-widget {
+    margin-bottom: 20px;
+}
+
+.tab-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background-color: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Chart Selector Widget */
+.chart-selector-widget {
+    margin-bottom: 20px;
+}
+
+.selector-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.selector-btn {
+    padding: 8px 16px;
+    background-color: #f5f7f9;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+.selector-btn:hover {
+    background-color: #e9ecef;
+}
+
+.selector-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Filter Widget */
+.filter-widget {
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.filter-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.filter-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    font-size: 18px;
+}
+
+.filter-section {
+    margin-bottom: 15px;
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #555;
+}
+
+.filter-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+.filter-option input {
+    margin-right: 5px;
+}
+
+.filter-actions {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.apply-filter-btn {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.apply-filter-btn:hover {
+    background-color: var(--primary-color-dark);
+}
+
+/* Progress Bar Widget */
+.progress-bar-widget {
+    margin-bottom: 20px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.progress-label {
+    font-size: 14px;
+    color: #555;
+}
+
+.progress-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.progress-bar-container {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+.progress-bar[data-type="default"] {
+    background-color: var(--primary-color);
+}
+
+.progress-bar[data-type="success-metric"] {
+    background-color: var(--chart-secondary);
+}
+
+.progress-bar[data-type="impact-metric"] {
+    background-color: var(--chart-tertiary);
+}
+
+.progress-description {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Metric Card Widget */
+.metric-card-widget {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card-widget:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.metric-card-content {
+    display: flex;
+    align-items: center;
+}
+
+.metric-icon {
+    margin-right: 15px;
+    font-size: 24px;
+    color: var(--primary-color);
+}
+
+.metric-details {
+    flex: 1;
+}
+
+.metric-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.metric-description {
+    font-size: 14px;
+    color: #666;
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.trend-icon {
+    margin-right: 5px;
+}
+
+.trend-value {
+    font-weight: 600;
+}
+
+.trend.positive {
+    color: #27ae60;
+}
+
+.trend.negative {
+    color: #e74c3c;
+}
+
+.trend.neutral {
+    color: #7f8c8d;
+}
+
+/* Interactive Tooltip Widget */
+.interactive-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-trigger {
+    cursor: pointer;
+    color: #3498db;
+    border-bottom: 1px dotted;
+}
+
+.tooltip-content {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    width: 250px;
+    padding: 10px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    font-size: 14px;
+}
+
+.tooltip-content.visible {
+    display: block;
+}
+
+.tooltip-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.tooltip-content.position-top .tooltip-arrow {
+    bottom: -10px;
+    left: 50%;
+    margin-left: -10px;
+    border-width: 10px 10px 0;
+    border-color: white transparent transparent;
+}
+
+.tooltip-content.position-bottom .tooltip-arrow {
+    top: -10px;
+    left: 50%;
+    margin-left: -10px;
+    border-width: 0 10px 10px;
+    border-color: transparent transparent white;
+}
+
+.tooltip-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.tooltip-body {
+    color: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tab-buttons {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .tab-btn {
+        width: 100%;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        padding: 12px 15px;
+    }
+    
+    .tab-btn.active {
+        border-left: 3px solid var(--primary-color);
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .selector-buttons {
+        flex-direction: column;
+    }
+    
+    .selector-btn {
+        width: 100%;
+    }
+    
+    .metric-card-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .metric-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .tooltip-content {
+        width: 200px;
+    }
+}

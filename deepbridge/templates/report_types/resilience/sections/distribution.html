@@ -1,0 +1,199 @@
+<!-- distribution.html - placeholder -->
+<!-- distribution.html - Distribution analysis section of the resilience report -->
+{% block content %}
+
+<div class="distribution-section">
+    <div class="card">
+        <h2>Distribution Analysis</h2>
+        <p>This section analyzes the distribution shifts between baseline and target datasets.</p>
+        
+        <!-- Feature Selector and Filters -->
+        <div class="distribution-controls">
+            <div class="feature-selector">
+                <label for="distribution-feature-selector">Feature:</label>
+                <select id="distribution-feature-selector" class="feature-select">
+                    <option value="">Select a feature...</option>
+                    {% for feature in features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="distribution-filter">
+                <!-- Filter widget -->
+                <div class="filter-widget" id="distribution-filter">
+                    <div class="filter-header">
+                        <h4>Filter Features</h4>
+                        <button class="collapse-button">▼</button>
+                    </div>
+                    <div class="filter-content" style="display:none;">
+                        <div class="filter-search">
+                            <input type="text" placeholder="Search features..." class="search-input">
+                        </div>
+                        <div class="filter-options">
+                            <!-- Feature filters will be added by JavaScript -->
+                        </div>
+                        <button class="apply-filter-btn">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Distribution Visualization -->
+        <div class="distribution-visualization">
+            <h3>Distribution Comparison</h3>
+            <div id="distribution-chart-container" class="chart-container">
+                {% include "report_types/resilience/components/charts/distribution_chart.html" %}
+            </div>
+            
+            <div class="distribution-metrics">
+                <div class="metrics-panel">
+                    <h4>Statistical Distance Metrics</h4>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">KL Divergence:</div>
+                            <div class="metric-value" id="kl-divergence">-</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">JS Distance:</div>
+                            <div class="metric-value" id="js-distance">-</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Wasserstein:</div>
+                            <div class="metric-value" id="wasserstein">-</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Hellinger:</div>
+                            <div class="metric-value" id="hellinger">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="statistics-panel">
+                    <h4>Distribution Statistics</h4>
+                    <div class="statistics-table-container">
+                        <table class="statistics-table">
+                            <thead>
+                                <tr>
+                                    <th>Statistic</th>
+                                    <th>Baseline</th>
+                                    <th>Target</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statistics-table-body">
+                                <!-- Will be populated by JavaScript -->
+                                <tr>
+                                    <td>Mean</td>
+                                    <td id="baseline-mean">-</td>
+                                    <td id="target-mean">-</td>
+                                    <td id="mean-change">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Median</td>
+                                    <td id="baseline-median">-</td>
+                                    <td id="target-median">-</td>
+                                    <td id="median-change">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Std Dev</td>
+                                    <td id="baseline-std">-</td>
+                                    <td id="target-std">-</td>
+                                    <td id="std-change">-</td>
+                                </tr>
+                                <tr>
+                                    <td>IQR</td>
+                                    <td id="baseline-iqr">-</td>
+                                    <td id="target-iqr">-</td>
+                                    <td id="iqr-change">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature Shift Intensity -->
+        <div class="shift-intensity">
+            <h3>Feature Shift Intensity</h3>
+            
+            <!-- Chart selector -->
+            <div class="chart-selector" id="intensity_charts_selector">
+                <div class="chart-options">
+                    <button class="chart-option active" data-option="Shift Magnitude">Shift Magnitude</button>
+                    <button class="chart-option" data-option="Feature Ranking">Feature Ranking</button>
+                    <button class="chart-option" data-option="Heatmap">Heatmap</button>
+                </div>
+            </div>
+            
+            <div class="intensity-charts-container">
+                <div id="shift-magnitude-container" class="chart-container active" data-chart-type="shift-magnitude">
+                    {% include "report_types/resilience/components/charts/intensity_chart.html" %}
+                </div>
+                
+                <div id="feature-ranking-container" class="chart-container" data-chart-type="feature-ranking">
+                    <!-- Feature ranking visualization will be rendered here -->
+                </div>
+                
+                <div id="shift-heatmap-container" class="chart-container" data-chart-type="shift-heatmap">
+                    <!-- Shift heatmap visualization will be rendered here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Distance Metrics Table -->
+        <div class="distance-metrics-section">
+            <h3>Feature Distance Metrics</h3>
+            <div class="distance-metrics-container">
+                {% include "report_types/resilience/components/tables/distance_metrics_table.html" %}
+            </div>
+        </div>
+        
+        <!-- Feature Correlation Analysis -->
+        <div class="correlation-analysis">
+            <h3>Feature Correlation Analysis</h3>
+            <p>This analysis examines how feature correlations change between baseline and target distributions.</p>
+            
+            <div class="correlation-controls">
+                <div class="feature-group-selector">
+                    <label for="correlation-feature-group">Feature Group:</label>
+                    <select id="correlation-feature-group" class="feature-group-select">
+                        <option value="all" selected>All Features</option>
+                        <option value="top_shifted">Top 10 Shifted Features</option>
+                        <option value="top_important">Top 10 Important Features</option>
+                        <option value="numerical">Numerical Features</option>
+                        <option value="categorical">Categorical Features</option>
+                    </select>
+                </div>
+                
+                <div class="correlation-type-selector">
+                    <label for="correlation-type">Correlation Type:</label>
+                    <select id="correlation-type" class="correlation-type-select">
+                        <option value="pearson" selected>Pearson</option>
+                        <option value="spearman">Spearman</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="correlation-visualization">
+                <div class="correlation-charts">
+                    <div class="correlation-chart-container">
+                        <h4>Baseline Correlation</h4>
+                        <div id="baseline-correlation-chart" class="chart-container"></div>
+                    </div>
+                    <div class="correlation-chart-container">
+                        <h4>Target Correlation</h4>
+                        <div id="target-correlation-chart" class="chart-container"></div>
+                    </div>
+                </div>
+                
+                <div class="correlation-difference">
+                    <h4>Correlation Difference</h4>
+                    <div id="correlation-difference-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

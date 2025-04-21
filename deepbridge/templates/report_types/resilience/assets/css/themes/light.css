@@ -1,0 +1,142 @@
+/* light.css - Light theme for the resilience module */
+
+:root {
+    /* Color palette - Light Theme */
+    --primary-color: #1b78de;
+    --primary-color-light: #3a90e8;
+    --primary-color-dark: #0e5cbc;
+    --secondary-color: #2ecc71;
+    --secondary-color-light: #4bd786;
+    --secondary-color-dark: #27ae60;
+    --tertiary-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    --warning-color: #f1c40f;
+    --success-color: #2ecc71;
+    
+    /* Text colors */
+    --text-color: #333333;
+    --text-color-light: #666666;
+    --text-color-lighter: #999999;
+    
+    /* Background colors */
+    --background-color: #ffffff;
+    --background-color-alt: #f8f9fa;
+    --background-color-card: #ffffff;
+    
+    /* Border colors */
+    --border-color: #e5e5e5;
+    --border-color-light: #eeeeee;
+    
+    /* Shadow */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color-strong: rgba(0, 0, 0, 0.15);
+    
+    /* Chart colors */
+    --chart-primary: #1b78de;
+    --chart-secondary: #2ecc71;
+    --chart-tertiary: #f39c12;
+    --chart-danger: #e74c3c;
+    --chart-info: #3498db;
+    --chart-warning: #f1c40f;
+    
+    /* Table colors */
+    --table-header-bg: #f5f7f9;
+    --table-border: #e5e5e5;
+    --table-hover-bg: #f9f9f9;
+    
+    /* Card style */
+    --card-bg: #ffffff;
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    /* Tab navigation */
+    --tab-active-color: #1b78de;
+    --tab-inactive-color: #666666;
+    --tab-border-color: #dddddd;
+    
+    /* Body background */
+    --body-bg: #f5f7f9;
+}
+
+body {
+    background-color: var(--body-bg);
+    color: var(--text-color);
+}
+
+.card {
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+}
+
+/* Light-specific overrides */
+.data-table th {
+    background-color: var(--table-header-bg);
+    color: var(--text-color);
+}
+
+.data-table td {
+    border-bottom-color: var(--table-border);
+}
+
+.chart-plot {
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+}
+
+.chart-controls {
+    background-color: var(--background-color-alt);
+}
+
+.chart-notes {
+    background-color: var(--background-color-alt);
+    border-left-color: var(--border-color);
+}
+
+.metric-card-widget {
+    background-color: var(--background-color);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.tab-buttons {
+    border-bottom-color: var(--tab-border-color);
+}
+
+.tab-btn {
+    color: var(--tab-inactive-color);
+}
+
+.tab-btn.active {
+    color: var(--tab-active-color);
+    border-bottom-color: var(--tab-active-color);
+}
+
+.tooltip-content {
+    background-color: var(--background-color);
+    box-shadow: 0 3px 10px var(--shadow-color-strong);
+}
+
+.tooltip-content.position-top .tooltip-arrow {
+    border-top-color: var(--background-color);
+}
+
+.tooltip-content.position-bottom .tooltip-arrow {
+    border-bottom-color: var(--background-color);
+}
+
+.filter-widget {
+    background-color: var(--background-color-alt);
+}
+
+/* Resilience score indicator for light theme */
+.score-circle {
+    box-shadow: 0 0 10px var(--shadow-color);
+}
+
+.score-inner {
+    background-color: var(--background-color);
+}
+
+/* Table hover effect for light theme */
+.data-table tbody tr:hover {
+    background-color: var(--table-hover-bg);
+}

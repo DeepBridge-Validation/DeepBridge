@@ -1,0 +1,282 @@
+<!-- feature_impact.html -->
+<div class="feature-impact-section">
+    <div class="card">
+        <h2>Feature Importance</h2>
+        <p>Analysis of how individual features impact model robustness.</p>
+        
+        <div class="feature-importance-chart-container">
+            <div id="feature-importance-chart" class="chart-plot"></div>
+        </div>
+        
+        <div class="feature-impact-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Impact</th>
+                        <th>Importance</th>
+                    </tr>
+                </thead>
+                <tbody id="feature-impact-data">
+                    <!-- Data will be loaded by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize feature importance when this tab is shown
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add a listener for the feature tab button
+        const featureTabBtn = document.querySelector('.tab-btn[data-tab="feature_impact"]');
+        if (featureTabBtn) {
+            featureTabBtn.addEventListener('click', function() {
+                console.log("Feature impact tab clicked, initializing feature data");
+                initializeFeatureImportanceView();
+            });
+        }
+        
+        function initializeFeatureImportanceView() {
+            // Create the feature importance chart
+            if (typeof Plotly !== 'undefined') {
+                createFeatureImportanceChart();
+                populateFeatureTable();
+            } else {
+                console.error("Plotly is not available for feature charts");
+                const chartElement = document.getElementById('feature-importance-chart');
+                if (chartElement) {
+                    chartElement.innerHTML = "<div style='padding: 20px; text-align: center; color: red;'>Plotly library not loaded. Charts cannot be displayed.</div>";
+                }
+            }
+        }
+        
+        function createFeatureImportanceChart() {
+            const chartElement = document.getElementById('feature-importance-chart');
+            if (!chartElement) return;
+            
+            try {
+                // Get feature importance data
+                let features = [];
+                let importance = [];
+                
+                if (window.reportConfig && window.reportConfig.feature_importance) {
+                    const featureImportance = window.reportConfig.feature_importance;
+                    
+                    // Sort features by importance
+                    const sortedFeatures = Object.keys(featureImportance).sort(
+                        (a, b) => featureImportance[b] - featureImportance[a]
+                    );
+                    
+                    console.log(`Found ${sortedFeatures.length} features with importance scores`);
+                    
+                    // Take top 10 features for readability
+                    const topFeatures = sortedFeatures.slice(0, 10);
+                    
+                    features = topFeatures;
+                    importance = topFeatures.map(feature => featureImportance[feature]);
+                }
+                
+                if (features.length === 0) {
+                    console.warn("No feature importance data found");
+                    chartElement.innerHTML = `
+                        <div class="data-unavailable">
+                            <div class="data-message">
+                                <span class="message-icon">🔍</span>
+                                <h3>No Feature Importance Data</h3>
+                                <p>No feature importance data is available in this report.</p>
+                                <p>This could be because feature importance analysis was not included in the robustness test configuration.</p>
+                            </div>
+                        </div>`;
+                    return;
+                }
+                
+                // Create trace for horizontal bar chart
+                const trace = {
+                    y: features,
+                    x: importance,
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: {
+                        color: '#1b78de'
+                    }
+                };
+                
+                // Layout for the chart
+                const layout = {
+                    title: 'Feature Importance',
+                    xaxis: {
+                        title: 'Importance Score'
+                    },
+                    margin: {
+                        l: 150,
+                        r: 50,
+                        b: 50,
+                        t: 50,
+                        pad: 4
+                    }
+                };
+                
+                // Create the plot
+                Plotly.newPlot(chartElement, [trace], layout, {responsive: true});
+                
+            } catch (error) {
+                console.error("Error creating feature importance chart:", error);
+                chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+            }
+        }
+        
+        function populateFeatureTable() {
+            const tableBody = document.getElementById('feature-impact-data');
+            if (!tableBody) return;
+            
+            try {
+                // Clear existing content
+                tableBody.innerHTML = '';
+                
+                let features = [];
+                let importanceValues = [];
+                
+                if (window.reportConfig && window.reportConfig.feature_importance) {
+                    const featureImportance = window.reportConfig.feature_importance;
+                    
+                    // Sort features by importance
+                    const sortedFeatures = Object.keys(featureImportance).sort(
+                        (a, b) => featureImportance[b] - featureImportance[a]
+                    );
+                    
+                    // Get model feature importance for comparison if available
+                    const modelImportance = window.reportConfig && window.reportConfig.model_feature_importance || {};
+                    
+                    // Take top 15 features for the table
+                    const topFeatures = sortedFeatures.slice(0, 15);
+                    
+                    if (topFeatures.length === 0) {
+                        // No data available
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 3;
+                        cell.innerHTML = `
+                            <div class="no-data-message">
+                                <p><strong>No feature importance data available</strong></p>
+                                <p>Feature importance calculation requires detailed robustness analysis.</p>
+                                <p>Run robustness tests with feature importance analysis enabled to see this data.</p>
+                            </div>
+                        `;
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                        return;
+                    }
+                    
+                    // Add rows for each feature
+                    topFeatures.forEach(feature => {
+                        const row = document.createElement('tr');
+                        
+                        const featureCell = document.createElement('td');
+                        featureCell.textContent = feature;
+                        
+                        const impactCell = document.createElement('td');
+                        impactCell.textContent = (featureImportance[feature] * 100).toFixed(2) + '%';
+                        
+                        const importanceCell = document.createElement('td');
+                        if (modelImportance[feature]) {
+                            importanceCell.textContent = (modelImportance[feature] * 100).toFixed(2) + '%';
+                        } else {
+                            importanceCell.textContent = 'N/A';
+                        }
+                        
+                        row.appendChild(featureCell);
+                        row.appendChild(impactCell);
+                        row.appendChild(importanceCell);
+                        
+                        tableBody.appendChild(row);
+                    });
+                    
+                } else {
+                    // No data available
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 3;
+                    cell.innerHTML = `
+                        <div class="no-data-message">
+                            <p><strong>No feature importance data available</strong></p>
+                            <p>Feature importance calculation requires detailed robustness analysis.</p>
+                            <p>Run robustness tests with feature importance analysis enabled to see this data.</p>
+                        </div>
+                    `;
+                    cell.style.textAlign = 'center';
+                    row.appendChild(cell);
+                    tableBody.appendChild(row);
+                }
+                
+            } catch (error) {
+                console.error("Error populating feature table:", error);
+                
+                // Show error message
+                tableBody.innerHTML = '';
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = 'Error loading feature data';
+                cell.style.textAlign = 'center';
+                cell.style.color = 'red';
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+            }
+        }
+    });
+</script>
+
+<style>
+    /* Data unavailable styling */
+    .data-unavailable {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 300px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .data-message {
+        text-align: center;
+        max-width: 80%;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .data-message h3 {
+        margin-top: 5px;
+        color: #495057;
+    }
+    
+    .data-message p {
+        color: #6c757d;
+        margin: 10px 0;
+    }
+    
+    .message-icon {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 10px;
+    }
+    
+    .no-data-message {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+    
+    .no-data-message p {
+        margin: 8px 0;
+        color: #6c757d;
+    }
+    
+    .no-data-message strong {
+        color: #495057;
+    }
+</style>

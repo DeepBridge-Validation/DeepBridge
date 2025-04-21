@@ -1,0 +1,61 @@
+<!-- expandable_panel.html - Collapsible panel for content organization -->
+<div class="expandable-panel {% if expanded %}expanded{% endif %}" id="{{ id|default('expandable-panel') }}">
+    <div class="panel-header">
+        <div class="header-content">
+            <h4 class="panel-title">{{ title }}</h4>
+            {% if subtitle %}<div class="panel-subtitle">{{ subtitle }}</div>{% endif %}
+        </div>
+        <div class="panel-controls">
+            <span class="toggle-icon">{% if expanded %}▼{% else %}▶{% endif %}</span>
+        </div>
+    </div>
+    
+    <div class="panel-content" {% if not expanded %}style="max-height: 0;"{% endif %}>
+        {% block panel_content %}
+        <!-- Content goes here, can be overridden in templates that use this widget -->
+        {{ content|safe }}
+        {% endblock %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initExpandablePanel('{{ id|default("expandable-panel") }}');
+    });
+
+    function initExpandablePanel(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        
+        const header = panel.querySelector('.panel-header');
+        const content = panel.querySelector('.panel-content');
+        const toggleIcon = panel.querySelector('.toggle-icon');
+        
+        if (header && content) {
+            header.addEventListener('click', function() {
+                const isExpanded = panel.classList.toggle('expanded');
+                
+                if (toggleIcon) {
+                    toggleIcon.textContent = isExpanded ? '▼' : '▶';
+                }
+                
+                // Animate height transition
+                if (isExpanded) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                } else {
+                    content.style.maxHeight = '0';
+                }
+                
+                // Dispatch event for panel state change
+                panel.dispatchEvent(new CustomEvent('panel-toggle', {
+                    detail: { isExpanded: isExpanded }
+                }));
+            });
+            
+            // Initialize panel
+            if (panel.classList.contains('expanded') && content.style.maxHeight === '0') {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
+    }
+</script>

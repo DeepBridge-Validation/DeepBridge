@@ -1,0 +1,111 @@
+<!-- interactive_tooltip.html - Enhanced tooltip with interactive content -->
+<div class="interactive-tooltip-wrapper" id="{{ id|default('interactive-tooltip') }}">
+    <div class="tooltip-trigger" data-tooltip-id="{{ id|default('interactive-tooltip') }}">
+        <span class="trigger-content">{{ trigger_content|default('?') }}</span>
+        <span class="indicator-icon">{% if indicator_icon %}{{ indicator_icon }}{% else %}ℹ️{% endif %}</span>
+    </div>
+    
+    <div class="tooltip-content" style="display: none;">
+        <div class="tooltip-header">
+            <h4 class="tooltip-title">{{ title }}</h4>
+            <button class="tooltip-close">&times;</button>
+        </div>
+        
+        <div class="tooltip-body">
+            {% block tooltip_content %}
+            <!-- Content goes here, can be overridden in templates that use this widget -->
+            {{ content|safe }}
+            {% endblock %}
+        </div>
+        
+        {% if has_actions %}
+        <div class="tooltip-actions">
+            {% block tooltip_actions %}
+            <!-- Action buttons go here, can be overridden in templates that use this widget -->
+            <button class="action-button tooltip-action">{{ action_text|default('Learn More') }}</button>
+            {% endblock %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initInteractiveTooltip('{{ id|default("interactive-tooltip") }}');
+    });
+
+    function initInteractiveTooltip(tooltipId) {
+        const wrapper = document.getElementById(tooltipId);
+        if (!wrapper) return;
+        
+        const trigger = wrapper.querySelector('.tooltip-trigger');
+        const content = wrapper.querySelector('.tooltip-content');
+        const closeBtn = wrapper.querySelector('.tooltip-close');
+        
+        if (trigger && content) {
+            // Position the tooltip content
+            const positionTooltip = () => {
+                const triggerRect = trigger.getBoundingClientRect();
+                const tooltipRect = content.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                
+                // Position horizontally - prefer right side but avoid overflow
+                let leftPos = triggerRect.right + 10;
+                if (leftPos + tooltipRect.width > windowWidth - 20) {
+                    leftPos = triggerRect.left - tooltipRect.width - 10;
+                }
+                
+                // If would go offscreen left, position below
+                if (leftPos < 20) {
+                    leftPos = triggerRect.left;
+                    content.style.top = (triggerRect.bottom + 10) + 'px';
+                } else {
+                    content.style.top = triggerRect.top + 'px';
+                }
+                
+                content.style.left = leftPos + 'px';
+            };
+            
+            // Show tooltip on trigger click
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Toggle state
+                const isVisible = content.style.display !== 'none';
+                
+                // Close all other tooltips first
+                document.querySelectorAll('.tooltip-content').forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                // Show this tooltip unless it was already shown
+                if (!isVisible) {
+                    content.style.display = 'block';
+                    positionTooltip();
+                }
+            });
+            
+            // Close on close button click
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    content.style.display = 'none';
+                });
+            }
+            
+            // Close on click outside
+            document.addEventListener('click', function(e) {
+                if (!wrapper.contains(e.target)) {
+                    content.style.display = 'none';
+                }
+            });
+            
+            // Reposition on window resize
+            window.addEventListener('resize', function() {
+                if (content.style.display !== 'none') {
+                    positionTooltip();
+                }
+            });
+        }
+    }
+</script>

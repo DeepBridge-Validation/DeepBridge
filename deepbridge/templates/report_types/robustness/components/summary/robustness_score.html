@@ -1,0 +1,16 @@
+<!-- robustness_score.html -->
+<div class="robustness-score-card">
+    <h3 class="robustness-score-title">Robustness Score</h3>
+    <p class="robustness-score-value">{{ robustness_score|round(2) }}</p>
+    <p class="robustness-score-description">
+        {% if robustness_score > 0.9 %}
+            Excellent robustness
+        {% elif robustness_score > 0.7 %}
+            Good robustness
+        {% elif robustness_score > 0.5 %}
+            Fair robustness
+        {% else %}
+            Poor robustness
+        {% endif %}
+    </p>
+</div>

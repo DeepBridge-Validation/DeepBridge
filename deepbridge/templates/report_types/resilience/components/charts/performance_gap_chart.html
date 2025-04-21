@@ -1,0 +1,75 @@
+<!-- performance_gap_chart.html - placeholder -->
+<!-- performance_gap_chart.html - Performance gap visualization -->
+<div class="performance-gap-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="performance-gap-chart-plot" class="chart-plot"></div>
+    
+    <div class="chart-controls">
+        <div class="metric-filter">
+            <label for="performance-metric-selector">Metric:</label>
+            <select id="performance-metric-selector" class="metric-selector">
+                <option value="accuracy" selected>Accuracy</option>
+                <option value="f1_score">F1 Score</option>
+                <option value="precision">Precision</option>
+                <option value="recall">Recall</option>
+                <option value="auc">AUC</option>
+            </select>
+        </div>
+        
+        <div class="scenario-filter">
+            <label for="scenario-selector">Scenario:</label>
+            <select id="scenario-selector" class="scenario-selector">
+                <option value="all" selected>All Scenarios</option>
+                <!-- Will be populated by JavaScript based on available scenarios -->
+            </select>
+        </div>
+        
+        <div class="display-options">
+            <label>
+                <input type="checkbox" id="normalize-to-baseline" checked>
+                Normalize to Baseline
+            </label>
+            <label>
+                <input type="checkbox" id="show-uncertainty">
+                Show Uncertainty
+            </label>
+        </div>
+    </div>
+    
+    <div class="chart-legend">
+        <div class="legend-item">
+            <div class="legend-color baseline-perf"></div>
+            <div class="legend-label">Baseline Performance</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color target-perf"></div>
+            <div class="legend-label">Target Performance</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color perf-gap"></div>
+            <div class="legend-label">Performance Gap</div>
+        </div>
+    </div>
+    
+    <div class="chart-summary">
+        <div class="summary-item">
+            <div class="summary-label">Average Gap:</div>
+            <div class="summary-value" id="avg-gap-value">-</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Maximum Gap:</div>
+            <div class="summary-value" id="max-gap-value">-</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Resilience Score:</div>
+            <div class="summary-value" id="resilience-score-value">-</div>
+        </div>
+    </div>
+    
+    <div class="chart-notes">
+        <div class="note-item">
+            <span class="note-icon">⚠️</span>
+            <span class="note-text">This chart shows the performance gap between baseline and target distributions, indicating the model's resilience to distribution shifts.</span>
+        </div>
+    </div>
+</div>

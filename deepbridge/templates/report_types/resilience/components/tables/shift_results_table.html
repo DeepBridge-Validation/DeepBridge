@@ -1,0 +1,125 @@
+<!-- shift_results_table.html - placeholder -->
+<!-- shift_results_table.html - Results for all distribution shifts -->
+<div class="shift-results-table-container">
+    <div class="table-info">
+        <p>This table shows model performance across different distribution shift scenarios.</p>
+    </div>
+
+    <div class="table-controls">
+        <div class="search-filter">
+            <input type="text" id="scenario-search" class="scenario-search" placeholder="Search scenarios...">
+        </div>
+        
+        <div class="sorting-control">
+            <label for="sort-by">Sort by:</label>
+            <select id="sort-by" class="sort-selector">
+                <option value="gap" selected>Performance Gap (High to Low)</option>
+                <option value="target_perf">Target Performance (Low to High)</option>
+                <option value="shift_magnitude">Shift Magnitude (High to Low)</option>
+                <option value="scenario">Scenario Name (A-Z)</option>
+            </select>
+        </div>
+        
+        <div class="display-control">
+            <label for="rows-display">Show:</label>
+            <select id="rows-display" class="rows-selector">
+                <option value="10">10 rows</option>
+                <option value="25" selected>25 rows</option>
+                <option value="50">50 rows</option>
+                <option value="all">All rows</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table shift-results-table" id="shift-results-table">
+            <thead>
+                <tr>
+                    <th class="scenario-col sortable" data-sort="scenario">Shift Scenario</th>
+                    <th class="baseline-col sortable" data-sort="baseline">Baseline Performance</th>
+                    <th class="target-col sortable" data-sort="target">Target Performance</th>
+                    <th class="gap-col sortable" data-sort="gap">Performance Gap</th>
+                    <th class="shift-col sortable" data-sort="shift">Shift Magnitude</th>
+                    <th class="resilience-col sortable" data-sort="resilience">Resilience Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if shift_scenarios is defined and shift_scenarios|length > 0 %}
+                    <!-- Table rows will be populated by JavaScript -->
+                    <tr class="loading-row">
+                        <td colspan="6">
+                            <div class="loading-indicator">Loading shift results data...</div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <!-- No data available message -->
+                    <tr class="no-data-row">
+                        <td colspan="6">
+                            <div class="no-data-message">Data not available from test results</div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prev-page" disabled>&laquo; Previous</button>
+            <span class="pagination-info" id="pagination-info">Page 1 of 1</span>
+            <button class="pagination-btn" id="next-page" disabled>Next &raquo;</button>
+        </div>
+    </div>
+
+    <div class="table-summary">
+        <div class="summary-metrics">
+            <div class="metric-item">
+                <span class="metric-label">Average Gap:</span>
+                <span class="metric-value" id="avg-gap">
+                    {% if performance_gap is defined %}
+                        {{ (performance_gap * 100)|round(1) }}%
+                    {% else %}
+                        <span class="neutral">Data not available</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Max Gap:</span>
+                <span class="metric-value" id="max-gap">
+                    {% if max_gap is defined %}
+                        {{ (max_gap * 100)|round(1) }}%
+                    {% else %}
+                        <span class="neutral">Data not available</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Overall Resilience:</span>
+                <span class="metric-value" id="overall-resilience">
+                    {% if resilience_score is defined %}
+                        {{ (resilience_score * 100)|round(1) }}%
+                    {% else %}
+                        <span class="neutral">Data not available</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-notes">
+        <div class="note-item">
+            <span class="note-icon">ℹ️</span>
+            <span class="note-text">
+                <strong>Performance Gap</strong> represents the decrease in performance when shifting from baseline to target distribution.
+                Lower values indicate better resilience.
+            </span>
+        </div>
+        <div class="note-item">
+            <span class="note-icon">📊</span>
+            <span class="note-text">
+                <strong>Shift Magnitude</strong> quantifies the statistical distance between baseline and target distributions.
+                Higher values indicate more severe distribution shifts.
+            </span>
+        </div>
+    </div>
+</div>

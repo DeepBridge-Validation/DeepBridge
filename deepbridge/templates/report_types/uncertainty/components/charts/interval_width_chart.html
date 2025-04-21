@@ -1,0 +1,57 @@
+<!-- interval_width_chart.html - Visualization of prediction interval widths -->
+<div class="interval-width-chart">
+    <!-- Chart will be rendered here by JavaScript -->
+    <div id="interval-width-chart-plot" class="chart-plot"></div>
+    
+    <div class="chart-controls">
+        <div class="alpha-selector">
+            <label for="interval-alpha-level">Alpha Level:</label>
+            <select id="interval-alpha-level" class="alpha-selector">
+                <option value="0.05" selected>95% Intervals (α=0.05)</option>
+                <option value="0.1">90% Intervals (α=0.1)</option>
+                <option value="0.01">99% Intervals (α=0.01)</option>
+                <option value="custom">Custom Alpha Level</option>
+            </select>
+            <input type="number" id="custom-alpha-value" class="custom-alpha-input" min="0.01" max="0.99" step="0.01" value="0.05" style="display: none;">
+        </div>
+        
+        <div class="display-options">
+            <label for="width-display-type">Display:</label>
+            <select id="width-display-type" class="display-selector">
+                <option value="distribution" selected>Width Distribution</option>
+                <option value="scatter">Width vs. Prediction</option>
+                <option value="boxplot">Box Plot by Group</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="chart-summary">
+        <div class="summary-item">
+            <div class="summary-label">Average Width:</div>
+            <div class="summary-value" id="avg-interval-width">-</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Width Range:</div>
+            <div class="summary-value" id="interval-width-range">-</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Coefficient of Variation:</div>
+            <div class="summary-value" id="width-cv">-</div>
+        </div>
+    </div>
+    
+    <div class="width-vs-accuracy">
+        <h4>Width vs. Coverage Analysis</h4>
+        <div id="width-accuracy-plot" class="chart-plot"></div>
+        <div class="analysis-note">
+            <p>This analysis shows how prediction interval width relates to accuracy. Wider intervals typically provide better coverage but less precision.</p>
+        </div>
+    </div>
+    
+    <div class="chart-notes">
+        <div class="note-item">
+            <span class="note-icon">📏</span>
+            <span class="note-text">Interval width represents the uncertainty in predictions. Larger widths indicate higher uncertainty, while smaller widths suggest more confident predictions.</span>
+        </div>
+    </div>
+</div>

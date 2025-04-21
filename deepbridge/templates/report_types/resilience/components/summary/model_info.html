@@ -1,0 +1,79 @@
+<!-- model_info.html - placeholder -->
+<!-- model_info.html - Model information display component -->
+<div class="model-info">
+    <div class="model-header">
+        <h3 class="model-title">Model Information</h3>
+    </div>
+
+    <div class="model-details">
+        <div class="model-detail-item">
+            <div class="detail-label">Model Type:</div>
+            <div class="detail-value">
+                {% if model_type is defined %}{{ model_type }}{% else %}<span class="neutral">Data not available</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Evaluation Metric:</div>
+            <div class="detail-value">
+                {% if metric is defined %}{{ metric }}{% else %}<span class="neutral">Data not available</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Baseline Dataset:</div>
+            <div class="detail-value">
+                {% if baseline_dataset is defined %}{{ baseline_dataset }}{% else %}<span class="neutral">Data not available</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Target Dataset:</div>
+            <div class="detail-value">
+                {% if target_dataset is defined %}{{ target_dataset }}{% else %}<span class="neutral">Data not available</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Shift Scenarios:</div>
+            <div class="detail-value shift-scenarios-info" data-tooltip="Different shift scenarios evaluated">
+                <span class="shift-scenario-count">
+                    {% if shift_scenarios is defined and shift_scenarios|length > 0 %}
+                        {{ shift_scenarios|length }} scenarios
+                    {% else %}
+                        <span class="neutral">Data not available</span>
+                    {% endif %}
+                </span>
+                {% if shift_scenarios is defined and shift_scenarios|length > 0 %}
+                    <button class="shift-scenarios-toggle" data-target="shift-scenarios-list">View</button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="shift-scenarios-list" class="shift-scenarios-list hidden">
+            <div class="shift-scenarios-list-header">
+                <h4>Shift Scenarios {% if shift_scenarios is defined %}({{ shift_scenarios|length }}){% endif %}</h4>
+                <button class="shift-scenarios-close">×</button>
+            </div>
+            <ul class="scenario-list">
+                {% if shift_scenarios is defined and shift_scenarios|length > 0 %}
+                    {% for scenario in shift_scenarios %}
+                    <li class="scenario-item">{{ scenario }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li class="scenario-item no-data">Data not available from test results</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="model-detail-item">
+            <div class="detail-label">Critical Features:</div>
+            <div class="detail-value">{% if critical_features is defined %}{{ critical_features|length }}{% else %}<span class="neutral">Data not available</span>{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="resilience-timestamp">
+        <div class="timestamp-label">Analysis Completed:</div>
+        <div class="timestamp-value">{% if timestamp is defined %}{{ timestamp }}{% else %}<span class="neutral">Data not available</span>{% endif %}</div>
+    </div>
+</div>

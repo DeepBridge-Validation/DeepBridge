@@ -1,0 +1,54 @@
+<!-- model_comparison_table.html - placeholder -->
+<div class="model-comparison-table-container">
+    <div class="table-info">
+        <p>This table compares the performance of different models under perturbation testing.</p>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table comparison-table" id="model-comparison-table">
+            <thead>
+                <tr>
+                    <th class="model-col">Model</th>
+                    <th class="base-score-col">Base Score</th>
+                    <th class="robustness-score-col">Robustness Score</th>
+                    <th class="raw-impact-col">Raw Impact</th>
+                    <th class="quantile-impact-col">Quantile Impact</th>
+                    <th class="worst-level-col">Worst Perturbation</th>
+                    <th class="best-features-col">Best With Subset</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="7">
+                        <div class="loading-indicator">Loading comparison data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="comparative-analysis">
+        <h4>Comparative Analysis</h4>
+        <div id="comparative-analysis-content">
+            <!-- Will be populated by JavaScript -->
+            <p class="loading-text">Analyzing model performance data...</p>
+        </div>
+    </div>
+
+    <div class="table-notes">
+        <div class="note-item">
+            <span class="note-icon">🏆</span>
+            <span class="note-text">
+                <strong>Robustness Score</strong> indicates how well the model maintains performance under perturbation.
+                Higher values indicate better robustness.
+            </span>
+        </div>
+        <div class="note-item">
+            <span class="note-icon">✓</span>
+            <span class="note-text">
+                <strong>Best With Subset</strong> indicates whether the model performs better when using only the optimal feature subset.
+            </span>
+        </div>
+    </div>
+</div>

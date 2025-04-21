@@ -1,0 +1,51 @@
+<!-- chart_selector.html - Selector widget for switching between chart types -->
+<div class="chart-selector-widget" id="{{ id|default('chart-selector') }}">
+    <div class="selector-buttons">
+        {% for option in options %}
+            <button 
+                class="selector-btn {% if option == activeOption %}active{% endif %}" 
+                data-option="{{ option|lower|replace(' ', '-') }}"
+                data-controller="{{ controller }}"
+            >
+                {{ option }}
+            </button>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initChartSelector('{{ id|default("chart-selector") }}', '{{ controller }}');
+    });
+
+    function initChartSelector(selectorId, controllerName) {
+        const selectorWidget = document.getElementById(selectorId);
+        if (!selectorWidget) return;
+
+        const buttons = selectorWidget.querySelectorAll('.selector-btn');
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                const option = this.getAttribute('data-option');
+                
+                // Update active button state
+                buttons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Call the controller function if it exists
+                if (controllerName && window[controllerName]) {
+                    window[controllerName](option);
+                } else {
+                    // Default behavior - show related content
+                    document.querySelectorAll('.chart-container').forEach(container => {
+                        container.classList.toggle('active', 
+                            container.getAttribute('data-chart-type') === option);
+                    });
+                }
+                
+                // Trigger resize event to ensure charts render properly
+                window.dispatchEvent(new Event('resize'));
+            });
+        });
+    }
+</script>

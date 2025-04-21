@@ -1,1466 +1,1959 @@
-{% extends "base.html" %}
-
-{% block title %}DeepBridge Robustness Report{% endblock %}
-
-{% block head %}
-<style>
-    .robustness-score-indicator {
-        text-align: center;
-        margin: 30px 0;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Robustness Report</title>
     
-    .score-circle {
-        display: inline-block;
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        background: conic-gradient(
-            var(--primary-color) calc({{ robustness_score|float * 360 }}deg),
-            #e9ecef calc({{ robustness_score|float * 360 }}deg) 360deg
-        );
-        position: relative;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/png;base64, {{ favicon }}" type="image/png">
     
-    .score-inner {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        right: 15px;
-        bottom: 15px;
-        background-color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
+    <!-- Inline Plotly library -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
     
-    .score-value {
-        font-size: 32px;
-        font-weight: bold;
-        color: var(--primary-color);
-    }
-    
-    .score-label {
-        font-size: 14px;
-        color: #666;
-    }
-    
-    .metrics-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .metrics-container > div {
-        flex: 1 0 250px;
-    }
-    
-    @media (max-width: 768px) {
-        .metrics-container > div {
-            flex: 1 0 100%;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-    {# Summary Section #}
-    {% include "report_types/robustness/summary.html" %}
-    
-    {# Tabs Navigation #}
-    {% from "components/ui/tabs.html" import tabs %}
-    {{ tabs([
-        {"id": "overview", "title": "Overview", "active": true},
-        {"id": "details", "title": "Detailed Results"},
-        {"id": "boxplot", "title": "Box Plot Analysis"},
-        {"id": "features", "title": "Feature Importance"}
-    ]) }}
-    
-    {# Tab Contents #}
-    <div id="overview" class="tab-content active">
-        {% include "report_types/robustness/overview.html" %}
-    </div>
-    
-    <div id="details" class="tab-content">
-        {% include "report_types/robustness/details.html" %}
-    </div>
-    
-    <div id="boxplot" class="tab-content">
-        {% include "report_types/robustness/boxplot.html" %}
-    </div>
-    
-    <div id="features" class="tab-content">
-        {% include "report_types/robustness/feature_impact.html" %}
-    </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // Initialize with report data
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.debugDeepBridge) {
-            window.debugDeepBridge.logEvent('DOMContentLoaded', 'Robustness report');
+    <!-- Include all styles inline -->
+    <style>
+        /* Base variables and reset */
+        :root {
+            --primary-color: #1b78de;
+            --secondary-color: #2c3e50;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --text-color: #333;
+            --text-muted: #6c757d;
+            --border-color: #ddd;
+            --background-color: #f8f9fa;
+            --card-bg: #fff;
+            --header-bg: #ffffff;
         }
         
-        try {
-            // Parse the report data
-            window.reportData = JSON.parse('{{ report_data_json|safe }}');
-            console.log('Report data loaded:', window.reportData);
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('DataParsed', {
-                    dataSize: ('{{ report_data_json|safe }}').length,
-                    dataKeys: Object.keys(window.reportData)
-                });
-            }
-        } catch (error) {
-            console.error('Error parsing report data:', error);
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('DataParseError', error.message);
-            }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         
-        // Ensure Plotly is loaded
-        if (typeof Plotly === 'undefined') {
-            console.error('Plotly is not loaded. Loading it dynamically...');
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('PlotlyMissing', 'Loading dynamically');
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+        
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        
+        h1 {
+            font-size: 2rem;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+        }
+        
+        /* Layout containers */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* Card styles */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+        }
+        
+        /* Main robustness report styles */
+        .robustness-report {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .report-header {
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .header-info {
+            flex: 2;
+        }
+
+        .header-metrics {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Tab navigation */
+        .main-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-color);
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Chart containers */
+        .chart-container {
+            margin: 1.5rem 0;
+            display: none;
+            min-height: 300px;
+        }
+
+        .chart-container.active {
+            display: block;
+        }
+
+        .chart-plot {
+            min-height: 300px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Chart styles */
+        .chart-selector {
+            display: flex;
+            align-items: center;
+            background: #f0f2f5;
+            border-radius: 4px;
+            padding: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: fit-content;
+            overflow-x: auto;
+        }
+
+        .chart-selector-option {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .chart-selector-option.active {
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            font-weight: 500;
+        }
+        
+        /* Table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background-color: #f1f3f5;
+            font-weight: 600;
+        }
+        
+        /* Results table tabs */
+        .results-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        
+        .results-tabs .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .results-tabs .tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        /* Robustness score card styles */
+        .robustness-score-card {
+            background: linear-gradient(135deg, #1a5fb4, #3584e4);
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .robustness-score-title {
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .robustness-score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .robustness-score-description {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        /* Metrics summary styles */
+        .metrics-summary {
+            background-color: var(--light-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .metrics-summary-title {
+            font-size: 1rem;
+            margin: 0 0 0.75rem 0;
+            font-weight: 600;
+        }
+        
+        .metrics-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metrics-summary-label {
+            color: #495057;
+        }
+        
+        .metrics-summary-value {
+            font-weight: 600;
+        }
+        
+        /* Model info styles */
+        .model-info {
+            background-color: var(--light-color);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .model-info-title {
+            font-size: 1rem;
+            margin: 0 0 0.75rem 0;
+            font-weight: 600;
+        }
+        
+        .model-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .model-info-label {
+            color: #495057;
+        }
+        
+        .model-info-value {
+            font-weight: 600;
+        }
+        
+        /* Data unavailable styling */
+        .data-unavailable {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            background-color: var(--light-color);
+            border-radius: 8px;
+        }
+        
+        .data-message {
+            text-align: center;
+            max-width: 80%;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .data-message h3 {
+            margin-top: 5px;
+            color: #495057;
+        }
+        
+        .data-message p {
+            color: #6c757d;
+            margin: 10px 0;
+        }
+        
+        .message-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .no-data-message {
+            padding: 20px;
+            background-color: var(--light-color);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .no-data-message p {
+            margin: 8px 0;
+            color: #6c757d;
+        }
+        
+        .no-data-message strong {
+            color: #495057;
+        }
+        
+        /* Section styles */
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* Grid system for layout */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        
+        .col {
+            flex-basis: 0;
+            flex-grow: 1;
+            max-width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-12 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-8 {
+            flex: 0 0 66.666667%;
+            max-width: 66.666667%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        /* Responsive media queries */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
             }
             
-            var script = document.createElement('script');
-            script.src = 'https://cdn.plot.ly/plotly-2.29.1.min.js';
-            script.onload = function() {
-                console.log('Plotly loaded successfully');
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('PlotlyLoaded', 'Dynamic load successful');
-                }
-                // Trigger rendering of all charts
-                renderAllCharts();
-            };
-            script.onerror = function() {
-                console.error('Failed to load Plotly dynamically');
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('PlotlyLoadError', 'Failed to load dynamically');
-                }
-            };
-            document.head.appendChild(script);
-        } else {
-            console.log('Plotly is already loaded');
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('PlotlyPresent', 'Already loaded');
-            }
-            // Small delay to ensure the DOM is fully ready
-            setTimeout(renderAllCharts, 100);
-        }
-        
-        // Function to trigger all chart renderings
-        function renderAllCharts() {
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('RenderingCharts', 'Dispatching renderCharts event');
-            }
-            // Dispatch a custom event that component scripts will listen for
-            document.dispatchEvent(new CustomEvent('renderCharts'));
-        }
-    });
-</script>
-{% endblock %}
-
-{% block component_scripts %}
-<style>
-    /* For model comparison table */
-    .model-comparison-table {
-        margin-top: 30px;
-        margin-bottom: 20px;
-    }
-    
-    .model-comparison-table h3 {
-        margin-bottom: 15px;
-        font-size: 18px;
-        color: var(--secondary-color);
-    }
-    
-    .model-comparison-table .data-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .model-comparison-table .data-table th {
-        background-color: #f1f3f5;
-        padding: 10px;
-        text-align: left;
-        border: 1px solid #ddd;
-    }
-    
-    .model-comparison-table .data-table td {
-        padding: 8px 10px;
-        border: 1px solid #ddd;
-    }
-    
-    .model-comparison-table .data-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    
-    .model-comparison-table .data-table tr:hover {
-        background-color: #f1f1f1;
-    }
-    
-    /* For box plots and detailed results */
-    .boxplot-chart-container {
-        margin-bottom: 30px;
-    }
-    
-    .detail-section {
-        margin-top: 30px;
-        margin-bottom: 30px;
-    }
-    
-    .detail-section h3 {
-        margin-bottom: 20px;
-        font-size: 18px;
-        color: var(--secondary-color);
-    }
-    
-    .level-container {
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .level-container:last-child {
-        border-bottom: none;
-    }
-    
-    .level-container h4 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        font-size: 16px;
-        color: #555;
-    }
-</style>
-
-<script>
-    // Function to render all charts
-    function renderAllRobustnessCharts() {
-        if (!window.reportData) {
-            console.error('Cannot render charts: reportData not available');
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('RenderError', 'reportData not available');
-            }
-            return;
-        }
-        
-        if (typeof Plotly === 'undefined') {
-            console.error('Cannot render charts: Plotly not available');
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('RenderError', 'Plotly not available');
-            }
-            return;
-        }
-        
-        console.log('Rendering all robustness charts...');
-        if (window.debugDeepBridge) {
-            window.debugDeepBridge.logEvent('RenderingStarted', 'Robustness charts');
-        }
-        
-        // Tente acessar os dados diretamente ou pela estrutura primary_model
-        let reportData = window.reportData;
-        
-        // Se não tiver raw diretamente, mas tiver em primary_model, use os dados do primary_model
-        if (!reportData.raw && reportData.primary_model && reportData.primary_model.raw) {
-            reportData = reportData.primary_model;
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('UsingPrimaryModel', {
-                    primaryModelKeys: Object.keys(window.reportData.primary_model),
-                    primaryModelHasRaw: !!window.reportData.primary_model.raw,
-                    primaryModelHasByLevel: window.reportData.primary_model.raw && !!window.reportData.primary_model.raw.by_level
-                });
-            }
-        }
-        
-    // Scripts from overview.html, details.html, etc. will be executed here
-    // after reportData has been initialized
-        // Create perturbation effect chart
-        if (window.debugDeepBridge) {
-            window.debugDeepBridge.logEvent('CheckingData', {
-                hasRaw: !!reportData.raw,
-                hasRawByLevel: reportData.raw && !!reportData.raw.by_level,
-                rawKeys: reportData.raw ? Object.keys(reportData.raw) : [],
-                dataKeys: Object.keys(reportData),
-                reportDataType: typeof reportData,
-                reportDataIsArray: Array.isArray(reportData),
-                primaryModelExists: !!reportData.primary_model,
-                entireData: JSON.stringify(reportData).substring(0, 500) + '...'
-            });
-        }
-        
-        // Código removido, agora usando variável reportData dentro da função
-        
-        if (reportData.raw && reportData.raw.by_level) {
-            // Overview chart
-            const overviewChartContainer = document.getElementById('perturbation-chart-container');
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('ContainerCheck', {
-                    containerId: 'perturbation-chart-container',
-                    containerFound: !!overviewChartContainer
-                });
+            .col-6, .col-4, .col-8 {
+                flex: 0 0 100%;
+                max-width: 100%;
             }
             
-            if (overviewChartContainer) {
-                const levels = Object.keys(reportData.raw.by_level);
-                levels.sort((a, b) => parseFloat(a) - parseFloat(b));
-                
-                const scores = [];
-                
-                levels.forEach(level => {
-                    let score = 0;
-                    const levelData = reportData.raw.by_level[level];
-                    
-                    if (levelData.overall_result) {
-                        if (levelData.overall_result.all_features) {
-                            score = levelData.overall_result.all_features.mean_score;
-                        } else if (levelData.overall_result.feature_subset) {
-                            score = levelData.overall_result.feature_subset.mean_score;
-                        }
-                    }
-                    
-                    scores.push(score);
-                });
-                
-                // Create the chart container
-                const chartId = 'raw-perturbation-chart';
-                overviewChartContainer.innerHTML = `
-                    <div id="${chartId}" style="height: 400px;"></div>
-                `;
-                
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('ChartContainerCreated', {
-                        chartId: chartId,
-                        containerExists: !!document.getElementById(chartId)
-                    });
-                }
-                
-                // Create traces for the primary model and alternative models
-                const traces = [{
-                    x: levels,
-                    y: scores,
-                    mode: 'lines+markers',
-                    type: 'scatter',
-                    name: reportData.model_name || 'Primary Model',
-                    marker: {
-                        size: 8,
-                        color: '#1b78de'
-                    },
-                    line: {
-                        width: 3,
-                        color: '#1b78de'
-                    }
-                }];
-                
-                // Add alternative models if available
-                if (reportData.alternative_models) {
-                    const colors = ['#e41a1c', '#4daf4a', '#984ea3', '#ff7f00', '#a65628', '#f781bf', '#999999'];
-                    let colorIndex = 0;
-                    
-                    for (const [modelName, modelData] of Object.entries(reportData.alternative_models)) {
-                        if (modelData.raw && modelData.raw.by_level) {
-                            const altScores = [];
-                            
-                            levels.forEach(level => {
-                                let score = 0;
-                                if (modelData.raw.by_level[level] && 
-                                    modelData.raw.by_level[level].overall_result) {
-                                    const levelData = modelData.raw.by_level[level];
-                                    
-                                    if (levelData.overall_result.all_features) {
-                                        score = levelData.overall_result.all_features.mean_score;
-                                    } else if (levelData.overall_result.feature_subset) {
-                                        score = levelData.overall_result.feature_subset.mean_score;
-                                    }
-                                }
-                                
-                                altScores.push(score);
-                            });
-                            
-                            traces.push({
-                                x: levels,
-                                y: altScores,
-                                mode: 'lines+markers',
-                                type: 'scatter',
-                                name: modelName,
-                                marker: {
-                                    size: 7,
-                                    symbol: 'circle',
-                                    color: colors[colorIndex % colors.length]
-                                },
-                                line: {
-                                    width: 2,
-                                    dash: 'solid',
-                                    color: colors[colorIndex % colors.length]
-                                }
-                            });
-                            
-                            colorIndex++;
-                        }
-                    }
-                }
-                
-                // Log before creating the chart
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('PlotlyNewPlotAttempt', {
-                        chartId: chartId,
-                        plotlyAvailable: typeof Plotly !== 'undefined',
-                        tracesCount: traces.length,
-                        targetElement: document.getElementById(chartId) ? 'exists' : 'missing'
-                    });
-                }
-                
-                try {
-                    // Use Plotly to create the chart with all traces
-                    Plotly.newPlot(chartId, traces, {
-                        title: 'Model Performance Comparison Under Gaussian Noise',
-                        xaxis: {
-                            title: 'Noise Level (Std Dev)',
-                            tickformat: '.2f'
-                        },
-                        yaxis: {
-                            title: reportData.metric ? reportData.metric : 'Performance Metric',
-                            tickformat: '.3f'
-                        },
-                        margin: {
-                            l: 60,
-                            r: 30,
-                            t: 50,
-                            b: 60
-                        },
-                        legend: {
-                            orientation: 'h',
-                            y: -0.2,
-                            xanchor: 'center',
-                            x: 0.5
-                        },
-                        hovermode: 'closest',
-                        paper_bgcolor: 'rgba(0,0,0,0)',
-                        plot_bgcolor: 'rgba(248,249,250,0.5)'
-                    }, {responsive: true});
-                    
-                    if (window.debugDeepBridge) {
-                        window.debugDeepBridge.logEvent('PlotlyNewPlotSuccess', {
-                            chartId: chartId
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error creating chart with Plotly:', error);
-                    if (window.debugDeepBridge) {
-                        window.debugDeepBridge.logEvent('PlotlyNewPlotError', {
-                            chartId: chartId,
-                            error: error.message
-                        });
-                    }
-                }
+            .main-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
             }
+        }
+        
+        /* Report footer */
+        .report-footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="robustness-report">
+        <!-- Report header -->
+        <div class="report-header card">
+            <div class="header-content">
+                <div class="header-info">
+                    <h1>Robustness Analysis: {{ model_name }}</h1>
+                    <p>This report presents the robustness analysis of the model against data perturbations.</p>
+                    <p><strong>Model:</strong> {{ model_type }}</p>
+                    <p><strong>Date:</strong> {{ timestamp }}</p>
+                </div>
+                <div class="header-metrics">
+                    <!-- Robustness Score Card -->
+                    <div class="robustness-score-card">
+                        <h3 class="robustness-score-title">Robustness Score</h3>
+                        <p class="robustness-score-value">{{ (robustness_score * 100)|round|int }}%</p>
+                        <p class="robustness-score-description">
+                            {% if robustness_score >= 0.8 %}
+                                Excellent resistance to perturbations
+                            {% elif robustness_score >= 0.6 %}
+                                Good resistance to perturbations
+                            {% elif robustness_score >= 0.4 %}
+                                Moderate resistance to perturbations
+                            {% else %}
+                                Needs improvement in perturbation resistance
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <!-- Metrics Summary -->
+                    <div class="metrics-summary">
+                        <h3 class="metrics-summary-title">Performance Metrics</h3>
+                        <div class="metrics-summary-item">
+                            <span class="metrics-summary-label">Base Score</span>
+                            <span class="metrics-summary-value">{{ base_score|round(3) }}</span>
+                        </div>
+                        <div class="metrics-summary-item">
+                            <span class="metrics-summary-label">Raw Impact</span>
+                            <span class="metrics-summary-value">{{ (raw_impact * 100)|round(2) }}%</span>
+                        </div>
+                        <div class="metrics-summary-item">
+                            <span class="metrics-summary-label">Quantile Impact</span>
+                            <span class="metrics-summary-value">{{ (quantile_impact * 100)|round(2) }}%</span>
+                        </div>
+                        <div class="metrics-summary-item">
+                            <span class="metrics-summary-label">Metric</span>
+                            <span class="metrics-summary-value">{{ metric }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Model Info -->
+                    <div class="model-info">
+                        <h3 class="model-info-title">Model Information</h3>
+                        <div class="model-info-item">
+                            <span class="model-info-label">Model Type</span>
+                            <span class="model-info-value">{{ model_type }}</span>
+                        </div>
+                        <div class="model-info-item">
+                            <span class="model-info-label">Features</span>
+                            <span class="model-info-value">{{ feature_count|default('N/A') }}</span>
+                        </div>
+                        <div class="model-info-item">
+                            <span class="model-info-label">Test Samples</span>
+                            <span class="model-info-value">{{ test_samples|default('N/A') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Tab Navigation -->
+        <div class="main-tabs" id="main-tabs">
+            <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="details">Details</button>
+            <button class="tab-btn" data-tab="boxplot">Box Plot</button>
+            <button class="tab-btn" data-tab="feature_impact">Feature Importance</button>
+            <button class="tab-btn" data-tab="model_features">Model Features</button>
+        </div>
+
+        <!-- Tab content sections -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section-title">Performance Overview</h2>
+                <p>This section shows how the model's performance changes under different perturbation levels.</p>
+                
+                <!-- Performance charts selector -->
+                <div class="chart-selector" id="performance_charts_selector">
+                    <button class="chart-selector-option active" data-chart-type="perturbation">Perturbation Impact</button>
+                    <button class="chart-selector-option" data-chart-type="worst">Worst Case</button>
+                    <button class="chart-selector-option" data-chart-type="mean">Mean Performance</button>
+                </div>
+                
+                <!-- Performance charts section -->
+                <div class="performance-charts-container">
+                    <div class="chart-container active" data-chart-type="perturbation">
+                        <div id="perturbation-chart-plot" class="chart-plot"></div>
+                    </div>
+                    <div class="chart-container" data-chart-type="worst">
+                        <div id="worst-score-chart-plot" class="chart-plot"></div>
+                    </div>
+                    <div class="chart-container" data-chart-type="mean">
+                        <div id="mean-score-chart-plot" class="chart-plot"></div>
+                    </div>
+                </div>
+            </div>
             
-            // Raw perturbation table
-            const rawTableElement = document.getElementById('raw-perturbation-table');
-            if (rawTableElement) {
-                const levels = Object.keys(reportData.raw.by_level);
-                levels.sort((a, b) => parseFloat(a) - parseFloat(b));
+            <div class="section model-comparison-section">
+                <h2 class="section-title">Model Comparison</h2>
+                <p>Comparison of robustness between different models (if available).</p>
                 
-                const rawTableData = [];
-                levels.forEach((level, index) => {
-                    const levelData = reportData.raw.by_level[level];
-                    let impact = 0;
-                    let score = 0;
-                    
-                    if (levelData.overall_result) {
-                        if (levelData.overall_result.all_features) {
-                            impact = levelData.overall_result.all_features.impact;
-                            score = levelData.overall_result.all_features.mean_score;
-                        } else if (levelData.overall_result.feature_subset) {
-                            impact = levelData.overall_result.feature_subset.impact;
-                            score = levelData.overall_result.feature_subset.mean_score;
-                        }
-                    }
-                    
-                    rawTableData.push([
-                        level,
-                        score.toFixed(4),
-                        impact.toFixed(4),
-                        (impact * 100).toFixed(2) + '%'
-                    ]);
-                });
+                <!-- Model comparison charts selector -->
+                <div class="chart-selector" id="model_comparison_selector">
+                    <button class="chart-selector-option active" data-chart-type="overview">Overview</button>
+                    <button class="chart-selector-option" data-chart-type="details">Details by Level</button>
+                </div>
                 
-                // Create table
-                rawTableElement.innerHTML = '';
-                const rawTableContainer = document.createElement('div');
-                rawTableElement.appendChild(rawTableContainer);
+                <!-- Model comparison charts -->
+                <div class="chart-container active" data-chart-type="overview">
+                    <div id="model-comparison-chart-plot" class="chart-plot"></div>
+                </div>
+                <div class="chart-container" data-chart-type="details">
+                    <div id="model-level-details-chart-plot" class="chart-plot"></div>
+                </div>
+            </div>
+            
+            <div class="section results-tables-section">
+                <h2 class="section-title">Detailed Results</h2>
                 
-                const rawTableHtml = `
-                    <table class="data-table">
+                <!-- Results tabs -->
+                <div class="results-tabs" id="result_tables_tabs">
+                    <div class="tab active" data-tab="model-comparison-results">Model Comparison</div>
+                    <div class="tab" data-tab="raw-perturbation-results">Raw Perturbation</div>
+                </div>
+                
+                <!-- Results tab content -->
+                <div id="model-comparison-results" class="tab-content active">
+                    <table class="data-table" id="model-comparison-table">
                         <thead>
                             <tr>
-                                <th>Noise Level</th>
-                                <th>Score</th>
-                                <th>Impact</th>
-                                <th>Relative Drop (%)</th>
+                                <th>Model</th>
+                                <th>Base Score</th>
+                                <th>Robustness Score</th>
+                                <th>Raw Impact</th>
+                                <th>Quantile Impact</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${rawTableData.map(row => `
-                                <tr>
-                                    <td>${row[0]}</td>
-                                    <td>${row[1]}</td>
-                                    <td>${row[2]}</td>
-                                    <td>${row[3]}</td>
-                                </tr>
-                            `).join('')}
+                            <!-- Will be filled by JavaScript -->
                         </tbody>
                     </table>
-                `;
+                </div>
                 
-                rawTableContainer.innerHTML = rawTableHtml;
+                <div id="raw-perturbation-results" class="tab-content">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Perturbation Level</th>
+                                <th>Base Score</th>
+                                <th>Perturbed Score</th>
+                                <th>Impact</th>
+                                <th>Worst Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="raw-perturbation-data">
+                            <!-- Will be filled by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="details" class="tab-content">
+            <div class="section">
+                <h2 class="section-title">Detailed Performance Analysis</h2>
+                <p>Detailed analysis of the model's performance under different perturbation types and levels.</p>
                 
-                // Add comparison table if alternative models exist
-                if (reportData.alternative_models && Object.keys(reportData.alternative_models).length > 0) {
-                    // Create a comparison table container if it doesn't exist
-                    const comparisonTableDiv = document.createElement('div');
-                    comparisonTableDiv.className = 'model-comparison-table';
-                    comparisonTableDiv.innerHTML = '<h3>Model Performance Comparison</h3>';
-                    rawTableElement.parentNode.insertBefore(comparisonTableDiv, rawTableElement.nextSibling);
-                    
-                    // Get all model names including primary model
-                    const modelNames = ['Primary Model', ...Object.keys(reportData.alternative_models)];
-                    
-                    // Setup table structure
-                    let comparisonTableHtml = `
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Noise Level</th>
-                                    ${modelNames.map(name => `<th>${name}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-                    
-                    // Get the levels
-                    const levels = Object.keys(reportData.raw.by_level);
-                    levels.sort((a, b) => parseFloat(a) - parseFloat(b));
-                    
-                    // For each level, get the score for each model
-                    levels.forEach(level => {
-                        comparisonTableHtml += `<tr><td>${level}</td>`;
+                <div class="no-data-message">
+                    <p><strong>Detailed perturbation data</strong></p>
+                    <p>To see detailed analysis of specific perturbations, select features in your robustness test.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="boxplot" class="tab-content">
+            <div class="section">
+                <h2 class="section-title">Performance Distribution</h2>
+                <p>Distribution of model performance under different perturbation levels.</p>
+                
+                <div class="no-data-message">
+                    <p><strong>Boxplot distribution data</strong></p>
+                    <p>Run the robustness test with multiple iterations to see the distribution of performance.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="feature_impact" class="tab-content">
+            <div class="section">
+                <h2 class="section-title">Feature Importance Analysis</h2>
+                <p>Analysis of how each feature contributes to model robustness.</p>
+                
+                <div id="feature-importance-chart" class="chart-plot"></div>
+                
+                <h3 class="mt-4">Feature Importance Table</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Robustness Impact</th>
+                            <th>Model Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feature-impact-data">
+                        <!-- Will be filled by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="model_features" class="tab-content">
+            <div class="section">
+                <h2 class="section-title">Model Feature Analysis</h2>
+                <p>Analysis of model features and their relationship to robustness.</p>
+                
+                <div class="no-data-message">
+                    <p><strong>Model feature analysis</strong></p>
+                    <p>Run the robustness test with feature_analysis=True to see detailed feature analysis.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Report footer -->
+        <div class="report-footer">
+            <p>Generated by DeepBridge Robustness Analysis Module</p>
+        </div>
+    </div>
+
+    <!-- Report data initialization -->
+    <script>
+        // Make report data available to components
+        window.reportData = JSON.parse('{{ report_data_json|safe }}');
+        
+        // Report configuration
+        window.reportConfig = {
+            feature_importance: {{ feature_importance|default('{}')|safe }},
+            model_feature_importance: {{ model_feature_importance|default('{}')|safe }},
+            feature_subset: {{ feature_subset|default('[]')|safe }},
+            metric: "{{ metric }}",
+            baseScore: {{ base_score }},
+            robustnessScore: {{ robustness_score }},
+            rawImpact: {{ raw_impact }},
+            quantileImpact: {{ quantile_impact }},
+            hasAlternativeModels: {{ has_alternative_models|lower }}
+        };
+    </script>
+
+    <!-- Inline Basic Controllers and Functionality -->
+    <script>
+        // Simple MainController implementation
+        const MainController = {
+            init: function() {
+                console.log("MainController initialized");
+                this.initTabNavigation();
+            },
+            
+            initTabNavigation: function() {
+                const mainTabs = document.getElementById('main-tabs');
+                if (!mainTabs) return;
+                
+                const tabButtons = mainTabs.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+                
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        // Remove active class from all buttons
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
                         
-                        // Primary model score
-                        let primaryScore = 0;
-                        const primaryData = reportData.raw.by_level[level];
-                        if (primaryData.overall_result) {
-                            if (primaryData.overall_result.all_features) {
-                                primaryScore = primaryData.overall_result.all_features.mean_score;
-                            } else if (primaryData.overall_result.feature_subset) {
-                                primaryScore = primaryData.overall_result.feature_subset.mean_score;
-                            }
-                        }
-                        comparisonTableHtml += `<td>${primaryScore.toFixed(4)}</td>`;
+                        // Add active class to clicked button
+                        this.classList.add('active');
                         
-                        // Alternative models scores
-                        Object.keys(reportData.alternative_models).forEach(modelName => {
-                            const modelData = reportData.alternative_models[modelName];
-                            let score = 0;
+                        // Hide all tab contents
+                        tabContents.forEach(content => content.classList.remove('active'));
+                        
+                        // Show target tab content
+                        const targetTab = this.getAttribute('data-tab');
+                        document.getElementById(targetTab).classList.add('active');
+                    });
+                });
+            }
+        };
+        
+        // Simple Overview Controller
+        const OverviewController = {
+            init: function() {
+                console.log("Overview section initialized");
+                
+                // Initialize chart selector
+                const chartSelector = document.getElementById('performance_charts_selector');
+                if (chartSelector) {
+                    console.log("Found performance charts selector");
+                    const options = chartSelector.querySelectorAll('.chart-selector-option');
+                    options.forEach(option => {
+                        option.addEventListener('click', function() {
+                            console.log("Chart option clicked:", this.textContent);
+                            // Remove active from all options
+                            options.forEach(opt => opt.classList.remove('active'));
+                            // Add active to clicked option
+                            this.classList.add('active');
                             
-                            if (modelData.raw && modelData.raw.by_level && 
-                                modelData.raw.by_level[level] && 
-                                modelData.raw.by_level[level].overall_result) {
-                                
-                                const levelData = modelData.raw.by_level[level];
-                                if (levelData.overall_result.all_features) {
-                                    score = levelData.overall_result.all_features.mean_score;
-                                } else if (levelData.overall_result.feature_subset) {
-                                    score = levelData.overall_result.feature_subset.mean_score;
-                                }
+                            // Show corresponding chart
+                            const chartType = this.getAttribute('data-chart-type');
+                            const containers = document.querySelectorAll('.performance-charts-container .chart-container');
+                            console.log(`Showing chart type: ${chartType}, found ${containers.length} containers`);
+                            
+                            containers.forEach(chart => {
+                                chart.classList.remove('active');
+                            });
+                            
+                            const targetChart = document.querySelector(`.chart-container[data-chart-type="${chartType}"]`);
+                            if (targetChart) {
+                                targetChart.classList.add('active');
+                            } else {
+                                console.error(`Chart container with data-chart-type="${chartType}" not found`);
                             }
-                            
-                            comparisonTableHtml += `<td>${score.toFixed(4)}</td>`;
                         });
-                        
-                        comparisonTableHtml += `</tr>`;
                     });
-                    
-                    comparisonTableHtml += `</tbody></table>`;
-                    comparisonTableDiv.innerHTML += comparisonTableHtml;
+                } else {
+                    console.warn("Performance charts selector not found");
                 }
-            }
-        }
-        
-        // Initialize details view with detailed perturbation results
-        const detailsContainer = document.getElementById('detailed-results-container');
-        if (detailsContainer) {
-            // Clear existing content first
-            detailsContainer.innerHTML = '';
-            
-            // Add raw perturbation details if available
-            if (reportData.raw && reportData.raw.by_level) {
-                const rawDetailSection = document.createElement('div');
-                rawDetailSection.className = 'detail-section';
-                rawDetailSection.innerHTML = '<h3>Raw Perturbation Detailed Results</h3>';
-                detailsContainer.appendChild(rawDetailSection);
                 
-                // Create raw perturbation details charts for each level
-                const levels = Object.keys(reportData.raw.by_level);
-                levels.sort((a, b) => parseFloat(a) - parseFloat(b));
-                
-                // For each level, create a chart showing all models
-                levels.forEach(level => {
-                    const levelData = reportData.raw.by_level[level];
-                    const levelContainer = document.createElement('div');
-                    levelContainer.className = 'level-container';
-                    levelContainer.innerHTML = `<h4>Perturbation Level: ${level}</h4>`;
-                    rawDetailSection.appendChild(levelContainer);
-                    
-                    // Create chart container
-                    const chartContainer = document.createElement('div');
-                    chartContainer.id = `raw-level-${level}-chart`;
-                    chartContainer.style.height = '300px';
-                    levelContainer.appendChild(chartContainer);
-                    
-                    // Create data for chart - all models at this level
-                    const chartData = [{
-                        type: 'bar',
-                        x: ['Primary Model'],
-                        y: [levelData.overall_result?.all_features?.mean_score || 0],
-                        name: 'Primary Model',
-                        marker: {
-                            color: '#1b78de'
-                        }
-                    }];
-                    
-                    // Add alternative models if available
-                    if (reportData.alternative_models) {
-                        const colors = ['#e41a1c', '#4daf4a', '#984ea3', '#ff7f00', '#a65628', '#f781bf'];
-                        let colorIndex = 0;
-                        
-                        for (const [modelName, modelData] of Object.entries(reportData.alternative_models)) {
-                            if (modelData.raw && modelData.raw.by_level && 
-                                modelData.raw.by_level[level] && 
-                                modelData.raw.by_level[level].overall_result) {
-                                
-                                const altLevelData = modelData.raw.by_level[level];
-                                const score = altLevelData.overall_result?.all_features?.mean_score || 0;
-                                
-                                chartData.push({
-                                    type: 'bar',
-                                    x: [modelName],
-                                    y: [score],
-                                    name: modelName,
-                                    marker: {
-                                        color: colors[colorIndex % colors.length]
-                                    }
-                                });
-                                
-                                colorIndex++;
+                // Initialize model comparison selector if it exists
+                const modelComparisonSelector = document.getElementById('model_comparison_selector');
+                if (modelComparisonSelector) {
+                    console.log("Found model comparison selector");
+                    const options = modelComparisonSelector.querySelectorAll('.chart-selector-option');
+                    options.forEach(option => {
+                        option.addEventListener('click', function() {
+                            console.log("Model comparison option clicked:", this.textContent);
+                            // Remove active from all options
+                            options.forEach(opt => opt.classList.remove('active'));
+                            // Add active to clicked option
+                            this.classList.add('active');
+                            
+                            // Show corresponding chart
+                            const chartType = this.getAttribute('data-chart-type');
+                            const containers = document.querySelectorAll('.model-comparison-section .chart-container');
+                            console.log(`Showing model comparison type: ${chartType}, found ${containers.length} containers`);
+                            
+                            containers.forEach(chart => {
+                                chart.classList.remove('active');
+                            });
+                            
+                            const targetChart = document.querySelector(`.model-comparison-section .chart-container[data-chart-type="${chartType}"]`);
+                            if (targetChart) {
+                                targetChart.classList.add('active');
+                            } else {
+                                console.error(`Model comparison container with data-chart-type="${chartType}" not found`);
                             }
-                        }
-                    }
-                    
-                    // Plot the chart
-                    Plotly.newPlot(chartContainer.id, chartData, {
-                        title: `Model Performance at Noise Level ${level}`,
-                        xaxis: {
-                            title: 'Model'
-                        },
-                        yaxis: {
-                            title: reportData.metric || 'Performance Metric'
-                        },
-                        barmode: 'group',
-                        margin: {
-                            l: 60,
-                            r: 30,
-                            t: 50,
-                            b: 60
-                        },
-                        paper_bgcolor: 'rgba(0,0,0,0)',
-                        plot_bgcolor: 'rgba(248,249,250,0.5)'
-                    }, {responsive: true});
-                });
-            }
-            
-            // Add quantile perturbation details if available
-            if (reportData.quantile && reportData.quantile.by_level) {
-                const quantileDetailSection = document.createElement('div');
-                quantileDetailSection.className = 'detail-section';
-                quantileDetailSection.innerHTML = '<h3>Quantile Perturbation Detailed Results</h3>';
-                detailsContainer.appendChild(quantileDetailSection);
-                
-                // Similar implementation for quantile perturbation details...
-            }
-        }
-        
-        // Initialize feature impact charts and other components
-        const featureImpactContainer = document.getElementById('feature-importance-container');
-        const featureImpactTable = document.getElementById('feature-importance-table');
-        
-        // Try to access feature importance data from the expected path
-        let featureImportance = null;
-        
-        // Log for debugging
-        if (window.debugDeepBridge) {
-            window.debugDeepBridge.logEvent('FeatureImportanceCheck', {
-                hasDirectFeatureImportance: !!reportData.feature_importance,
-                hasResults: !!reportData.results,
-                hasRobustnessResults: reportData.results && !!reportData.results['robustness'],
-                topLevelKeys: Object.keys(reportData),
-                reportDataType: typeof reportData
-            });
-        }
-        
-        // Check for the direct path
-        if (reportData.feature_importance) {
-            featureImportance = reportData.feature_importance;
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('UsingDirectFeatureImportance', {
-                    keys: Object.keys(reportData.feature_importance),
-                    sampleValue: Object.values(reportData.feature_importance)[0]
-                });
-            }
-        } 
-        // Check for nested data structure
-        else if (reportData.results && 
-                 reportData.results['robustness'] && 
-                 reportData.results['robustness'].results && 
-                 reportData.results['robustness'].results['primary_model'] &&
-                 reportData.results['robustness'].results['primary_model']['feature_importance']) {
-            featureImportance = reportData.results['robustness'].results['primary_model']['feature_importance'];
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('UsingNestedFeatureImportance', {
-                    path: 'results.robustness.results.primary_model.feature_importance',
-                    keys: Object.keys(reportData.results['robustness'].results['primary_model']['feature_importance']),
-                    sampleValue: Object.values(reportData.results['robustness'].results['primary_model']['feature_importance'])[0]
-                });
-            }
-        }
-        
-        if (featureImpactContainer && featureImportance) {
-            // Create feature importance chart...
-            const chartContainer = document.createElement('div');
-            chartContainer.id = 'feature-importance-chart';
-            chartContainer.style.height = '400px';
-            featureImpactContainer.appendChild(chartContainer);
-            
-            // Extract feature importance data
-            const features = Object.keys(featureImportance);
-            const importanceValues = Object.values(featureImportance);
-            
-            // Sort by importance value (descending), handling non-numeric values
-            const combined = features.map((feature, i) => ({ 
-                feature, 
-                importance: importanceValues[i] 
-            }));
-            
-            // Ordene apenas se os valores forem numéricos
-            combined.sort((a, b) => {
-                // Se ambos são números, compare normalmente
-                if (typeof a.importance === 'number' && typeof b.importance === 'number') {
-                    return b.importance - a.importance;
-                }
-                // Se apenas a é número, a vem primeiro
-                else if (typeof a.importance === 'number') {
-                    return -1;
-                }
-                // Se apenas b é número, b vem primeiro
-                else if (typeof b.importance === 'number') {
-                    return 1;
-                }
-                // Se nenhum é número, mantém a ordem original
-                return 0;
-            });
-            
-            // Filtrar apenas os itens com valores numéricos para o gráfico
-            const numericImportanceItems = combined.filter(item => typeof item.importance === 'number');
-            
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('FilteredImportanceItems', {
-                    beforeCount: combined.length,
-                    afterCount: numericImportanceItems.length,
-                    nonNumericCount: combined.length - numericImportanceItems.length
-                });
-            }
-            
-            // Plot the chart
-            Plotly.newPlot('feature-importance-chart', [{
-                type: 'bar',
-                x: numericImportanceItems.map(item => item.importance),
-                y: numericImportanceItems.map(item => item.feature),
-                orientation: 'h',
-                marker: {
-                    color: '#1b78de'
-                }
-            }], {
-                title: 'Robustness Feature Importance',
-                xaxis: {
-                    title: 'Importance Score'
-                },
-                yaxis: {
-                    title: 'Feature',
-                    automargin: true
-                },
-                margin: {
-                    l: 120,
-                    r: 30,
-                    t: 50,
-                    b: 60
-                },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(248,249,250,0.5)'
-            }, {responsive: true});
-            
-            // Create feature importance table
-            if (featureImpactTable) {
-                // Create table
-                const table = document.createElement('table');
-                table.className = 'feature-table';
-                
-                // Create table header
-                const thead = document.createElement('thead');
-                thead.innerHTML = `
-                    <tr>
-                        <th>Feature</th>
-                        <th>Robustness Importance Score</th>
-                    </tr>
-                `;
-                table.appendChild(thead);
-                
-                // Create table body
-                const tbody = document.createElement('tbody');
-                combined.forEach(item => {
-                    const row = document.createElement('tr');
-                    // Verificar se o valor de importância é um número
-                    const importanceValue = typeof item.importance === 'number' ? 
-                        item.importance.toFixed(4) : 
-                        (item.importance || 'N/A');
-                    
-                    row.innerHTML = `
-                        <td>${item.feature}</td>
-                        <td>${importanceValue}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-                table.appendChild(tbody);
-                
-                // Add table to container
-                featureImpactTable.appendChild(table);
-            }
-        }
-        
-        // Initialize model features charts
-        const modelFeaturesContainer = document.getElementById('model-features-container');
-        const modelFeaturesTable = document.getElementById('model-features-table');
-        
-        // Try to access model feature importance data from the expected path
-        let modelFeatureImportance = null;
-        
-        // Log for debugging
-        if (window.debugDeepBridge) {
-            window.debugDeepBridge.logEvent('ModelFeatureImportanceCheck', {
-                hasDirectModelFeatureImportance: !!reportData.model_feature_importance,
-                hasResults: !!reportData.results,
-                hasRobustnessResults: reportData.results && !!reportData.results['robustness'],
-                topLevelKeys: Object.keys(reportData)
-            });
-        }
-        
-        // Check for the direct path
-        if (reportData.model_feature_importance) {
-            modelFeatureImportance = reportData.model_feature_importance;
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('UsingDirectModelFeatureImportance', {
-                    keys: Object.keys(reportData.model_feature_importance),
-                    sampleValue: Object.values(reportData.model_feature_importance)[0]
-                });
-            }
-        } 
-        // Check for nested data structure
-        else if (reportData.results && 
-                 reportData.results['robustness'] && 
-                 reportData.results['robustness'].results && 
-                 reportData.results['robustness'].results['primary_model'] &&
-                 reportData.results['robustness'].results['primary_model']['model_feature_importance']) {
-            modelFeatureImportance = reportData.results['robustness'].results['primary_model']['model_feature_importance'];
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('UsingNestedModelFeatureImportance', {
-                    path: 'results.robustness.results.primary_model.model_feature_importance',
-                    keys: Object.keys(reportData.results['robustness'].results['primary_model']['model_feature_importance']),
-                    sampleValue: Object.values(reportData.results['robustness'].results['primary_model']['model_feature_importance'])[0]
-                });
-            }
-        }
-        
-        if (modelFeaturesContainer && modelFeatureImportance) {
-            // Create model features chart...
-            const chartContainer = document.createElement('div');
-            chartContainer.id = 'model-feature-importance-chart';
-            chartContainer.style.height = '400px';
-            modelFeaturesContainer.appendChild(chartContainer);
-            
-            // Extract model feature importance data
-            const features = Object.keys(modelFeatureImportance);
-            const importanceValues = Object.values(modelFeatureImportance);
-            
-            // Sort by importance value (descending), handling non-numeric values
-            const combined = features.map((feature, i) => ({ 
-                feature, 
-                importance: importanceValues[i] 
-            }));
-            
-            // Ordene apenas se os valores forem numéricos
-            combined.sort((a, b) => {
-                // Se ambos são números, compare normalmente
-                if (typeof a.importance === 'number' && typeof b.importance === 'number') {
-                    return b.importance - a.importance;
-                }
-                // Se apenas a é número, a vem primeiro
-                else if (typeof a.importance === 'number') {
-                    return -1;
-                }
-                // Se apenas b é número, b vem primeiro
-                else if (typeof b.importance === 'number') {
-                    return 1;
-                }
-                // Se nenhum é número, mantém a ordem original
-                return 0;
-            });
-            
-            // Filtrar apenas os itens com valores numéricos para o gráfico
-            const numericImportanceItems = combined.filter(item => typeof item.importance === 'number');
-            
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('FilteredModelImportanceItems', {
-                    beforeCount: combined.length,
-                    afterCount: numericImportanceItems.length,
-                    nonNumericCount: combined.length - numericImportanceItems.length
-                });
-            }
-            
-            // Plot the chart
-            Plotly.newPlot('model-feature-importance-chart', [{
-                type: 'bar',
-                x: numericImportanceItems.map(item => item.importance),
-                y: numericImportanceItems.map(item => item.feature),
-                orientation: 'h',
-                marker: {
-                    color: '#62a0ea'
-                }
-            }], {
-                title: 'Model Feature Importance',
-                xaxis: {
-                    title: 'Importance Score'
-                },
-                yaxis: {
-                    title: 'Feature',
-                    automargin: true
-                },
-                margin: {
-                    l: 120,
-                    r: 30,
-                    t: 50,
-                    b: 60
-                },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(248,249,250,0.5)'
-            }, {responsive: true});
-            
-            // Create model feature importance table
-            if (modelFeaturesTable) {
-                // Create table
-                const table = document.createElement('table');
-                table.className = 'feature-table';
-                
-                // Create table header
-                const thead = document.createElement('thead');
-                thead.innerHTML = `
-                    <tr>
-                        <th>Feature</th>
-                        <th>Model Importance Score</th>
-                    </tr>
-                `;
-                table.appendChild(thead);
-                
-                // Create table body
-                const tbody = document.createElement('tbody');
-                combined.forEach(item => {
-                    const row = document.createElement('tr');
-                    // Verificar se o valor de importância é um número
-                    const importanceValue = typeof item.importance === 'number' ? 
-                        item.importance.toFixed(4) : 
-                        (item.importance || 'N/A');
-                    
-                    row.innerHTML = `
-                        <td>${item.feature}</td>
-                        <td>${importanceValue}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-                table.appendChild(tbody);
-                
-                // Add table to container
-                modelFeaturesTable.appendChild(table);
-            }
-        }
-        
-        // Initialize Box Plot + Violin plots
-        const boxplotContainer = document.getElementById('boxplot-container');
-        if (boxplotContainer) {
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('BoxplotPrep', {
-                    containerId: 'boxplot-container',
-                    containerFound: !!boxplotContainer,
-                    hasRawData: !!reportData.raw,
-                    hasRawByLevel: reportData.raw && !!reportData.raw.by_level,
-                    rawKeys: reportData.raw ? Object.keys(reportData.raw) : []
-                });
-            }
-            
-            // Clear existing content
-            boxplotContainer.innerHTML = '';
-            
-            // Check if we have raw perturbation data
-            if (reportData.raw && reportData.raw.by_level) {
-                // Create a container for the primary model box plot
-                const primaryBoxPlotDiv = document.createElement('div');
-                primaryBoxPlotDiv.className = 'boxplot-chart-container';
-                primaryBoxPlotDiv.style.height = '500px';
-                primaryBoxPlotDiv.id = 'primary-model-boxplot';
-                boxplotContainer.appendChild(primaryBoxPlotDiv);
-                
-                // Prepare data for the primary model
-                const primaryData = prepareBoxplotData(reportData, 'primary');
-                
-                // Log before plot attempt
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('PlotlyBoxplotAttempt', {
-                        id: 'primary-model-boxplot',
-                        traces: primaryData.traces.length,
-                        containerExists: !!document.getElementById('primary-model-boxplot')
+                        });
                     });
                 }
                 
+                // Initialize tabs in overview
+                const resultTabsContainer = document.getElementById('result_tables_tabs');
+                if (resultTabsContainer) {
+                    console.log("Found result tables tabs");
+                    const tabButtons = resultTabsContainer.querySelectorAll('.tab');
+                    tabButtons.forEach(button => {
+                        button.addEventListener('click', function() {
+                            console.log("Tab clicked:", this.textContent);
+                            // Remove active class from all buttons
+                            tabButtons.forEach(btn => btn.classList.remove('active'));
+                            
+                            // Add active class to clicked button
+                            this.classList.add('active');
+                            
+                            // Hide all tab contents
+                            const tabContents = document.querySelectorAll('.results-tables-section .tab-content');
+                            tabContents.forEach(content => content.classList.remove('active'));
+                            
+                            // Show target tab content
+                            const targetId = this.getAttribute('data-tab');
+                            const targetContent = document.getElementById(targetId);
+                            if (targetContent) {
+                                targetContent.classList.add('active');
+                            } else {
+                                console.error(`Tab content with id="${targetId}" not found`);
+                            }
+                        });
+                    });
+                } else {
+                    console.warn("Result tables tabs not found");
+                }
+                
+                // Initialize charts immediately
+                this.initCharts();
+            },
+            
+            initCharts: function() {
+                console.log("Initializing overview charts");
+                
+                // Try to initialize all charts
+                setTimeout(() => {
+                    if (typeof Plotly !== 'undefined') {
+                        console.log("Plotly is available, initializing charts");
+                        this.initializePerturbationChart();
+                        this.initializeWorstScoreChart();
+                        this.initializeMeanScoreChart();
+                        
+                        // Initialize model comparison charts if available
+                        if (window.reportConfig && window.reportConfig.hasAlternativeModels) {
+                            console.log("Alternative models available, initializing comparison charts");
+                            this.initializeModelComparisonChart();
+                            this.initializeModelLevelDetailsChart();
+                            this.populateModelComparisonTable();
+                        }
+                        
+                        // Fill the perturbation tables
+                        this.fillPerturbationTables();
+                    } else {
+                        console.error("Plotly is not available, charts will not be rendered");
+                        
+                        // Try to show a message in the chart containers
+                        const chartContainers = document.querySelectorAll('.chart-plot');
+                        chartContainers.forEach(container => {
+                            container.innerHTML = "<div style='padding: 20px; text-align: center; color: red;'>Plotly library not loaded. Charts cannot be displayed.</div>";
+                        });
+                    }
+                }, 500); // Small delay to ensure DOM is ready
+            },
+            
+            fillPerturbationTables: function() {
+                // Fill the raw perturbation table
                 try {
-                    // Create the violin+box plot
-                    Plotly.newPlot('primary-model-boxplot', primaryData.traces, {
-                    title: `${reportData.model_name || 'Primary Model'} Performance Distribution`,
-                    xaxis: {
-                        title: 'Perturbation Level',
-                        type: 'category'
-                    },
-                    yaxis: {
-                        title: reportData.metric || 'Performance Metric',
-                        zeroline: true
-                    },
-                    boxmode: 'group',
-                    boxgap: 0.5,
-                    boxgroupgap: 0.2,
-                    margin: {
-                        l: 60,
-                        r: 30,
-                        t: 50,
-                        b: 80
-                    },
-                    showlegend: true,
-                    legend: {
-                        orientation: 'h',
-                        y: -0.15
-                    },
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(248,249,250,0.5)'
-                }, {responsive: true});
+                    const rawTableBody = document.getElementById('raw-perturbation-data');
+                    if (!rawTableBody) return;
                     
-                    if (window.debugDeepBridge) {
-                        window.debugDeepBridge.logEvent('BoxplotSuccess', {
-                            id: 'primary-model-boxplot'
+                    // Clear existing content
+                    rawTableBody.innerHTML = '';
+                    
+                    if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                        const rawData = window.reportData.raw.by_level;
+                        const levels = Object.keys(rawData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                        
+                        let baseScore = window.reportData.base_score || 0;
+                        
+                        levels.forEach(level => {
+                            if (rawData[level] && rawData[level].overall_result) {
+                                const result = rawData[level].overall_result;
+                                let levelData;
+                                
+                                if (result.all_features) {
+                                    levelData = result.all_features;
+                                } else if (result.feature_subset) {
+                                    levelData = result.feature_subset;
+                                } else {
+                                    return; // Skip if no data
+                                }
+                                
+                                const row = document.createElement('tr');
+                                
+                                // Level
+                                const levelCell = document.createElement('td');
+                                levelCell.textContent = level;
+                                row.appendChild(levelCell);
+                                
+                                // Base score
+                                const baseScoreCell = document.createElement('td');
+                                baseScoreCell.textContent = baseScore.toFixed(3);
+                                row.appendChild(baseScoreCell);
+                                
+                                // Perturbed score
+                                const perturbedScoreCell = document.createElement('td');
+                                perturbedScoreCell.textContent = levelData.mean_score ? levelData.mean_score.toFixed(3) : 'N/A';
+                                row.appendChild(perturbedScoreCell);
+                                
+                                // Impact
+                                const impactCell = document.createElement('td');
+                                impactCell.textContent = levelData.impact ? (levelData.impact * 100).toFixed(2) + '%' : 'N/A';
+                                row.appendChild(impactCell);
+                                
+                                // Worst score
+                                const worstScoreCell = document.createElement('td');
+                                worstScoreCell.textContent = levelData.worst_score ? levelData.worst_score.toFixed(3) : 'N/A';
+                                row.appendChild(worstScoreCell);
+                                
+                                rawTableBody.appendChild(row);
+                            }
                         });
                     }
                 } catch (error) {
-                    console.error('Error creating boxplot:', error);
-                    if (window.debugDeepBridge) {
-                        window.debugDeepBridge.logEvent('BoxplotError', {
-                            id: 'primary-model-boxplot',
-                            error: error.message
-                        });
-                    }
+                    console.error("Error filling perturbation tables:", error);
+                }
+            },
+            
+            initializePerturbationChart: function() {
+                console.log("Initializing perturbation chart");
+                // Example chart using Plotly
+                const chartElement = document.getElementById('perturbation-chart-plot');
+                if (!chartElement) {
+                    console.error("Perturbation chart element not found");
+                    return;
                 }
                 
-                // If there are alternative models, create a comparison box plot
-                if (reportData.alternative_models && 
-                    Object.keys(reportData.alternative_models).length > 0) {
-                    
-                    // Create header for comparison
-                    const comparisonHeader = document.createElement('h3');
-                    comparisonHeader.textContent = 'Model Comparison';
-                    comparisonHeader.style.marginTop = '40px';
-                    boxplotContainer.appendChild(comparisonHeader);
-                    
-                    // Create comparison container
-                    const comparisonBoxPlotDiv = document.createElement('div');
-                    comparisonBoxPlotDiv.className = 'boxplot-chart-container';
-                    comparisonBoxPlotDiv.style.height = '500px';
-                    comparisonBoxPlotDiv.id = 'models-comparison-boxplot';
-                    boxplotContainer.appendChild(comparisonBoxPlotDiv);
-                    
-                    // Collect data from all models
-                    const allModelsTraces = [];
-                    
-                    // Add primary model first
-                    allModelsTraces.push(...primaryData.traces);
-                    
-                    // Add alternative models
-                    const colors = ['#e41a1c', '#4daf4a', '#984ea3', '#ff7f00', '#a65628', '#f781bf'];
-                    let colorIndex = 0;
-                    
-                    for (const [modelName, modelData] of Object.entries(reportData.alternative_models)) {
-                        if (modelData.raw && modelData.raw.by_level) {
-                            const altModelData = prepareBoxplotData(
-                                reportData.alternative_models[modelName], 
-                                modelName,
-                                colors[colorIndex % colors.length]
-                            );
-                            
-                            allModelsTraces.push(...altModelData.traces);
-                            colorIndex++;
-                        }
+                try {
+                    // Debug reportData structure
+                    console.log("Report data structure:", window.reportData ? "Available" : "Not available");
+                    if (window.reportData && window.reportData.raw) {
+                        console.log("Raw data levels:", Object.keys(window.reportData.raw.by_level || {}));
                     }
                     
-                    // Log before plot attempt
-                    if (window.debugDeepBridge) {
-                        window.debugDeepBridge.logEvent('PlotlyComparisonBoxplotAttempt', {
-                            id: 'models-comparison-boxplot',
-                            traces: allModelsTraces.length,
-                            containerExists: !!document.getElementById('models-comparison-boxplot')
-                        });
+                    // Get data from reportData
+                    let perturbationLevels = [];
+                    let scores = [];
+                    
+                    // Extract data from raw perturbation results
+                    if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                        const rawData = window.reportData.raw.by_level;
+                        
+                        // Sort levels numerically
+                        perturbationLevels = Object.keys(rawData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                        
+                        console.log("Found perturbation levels:", perturbationLevels);
+                        
+                        // Get scores for each level
+                        scores = perturbationLevels.map(level => {
+                            if (rawData[level] && rawData[level].overall_result) {
+                                const result = rawData[level].overall_result;
+                                if (result.all_features) {
+                                    return result.all_features.mean_score;
+                                } else if (result.feature_subset) {
+                                    return result.feature_subset.mean_score;
+                                }
+                            }
+                            return null;
+                        }).filter(score => score !== null);
+                        
+                        console.log("Extracted scores:", scores);
+                        
+                        // Create x-axis labels
+                        perturbationLevels = perturbationLevels.map(level => `Level ${level}`);
+                    } else {
+                        // No data available
+                        console.warn("No raw perturbation data found");
+                        chartElement.innerHTML = "<div style='padding: 20px; text-align: center;'>No perturbation data available</div>";
+                        return;
                     }
                     
-                    try {
-                        // Create comparison plot
-                        Plotly.newPlot('models-comparison-boxplot', allModelsTraces, {
-                        title: 'Model Performance Distribution Comparison',
+                    if (perturbationLevels.length === 0 || scores.length === 0) {
+                        console.warn("No perturbation data found for chart");
+                        chartElement.innerHTML = "<div style='padding: 20px; text-align: center;'>No perturbation data available</div>";
+                        return;
+                    }
+                    
+                    // Create trace for Plotly
+                    const trace = {
+                        x: perturbationLevels,
+                        y: scores,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {
+                            color: '#1b78de',
+                            size: 8
+                        },
+                        line: {
+                            color: '#1b78de',
+                            width: 2
+                        },
+                        name: 'Perturbed Score'
+                    };
+                    
+                    // Add base score line if available
+                    let baseScore = null;
+                    if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
+                        baseScore = window.reportConfig.baseScore;
+                    } else if (window.reportData && window.reportData.base_score !== undefined) {
+                        baseScore = window.reportData.base_score;
+                    } else {
+                        console.warn("No base score found in data");
+                        // Continue without a base score reference line
+                        baseScore = null;
+                    }
+                    
+                    console.log("Using base score:", baseScore);
+                    
+                    const data = [trace];
+                    
+                    if (baseScore !== null) {
+                        const baseScoreTrace = {
+                            x: perturbationLevels,
+                            y: Array(perturbationLevels.length).fill(baseScore),
+                            type: 'scatter',
+                            mode: 'lines',
+                            line: {
+                                color: '#aaaaaa',
+                                width: 2,
+                                dash: 'dash'
+                            },
+                            name: 'Base Score'
+                        };
+                        data.push(baseScoreTrace);
+                    }
+                    
+                    // Layout for the chart
+                    const layout = {
+                        title: 'Performance Under Perturbation',
                         xaxis: {
-                            title: 'Perturbation Level',
-                            type: 'category'
+                            title: 'Perturbation Level'
                         },
                         yaxis: {
-                            title: reportData.metric || 'Performance Metric',
-                            zeroline: true
+                            title: window.reportConfig ? window.reportConfig.metric : 'Score'
                         },
-                        boxmode: 'group',
-                        boxgap: 0.5,
-                        boxgroupgap: 0.2,
                         margin: {
-                            l: 60,
-                            r: 30,
+                            l: 50,
+                            r: 50,
+                            b: 50,
                             t: 50,
-                            b: 80
+                            pad: 4
                         },
                         showlegend: true,
                         legend: {
                             orientation: 'h',
-                            y: -0.15
-                        },
-                        paper_bgcolor: 'rgba(0,0,0,0)',
-                        plot_bgcolor: 'rgba(248,249,250,0.5)'
-                    }, {responsive: true});
+                            y: -0.2
+                        }
+                    };
+                    
+                    console.log("Creating perturbation chart with data:", data);
+                    
+                    // Create the plot
+                    Plotly.newPlot(chartElement, data, layout, {responsive: true});
+                    console.log("Perturbation chart created successfully");
+                    
+                } catch (error) {
+                    console.error("Error creating perturbation chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            },
+            
+            initializeWorstScoreChart: function() {
+                const chartElement = document.getElementById('worst-score-chart-plot');
+                if (!chartElement) return;
+                
+                try {
+                    // Create similar chart to perturbation chart, but with worst scores
+                    let perturbationLevels = [];
+                    let worstScores = [];
+                    
+                    // Extract data from raw perturbation results
+                    if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                        const rawData = window.reportData.raw.by_level;
                         
-                        if (window.debugDeepBridge) {
-                            window.debugDeepBridge.logEvent('ComparisonBoxplotSuccess', {
-                                id: 'models-comparison-boxplot'
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error creating comparison boxplot:', error);
-                        if (window.debugDeepBridge) {
-                            window.debugDeepBridge.logEvent('ComparisonBoxplotError', {
-                                id: 'models-comparison-boxplot', 
-                                error: error.message
-                            });
-                        }
-                    }
-                }
-            } else {
-                // Show message if no raw perturbation data
-                boxplotContainer.innerHTML = '<p>No perturbation data available for box plot analysis.</p>';
-            }
-        }
-        
-        // Helper function to prepare boxplot data
-        function prepareBoxplotData(data, modelName, color = '#1b78de') {
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('PrepareBoxplotDataStart', {
-                    modelName: modelName,
-                    dataKeys: Object.keys(data),
-                    hasRaw: !!data.raw,
-                    hasRawByLevel: data.raw && !!data.raw.by_level
-                });
-            }
-            
-            // Verifica se temos os dados necessários
-            if (!data.raw || !data.raw.by_level) {
-                console.error('Missing required data for boxplot:', modelName);
-                if (window.debugDeepBridge) {
-                    window.debugDeepBridge.logEvent('BoxplotDataError', {
-                        modelName: modelName,
-                        error: 'Missing raw or by_level data'
-                    });
-                }
-                return { traces: [] };
-            }
-            
-            const traces = [];
-            const levels = Object.keys(data.raw.by_level);
-            levels.sort((a, b) => parseFloat(a) - parseFloat(b));
-            
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('BoxplotLevels', {
-                    modelName: modelName,
-                    levels: levels,
-                    firstLevelKeys: levels.length > 0 ? Object.keys(data.raw.by_level[levels[0]]) : []
-                });
-            }
-            
-            // Add base case (level 0) if not included
-            if (!levels.includes('0') && !levels.includes('0.0')) {
-                const baseScore = data.base_score || 0;
-                // Adicione uma pequena variação ao valor base para melhor visualização
-                const variance = Math.max(0.01, Math.abs(baseScore * 0.02)); // 2% de variação ou 0.01 mínimo
-                const baseValues = [
-                    baseScore - variance/2,
-                    baseScore,
-                    baseScore,
-                    baseScore,
-                    baseScore + variance/2
-                ];
-                
-                // Create a trace for the base case as boxplot instead of violin
-                traces.push({
-                    type: 'box',
-                    x: Array(baseValues.length).fill('0'),
-                    y: baseValues,
-                    name: modelName + ' (Baseline)',
-                    boxmean: true, // Mostrar média
-                    marker: {
-                        color: color,
-                        outliercolor: color,
-                        size: 6
-                    },
-                    line: {
-                        color: color,
-                        width: 2
-                    },
-                    boxpoints: 'outliers', // Mostrar apenas outliers como pontos
-                    jitter: 0.3,
-                    whiskerwidth: 0.2,
-                    width: 0.5, // Largura da caixa
-                    hoverinfo: 'y+name',
-                    showlegend: true,
-                    legendgroup: modelName
-                });
-            }
-            
-            // Create a trace for each level
-            levels.forEach(level => {
-                const levelData = data.raw.by_level[level];
-                
-                if (window.debugDeepBridge && level === levels[0]) {
-                    // Log details about the first level for debugging
-                    window.debugDeepBridge.logEvent('FirstLevelData', {
-                        modelName: modelName,
-                        level: level,
-                        levelDataKeys: Object.keys(levelData),
-                        hasRuns: !!levelData.runs,
-                        runsKeys: levelData.runs ? Object.keys(levelData.runs) : [],
-                        hasAllFeatures: levelData.runs && !!levelData.runs.all_features,
-                        hasOverallResult: !!levelData.overall_result,
-                        overallResultKeys: levelData.overall_result ? Object.keys(levelData.overall_result) : []
-                    });
-                }
-                
-                let pointsData = [];
-                
-                // Get the data points
-                if (levelData.runs && levelData.runs.all_features) {
-                    const runData = levelData.runs.all_features;
-                    
-                    if (window.debugDeepBridge && level === levels[0]) {
-                        window.debugDeepBridge.logEvent('RunData', {
-                            modelName: modelName,
-                            level: level,
-                            isArray: Array.isArray(runData),
-                            length: Array.isArray(runData) ? runData.length : 'not array',
-                            sampleData: Array.isArray(runData) && runData.length > 0 ? 
-                                        Object.keys(runData[0]) : 'no samples'
-                        });
-                    }
-                    
-                    if (Array.isArray(runData) && runData.length > 0) {
-                        // If we have individual run data
-                        pointsData = runData.map(run => {
-                            // Check if 'run' is an object and has 'score' property
-                            if (typeof run === 'object' && run !== null) {
-                                return run.score !== undefined ? run.score : 0;
-                            } else if (typeof run === 'number') {
-                                // Handle the case when runData is an array of numbers
-                                return run;
+                        // Sort levels numerically
+                        perturbationLevels = Object.keys(rawData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                        
+                        // Get worst scores for each level
+                        worstScores = perturbationLevels.map(level => {
+                            if (rawData[level] && rawData[level].overall_result) {
+                                const result = rawData[level].overall_result;
+                                if (result.all_features) {
+                                    return result.all_features.worst_score;
+                                } else if (result.feature_subset) {
+                                    return result.feature_subset.worst_score;
+                                }
                             }
-                            return 0;
-                        });
+                            return null;
+                        }).filter(score => score !== null);
                         
-                        if (window.debugDeepBridge && level === levels[0]) {
-                            window.debugDeepBridge.logEvent('PointsData', {
-                                modelName: modelName,
-                                level: level,
-                                pointsCount: pointsData.length,
-                                samplePoints: pointsData.slice(0, 5)
-                            });
-                        }
-                    } else if (levelData.overall_result && levelData.overall_result.all_features) {
-                        // If we only have summary statistics
-                        const meanScore = levelData.overall_result.all_features.mean_score || 0;
-                        const stdDev = levelData.overall_result.all_features.std_dev || 0.1;
-                        
-                        // Generate synthetic data based on mean and std dev
-                        pointsData = Array.from({length: 10}, () => 
-                            meanScore + (Math.random() * 2 - 1) * stdDev);
-                            
-                        if (window.debugDeepBridge && level === levels[0]) {
-                            window.debugDeepBridge.logEvent('SyntheticData', {
-                                modelName: modelName,
-                                level: level,
-                                mean: meanScore,
-                                stdDev: stdDev,
-                                points: pointsData.length
-                            });
-                        }
-                    }
-                } else if (levelData.overall_result) {
-                    // Fall back to overall result if no run data
-                    const meanScore = levelData.overall_result.mean_score || 
-                                      levelData.overall_result.score ||
-                                      0;
-                    pointsData = [meanScore, meanScore]; // Need at least 2 points
-                    
-                    if (window.debugDeepBridge && level === levels[0]) {
-                        window.debugDeepBridge.logEvent('FallbackData', {
-                            modelName: modelName,
-                            level: level,
-                            meanScore: meanScore,
-                            overallResultKeys: Object.keys(levelData.overall_result)
-                        });
-                    }
-                } else if (levelData.score || typeof levelData.score === 'number') {
-                    // Direct score in the level data
-                    const score = levelData.score;
-                    pointsData = [score, score]; // Need at least 2 points
-                    
-                    if (window.debugDeepBridge && level === levels[0]) {
-                        window.debugDeepBridge.logEvent('DirectScoreData', {
-                            modelName: modelName,
-                            level: level,
-                            score: score
-                        });
-                    }
-                } else {
-                    // No identifiable score data, try to find any numeric properties
-                    const numericProps = Object.entries(levelData)
-                        .filter(([key, value]) => typeof value === 'number' && !isNaN(value) && key !== 'level')
-                        .map(([key, value]) => ({key, value}));
-                        
-                    if (numericProps.length > 0) {
-                        // Use the first numeric property as score
-                        const score = numericProps[0].value;
-                        pointsData = [score, score];
-                        
-                        if (window.debugDeepBridge && level === levels[0]) {
-                            window.debugDeepBridge.logEvent('NumericPropData', {
-                                modelName: modelName,
-                                level: level,
-                                foundProps: numericProps.map(p => p.key),
-                                usedProp: numericProps[0].key,
-                                score: score
-                            });
-                        }
+                        // Create x-axis labels
+                        perturbationLevels = perturbationLevels.map(level => `Level ${level}`);
                     } else {
-                        // Last resort - use a default value
-                        pointsData = [0, 0];
-                        
-                        if (window.debugDeepBridge && level === levels[0]) {
-                            window.debugDeepBridge.logEvent('NoDataFound', {
-                                modelName: modelName,
-                                level: level,
-                                levelDataKeys: Object.keys(levelData)
-                            });
-                        }
+                        // No data available
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📉</span>
+                                    <h3>No Worst Score Data Available</h3>
+                                    <p>No perturbation worst score data is available in this report.</p>
+                                    <p>This could be because the robustness test didn't generate worst score metrics.</p>
+                                </div>
+                            </div>`;
+                        return;
                     }
-                }
-                
-                // Only create a trace if we have data
-                if (pointsData.length > 0) {
-                    // Criar dois traços separados: um boxplot e um violinplot
                     
-                    // Boxplot
-                    traces.push({
-                        type: 'box',
-                        x: Array(pointsData.length).fill(level),
-                        y: pointsData,
-                        name: modelName + ' (Box)',
-                        boxmean: true, // Mostrar média
+                    if (perturbationLevels.length === 0 || worstScores.length === 0) {
+                        chartElement.innerHTML = "<div style='padding: 20px; text-align: center;'>No worst score data available</div>";
+                        return;
+                    }
+                    
+                    // Create trace
+                    const trace = {
+                        x: perturbationLevels,
+                        y: worstScores,
+                        type: 'scatter',
+                        mode: 'lines+markers',
                         marker: {
-                            color: color,
-                            outliercolor: color,
-                            size: 6
+                            color: '#e74c3c',
+                            size: 8
                         },
                         line: {
-                            color: color,
+                            color: '#e74c3c',
                             width: 2
                         },
-                        boxpoints: 'outliers', // Mostrar apenas outliers como pontos
-                        jitter: 0.3,
-                        whiskerwidth: 0.2,
-                        width: 0.5, // Largura da caixa
-                        hoverinfo: 'y+name',
-                        showlegend: level === levels[0], // Mostrar na legenda apenas uma vez
-                        legendgroup: modelName
+                        name: 'Worst Score'
+                    };
+                    
+                    // Add base score line if available
+                    let baseScore = null;
+                    if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
+                        baseScore = window.reportConfig.baseScore;
+                    } else if (window.reportData && window.reportData.base_score !== undefined) {
+                        baseScore = window.reportData.base_score;
+                    } else {
+                        baseScore = 0.96; // Dummy value
+                    }
+                    
+                    const data = [trace];
+                    
+                    if (baseScore !== null) {
+                        const baseScoreTrace = {
+                            x: perturbationLevels,
+                            y: Array(perturbationLevels.length).fill(baseScore),
+                            type: 'scatter',
+                            mode: 'lines',
+                            line: {
+                                color: '#aaaaaa',
+                                width: 2,
+                                dash: 'dash'
+                            },
+                            name: 'Base Score'
+                        };
+                        data.push(baseScoreTrace);
+                    }
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Worst Performance Under Perturbation',
+                        xaxis: {
+                            title: 'Perturbation Level'
+                        },
+                        yaxis: {
+                            title: window.reportConfig ? window.reportConfig.metric : 'Score'
+                        },
+                        margin: {
+                            l: 50,
+                            r: 50,
+                            b: 50,
+                            t: 50,
+                            pad: 4
+                        },
+                        showlegend: true,
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        }
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(chartElement, data, layout, {responsive: true});
+                    
+                } catch (error) {
+                    console.error("Error creating worst score chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            },
+            
+            initializeMeanScoreChart: function() {
+                const chartElement = document.getElementById('mean-score-chart-plot');
+                if (!chartElement) return;
+                
+                try {
+                    // Create similar chart to perturbation chart, but with mean scores
+                    let perturbationLevels = [];
+                    let meanScores = [];
+                    
+                    // Extract data from raw perturbation results
+                    if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                        const rawData = window.reportData.raw.by_level;
+                        
+                        // Sort levels numerically
+                        perturbationLevels = Object.keys(rawData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                        
+                        // Get mean scores for each level
+                        meanScores = perturbationLevels.map(level => {
+                            if (rawData[level] && rawData[level].overall_result) {
+                                const result = rawData[level].overall_result;
+                                if (result.all_features) {
+                                    return result.all_features.mean_score;
+                                } else if (result.feature_subset) {
+                                    return result.feature_subset.mean_score;
+                                }
+                            }
+                            return null;
+                        }).filter(score => score !== null);
+                        
+                        // Create x-axis labels
+                        perturbationLevels = perturbationLevels.map(level => `Level ${level}`);
+                    } else {
+                        // No data available
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📊</span>
+                                    <h3>No Mean Score Data Available</h3>
+                                    <p>No perturbation mean score data is available in this report.</p>
+                                    <p>This could be because the robustness test didn't generate mean score metrics.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    if (perturbationLevels.length === 0 || meanScores.length === 0) {
+                        chartElement.innerHTML = "<div style='padding: 20px; text-align: center;'>No mean score data available</div>";
+                        return;
+                    }
+                    
+                    // Create the trace with error bars
+                    const trace = {
+                        x: perturbationLevels,
+                        y: meanScores,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {
+                            color: '#2ecc71',
+                            size: 8
+                        },
+                        line: {
+                            color: '#2ecc71',
+                            width: 2
+                        },
+                        name: 'Mean Score'
+                    };
+                    
+                    // Add base score line if available
+                    let baseScore = null;
+                    if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
+                        baseScore = window.reportConfig.baseScore;
+                    } else if (window.reportData && window.reportData.base_score !== undefined) {
+                        baseScore = window.reportData.base_score;
+                    } else {
+                        baseScore = 0.96; // Dummy value
+                    }
+                    
+                    const data = [trace];
+                    
+                    if (baseScore !== null) {
+                        const baseScoreTrace = {
+                            x: perturbationLevels,
+                            y: Array(perturbationLevels.length).fill(baseScore),
+                            type: 'scatter',
+                            mode: 'lines',
+                            line: {
+                                color: '#aaaaaa',
+                                width: 2,
+                                dash: 'dash'
+                            },
+                            name: 'Base Score'
+                        };
+                        data.push(baseScoreTrace);
+                    }
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Mean Performance Under Perturbation',
+                        xaxis: {
+                            title: 'Perturbation Level'
+                        },
+                        yaxis: {
+                            title: window.reportConfig ? window.reportConfig.metric : 'Score'
+                        },
+                        margin: {
+                            l: 50,
+                            r: 50,
+                            b: 50,
+                            t: 50,
+                            pad: 4
+                        },
+                        showlegend: true,
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        }
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(chartElement, data, layout, {responsive: true});
+                    
+                } catch (error) {
+                    console.error("Error creating mean score chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            },
+            
+            initializeModelComparisonChart: function() {
+                const chartElement = document.getElementById('model-comparison-chart-plot');
+                if (!chartElement) return;
+                
+                try {
+                    // Check if we have alternative models data
+                    if (!window.reportData || !window.reportConfig || !window.reportConfig.hasAlternativeModels) {
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📋</span>
+                                    <h3>No Model Comparison Data</h3>
+                                    <p>No alternative models data is available for comparison.</p>
+                                    <p>To compare multiple models, run the robustness test with the compare() method.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Get model data for comparison
+                    const models = [];
+                    const scores = [];
+                    const robustnessScores = [];
+                    
+                    // Add primary model
+                    let primaryModelName = 'Primary Model';
+                    let primaryModelData = null;
+                    
+                    if (window.reportData.primary_model) {
+                        primaryModelData = window.reportData.primary_model;
+                        primaryModelName = primaryModelData.model_name || window.reportConfig.modelName || 'Primary Model';
+                    } else {
+                        // Primary model data is at the top level
+                        primaryModelData = window.reportData;
+                        primaryModelName = window.reportConfig.modelName || 'Primary Model';
+                    }
+                    
+                    if (primaryModelData) {
+                        models.push(primaryModelName);
+                        scores.push(primaryModelData.base_score || 0);
+                        robustnessScores.push(primaryModelData.robustness_score || window.reportConfig.robustnessScore || 0);
+                    }
+                    
+                    // Add alternative models
+                    if (window.reportData.alternative_models) {
+                        Object.entries(window.reportData.alternative_models).forEach(([name, data]) => {
+                            models.push(name);
+                            scores.push(data.base_score || 0);
+                            robustnessScores.push(data.robustness_score || 0);
+                        });
+                    }
+                    
+                    if (models.length <= 1) {
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📋</span>
+                                    <h3>Insufficient Model Comparison Data</h3>
+                                    <p>Only one model is available. Model comparison requires at least two models.</p>
+                                    <p>Use the compare() method with alternative models to enable comparison.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Create the comparison chart with two traces
+                    const baseScoreTrace = {
+                        x: models,
+                        y: scores,
+                        type: 'bar',
+                        name: 'Base Score',
+                        marker: {
+                            color: '#3498db'
+                        }
+                    };
+                    
+                    const robustnessScoreTrace = {
+                        x: models,
+                        y: robustnessScores,
+                        type: 'bar',
+                        name: 'Robustness Score',
+                        marker: {
+                            color: '#2ecc71'
+                        }
+                    };
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Model Comparison Overview',
+                        barmode: 'group',
+                        xaxis: {
+                            title: 'Models'
+                        },
+                        yaxis: {
+                            title: 'Score',
+                            range: [0, 1]
+                        },
+                        margin: {
+                            l: 50,
+                            r: 50,
+                            b: 100,
+                            t: 50,
+                            pad: 4
+                        },
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        }
+                    };
+                    
+                    // Create the plot
+                    Plotly.newPlot(chartElement, [baseScoreTrace, robustnessScoreTrace], layout, {responsive: true});
+                    
+                } catch (error) {
+                    console.error("Error creating model comparison chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            },
+            
+            initializeModelLevelDetailsChart: function() {
+                const chartElement = document.getElementById('model-level-details-chart-plot');
+                if (!chartElement) return;
+                
+                try {
+                    // Check if we have alternative models data
+                    if (!window.reportData || !window.reportConfig || !window.reportConfig.hasAlternativeModels) {
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📋</span>
+                                    <h3>No Model Comparison Data</h3>
+                                    <p>No alternative models data is available for comparison.</p>
+                                    <p>To compare multiple models, run the robustness test with the compare() method.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Get models and their perturbation data
+                    const traces = [];
+                    const colors = ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
+                    let colorIndex = 0;
+                    
+                    // Extract perturbation levels
+                    let perturbationLevels = [];
+                    
+                    // Check primary model first to get levels
+                    let primaryModelData = null;
+                    if (window.reportData.primary_model) {
+                        primaryModelData = window.reportData.primary_model;
+                    } else {
+                        primaryModelData = window.reportData;
+                    }
+                    
+                    if (primaryModelData && primaryModelData.raw && primaryModelData.raw.by_level) {
+                        perturbationLevels = Object.keys(primaryModelData.raw.by_level)
+                            .sort((a, b) => parseFloat(a) - parseFloat(b))
+                            .map(level => `Level ${level}`);
+                    }
+                    
+                    if (perturbationLevels.length === 0) {
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📋</span>
+                                    <h3>No Perturbation Level Data</h3>
+                                    <p>No perturbation level data is available for model comparison.</p>
+                                    <p>To compare models at different perturbation levels, run the robustness test with multiple levels.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Add primary model trace
+                    let primaryModelName = primaryModelData.model_name || window.reportConfig.modelName || 'Primary Model';
+                    let primaryScores = [];
+                    
+                    if (primaryModelData && primaryModelData.raw && primaryModelData.raw.by_level) {
+                        primaryScores = Object.keys(primaryModelData.raw.by_level)
+                            .sort((a, b) => parseFloat(a) - parseFloat(b))
+                            .map(level => {
+                                if (primaryModelData.raw.by_level[level] && 
+                                    primaryModelData.raw.by_level[level].overall_result) {
+                                    const result = primaryModelData.raw.by_level[level].overall_result;
+                                    if (result.all_features) {
+                                        return result.all_features.mean_score || null;
+                                    } else if (result.feature_subset) {
+                                        return result.feature_subset.mean_score || null;
+                                    }
+                                }
+                                return null;
+                            });
+                    }
+                    
+                    if (primaryScores.length > 0) {
+                        traces.push({
+                            x: perturbationLevels,
+                            y: primaryScores,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: primaryModelName,
+                            marker: {
+                                color: colors[colorIndex % colors.length],
+                                size: 8
+                            },
+                            line: {
+                                color: colors[colorIndex % colors.length],
+                                width: 2
+                            }
+                        });
+                        colorIndex++;
+                    }
+                    
+                    // Add alternative models
+                    if (window.reportData.alternative_models) {
+                        Object.entries(window.reportData.alternative_models).forEach(([name, data]) => {
+                            if (data && data.raw && data.raw.by_level) {
+                                const scores = Object.keys(data.raw.by_level)
+                                    .sort((a, b) => parseFloat(a) - parseFloat(b))
+                                    .map(level => {
+                                        if (data.raw.by_level[level] && 
+                                            data.raw.by_level[level].overall_result) {
+                                            const result = data.raw.by_level[level].overall_result;
+                                            if (result.all_features) {
+                                                return result.all_features.mean_score || null;
+                                            } else if (result.feature_subset) {
+                                                return result.feature_subset.mean_score || null;
+                                            }
+                                        }
+                                        return null;
+                                    });
+                                
+                                if (scores.length > 0) {
+                                    traces.push({
+                                        x: perturbationLevels,
+                                        y: scores,
+                                        type: 'scatter',
+                                        mode: 'lines+markers',
+                                        name: name,
+                                        marker: {
+                                            color: colors[colorIndex % colors.length],
+                                            size: 8
+                                        },
+                                        line: {
+                                            color: colors[colorIndex % colors.length],
+                                            width: 2
+                                        }
+                                    });
+                                    colorIndex++;
+                                }
+                            }
+                        });
+                    }
+                    
+                    if (traces.length <= 1) {
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">📋</span>
+                                    <h3>Insufficient Model Comparison Data</h3>
+                                    <p>Only one model has perturbation data. Model comparison requires multiple models.</p>
+                                    <p>Use the compare() method with alternative models to enable comparison.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Model Comparison by Perturbation Level',
+                        xaxis: {
+                            title: 'Perturbation Level'
+                        },
+                        yaxis: {
+                            title: window.reportConfig ? window.reportConfig.metric : 'Score'
+                        },
+                        margin: {
+                            l: 50,
+                            r: 50,
+                            b: 50,
+                            t: 50,
+                            pad: 4
+                        },
+                        showlegend: true,
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        }
+                    };
+                    
+                    // Create the plot
+                    Plotly.newPlot(chartElement, traces, layout, {responsive: true});
+                    
+                } catch (error) {
+                    console.error("Error creating model level details chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            },
+            
+            populateModelComparisonTable: function() {
+                const tableBody = document.getElementById('model-comparison-table')?.querySelector('tbody');
+                if (!tableBody) return;
+                
+                try {
+                    // Clear existing content
+                    tableBody.innerHTML = '';
+                    
+                    // Check if we have alternative models data
+                    if (!window.reportData || !window.reportConfig || !window.reportConfig.hasAlternativeModels) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 5;
+                        cell.innerHTML = `
+                            <div class="no-data-message">
+                                <p><strong>No model comparison data available</strong></p>
+                                <p>Run robustness test with compare() method to see model comparison data.</p>
+                            </div>
+                        `;
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                        return;
+                    }
+                    
+                    // Get model data
+                    const models = [];
+                    
+                    // Add primary model
+                    let primaryModelName = 'Primary Model';
+                    let primaryModelData = null;
+                    
+                    if (window.reportData.primary_model) {
+                        primaryModelData = window.reportData.primary_model;
+                        primaryModelName = primaryModelData.model_name || window.reportConfig.modelName || 'Primary Model';
+                    } else {
+                        // Primary model data is at the top level
+                        primaryModelData = window.reportData;
+                        primaryModelName = window.reportConfig.modelName || 'Primary Model';
+                    }
+                    
+                    if (primaryModelData) {
+                        models.push({
+                            name: primaryModelName,
+                            baseScore: primaryModelData.base_score || 0,
+                            robustnessScore: primaryModelData.robustness_score || window.reportConfig.robustnessScore || 0,
+                            rawImpact: primaryModelData.avg_raw_impact || window.reportConfig.rawImpact || 0,
+                            quantileImpact: primaryModelData.avg_quantile_impact || window.reportConfig.quantileImpact || 0
+                        });
+                    }
+                    
+                    // Add alternative models
+                    if (window.reportData.alternative_models) {
+                        Object.entries(window.reportData.alternative_models).forEach(([name, data]) => {
+                            models.push({
+                                name: name,
+                                baseScore: data.base_score || 0,
+                                robustnessScore: data.robustness_score || 0,
+                                rawImpact: data.avg_raw_impact || 0,
+                                quantileImpact: data.avg_quantile_impact || 0
+                            });
+                        });
+                    }
+                    
+                    if (models.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 5;
+                        cell.textContent = 'No model comparison data available';
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                        return;
+                    }
+                    
+                    // Sort models by robustness score
+                    models.sort((a, b) => b.robustnessScore - a.robustnessScore);
+                    
+                    // Add a row for each model
+                    models.forEach(model => {
+                        const row = document.createElement('tr');
+                        
+                        // Model name
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = model.name;
+                        
+                        // Base score
+                        const baseScoreCell = document.createElement('td');
+                        baseScoreCell.textContent = model.baseScore.toFixed(3);
+                        
+                        // Robustness score
+                        const robustnessScoreCell = document.createElement('td');
+                        robustnessScoreCell.textContent = model.robustnessScore.toFixed(3);
+                        
+                        // Raw impact
+                        const rawImpactCell = document.createElement('td');
+                        rawImpactCell.textContent = (model.rawImpact * 100).toFixed(2) + '%';
+                        
+                        // Quantile impact
+                        const quantileImpactCell = document.createElement('td');
+                        quantileImpactCell.textContent = (model.quantileImpact * 100).toFixed(2) + '%';
+                        
+                        row.appendChild(nameCell);
+                        row.appendChild(baseScoreCell);
+                        row.appendChild(robustnessScoreCell);
+                        row.appendChild(rawImpactCell);
+                        row.appendChild(quantileImpactCell);
+                        
+                        tableBody.appendChild(row);
                     });
                     
-                    // Ajuste o ponto Y para garantir valores únicos (evita BoxPlots zerados)
-                    if (pointsData.length === 2 && pointsData[0] === pointsData[1]) {
-                        // Se todos os valores são idênticos, adicione uma pequena variação
-                        const baseValue = pointsData[0];
-                        const variance = Math.max(0.01, Math.abs(baseValue * 0.02)); // 2% de variação ou 0.01 mínimo
-                        pointsData = [
-                            baseValue - variance/2, 
-                            baseValue, 
-                            baseValue, 
-                            baseValue, 
-                            baseValue + variance/2
-                        ];
-                    }
+                } catch (error) {
+                    console.error("Error populating model comparison table:", error);
+                    
+                    // Show error message
+                    tableBody.innerHTML = '';
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 5;
+                    cell.textContent = 'Error loading model comparison data';
+                    cell.style.textAlign = 'center';
+                    cell.style.color = 'red';
+                    row.appendChild(cell);
+                    tableBody.appendChild(row);
                 }
-            });
-            
-            if (window.debugDeepBridge) {
-                window.debugDeepBridge.logEvent('BoxplotTracesPrepared', {
-                    modelName: modelName,
-                    tracesCount: traces.length,
-                    firstTraceType: traces.length > 0 ? traces[0].type : 'none',
-                    levelsWithData: traces.map(trace => trace.x && trace.x.length > 0 ? trace.x[0] : 'unknown')
-                });
             }
+        };
+        
+        // Simple Boxplot Controller
+        const BoxplotController = {
+            init: function() {
+                console.log("Boxplot section initialized");
+            }
+        };
+        
+        // Simple Details Controller
+        const DetailsController = {
+            init: function() {
+                console.log("Details section initialized");
+            }
+        };
+        
+        // Simple Feature Controller
+        const FeatureController = {
+            init: function() {
+                console.log("Feature section initialized");
+                
+                // Initialize charts when the tab is shown
+                setTimeout(() => {
+                    if (typeof Plotly !== 'undefined') {
+                        this.initializeFeatureImportanceChart();
+                    } else {
+                        console.error("Plotly is not available for feature charts");
+                        const chartElement = document.getElementById('feature-importance-chart');
+                        if (chartElement) {
+                            chartElement.innerHTML = "<div style='padding: 20px; text-align: center; color: red;'>Plotly library not loaded. Charts cannot be displayed.</div>";
+                        }
+                    }
+                }, 500);
+            },
             
-            return { traces };
-        }
-    } // End of renderAllRobustnessCharts function
-
-    // Call render function when DOM is loaded
-    document.addEventListener('DOMContentLoaded', renderAllRobustnessCharts);
-    
-    // Also listen for the custom event triggered after reportData is loaded
-    document.addEventListener('renderCharts', renderAllRobustnessCharts);
-</script>
-{% endblock %}
+            initializeFeatureImportanceChart: function() {
+                console.log("Initializing feature importance chart");
+                // Example chart for feature importance
+                const chartElement = document.getElementById('feature-importance-chart');
+                if (!chartElement) {
+                    console.error("Feature importance chart element not found");
+                    return;
+                }
+                
+                try {
+                    // Log feature importance data
+                    if (window.reportConfig) {
+                        console.log("Feature importance available:", 
+                                    Object.keys(window.reportConfig.feature_importance || {}).length > 0 ? "Yes" : "No");
+                    }
+                    
+                    // Get feature importance data
+                    let features = [];
+                    let importance = [];
+                    
+                    if (window.reportConfig && window.reportConfig.feature_importance) {
+                        const featureImportance = window.reportConfig.feature_importance;
+                        
+                        // Sort features by importance
+                        const sortedFeatures = Object.keys(featureImportance).sort(
+                            (a, b) => featureImportance[b] - featureImportance[a]
+                        );
+                        
+                        console.log(`Found ${sortedFeatures.length} features with importance scores`);
+                        
+                        // Take top 10 features for readability
+                        const topFeatures = sortedFeatures.slice(0, 10);
+                        
+                        features = topFeatures;
+                        importance = topFeatures.map(feature => featureImportance[feature]);
+                    } else {
+                        // No feature importance data available
+                        console.warn("No feature importance data found");
+                        chartElement.innerHTML = `
+                            <div class="data-unavailable">
+                                <div class="data-message">
+                                    <span class="message-icon">🔍</span>
+                                    <h3>No Feature Importance Data</h3>
+                                    <p>No feature importance data is available in this report.</p>
+                                    <p>This could be because feature importance analysis was not included in the robustness test configuration.</p>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+                    
+                    if (features.length === 0) {
+                        console.warn("Empty feature list after processing");
+                        chartElement.innerHTML = "<div style='padding: 20px; text-align: center;'>No feature importance data available</div>";
+                        return;
+                    }
+                    
+                    console.log("Creating feature importance chart with data:", features, importance);
+                    
+                    // Create trace for horizontal bar chart
+                    const trace = {
+                        y: features,
+                        x: importance,
+                        type: 'bar',
+                        orientation: 'h',
+                        marker: {
+                            color: '#1b78de'
+                        }
+                    };
+                    
+                    // Layout for the chart
+                    const layout = {
+                        title: 'Feature Importance',
+                        xaxis: {
+                            title: 'Importance Score'
+                        },
+                        margin: {
+                            l: 150,
+                            r: 50,
+                            b: 50,
+                            t: 50,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Create the plot
+                    Plotly.newPlot(chartElement, [trace], layout, {responsive: true});
+                    console.log("Feature importance chart created successfully");
+                    
+                    // Populate table if it exists
+                    const tableBody = document.getElementById('feature-impact-data');
+                    if (tableBody) {
+                        console.log("Populating feature impact table");
+                        // Clear existing rows
+                        tableBody.innerHTML = '';
+                        
+                        // Get model feature importance for comparison if available
+                        const modelImportance = window.reportConfig && window.reportConfig.model_feature_importance || {};
+                        
+                        // Add rows for each feature
+                        features.forEach((feature, index) => {
+                            const row = document.createElement('tr');
+                            
+                            const featureCell = document.createElement('td');
+                            featureCell.textContent = feature;
+                            
+                            const impactCell = document.createElement('td');
+                            impactCell.textContent = (importance[index] * 100).toFixed(2) + '%';
+                            
+                            const importanceCell = document.createElement('td');
+                            if (modelImportance[feature]) {
+                                importanceCell.textContent = (modelImportance[feature] * 100).toFixed(2) + '%';
+                            } else {
+                                importanceCell.textContent = 'N/A';
+                            }
+                            
+                            row.appendChild(featureCell);
+                            row.appendChild(impactCell);
+                            row.appendChild(importanceCell);
+                            
+                            tableBody.appendChild(row);
+                        });
+                    } else {
+                        console.warn("Feature impact table element not found");
+                    }
+                    
+                } catch (error) {
+                    console.error("Error creating feature importance chart:", error);
+                    chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+                }
+            }
+        };
+        
+        // Report initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize main controller
+            MainController.init();
+            
+            // Initialize section controllers
+            OverviewController.init();
+            DetailsController.init();
+            BoxplotController.init();
+            FeatureController.init();
+            
+            console.log("Report initialized with all controllers");
+        });
+    </script>
+</body>
+</html>

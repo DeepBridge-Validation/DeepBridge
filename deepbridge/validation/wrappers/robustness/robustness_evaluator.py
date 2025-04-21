@@ -503,6 +503,6 @@ class RobustnessEvaluator:
             }
         
         # Add detailed results to importance_scores dictionary
-        importance_scores['_detailed_results'] = feature_results
+        # importance_scores['_detailed_results'] = feature_results
         
         return importance_scores

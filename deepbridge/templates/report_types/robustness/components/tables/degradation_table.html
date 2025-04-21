@@ -1,0 +1,48 @@
+<div class="degradation-table-container">
+    <div class="table-wrapper">
+        <table class="data-table degradation-table" id="degradation-table">
+            <thead>
+                <tr>
+                    <th class="model-col">Model</th>
+                    <th class="base-col">Base Score</th>
+                    <th class="low-pert-col">10% Perturbation</th>
+                    <th class="mid-pert-col">40% Perturbation</th>
+                    <th class="high-pert-col">100% Perturbation</th>
+                    <th class="max-decline-col">Max Decline</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="6">
+                        <div class="loading-indicator">Loading degradation data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-notes">
+        <div class="note-item">
+            <span class="note-icon">📉</span>
+            <span class="note-text">
+                <strong>Max Decline</strong> shows the largest drop in performance from the base score.
+                Lower values indicate better robustness.
+            </span>
+        </div>
+        <div class="note-item">
+            <span class="note-icon">ℹ️</span>
+            <span class="note-text">
+                Performance values are colored from green to red based on degradation relative to base score.
+            </span>
+        </div>
+    </div>
+
+    <div class="degradation-analysis">
+        <h4>Degradation Pattern Analysis</h4>
+        <div id="degradation-analysis-content">
+            <!-- Will be populated by JavaScript -->
+            <p class="loading-text">Analyzing degradation patterns...</p>
+        </div>
+    </div>
+</div>

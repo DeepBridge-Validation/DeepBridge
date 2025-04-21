@@ -1,0 +1,571 @@
+<!-- boxplot.html -->
+<div class="boxplot-section">
+    <div class="card">
+        <h2>Box Plot Analysis</h2>
+        <p>Statistical analysis of perturbation effects using box plots, showing performance score distribution across perturbation levels.</p>
+        
+        <div class="boxplot-container">
+            <div id="boxplot-chart" class="chart-plot"></div>
+        </div>
+        
+        <div class="boxplot-controls">
+            <h3>Perturbation Levels</h3>
+            <div id="level-selector" class="level-buttons">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="boxplot-stats">
+            <h3>Statistical Summary</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Statistic</th>
+                        <th>Value</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="boxplot-stats-body">
+                    <!-- Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize boxplot data when this tab is shown
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add a listener for the boxplot tab button
+        const boxplotTabBtn = document.querySelector('.tab-btn[data-tab="boxplot"]');
+        if (boxplotTabBtn) {
+            boxplotTabBtn.addEventListener('click', function() {
+                console.log("Boxplot tab clicked, initializing boxplot data");
+                initializeBoxplotView();
+            });
+        }
+        
+        // Selected level for boxplot
+        let selectedLevel = null;
+        
+        function initializeBoxplotView() {
+            if (typeof Plotly === 'undefined') {
+                console.error("Plotly is not available for boxplot charts");
+                const chartElement = document.getElementById('boxplot-chart');
+                if (chartElement) {
+                    chartElement.innerHTML = "<div style='padding: 20px; text-align: center; color: red;'>Plotly library not loaded. Charts cannot be displayed.</div>";
+                }
+                return;
+            }
+            
+            // Initialize the level selector
+            initializeLevelSelector();
+        }
+        
+        function initializeLevelSelector() {
+            const levelSelectorContainer = document.getElementById('level-selector');
+            if (!levelSelectorContainer) return;
+            
+            // Clear existing content
+            levelSelectorContainer.innerHTML = '';
+            
+            // Get levels from report data
+            let levels = [];
+            if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                levels = Object.keys(window.reportData.raw.by_level).sort((a, b) => parseFloat(a) - parseFloat(b));
+            } else {
+                // Dummy data
+                levels = ['0.1', '0.2', '0.4'];
+            }
+            
+            console.log("Available perturbation levels:", levels);
+            
+            if (levels.length === 0) {
+                levelSelectorContainer.innerHTML = '<p>No perturbation levels available</p>';
+                return;
+            }
+            
+            // Create a button for all levels
+            const allLevelsBtn = document.createElement('button');
+            allLevelsBtn.className = 'level-btn active';
+            allLevelsBtn.textContent = 'All Levels';
+            allLevelsBtn.addEventListener('click', function() {
+                // Remove active class from all buttons
+                levelSelectorContainer.querySelectorAll('.level-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                // Add active class to this button
+                this.classList.add('active');
+                
+                // Create multi-level boxplot
+                selectedLevel = null;
+                createMultiLevelBoxplot();
+            });
+            levelSelectorContainer.appendChild(allLevelsBtn);
+            
+            // Create a button for each level
+            levels.forEach(level => {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.textContent = `Level ${level}`;
+                btn.setAttribute('data-level', level);
+                
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    levelSelectorContainer.querySelectorAll('.level-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    // Add active class to this button
+                    this.classList.add('active');
+                    
+                    // Create single level boxplot
+                    selectedLevel = this.getAttribute('data-level');
+                    createSingleLevelBoxplot(selectedLevel);
+                });
+                
+                levelSelectorContainer.appendChild(btn);
+            });
+            
+            // Create multi-level boxplot by default
+            createMultiLevelBoxplot();
+        }
+        
+        function createMultiLevelBoxplot() {
+            const chartElement = document.getElementById('boxplot-chart');
+            if (!chartElement) return;
+            
+            try {
+                // Get data from reportData
+                let levels = [];
+                let boxplotData = [];
+                
+                if (window.reportData && window.reportData.raw && window.reportData.raw.by_level) {
+                    const rawData = window.reportData.raw.by_level;
+                    
+                    // Sort levels numerically
+                    levels = Object.keys(rawData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                    
+                    // Extract score values for each level
+                    boxplotData = levels.map(level => {
+                        if (rawData[level] && rawData[level].overall_result) {
+                            const result = rawData[level].overall_result;
+                            let levelData;
+                            
+                            if (result.all_features) {
+                                levelData = result.all_features;
+                            } else if (result.feature_subset) {
+                                levelData = result.feature_subset;
+                            } else {
+                                return null;
+                            }
+                            
+                            // Get scores from iterations if available
+                            if (levelData.iterations && levelData.iterations.scores) {
+                                return {
+                                    y: levelData.iterations.scores,
+                                    type: 'box',
+                                    name: `Level ${level}`,
+                                    boxpoints: 'outliers',
+                                    jitter: 0.3,
+                                    pointpos: -1.8,
+                                    marker: {
+                                        color: `rgba(27, 120, 222, ${0.5 + parseFloat(level) * 0.5})`
+                                    }
+                                };
+                            }
+                        }
+                        return null;
+                    }).filter(data => data !== null);
+                }
+                
+                if (boxplotData.length === 0) {
+                    // No data available, show a message
+                    console.warn("No boxplot data found.");
+                    chartElement.innerHTML = `
+                        <div class="data-unavailable">
+                            <div class="data-message">
+                                <span class="message-icon">📊</span>
+                                <h3>No Distribution Data Available</h3>
+                                <p>There is no detailed perturbation distribution data available for boxplot visualization.</p>
+                                <p>This could be because the test was run with a single iteration per level, 
+                                or because the test results don't include distribution data.</p>
+                            </div>
+                        </div>`;
+                    
+                    // Also update the stats table to show explanation
+                    const statsBody = document.getElementById('boxplot-stats-body');
+                    if (statsBody) {
+                        statsBody.innerHTML = '';
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 3;
+                        cell.textContent = 'No detailed statistics available. Run tests with multiple iterations to see distribution statistics.';
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        statsBody.appendChild(row);
+                    }
+                    
+                    return;
+                }
+                
+                // Add base score line if available
+                let baseScore = null;
+                if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
+                    baseScore = window.reportConfig.baseScore;
+                } else if (window.reportData && window.reportData.base_score !== undefined) {
+                    baseScore = window.reportData.base_score;
+                } else {
+                    baseScore = 0.96; // Dummy value
+                }
+                
+                // Layout for the chart
+                const layout = {
+                    title: 'Performance Distribution by Perturbation Level',
+                    yaxis: {
+                        title: window.reportConfig && window.reportConfig.metric ? window.reportConfig.metric : 'Score',
+                        zeroline: false
+                    },
+                    boxmode: 'group',
+                    margin: {
+                        l: 50,
+                        r: 50,
+                        b: 100,
+                        t: 50,
+                        pad: 4
+                    },
+                    shapes: [{
+                        type: 'line',
+                        x0: -0.5,
+                        x1: boxplotData.length - 0.5,
+                        y0: baseScore,
+                        y1: baseScore,
+                        line: {
+                            color: 'rgb(169, 169, 169)',
+                            width: 2,
+                            dash: 'dash'
+                        }
+                    }],
+                    annotations: [{
+                        x: boxplotData.length - 0.5,
+                        y: baseScore,
+                        xref: 'x',
+                        yref: 'y',
+                        text: 'Base Score',
+                        showarrow: true,
+                        arrowhead: 2,
+                        arrowsize: 1,
+                        arrowwidth: 1,
+                        ax: 50,
+                        ay: 0
+                    }]
+                };
+                
+                // Create the plot
+                Plotly.newPlot(chartElement, boxplotData, layout, {responsive: true});
+                
+                // Update stats table
+                updateBoxplotStats();
+                
+            } catch (error) {
+                console.error("Error creating boxplot chart:", error);
+                chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+            }
+        }
+        
+        function createSingleLevelBoxplot(level) {
+            const chartElement = document.getElementById('boxplot-chart');
+            if (!chartElement) return;
+            
+            try {
+                // Get data for the selected level
+                let scoreData = [];
+                let iterationCount = 0;
+                
+                if (window.reportData && window.reportData.raw && window.reportData.raw.by_level && window.reportData.raw.by_level[level]) {
+                    const levelData = window.reportData.raw.by_level[level];
+                    
+                    if (levelData.overall_result) {
+                        const result = levelData.overall_result;
+                        let data;
+                        
+                        if (result.all_features) {
+                            data = result.all_features;
+                        } else if (result.feature_subset) {
+                            data = result.feature_subset;
+                        }
+                        
+                        if (data && data.iterations && data.iterations.scores) {
+                            scoreData = data.iterations.scores;
+                            iterationCount = data.iterations.n_iterations || scoreData.length;
+                        }
+                    }
+                }
+                
+                if (scoreData.length === 0) {
+                    // No data available, show a message
+                    console.warn("No score data found for level " + level);
+                    chartElement.innerHTML = `
+                        <div class="data-unavailable">
+                            <div class="data-message">
+                                <span class="message-icon">📈</span>
+                                <h3>No Detailed Data for Level ${level}</h3>
+                                <p>There is no detailed iteration data available for this perturbation level.</p>
+                                <p>To generate statistical distribution data, configure the robustness test to run with multiple iterations (n_iterations > 1).</p>
+                            </div>
+                        </div>`;
+                    return;
+                }
+                
+                // Create violin plot
+                const trace = {
+                    y: scoreData,
+                    type: 'violin',
+                    points: 'all',
+                    box: {
+                        visible: true
+                    },
+                    meanline: {
+                        visible: true
+                    },
+                    name: `Level ${level}`,
+                    marker: {
+                        color: 'rgba(27, 120, 222, 0.7)'
+                    }
+                };
+                
+                // Calculate base score from report data
+                let baseScore = null;
+                if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
+                    baseScore = window.reportConfig.baseScore;
+                } else if (window.reportData && window.reportData.base_score !== undefined) {
+                    baseScore = window.reportData.base_score;
+                } else {
+                    baseScore = 0.96; // Dummy value
+                }
+                
+                // Layout
+                const layout = {
+                    title: `Performance Distribution at Level ${level}`,
+                    yaxis: {
+                        title: window.reportConfig && window.reportConfig.metric ? window.reportConfig.metric : 'Score',
+                        zeroline: false
+                    },
+                    margin: {
+                        l: 50,
+                        r: 50,
+                        b: 100,
+                        t: 50,
+                        pad: 4
+                    },
+                    shapes: [{
+                        type: 'line',
+                        x0: -0.5,
+                        x1: 0.5,
+                        y0: baseScore,
+                        y1: baseScore,
+                        line: {
+                            color: 'rgb(169, 169, 169)',
+                            width: 2,
+                            dash: 'dash'
+                        }
+                    }],
+                    annotations: [{
+                        x: 0.5,
+                        y: baseScore,
+                        xref: 'x',
+                        yref: 'y',
+                        text: 'Base Score',
+                        showarrow: true,
+                        arrowhead: 2,
+                        arrowsize: 1,
+                        arrowwidth: 1,
+                        ax: 50,
+                        ay: 0
+                    }]
+                };
+                
+                // Create the plot
+                Plotly.newPlot(chartElement, [trace], layout, {responsive: true});
+                
+                // Update stats table for this level
+                updateBoxplotStats(level);
+                
+            } catch (error) {
+                console.error("Error creating single level boxplot:", error);
+                chartElement.innerHTML = `<div style='padding: 20px; color: red;'>Error creating chart: ${error.message}</div>`;
+            }
+        }
+        
+        function updateBoxplotStats(level = null) {
+            const statsBody = document.getElementById('boxplot-stats-body');
+            if (!statsBody) return;
+            
+            // Clear existing rows
+            statsBody.innerHTML = '';
+            
+            try {
+                let statsData = {};
+                
+                if (level === null) {
+                    // Show overall stats
+                    statsData = {
+                        'Base Score': window.reportConfig ? window.reportConfig.baseScore || 0 : 0,
+                        'Average Impact': window.reportConfig ? window.reportConfig.rawImpact || 0 : 0,
+                        'Robustness Score': window.reportConfig ? window.reportConfig.robustnessScore || 0 : 0
+                    };
+                    
+                } else {
+                    // Show level-specific stats
+                    if (window.reportData && window.reportData.raw && window.reportData.raw.by_level && window.reportData.raw.by_level[level]) {
+                        const levelData = window.reportData.raw.by_level[level];
+                        
+                        if (levelData.overall_result) {
+                            const result = levelData.overall_result;
+                            let data;
+                            
+                            if (result.all_features) {
+                                data = result.all_features;
+                            } else if (result.feature_subset) {
+                                data = result.feature_subset;
+                            }
+                            
+                            if (data) {
+                                statsData = {
+                                    'Mean Score': data.mean_score || 0,
+                                    'Impact': data.impact || 0,
+                                    'Worst Score': data.worst_score || 0,
+                                    'Iterations': data.iterations ? data.iterations.n_iterations || 0 : 0
+                                };
+                            }
+                        }
+                    } else {
+                        // No data available for this level
+                        console.warn("No stats data found for level " + level);
+                        statsBody.innerHTML = '';
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 3;
+                        cell.textContent = 'No statistics available for this level';
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        statsBody.appendChild(row);
+                        return;
+                    }
+                }
+                
+                // Add rows for each stat
+                for (const [stat, value] of Object.entries(statsData)) {
+                    const row = document.createElement('tr');
+                    
+                    const statCell = document.createElement('td');
+                    statCell.textContent = stat;
+                    
+                    const valueCell = document.createElement('td');
+                    if (stat === 'Iterations') {
+                        valueCell.textContent = value;
+                    } else if (stat === 'Impact') {
+                        valueCell.textContent = (value * 100).toFixed(2) + '%';
+                    } else {
+                        valueCell.textContent = value.toFixed(3);
+                    }
+                    
+                    const descCell = document.createElement('td');
+                    const descriptions = {
+                        'Base Score': 'Performance on unperturbed data',
+                        'Average Impact': 'Average performance impact across all levels',
+                        'Robustness Score': 'Overall model robustness score (1 - impact)',
+                        'Mean Score': 'Average performance at this perturbation level',
+                        'Impact': 'Performance impact at this perturbation level',
+                        'Worst Score': 'Worst performance observed at this level',
+                        'Iterations': 'Number of test iterations for statistical robustness'
+                    };
+                    descCell.textContent = descriptions[stat] || '';
+                    
+                    row.appendChild(statCell);
+                    row.appendChild(valueCell);
+                    row.appendChild(descCell);
+                    
+                    statsBody.appendChild(row);
+                }
+                
+            } catch (error) {
+                console.error("Error updating boxplot stats:", error);
+                
+                // Show error message
+                statsBody.innerHTML = '';
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = 'Error loading statistical data';
+                cell.style.textAlign = 'center';
+                cell.style.color = 'red';
+                row.appendChild(cell);
+                statsBody.appendChild(row);
+            }
+        }
+    });
+</script>
+
+<style>
+    .level-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .level-btn {
+        padding: 0.5rem 1rem;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .level-btn:hover {
+        background-color: #e9ecef;
+    }
+    
+    .level-btn.active {
+        background-color: #1b78de;
+        color: white;
+        border-color: #1b78de;
+    }
+    
+    /* Data unavailable styling */
+    .data-unavailable {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 300px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .data-message {
+        text-align: center;
+        max-width: 80%;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .data-message h3 {
+        margin-top: 5px;
+        color: #495057;
+    }
+    
+    .data-message p {
+        color: #6c757d;
+        margin: 10px 0;
+    }
+    
+    .message-icon {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 10px;
+    }
+</style>

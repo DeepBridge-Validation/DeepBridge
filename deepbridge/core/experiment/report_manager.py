@@ -39,10 +39,12 @@ class ReportManager:
         else:
             self.templates_dir = templates_dir
         
-        # Set up Jinja2 environment with explicit UTF-8 encoding
+        # Set up Jinja2 environment with explicit UTF-8 encoding and trim_blocks/lstrip_blocks for better HTML output
         self.jinja_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.templates_dir, encoding='utf-8'),
-            autoescape=jinja2.select_autoescape(['html', 'xml'])
+            autoescape=jinja2.select_autoescape(['html', 'xml']),
+            trim_blocks=True,
+            lstrip_blocks=True
         )
         
         # Import numpy if available for handling numpy types
@@ -184,8 +186,17 @@ class ReportManager:
                 
             print(f"Template file exists: {template_path}")
             
-            # Load the robustness report template
-            template = self.jinja_env.get_template('report_types/robustness/index.html')
+            # Load the robustness report template with a custom loader to ensure standalone rendering
+            loader = jinja2.FileSystemLoader(self.templates_dir, encoding='utf-8')
+            env = jinja2.Environment(
+                loader=loader,
+                autoescape=jinja2.select_autoescape(['html', 'xml']),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
+            
+            # Use standalone template without inheritance
+            template = env.get_template('report_types/robustness/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -208,24 +219,51 @@ class ReportManager:
                     report_data = copy.deepcopy(results_raw)
                     print("Used deep copy to convert results")
                 
+                # Debug log to check for feature_importance in the data
+                if 'feature_importance' in report_data:
+                    print(f"Found feature_importance at top level with {len(report_data['feature_importance'])} features")
+                if 'model_feature_importance' in report_data:
+                    print(f"Found model_feature_importance at top level with {len(report_data['model_feature_importance'])} features")
+                
+                # Initialize empty feature importance dictionaries if not present
+                if 'feature_importance' not in report_data:
+                    report_data['feature_importance'] = {}
+                    print("Initialized empty feature_importance dictionary")
+                
+                if 'model_feature_importance' not in report_data:
+                    report_data['model_feature_importance'] = {}
+                    print("Initialized empty model_feature_importance dictionary")
+                
                 # Handle case where results are nested under 'primary_model' key
                 if 'primary_model' in report_data:
                     print("Found 'primary_model' key, extracting data...")
                     primary_data = report_data['primary_model']
+                    
+                    # Debug log for feature importance in primary_model
+                    if 'feature_importance' in primary_data:
+                        print(f"Found feature_importance in primary_model with {len(primary_data['feature_importance'])} features")
+                    if 'model_feature_importance' in primary_data:
+                        print(f"Found model_feature_importance in primary_model with {len(primary_data['model_feature_importance'])} features")
+                    
                     # Copy fields from primary_model to the top level
                     for key, value in primary_data.items():
-                        if key not in report_data or key == 'raw' or key == 'quantile' or key == 'feature_importance' or key == 'model_feature_importance':
+                        if key not in report_data or key == 'raw' or key == 'quantile':
                             report_data[key] = value
                     
-                    # If raw, quantile, feature_importance, or model_feature_importance exists at the top level, don't overwrite
+                    # Always copy feature importance data to ensure it's available
+                    if 'feature_importance' in primary_data:
+                        print("Copying feature_importance from primary_model to top level")
+                        report_data['feature_importance'] = primary_data['feature_importance']
+                    
+                    if 'model_feature_importance' in primary_data:
+                        print("Copying model_feature_importance from primary_model to top level")
+                        report_data['model_feature_importance'] = primary_data['model_feature_importance']
+                    
+                    # If raw, quantile exists at the top level, don't overwrite
                     if 'raw' not in report_data and 'raw' in primary_data:
                         report_data['raw'] = primary_data['raw']
                     if 'quantile' not in report_data and 'quantile' in primary_data:
                         report_data['quantile'] = primary_data['quantile']
-                    if 'feature_importance' not in report_data and 'feature_importance' in primary_data:
-                        report_data['feature_importance'] = primary_data['feature_importance']
-                    if 'model_feature_importance' not in report_data and 'model_feature_importance' in primary_data:
-                        report_data['model_feature_importance'] = primary_data['model_feature_importance']
                         
                 # Add metadata for display
                 report_data['model_name'] = report_data.get('model_name', local_model_name)
@@ -243,6 +281,54 @@ class ReportManager:
                     report_data['model_type'] = report_data['initial_results']['models']['primary_model']['type']
                 else:
                     report_data['model_type'] = "Unknown Model"
+                
+                # Check if we need to get feature importance data from nested structure
+                if 'results' in report_data:
+                    print("Checking for feature importance in nested results structure")
+                    if 'robustness' in report_data['results']:
+                        rob_results = report_data['results']['robustness']
+                        print(f"Found robustness key with keys: {list(rob_results.keys())}")
+                        
+                        # Check in direct robustness object
+                        if 'feature_importance' in rob_results and rob_results['feature_importance']:
+                            print(f"Found feature_importance directly in results.robustness with {len(rob_results['feature_importance'])} features")
+                            report_data['feature_importance'] = rob_results['feature_importance']
+                        
+                        if 'model_feature_importance' in rob_results and rob_results['model_feature_importance']:
+                            print(f"Found model_feature_importance directly in results.robustness with {len(rob_results['model_feature_importance'])} features")
+                            report_data['model_feature_importance'] = rob_results['model_feature_importance']
+                        
+                        # Check in nested results
+                        if 'results' in rob_results:
+                            nested_results = rob_results['results'] 
+                            print(f"Found nested results with keys: {list(nested_results.keys())}")
+                            
+                            if 'primary_model' in nested_results:
+                                primary_model = nested_results['primary_model']
+                                print("Found primary_model in nested results.robustness.results")
+                                
+                                if 'feature_importance' in primary_model and primary_model['feature_importance']:
+                                    print(f"Found feature_importance in nested results with {len(primary_model['feature_importance'])} features")
+                                    report_data['feature_importance'] = primary_model['feature_importance']
+                                    
+                                if 'model_feature_importance' in primary_model and primary_model['model_feature_importance']:
+                                    print(f"Found model_feature_importance in nested results with {len(primary_model['model_feature_importance'])} features")
+                                    report_data['model_feature_importance'] = primary_model['model_feature_importance']
+                                
+                    # Check in experiment results structure (used by newer versions)
+                    if 'robustness' in report_data['results'] and 'results' in report_data['results']['robustness']:
+                        rob_nested = report_data['results']['robustness']['results']
+                        if isinstance(rob_nested, dict) and 'primary_model' in rob_nested:
+                            primary_model = rob_nested['primary_model']
+                            print("Found primary_model in results.robustness.results")
+                            
+                            if 'feature_importance' in primary_model and primary_model['feature_importance']:
+                                print(f"Found feature_importance in experiment results with {len(primary_model['feature_importance'])} features")
+                                report_data['feature_importance'] = primary_model['feature_importance']
+                                
+                            if 'model_feature_importance' in primary_model and primary_model['model_feature_importance']:
+                                print(f"Found model_feature_importance in experiment results with {len(primary_model['model_feature_importance'])} features")
+                                report_data['model_feature_importance'] = primary_model['model_feature_importance']
                 
                 # Ensure we have a proper metrics structure
                 if 'metrics' not in report_data:
@@ -375,6 +461,17 @@ class ReportManager:
             # Transform the data structure
             report_data = transform_robustness_data(results, model_name, timestamp)
             
+            # Debug log to check the final state of feature importance data
+            if 'feature_importance' in report_data:
+                print(f"After transformation: feature_importance has {len(report_data['feature_importance'])} features")
+            else:
+                print("WARNING: No feature_importance found after transformation!")
+                
+            if 'model_feature_importance' in report_data:
+                print(f"After transformation: model_feature_importance has {len(report_data['model_feature_importance'])} features")
+            else:
+                print("WARNING: No model_feature_importance found after transformation!")
+            
             # Convert all numpy types to Python native types
             report_data = self.convert_numpy_types(report_data)
             
@@ -417,9 +514,13 @@ class ReportManager:
                 # Configuration details
                 'iterations': report_data.get('iterations', 3),
                 
-                # For charts
-                'has_feature_importance': 'feature_importance' in report_data and bool(report_data['feature_importance']),
-                'has_model_feature_importance': 'model_feature_importance' in report_data and bool(report_data['model_feature_importance']),
+                # For charts - we'll make sure these are extracted from the correct place
+                'has_feature_importance': bool(report_data.get('feature_importance', {})),
+                'has_model_feature_importance': bool(report_data.get('model_feature_importance', {})),
+                
+                # Pass feature importance data directly - ensure these are always defined
+                'feature_importance': report_data.get('feature_importance', {}),
+                'model_feature_importance': report_data.get('model_feature_importance', {}),
                 
                 # For component display logic
                 'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
@@ -475,8 +576,17 @@ class ReportManager:
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
-            # Load the template
-            template = self.jinja_env.get_template('report_types/uncertainty/index.html')
+            # Load the template with a custom loader to ensure standalone rendering
+            loader = jinja2.FileSystemLoader(self.templates_dir, encoding='utf-8')
+            env = jinja2.Environment(
+                loader=loader,
+                autoescape=jinja2.select_autoescape(['html', 'xml']),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
+            
+            # Use standalone template without inheritance
+            template = env.get_template('report_types/uncertainty/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -633,9 +743,13 @@ class ReportManager:
                 'block_title': f"Uncertainty Analysis: {model_name}",
                 
                 # Main metrics for direct access in templates
-                'uncertainty_score': report_data.get('uncertainty_score', 0),
-                'avg_coverage': report_data.get('avg_coverage', 0),
-                'avg_width': report_data.get('avg_width', 0),
+                'uncertainty_score': report_data.get('uncertainty_score', None),
+                'coverage_score': report_data.get('avg_coverage', None),
+                'calibration_error': report_data.get('calibration_error', None),
+                'sharpness': report_data.get('avg_width', None),
+                'consistency': report_data.get('consistency', None),
+                'avg_coverage': report_data.get('avg_coverage', None),
+                'avg_width': report_data.get('avg_width', None),
                 'method': report_data.get('method', 'crqr'),
                 'metric': report_data.get('metric', 'score'),
                 'model_type': report_data.get('model_type', 'Unknown Model'),
@@ -689,9 +803,20 @@ class ReportManager:
             template_path = os.path.join(self.templates_dir, 'report_types/resilience/index.html')
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
+            
+            print(f"Found template: {template_path}")
                 
-            # Load the template
-            template = self.jinja_env.get_template('report_types/resilience/index.html')
+            # Load the template with a custom loader that doesn't look for base templates
+            loader = jinja2.FileSystemLoader(self.templates_dir, encoding='utf-8')
+            env = jinja2.Environment(
+                loader=loader,
+                autoescape=jinja2.select_autoescape(['html', 'xml']),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
+            
+            # Disable template inheritance to prevent looking for base.html
+            template = env.get_template('report_types/resilience/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -824,6 +949,97 @@ class ReportManager:
             favicon_base64 = self.get_base64_image(self.favicon_path)
             logo_base64 = self.get_base64_image(self.logo_path)
             
+            # Initialize variables without default values
+            # When these are not defined, the template will show "Data not available"
+            avg_dist_shift = None
+            max_gap = None
+            most_affected_scenario = None
+            
+            if 'distribution_shift' in report_data and 'by_distance_metric' in report_data['distribution_shift']:
+                # Calculate average distance across all metrics
+                dist_values = []
+                for dm, dm_data in report_data['distribution_shift']['by_distance_metric'].items():
+                    for feature, val in dm_data.get('avg_feature_distances', {}).items():
+                        dist_values.append(val)
+                if dist_values:
+                    avg_dist_shift = sum(dist_values) / len(dist_values)
+                # If no values found, leave avg_dist_shift as None to show "Data not available"
+            
+            # Find the worst scenario (largest performance gap)
+            if 'distribution_shift' in report_data and 'all_results' in report_data['distribution_shift']:
+                all_results = report_data['distribution_shift']['all_results']
+                if all_results:
+                    # Find result with max performance gap
+                    max_result = max(all_results, key=lambda x: x.get('performance_gap', 0) if isinstance(x.get('performance_gap', 0), (int, float)) else 0)
+                    max_gap = max_result.get('performance_gap', 0)
+                    # Create a descriptive scenario name
+                    scenario_components = []
+                    if 'alpha' in max_result:
+                        scenario_components.append(f"{int(max_result['alpha'] * 100)}% shift")
+                    if 'distance_metric' in max_result:
+                        scenario_components.append(f"{max_result['distance_metric']} metric")
+                    if scenario_components:
+                        most_affected_scenario = " with ".join(scenario_components)
+                    else:
+                        most_affected_scenario = "Unspecified scenario"
+            
+            # Calculate outlier sensitivity based on available data
+            outlier_sensitivity = None  # No default value - template will show "Data not available"
+            if 'distribution_shift' in report_data and 'all_results' in report_data['distribution_shift']:
+                sensitivity_values = []
+                for result in report_data['distribution_shift']['all_results']:
+                    if 'worst_metric' in result and 'remaining_metric' in result and 'alpha' in result:
+                        # Sensitivity is how much performance changes per percentage shift
+                        sensitivity = abs(result['performance_gap']) / (result['alpha'] * 100)
+                        sensitivity_values.append(sensitivity)
+                if sensitivity_values:
+                    outlier_sensitivity = sum(sensitivity_values) / len(sensitivity_values)
+                # If no values found, leave outlier_sensitivity as None to show "Data not available"
+            
+            # Get baseline and target dataset names only if available in test results
+            baseline_dataset = None
+            target_dataset = None
+            if 'dataset_info' in report_data:
+                if 'baseline_name' in report_data['dataset_info']:
+                    baseline_dataset = report_data['dataset_info']['baseline_name']
+                if 'target_name' in report_data['dataset_info']:
+                    target_dataset = report_data['dataset_info']['target_name']
+            
+            # Extract shift scenarios from test results
+            shift_scenarios = []
+            if 'distribution_shift' in report_data and 'all_results' in report_data['distribution_shift']:
+                for result in report_data['distribution_shift']['all_results']:
+                    scenario = {
+                        'name': result.get('name', f"Scenario {len(shift_scenarios) + 1}"),
+                        'alpha': result.get('alpha', 0),
+                        'metric': result.get('metric', 'unknown'),
+                        'distance_metric': result.get('distance_metric', 'unknown'),
+                        'performance_gap': result.get('performance_gap', 0),
+                        'baseline_performance': result.get('baseline_performance', 0),
+                        'target_performance': result.get('target_performance', 0),
+                        'metrics': result.get('metrics', {})
+                    }
+                    shift_scenarios.append(scenario)
+            
+            # Extract sensitive features based on feature distances
+            sensitive_features = []
+            if 'distribution_shift' in report_data and 'by_distance_metric' in report_data['distribution_shift']:
+                all_features = {}
+                for dm, dm_data in report_data['distribution_shift']['by_distance_metric'].items():
+                    for feature, value in dm_data.get('top_features', {}).items():
+                        if feature not in all_features:
+                            all_features[feature] = 0
+                        all_features[feature] += value
+                
+                # Get top features across all distance metrics
+                sensitive_features = [
+                    {'name': feature, 'impact': value}
+                    for feature, value in sorted(all_features.items(), key=lambda x: x[1], reverse=True)[:5]
+                ]
+            
+            # Performance gap is the same as avg_performance_gap
+            performance_gap = report_data.get('avg_performance_gap', 0)
+            
             # Create template context with structured data for components
             template_context = {
                 # Complete report data for template access
@@ -840,9 +1056,15 @@ class ReportManager:
                 'block_title': f"Resilience Analysis: {model_name}",
                 
                 # Main metrics for direct access in templates
-                'resilience_score': report_data.get('resilience_score', 0),
-                'avg_performance_gap': report_data.get('avg_performance_gap', 0),
-                'base_score': report_data.get('base_score', 0),
+                'resilience_score': report_data.get('resilience_score', None),
+                'avg_performance_gap': report_data.get('avg_performance_gap', None),
+                'performance_gap': performance_gap,  # This is already None if not available
+                'avg_dist_shift': avg_dist_shift,    # This is already None if not available
+                'base_score': report_data.get('base_score', None),
+                'base_performance': report_data.get('base_score', None),  # Alias for base_score
+                'outlier_sensitivity': outlier_sensitivity,  # This is already None if not available
+                'max_gap': max_gap,                  # This is already None if not available
+                'most_affected_scenario': most_affected_scenario,  # This is already None if not available
                 'distance_metrics': report_data.get('distance_metrics', []),
                 'metric': report_data.get('metric', 'score'),
                 'model_type': report_data.get('model_type', 'Unknown Model'),
@@ -855,6 +1077,18 @@ class ReportManager:
                 'distribution_shift_results': report_data.get('distribution_shift_results', []),
                 'alphas': report_data.get('alphas', []),
                 
+                # Dataset information
+                'baseline_dataset': baseline_dataset,
+                'target_dataset': target_dataset,
+                
+                # Shift scenarios and sensitive features - note we don't need to double-encode as JSON
+                # since these will be assigned directly to a JavaScript variable, not embedded in another JSON string
+                'shift_scenarios': shift_scenarios,
+                'sensitive_features': sensitive_features,
+                
+                # Module version information
+                'resilience_module_version': report_data.get('module_version', '1.0'),
+                
                 # Model comparisons
                 'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models'])
             }
@@ -865,6 +1099,8 @@ class ReportManager:
             # Create output directory if it doesn't exist
             output_dir = os.path.dirname(os.path.abspath(file_path))
             os.makedirs(output_dir, exist_ok=True)
+            
+            # No need to copy static assets since we've embedded everything in the HTML
             
             # Write to file with explicit UTF-8 encoding
             with open(file_path, 'w', encoding='utf-8') as f:
@@ -904,8 +1140,17 @@ class ReportManager:
             if not os.path.exists(template_path):
                 raise FileNotFoundError(f"Template file does not exist: {template_path}")
                 
-            # Load the template
-            template = self.jinja_env.get_template('report_types/hyperparameter/index.html')
+            # Load the template with a custom loader to ensure standalone rendering
+            loader = jinja2.FileSystemLoader(self.templates_dir, encoding='utf-8')
+            env = jinja2.Environment(
+                loader=loader,
+                autoescape=jinja2.select_autoescape(['html', 'xml']),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
+            
+            # Use standalone template without inheritance
+            template = env.get_template('report_types/hyperparameter/index.html')
             
             # Create report data
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

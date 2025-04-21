@@ -1,0 +1,154 @@
+<!-- metric_card.html - placeholder -->
+<!-- metric_card.html - Card for displaying metrics -->
+<div class="metric-card-widget" data-metric="{{ id|default('metric') }}">
+    <div class="metric-card-content">
+        <div class="metric-icon">
+            <i class="metric-icon-{{ type|default('default') }}"></i>
+        </div>
+        <div class="metric-details">
+            <div class="metric-title">{{ title }}</div>
+            <div class="metric-value" data-value="{{ value }}">
+                {% if valueType == 'percentage' %}
+                    {{ value|float * 100 }}%
+                {% else %}
+                    {{ value }}
+                {% endif %}
+            </div>
+            {% if description %}
+            <div class="metric-description">{{ description }}</div>
+            {% endif %}
+            {% if trend %}
+            <div class="metric-trend {{ trend.direction }}">
+                <i class="trend-icon"></i>
+                <span class="trend-value">{{ trend.value }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% if showIndicator %}
+        <div class="metric-indicator">
+            <div class="indicator-dot {{ indicatorClass|default('neutral') }}"></div>
+        </div>
+        {% endif %}
+    </div>
+    {% if hasDetails %}
+    <div class="metric-details-toggle" data-target="{{ id|default('metric') }}-details">
+        <span class="toggle-text">Details</span>
+        <span class="toggle-icon">▼</span>
+    </div>
+    <div class="metric-extended-details" id="{{ id|default('metric') }}-details" style="display: none;">
+        {% block metric_details %}
+        <!-- This block can be overridden to provide custom metric details -->
+        <div class="metric-detail-item">
+            <span class="detail-label">Min:</span>
+            <span class="detail-value">{{ details.min }}</span>
+        </div>
+        <div class="metric-detail-item">
+            <span class="detail-label">Max:</span>
+            <span class="detail-value">{{ details.max }}</span>
+        </div>
+        <div class="metric-detail-item">
+            <span class="detail-label">Avg:</span>
+            <span class="detail-value">{{ details.avg }}</span>
+        </div>
+        {% endblock %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initMetricCards();
+    });
+
+    function initMetricCards() {
+        document.querySelectorAll('.metric-card-widget').forEach(card => {
+            // Handle details toggle if present
+            const toggleBtn = card.querySelector('.metric-details-toggle');
+            if (toggleBtn) {
+                const targetId = toggleBtn.getAttribute('data-target');
+                const targetContent = document.getElementById(targetId);
+                
+                toggleBtn.addEventListener('click', function() {
+                    const icon = this.querySelector('.toggle-icon');
+                    if (targetContent.style.display === 'none') {
+                        targetContent.style.display = 'block';
+                        icon.textContent = '▲';
+                    } else {
+                        targetContent.style.display = 'none';
+                        icon.textContent = '▼';
+                    }
+                });
+            }
+            
+            // Set indicator color based on the metric value
+            const indicator = card.querySelector('.metric-indicator');
+            const metricValue = card.querySelector('.metric-value');
+            
+            if (indicator && metricValue) {
+                const value = parseFloat(metricValue.getAttribute('data-value'));
+                const indicatorDot = indicator.querySelector('.indicator-dot');
+                
+                if (indicatorDot) {
+                    // Determine indicator class based on value
+                    // This is a simple example; logic can be customized
+                    if (isNaN(value)) {
+                        indicatorDot.className = 'indicator-dot neutral';
+                    } else if (value >= 0.8) {
+                        indicatorDot.className = 'indicator-dot excellent';
+                    } else if (value >= 0.6) {
+                        indicatorDot.className = 'indicator-dot good';
+                    } else if (value >= 0.4) {
+                        indicatorDot.className = 'indicator-dot moderate';
+                    } else if (value >= 0.2) {
+                        indicatorDot.className = 'indicator-dot fair';
+                    } else {
+                        indicatorDot.className = 'indicator-dot poor';
+                    }
+                }
+            }
+            
+            // Animate value on page load
+            animateMetricValue(card);
+        });
+    }
+    
+    function animateMetricValue(card) {
+        const metricValue = card.querySelector('.metric-value');
+        if (!metricValue) return;
+        
+        const finalValue = parseFloat(metricValue.getAttribute('data-value'));
+        if (isNaN(finalValue)) return;
+        
+        // Check if it's a percentage value
+        const isPercentage = metricValue.textContent.trim().endsWith('%');
+        const displayValue = isPercentage ? finalValue * 100 : finalValue;
+        
+        // Set starting value
+        let startValue = 0;
+        const duration = 1000; // Animation duration in ms
+        const decimals = displayValue < 1 ? 2 : 1; // More decimals for small numbers
+        
+        // Start animation
+        const startTime = performance.now();
+        
+        function updateValue(timestamp) {
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease-out cubic function for smoother animation
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            
+            const currentValue = startValue + (displayValue - startValue) * easedProgress;
+            
+            metricValue.textContent = isPercentage ? 
+                currentValue.toFixed(decimals) + '%' : 
+                currentValue.toFixed(decimals);
+                
+            if (progress < 1) {
+                requestAnimationFrame(updateValue);
+            }
+        }
+        
+        requestAnimationFrame(updateValue);
+    }
+</script>

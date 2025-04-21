@@ -1,0 +1,72 @@
+<div class="importance-comparison-table-container">
+    <div class="table-controls">
+        <div class="search-filter">
+            <input type="text" id="feature-search-comparison" class="feature-search" placeholder="Search features...">
+        </div>
+        
+        <div class="sorting-control">
+            <label for="sort-by-comparison">Sort by:</label>
+            <select id="sort-by-comparison" class="sort-selector">
+                <option value="model">Model Importance (High to Low)</option>
+                <option value="robustness">Robustness Importance (High to Low)</option>
+                <option value="diff" selected>Rank Difference (High to Low)</option>
+                <option value="name">Feature Name (A-Z)</option>
+                <option value="subset">Optimal Subset First</option>
+            </select>
+        </div>
+        
+        <div class="display-control">
+            <label for="rows-display-comparison">Show:</label>
+            <select id="rows-display-comparison" class="rows-selector">
+                <option value="10">10 rows</option>
+                <option value="25" selected>25 rows</option>
+                <option value="50">50 rows</option>
+                <option value="all">All rows</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table importance-comparison-table" id="importance-comparison-table">
+            <thead>
+                <tr>
+                    <th class="feature-name-col sortable" data-sort="name">Feature</th>
+                    <th class="model-importance-col sortable" data-sort="model">Model Importance</th>
+                    <th class="robustness-importance-col sortable" data-sort="robustness">Robustness Importance</th>
+                    <th class="model-rank-col sortable" data-sort="model-rank">Model Rank</th>
+                    <th class="robustness-rank-col sortable" data-sort="robustness-rank">Robustness Rank</th>
+                    <th class="rank-diff-col sortable" data-sort="diff">Rank Difference</th>
+                    <th class="feature-subset-col sortable" data-sort="subset">In Optimal Subset</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+                <tr class="loading-row">
+                    <td colspan="7">
+                        <div class="loading-indicator">Loading feature comparison data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prev-page-comparison" disabled>&laquo; Previous</button>
+            <span class="pagination-info" id="pagination-info-comparison">Page 1 of 1</span>
+            <button class="pagination-btn" id="next-page-comparison" disabled>Next &raquo;</button>
+        </div>
+    </div>
+
+    <div class="table-info">
+        <div class="info-panel">
+            <h4>Importance Comparison Analysis</h4>
+            <p>This table compares model-derived importance with robustness-based importance. Features with large rank differences may be particularly interesting:</p>
+            <ul>
+                <li><strong>High model importance, low robustness importance:</strong> Important for predictions but stable under perturbation</li>
+                <li><strong>Low model importance, high robustness importance:</strong> Less important for predictions but highly sensitive to perturbation</li>
+            </ul>
+            <p>Features in the optimal subset (highlighted) represent the best balance between predictive power and robustness.</p>
+        </div>
+    </div>
+</div>
