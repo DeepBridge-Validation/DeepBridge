@@ -1,0 +1,63 @@
+{% include '/home/guhaase/projetos/DeepBridge/deepbridge/templates/common/header.html' %}
+
+<div class="summary-stats">
+    <div class="score-card">
+        <div class="score-label">Robustness Score</div>
+        <div class="score-value">{{ (report_data.robustness_score|default(0) * 100) | round(1) }}%</div>
+        <div class="score-desc">
+            {% if (report_data.robustness_score|default(0)) > 0.9 %}
+                Excellent resistance to perturbations
+            {% elif (report_data.robustness_score|default(0)) > 0.7 %}
+                Good resistance to perturbations
+            {% elif (report_data.robustness_score|default(0)) > 0.5 %}
+                Moderate resistance to perturbations
+            {% else %}
+                Needs improvement in robustness
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-title">Model Information</div>
+        <table class="info-table">
+            <tr>
+                <td><strong>Type:</strong></td>
+                <td>{{ report_data.model_type }}</td>
+            </tr>
+            <tr>
+                <td><strong>Framework:</strong></td>
+                <td>{{ report_data.framework|default('Not specified') }}</td>
+            </tr>
+            <tr>
+                <td><strong>Features:</strong></td>
+                <td>{{ report_data.feature_count|default(0) }}</td>
+            </tr>
+            <tr>
+                <td><strong>Test Samples:</strong></td>
+                <td>{{ report_data.test_sample_count|default(0) }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-title">Test Summary</div>
+        <table class="info-table">
+            <tr>
+                <td><strong>Perturbations:</strong></td>
+                <td>{{ report_data.perturbation_count|default(0) }}</td>
+            </tr>
+            <tr>
+                <td><strong>Intensity Levels:</strong></td>
+                <td>{{ report_data.intensity_levels|default(0) }}</td>
+            </tr>
+            <tr>
+                <td><strong>Metrics Tested:</strong></td>
+                <td>{{ report_data.metrics_count|default(0) }}</td>
+            </tr>
+            <tr>
+                <td><strong>Critical Features:</strong></td>
+                <td>{{ report_data.critical_features|default(0) }}</td>
+            </tr>
+        </table>
+    </div>
+</div>

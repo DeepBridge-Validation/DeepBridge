@@ -1,0 +1,63 @@
+<div class="section">
+    <h2 class="section-title">Feature Importance Analysis</h2>
+    <p>Analysis of how each feature contributes to model robustness.</p>
+    
+    <div id="feature-importance-chart" class="chart-plot">
+        <div class="loading-message">
+            <div class="message-container">
+                <span class="message-icon">⏳</span>
+                <h3>Loading Feature Importance Chart...</h3>
+                <p>Please wait while the chart data is being prepared...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="feature-importance-container">
+        <div class="feature-importance-header">
+            <h2>Feature Importance Table</h2>
+            <div class="feature-importance-controls">
+                <div class="search-container">
+                    <input type="text" id="feature-search" class="search-input" placeholder="Search features...">
+                </div>
+                <div class="toggle-container">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-subset-only" class="toggle-checkbox">
+                        Show feature subset only
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-importance-table-wrapper">
+            <table class="feature-importance-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="name">Feature <span class="sort-indicator">▼</span></th>
+                        <th class="sortable" data-sort="impact">Robustness Impact <span class="sort-indicator"></span></th>
+                        <th class="sortable" data-sort="importance">Model Importance <span class="sort-indicator"></span></th>
+                        <th>Feature Subset</th>
+                    </tr>
+                </thead>
+                <tbody id="feature-impact-data">
+                    <!-- Will be filled by JavaScript -->
+                    <tr>
+                        <td colspan="4" class="loading-message">
+                            <div class="message-container">
+                                <span class="message-icon">⏳</span>
+                                <h3>Loading Feature Data...</h3>
+                                <p>Please wait while feature data is being loaded...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="feature-importance-footer">
+            <div class="table-summary-info">
+                <span>Total features: <span id="total-features-count">0</span></span>
+                <span>In feature subset: <span id="subset-features-count">0</span></span>
+            </div>
+        </div>
+    </div>
+</div>

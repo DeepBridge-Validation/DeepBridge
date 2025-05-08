@@ -1,0 +1,43 @@
+<div class="main-tabs" id="main-tabs">
+    {% for tab in tabs %}
+        <button class="tab-btn {% if loop.first %}active{% endif %}" data-tab="{{ tab.id }}">{{ tab.title }}</button>
+    {% endfor %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Ensure at least first tab is active
+        if (tabButtons.length > 0 && !document.querySelector('.tab-btn.active')) {
+            tabButtons[0].classList.add('active');
+            const firstTabId = tabButtons[0].getAttribute('data-tab');
+            document.getElementById(firstTabId)?.classList.add('active');
+        }
+        
+        // Add click handlers
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active from all buttons and contents
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active to clicked button
+                this.classList.add('active');
+                
+                // Show target tab content
+                const targetTab = this.getAttribute('data-tab');
+                const targetContent = document.getElementById(targetTab);
+                
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                    // Trigger a custom event for tab change
+                    document.dispatchEvent(new CustomEvent('tabchange', { 
+                        detail: { tabId: targetTab, element: targetContent }
+                    }));
+                }
+            });
+        });
+    });
+</script>

@@ -1,0 +1,52 @@
+<div class="section">
+    <h2 class="section-title">Detailed Performance Analysis</h2>
+    <p>Detailed analysis of the model's performance under different perturbation types and levels.</p>
+    
+    <!-- Perturbation Results Container -->
+    <div id="perturbation-results-container" class="mt-6">
+        <!-- This container will be populated by PerturbationResultsController -->
+        <div class="loading-indicator">
+            <p>Loading perturbation details...</p>
+        </div>
+    </div>
+    
+    <!-- Fallback message when no data is available -->
+    <div class="no-data-message" style="display: none;">
+        <p><strong>Detailed perturbation data not available</strong></p>
+        <p>To see detailed analysis of specific perturbations, select features in your robustness test.</p>
+    </div>
+</div>
+
+<script>
+    // Initialize PerturbationResultsController when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only initialize if the controller and data manager exist
+        if (typeof PerturbationResultsController !== 'undefined' && 
+            typeof PerturbationResultsManager !== 'undefined') {
+            
+            setTimeout(function() {
+                PerturbationResultsController.init();
+                
+                // Hide the loading indicator
+                const loadingIndicator = document.querySelector('#perturbation-results-container .loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+            }, 500); // Short delay to ensure other components are loaded
+        } else {
+            console.error('PerturbationResults components not found');
+            
+            // Show the no-data message
+            const noDataMessage = document.querySelector('.no-data-message');
+            if (noDataMessage) {
+                noDataMessage.style.display = 'block';
+            }
+            
+            // Hide the loading indicator
+            const loadingIndicator = document.querySelector('#perturbation-results-container .loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+    });
+</script>

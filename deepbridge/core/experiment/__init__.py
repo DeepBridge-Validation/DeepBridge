@@ -3,8 +3,32 @@ Core experiment module for model validation and testing.
 This package provides a standard interface for running experiments on ML models.
 """
 
-from deepbridge.core.experiment.dependencies import check_dependencies, print_dependency_status
-from deepbridge.core.experiment.experiment import Experiment
+try:
+    from deepbridge.core.experiment.dependencies import check_dependencies, print_dependency_status
+    from deepbridge.core.experiment.experiment import Experiment
+except ImportError:
+    from core.experiment.dependencies import check_dependencies, print_dependency_status
+    from core.experiment.experiment import Experiment
+
+# Import report manager if available
+try:
+    try:
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+    except ImportError:
+        from core.experiment.report.report_manager import ReportManager
+except ImportError:
+    ReportManager = None
+
+
+# Use relative path with os.path for cross-platform compatibility
+import os
+
+# Get the base directory of the package
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+templates_dir = os.path.join(base_dir, 'templates')
+report_manager = ReportManager(templates_dir=templates_dir)
+
+
 
 # Try to import new interfaces and implementations
 try:

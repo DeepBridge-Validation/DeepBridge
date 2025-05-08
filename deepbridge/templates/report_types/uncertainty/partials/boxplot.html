@@ -1,0 +1,42 @@
+<div class="section">
+    <h2 class="section-title">Performance Distribution</h2>
+    <p>Distribution of model performance under different perturbation levels.</p>
+    
+    <div id="boxplot-chart-container" class="chart-plot">
+        <!-- Boxplot chart will be rendered here -->
+    </div>
+    
+    <div class="table-container">
+        <h3>Distribution Statistics</h3>
+        <!-- <div class="model-selector-wrapper">
+            <label for="boxplot_model_selector">Select Model: </label>
+            <select id="boxplot_model_selector">
+                <option value="all" selected>All Models</option>
+                <option value="{{ report_data.model_name }}">{{ report_data.model_name }}</option>
+                {% if report_data.alternative_models %}
+                    {% for model_name in report_data.alternative_models %}
+                        <option value="{{ model_name }}">{{ model_name }}</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div> -->
+        <table class="data-table boxplot-table">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Base Score</th>
+                    <th>Median</th>
+                    <th>MAD</th>
+                    <th>IQR</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Outliers</th>
+                    <th>Score Drop</th>
+                </tr>
+            </thead>
+            <tbody id="boxplot-table-body">
+                <!-- Table content will be dynamically generated -->
+            </tbody>
+        </table>
+    </div>
+</div>

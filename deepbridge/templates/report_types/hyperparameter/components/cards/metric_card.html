@@ -1,9 +1,0 @@
-{% macro metric_card(title, value, description="", color="primary") %}
-<div class="metric-card {{ color }}">
-    <div class="metric-title">{{ title }}</div>
-    <div class="metric-value">{{ value }}</div>
-    {% if description %}
-    <div class="metric-description">{{ description }}</div>
-    {% endif %}
-</div>
-{% endmacro %}

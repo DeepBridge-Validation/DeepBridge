@@ -397,7 +397,8 @@ class AssetProcessor:
     
     def get_combined_js_content(self, test_type: str) -> str:
         """
-        Combine generic JavaScript files with test-specific JavaScript files.
+        Combine generic JavaScript files with test-specific JavaScript files,
+        applying syntax fixes if needed.
         
         Parameters:
         -----------
@@ -416,14 +417,75 @@ class AssetProcessor:
             logger.warning(f"Error loading generic JavaScript: {str(e)}")
             generic_js = "// No generic JavaScript loaded\n\n"
         
-        # Get test-specific JavaScript
-        try:
-            js_dir = self.asset_manager.find_js_path(test_type)
-            test_js = self.get_js_content(js_dir)
-            logger.info(f"Successfully loaded {test_type} JavaScript")
-        except Exception as e:
-            logger.warning(f"Error loading {test_type} JavaScript: {str(e)}")
+        # Get test-specific JavaScript path
+        js_dir = self.asset_manager.find_js_path(test_type)
+        if not js_dir or not os.path.exists(js_dir):
+            logger.warning(f"No JS directory found for test type {test_type}")
             test_js = f"// No {test_type} JavaScript loaded\n\n"
+        else:
+            # Always prepare critical error handling scripts first
+            critical_scripts = []
+            
+            # Check for global error handler
+            global_error_handler_path = os.path.join(js_dir, 'global_error_handler.js')
+            if os.path.exists(global_error_handler_path):
+                try:
+                    with open(global_error_handler_path, 'r', encoding='utf-8') as f:
+                        critical_scripts.append(f"// Global Error Handler\n{f.read()}")
+                        logger.info("Added global_error_handler.js to critical scripts")
+                except Exception as e:
+                    logger.warning(f"Error reading global_error_handler.js: {str(e)}")
+            
+            # Check if syntax_fixer.js content should be included
+            syntax_fixer_path = os.path.join(js_dir, 'syntax_fixer.js')
+            if os.path.exists(syntax_fixer_path):
+                try:
+                    with open(syntax_fixer_path, 'r', encoding='utf-8') as f:
+                        critical_scripts.append(f"// Syntax Fixer\n{f.read()}")
+                        logger.info("Added syntax_fixer.js to critical scripts")
+                except Exception as e:
+                    logger.warning(f"Error reading syntax_fixer.js: {str(e)}")
+            
+            # Check for fixed_syntax.js
+            fixed_syntax_path = os.path.join(js_dir, 'fixed_syntax.js')
+            if os.path.exists(fixed_syntax_path):
+                try:
+                    with open(fixed_syntax_path, 'r', encoding='utf-8') as f:
+                        critical_scripts.append(f"// Fixed Syntax\n{f.read()}")
+                        logger.info("Added fixed_syntax.js to critical scripts")
+                except Exception as e:
+                    logger.warning(f"Error reading fixed_syntax.js: {str(e)}")
+            
+            # Check for safe_chart_manager.js
+            safe_chart_manager_path = os.path.join(js_dir, 'safe_chart_manager.js')
+            if os.path.exists(safe_chart_manager_path):
+                try:
+                    with open(safe_chart_manager_path, 'r', encoding='utf-8') as f:
+                        critical_scripts.append(f"// Safe Chart Manager\n{f.read()}")
+                        logger.info("Added safe_chart_manager.js to critical scripts")
+                except Exception as e:
+                    logger.warning(f"Error reading safe_chart_manager.js: {str(e)}")
+            
+            # Check for model_chart_fix.js
+            model_chart_fix_path = os.path.join(js_dir, 'model_chart_fix.js')
+            if os.path.exists(model_chart_fix_path):
+                try:
+                    with open(model_chart_fix_path, 'r', encoding='utf-8') as f:
+                        critical_scripts.append(f"// Model Chart Fix\n{f.read()}")
+                        logger.info("Added model_chart_fix.js to critical scripts")
+                except Exception as e:
+                    logger.warning(f"Error reading model_chart_fix.js: {str(e)}")
+            
+            # Join all critical scripts
+            critical_js = "\n\n".join(critical_scripts) if critical_scripts else ""
+            
+            try:
+                # Get test-specific JavaScript
+                test_js = self.get_js_content(js_dir)
+                logger.info(f"Successfully loaded {test_type} JavaScript")
+            except Exception as e:
+                logger.warning(f"Error loading {test_type} JavaScript: {str(e)}")
+                test_js = f"// No {test_type} JavaScript loaded\n\n"
         
         # For robustness reports, directly include fix_boxplot.js if it exists
         additional_js = ""
@@ -431,19 +493,36 @@ class AssetProcessor:
             try:
                 fix_boxplot_path = os.path.join(js_dir, "fix_boxplot.js")
                 if os.path.exists(fix_boxplot_path):
+                    # Get file modification time for cache-busting
+                    mod_time = os.path.getmtime(fix_boxplot_path)
+                    
+                    # Force reload the content (no caching)
                     with open(fix_boxplot_path, 'r', encoding='utf-8') as f:
                         fix_boxplot_content = f.read()
-                    additional_js = "\n\n// ===== Boxplot Fix Script (Direct Inclusion) ===== //\n\n"
+                    
+                    # Add clear markers and version/timestamp for debugging
+                    additional_js = f"\n\n// ===== Boxplot Fix Script (Direct Inclusion - Modified: {mod_time}) ===== //\n\n"
                     additional_js += fix_boxplot_content
-                    logger.info("Successfully included fix_boxplot.js directly")
+                    logger.info(f"Successfully included fix_boxplot.js directly (Modified: {mod_time})")
                 else:
                     logger.warning(f"fix_boxplot.js not found at {fix_boxplot_path}")
             except Exception as e:
                 logger.error(f"Error including fix_boxplot.js: {str(e)}")
         
-        # Combine JavaScript
-        combined_js = "// ===== Combined JavaScript (Generic + Test-specific) ===== //\n\n"
-        combined_js += generic_js + "\n\n" + test_js + additional_js
+        # Combine JavaScript based on whether we have critical scripts
+        if critical_js:
+            combined_js = "// ===== Critical Fixes (Load First) ===== //\n\n"
+            combined_js += critical_js
+            combined_js += "\n\n// ===== Generic JavaScript ===== //\n\n"
+            combined_js += generic_js
+            combined_js += "\n\n// ===== Test-specific JavaScript ===== //\n\n"
+            combined_js += test_js
+            combined_js += additional_js
+            logger.info("Combined JS with critical fixes first, then generic and test-specific")
+        else:
+            combined_js = "// ===== Combined JavaScript (Generic + Test-specific) ===== //\n\n"
+            combined_js += generic_js + "\n\n" + test_js + additional_js
+            logger.info("Combined JS with standard approach (no critical fixes found)")
         
         # Apply syntax fixes to avoid JavaScript errors
         try:

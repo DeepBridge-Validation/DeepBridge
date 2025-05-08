@@ -423,22 +423,29 @@ class Experiment(IExperiment):
                     feature_importance = self.initial_results['models']['primary_model']['feature_importance']
                     self._test_results['model_feature_importance'] = feature_importance
         
-        # Create a combined dictionary with initial_results and test_results
-        combined_results = {
-            'experiment_type': self.experiment_type,
-            'config': {'name': config_name, 'tests': self.tests},
-            # Include initial_results to ensure model metrics are available
-            'initial_results': self.initial_results,
-            # Add test results
-            **test_results
-        }
+        # Create a combined dictionary with initial_results as the first key
+        # Using ordered dict to ensure initial_results is first
+        from collections import OrderedDict
+        
+        combined_results = OrderedDict()
+        combined_results['experiment_type'] = self.experiment_type
+        combined_results['config'] = {'name': config_name, 'tests': self.tests}
+        
+        # Wrap the results in an ExperimentResult object with save_html method
+        experiment_result = wrap_results(combined_results)
+        
+        # Modify the results structure in the ExperimentResult object
+        # to have initial_results as the first key followed by test results
+        experiment_result.results = OrderedDict()
+        experiment_result.results['initial_results'] = self.initial_results
+        
+        # Add test results to the results dictionary
+        for key, value in test_results.items():
+            experiment_result.results[key] = value
         
         # Log testing completion
         self.logger.info(f"Tests completed with configuration '{config_name}'")
         self.logger.debug(f"Tests performed: {list(test_results.keys())}")
-        
-        # Wrap the results in an ExperimentResult object with save_html method
-        experiment_result = wrap_results(combined_results)
         
         # Store the experiment result object for later use
         self._experiment_result = experiment_result
