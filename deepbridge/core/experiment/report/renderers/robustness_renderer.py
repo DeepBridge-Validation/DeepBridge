@@ -119,8 +119,18 @@ class RobustnessRenderer:
                     'models': models_metrics
                 }
             
-            # Create template context
-            context = self.base_renderer._create_context(report_data, "robustness", css_content, js_content)
+            # Create template context 
+            # We need to manually inject styles and scripts into the context
+            # rather than relying on loading from external files
+            context = {
+                'report_type': 'robustness',
+                'report_data': report_data,
+                'report_data_json': self._sanitize_json(report_data),
+                'chart_data_json': self._sanitize_json(chart_data),
+                'css_content': css_content,
+                'js_content': js_content,
+                'favicon_base64': self.asset_manager.get_favicon_base64()
+            }
             
             # Add initial_results directly to the report_data for client-side access
             if initial_results:
@@ -128,6 +138,16 @@ class RobustnessRenderer:
                 
                 # Explicitly log for debugging
                 logger.info(f"Added initial_results to report_data with {len(initial_results.get('models', {}))} models")
+                
+            # Add perturbation chart data to ensure it's accessible in the template
+            if chart_data and 'perturbation_chart_data' in chart_data:
+                report_data['perturbation_chart_data'] = chart_data['perturbation_chart_data']
+                logger.info("Added perturbation_chart_data directly to report_data")
+                
+            # Add perturbation details data
+            if chart_data and 'perturbation_details_data' in chart_data:
+                report_data['perturbation_details_data'] = chart_data['perturbation_details_data']
+                logger.info("Added perturbation_details_data directly to report_data")
             
             # Add robustness-specific context with default values for all variables
             robustness_score = report_data.get('robustness_score', 0)
