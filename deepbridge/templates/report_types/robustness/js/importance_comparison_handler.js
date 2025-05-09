@@ -299,9 +299,12 @@
             container.innerHTML = `
                 <div style="padding: 40px; text-align: center; background-color: #f8f9fa; border-radius: 8px; margin: 20px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                     <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
-                    <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">No Data Available</h3>
+                    <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Dados não disponíveis</h3>
                     <p style="color: #666; font-size: 16px; line-height: 1.4;">
                         ${message}
+                    </p>
+                    <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                        Nenhum dado sintético será gerado. Execute testes com cálculo de importância de características habilitado para visualizar dados reais.
                     </p>
                 </div>`;
         },

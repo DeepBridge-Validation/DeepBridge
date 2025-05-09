@@ -84,17 +84,54 @@ window.StandaloneFeatureImportanceChart = {
                         // Get perturbation data
                         const perturbData = window.reportData.perturbation_details_data;
                         
-                        // Using the highest perturbation level's data as it shows the most dramatic impact
-                        const sortedResults = [...perturbData.results].sort((a, b) => b.level - a.level);
-                        const highestLevel = sortedResults[0];
+                        // Extract feature impacts from all perturbation levels
+                        const extractedFeatures = {};
+                        let foundFeatures = false;
                         
-                        // If we have feature impacts, convert to feature importance format
-                        if (highestLevel && highestLevel.allFeatures && typeof highestLevel.allFeatures.impact === 'number') {
-                            // Create a simple placeholder using the impact value
-                            console.log(`Extracting impact from perturbation level ${highestLevel.level}`);
-                            featureImportance = {
-                                "Impact_Level_" + highestLevel.level: highestLevel.allFeatures.impact
-                            };
+                        // Check if there's a raw.features field with real perturbation impacts by feature
+                        if (window.reportData.raw && window.reportData.raw.features) {
+                            const rawFeatures = window.reportData.raw.features;
+                            console.log("Found raw.features data with feature impacts");
+                            
+                            // Extract feature impacts directly from raw data
+                            for (const featureName in rawFeatures) {
+                                const featureImpact = rawFeatures[featureName];
+                                if (typeof featureImpact === 'number') {
+                                    extractedFeatures[featureName] = featureImpact;
+                                    foundFeatures = true;
+                                }
+                            }
+                        }
+                        
+                        // If we found feature impacts, use them
+                        if (foundFeatures) {
+                            console.log(`Extracted ${Object.keys(extractedFeatures).length} features from raw data`);
+                            featureImportance = extractedFeatures;
+                        }
+                        
+                        // If no feature impacts found, try to get feature_importance directly from raw data
+                        else if (window.reportData.raw && window.reportData.raw.feature_importance) {
+                            console.log("Using feature_importance from raw data");
+                            featureImportance = window.reportData.raw.feature_importance;
+                        }
+                        
+                        // Check if no features were found, but we have overall impact scores
+                        else if (perturbData.results && perturbData.results.length > 0) {
+                            console.log("Using perturbation_details_data for impact scores");
+                            const levelImpacts = {};
+                            
+                            // Extract impacts by level
+                            for (const result of perturbData.results) {
+                                if (result.allFeatures && typeof result.allFeatures.impact === 'number') {
+                                    levelImpacts[`Level_${result.level}`] = result.allFeatures.impact;
+                                }
+                            }
+                            
+                            // Use level impacts if we found any
+                            if (Object.keys(levelImpacts).length > 0) {
+                                console.log(`Using ${Object.keys(levelImpacts).length} level impacts`);
+                                featureImportance = levelImpacts;
+                            }
                         }
                     } catch (e) {
                         console.error("Error extracting from perturbation details:", e);
