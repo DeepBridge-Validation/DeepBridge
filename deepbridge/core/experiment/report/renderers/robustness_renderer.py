@@ -389,10 +389,17 @@ window.registerModule = function(name, factory) {
                                 # Special handling for boxplot.js to prevent duplicate declaration
                                 if filename == "boxplot.js":
                                     # Store the content minus the variable declaration
+                                    # Save all function names in the format 'function functionName()'
+                                    import re
+                                    function_pattern = r'function\s+([a-zA-Z0-9_]+)\s*\('
+                                    function_names = re.findall(function_pattern, content)
+                                    
                                     if "const BoxplotChartManager = {" in content:
+                                        # Keep function names by not replacing the named functions
+                                        # Just replace the object declaration
                                         object_content = content.replace("const BoxplotChartManager = {", "{")
                                         js_content += """// Safely register BoxplotChartManager to prevent duplicates
-window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function moduleFactory() {
+window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function moduleFactoryBoxplot() {
     return """ + object_content + "});\n\n"
                                     else:
                                         # Fallback if the format is unexpected

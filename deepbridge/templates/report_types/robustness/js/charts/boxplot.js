@@ -9,7 +9,7 @@ const BoxplotChartManager = {
      * Initialize boxplot chart
      * @param {string} elementId - Chart container ID
      */
-    initializeBoxplotChart: function(elementId) {
+    initializeBoxplotChart: function initializeBoxplotChart(elementId) {
         console.log("BoxplotChartManager initializing boxplot chart in:", elementId);
         
         const container = document.getElementById(elementId);
@@ -42,7 +42,7 @@ const BoxplotChartManager = {
      * Extract data for boxplot from report data
      * @returns {Object} Data for boxplot chart
      */
-    extractBoxplotData: function() {
+    extractBoxplotData: function extractBoxplotData() {
         try {
             // Get data from window.reportData or window.chartData
             const reportData = window.reportData || {};
@@ -184,7 +184,7 @@ const BoxplotChartManager = {
      * @param {HTMLElement} container - Chart container element
      * @param {Object} chartData - Data for chart
      */
-    createPlotlyBoxplot: function(container, chartData) {
+    createPlotlyBoxplot: function createPlotlyBoxplot(container, chartData) {
         if (typeof Plotly === 'undefined') {
             console.error("Plotly is not available");
             this.showErrorMessage(container, "Plotly library is not available. Charts cannot be displayed.");
@@ -380,7 +380,7 @@ const BoxplotChartManager = {
      * @param {Array} scores - Array of score values
      * @returns {Object} Boxplot statistics
      */
-    calculateBoxplotStats: function(scores) {
+    calculateBoxplotStats: function calculateBoxplotStats(scores) {
         if (!scores || scores.length === 0) return null;
         
         // Sort scores for percentile calculations
@@ -428,7 +428,7 @@ const BoxplotChartManager = {
      * @param {HTMLElement} element - Chart container element
      * @param {string} message - Message to display
      */
-    showNoDataMessage: function(element, message) {
+    showNoDataMessage: function showNoDataMessage(element, message) {
         element.innerHTML = `
             <div style="padding: 40px; text-align: center; background-color: #fff0f0; border-radius: 8px; margin: 20px auto; max-width: 600px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
@@ -445,7 +445,7 @@ const BoxplotChartManager = {
      * @param {HTMLElement} element - Chart container element
      * @param {string} errorMessage - Error message to display
      */
-    showErrorMessage: function(element, errorMessage) {
+    showErrorMessage: function showErrorMessage(element, errorMessage) {
         element.innerHTML = `
             <div style="padding: 40px; text-align: center; background-color: #fff0f0; border: 1px solid #ffcccc; border-radius: 8px; margin: 20px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
