@@ -396,11 +396,20 @@ window.registerModule = function(name, factory) {
                                     
                                     if "const BoxplotChartManager = {" in content:
                                         # Keep function names by not replacing the named functions
-                                        # Just replace the object declaration
-                                        object_content = content.replace("const BoxplotChartManager = {", "{")
-                                        js_content += """// Safely register BoxplotChartManager to prevent duplicates
-window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function moduleFactoryBoxplot() {
-    return """ + object_content + "});\n\n"
+                                        # Create a unique wrapper that preserves all named methods
+                                        js_content += """// Safely register BoxplotChartManager without losing named methods
+window.BoxplotChartManager = (function() {
+    // Directly use the original object with named methods
+    """
+                                        # Insert the original object definition, just removing the const declaration
+                                        object_definition = content.replace("const BoxplotChartManager =", "const boxplotObj =")
+                                        js_content += object_definition
+                                        
+                                        # Return the created object
+                                        js_content += """
+    return boxplotObj;
+})();
+"""
                                     else:
                                         # Fallback if the format is unexpected
                                         js_content += f"(function moduleIIFEBoxplot() {{\n{content}\n}})();\n\n"
