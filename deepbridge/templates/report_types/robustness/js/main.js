@@ -434,27 +434,9 @@ function handleTabChange(tabId) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Report initialized");
     
-    // Carregar script para corrigir erros de continue
-    try {
-        // Verificar se o script de correção já foi carregado
-        if (!window.fixedSyntaxLoaded) {
-            console.log("Carregando correção para erros de 'continue' fora de loops");
-            window.fixedSyntaxLoaded = true;
-            
-            // Carregar o script fixed_syntax.js
-            const fixScript = document.createElement('script');
-            fixScript.src = 'js/fixed_syntax.js';
-            fixScript.onload = function() {
-                console.log("Script de correção carregado com sucesso");
-            };
-            fixScript.onerror = function(e) {
-                console.error("Erro ao carregar script de correção:", e);
-            };
-            document.head.appendChild(fixScript);
-        }
-    } catch (e) {
-        console.error("Erro ao configurar correção de sintaxe:", e);
-    }
+    // No need to load external scripts - all scripts are now embedded
+    console.log("Using embedded JavaScript - syntax fixes already applied");
+    window.fixedSyntaxLoaded = true;
     
     // Set up tab navigation with chart initialization on tab change
     setupTabNavigation();

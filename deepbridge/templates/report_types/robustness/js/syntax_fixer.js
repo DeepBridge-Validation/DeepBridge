@@ -220,7 +220,7 @@
     
     // Run the fixes when the DOM is ready
     function runFixes() {
-        console.log("Running JavaScript syntax fixes");
+        console.log("Running JavaScript syntax fixes - embedded version");
         
         // Fix scripts in the current DOM
         fixTrailingCommas();
@@ -228,37 +228,8 @@
         // Add error handling
         addErrorHandling();
         
-        // Carregar script adicional de correção
-        try {
-            // Carrega o script fixed_syntax.js com correções específicas
-            // Marcar como de alta prioridade para carregar antes de outros scripts
-            const fixedSyntaxScript = document.createElement('script');
-            fixedSyntaxScript.src = 'js/fixed_syntax.js';
-            fixedSyntaxScript.async = false;
-            fixedSyntaxScript.defer = false;
-            
-            // Usar atributo de prioridade para navegadores modernos
-            fixedSyntaxScript.setAttribute('fetchpriority', 'high');
-            
-            // Adicionar ao início do head para ser um dos primeiros a ser carregado
-            document.head.insertBefore(fixedSyntaxScript, document.head.firstChild);
-            console.log("Loaded additional syntax fixes from fixed_syntax.js with high priority");
-            
-            // Carregar também os scripts corretivos para arquivos específicos
-            const safePatchesScript = document.createElement('script');
-            safePatchesScript.src = 'js/safe_chart_manager.js';
-            safePatchesScript.async = false;
-            document.head.insertBefore(safePatchesScript, document.head.firstChild.nextSibling);
-            console.log("Loaded safe_chart_manager.js with high priority");
-            
-            const modelFixScript = document.createElement('script');
-            modelFixScript.src = 'js/model_chart_fix.js';
-            modelFixScript.async = false;
-            document.head.insertBefore(modelFixScript, document.head.firstChild.nextSibling.nextSibling);
-            console.log("Loaded model_chart_fix.js with high priority");
-        } catch (error) {
-            console.error("Error loading syntax fix scripts:", error);
-        }
+        // No external script loading - all scripts are now embedded directly in the HTML
+        console.log("All scripts are embedded in HTML - no external loading needed");
         
         // Setup MutationObserver to fix dynamically added scripts
         const observer = new MutationObserver(function(mutations) {

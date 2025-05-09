@@ -165,12 +165,61 @@
         // Todos os scripts são combinados e injetados diretamente no HTML
         // para garantir que o relatório seja totalmente autônomo
         
+        /**
+         * Namespace safety preloader to prevent duplicate declarations
+         * This will be defined before any other scripts to ensure module registration works
+         */
+        window.__deepbridge_loaded_modules = window.__deepbridge_loaded_modules || {};
+        
+        /**
+         * Function to safely register a module and prevent duplication
+         * This is used to prevent "BoxplotChartManager already declared" errors
+         */
+        function registerModule(name, factory) {
+            if (window.__deepbridge_loaded_modules[name]) {
+                console.log(`Module ${name} already registered, using existing instance`);
+                return window.__deepbridge_loaded_modules[name];
+            }
+            console.log(`Registering module ${name}`);
+            const module = factory();
+            window.__deepbridge_loaded_modules[name] = module;
+            return module;
+        }
+        
         // Código para inicialização segura - garantir que seja executado apenas quando o DOM estiver pronto
         window.DeepBridgeInit = function() {
             console.log("DeepBridge report initialization - autonomous mode");
             
             // Tentar carregar Plotly se ainda não estiver carregado
             window.loadPlotly().catch(e => console.warn("Chart functionality may be limited", e));
+            
+            // Call initialization functions if defined
+            if (typeof setupTabNavigation === 'function') {
+                setupTabNavigation();
+                console.log("Tab navigation initialized");
+            }
+            
+            if (typeof initializeControllers === 'function') {
+                initializeControllers();
+                console.log("Controllers initialized");
+            }
+            
+            // Initialize first tab's charts
+            const initialTab = document.querySelector('.tab-btn.active');
+            if (initialTab) {
+                const tabId = initialTab.getAttribute('data-tab');
+                if (typeof handleTabChange === 'function') {
+                    handleTabChange(tabId);
+                    console.log(`Initial tab ${tabId} initialized`);
+                }
+            } else {
+                // Default to overview if no tab is active
+                if (typeof ChartInitializer !== 'undefined' && 
+                    typeof ChartInitializer.initializeOverviewCharts === 'function') {
+                    ChartInitializer.initializeOverviewCharts();
+                    console.log("Overview charts initialized by default");
+                }
+            }
         };
         
         // Código de todos os scripts combinados
@@ -178,47 +227,62 @@
         
         // Garantir que a inicialização ocorra quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM content loaded - initializing report...");
+            
             // Uma pequena pausa para garantir que todos os dados estão disponíveis
             setTimeout(function() {
                 if (typeof window.DeepBridgeInit === 'function') {
-                    window.DeepBridgeInit();
+                    try {
+                        window.DeepBridgeInit();
+                    } catch (e) {
+                        console.error("Error during initialization:", e);
+                        
+                        // Fallback initialization
+                        initFallbackMode();
+                    }
                 } else {
                     console.warn("DeepBridgeInit não disponível - usando inicialização alternativa");
-                    
-                    // Inicializar abas
-                    const tabButtons = document.querySelectorAll('.tab-btn');
-                    if (tabButtons.length > 0) {
-                        tabButtons.forEach(button => {
-                            button.addEventListener('click', function() {
-                                const targetTab = this.getAttribute('data-tab');
-                                
-                                // Desativar todas as abas
-                                document.querySelectorAll('.tab-content').forEach(tab => {
-                                    tab.classList.remove('active');
-                                });
-                                
-                                // Ativar a aba selecionada
-                                const selectedTab = document.getElementById(targetTab);
-                                if (selectedTab) {
-                                    selectedTab.classList.add('active');
-                                }
-                                
-                                // Desativar todos os botões
-                                tabButtons.forEach(btn => {
-                                    btn.classList.remove('active');
-                                });
-                                
-                                // Ativar o botão selecionado
-                                this.classList.add('active');
-                            });
-                        });
-                        
-                        // Ativar a primeira aba por padrão
-                        tabButtons[0].click();
-                    }
+                    initFallbackMode();
                 }
             }, 100);
         });
+        
+        // Fallback initialization function
+        function initFallbackMode() {
+            console.log("Using fallback mode initialization");
+            
+            // Inicializar abas
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            if (tabButtons.length > 0) {
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetTab = this.getAttribute('data-tab');
+                        
+                        // Desativar todas as abas
+                        document.querySelectorAll('.tab-content').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        
+                        // Ativar a aba selecionada
+                        const selectedTab = document.getElementById(targetTab);
+                        if (selectedTab) {
+                            selectedTab.classList.add('active');
+                        }
+                        
+                        // Desativar todos os botões
+                        tabButtons.forEach(btn => {
+                            btn.classList.remove('active');
+                        });
+                        
+                        // Ativar o botão selecionado
+                        this.classList.add('active');
+                    });
+                });
+                
+                // Ativar a primeira aba por padrão
+                tabButtons[0].click();
+            }
+        }
     </script>
 </body>
 </html>

@@ -319,7 +319,7 @@ class RobustnessRenderer:
         
         Returns:
         --------
-        str : Combined JavaScript content
+        str : Combined JavaScript content with namespace safety
         """
         try:
             # Explicitly identify key JS files to load in order
@@ -328,33 +328,53 @@ class RobustnessRenderer:
             # Define a specific loading order for critical files
             critical_files = [
                 "global_error_handler.js",
-                "syntax_fixer.js",
-                "fixed_syntax.js",
-                "patches.js",
-                "model_chart_fix.js",
-                "direct_perturbation_handler.js",
-                "utils.js",
+                "utils.js",  # Move utils earlier so it's available for other scripts
                 "feature_importance_chart.js",
                 "feature_importance_handler.js",
                 "importance_comparison_handler.js"
             ]
             
-            # Load each critical file first
-            js_content = "// ----- Critical JS Files ----- //\n\n"
+            # Add a preamble to define a namespace safety mechanism
+            js_content = """// ----- Namespace Safety Mechanism ----- //
+// This prevents duplicate declarations of global objects
+window.__deepbridge_loaded_modules = window.__deepbridge_loaded_modules || {};
+
+// Function to safely register a module and prevent duplication
+function registerModule(name, factory) {
+    if (window.__deepbridge_loaded_modules[name]) {
+        console.log(`Module ${name} already registered, using existing instance`);
+        return window.__deepbridge_loaded_modules[name];
+    }
+    console.log(`Registering module ${name}`);
+    const module = factory();
+    window.__deepbridge_loaded_modules[name] = module;
+    return module;
+}
+
+// ----- Critical JS Files ----- //
+"""
+            
+            # Load each critical file first with namespace protection
             for filename in critical_files:
                 file_path = os.path.join(js_dir, filename)
                 if os.path.exists(file_path):
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f:
                             js_content += f"// ----- {filename} ----- //\n"
-                            js_content += f.read() + "\n\n"
-                        logger.info(f"Loaded critical JS file: {filename}")
+                            content = f.read()
+                            # Don't wrap utility files, they should be available globally
+                            if filename in ["utils.js", "global_error_handler.js"]:
+                                js_content += content + "\n\n"
+                            else:
+                                # Wrap other files in IIFE for namespace protection
+                                js_content += f"(function() {{\n{content}\n}})();\n\n"
+                            logger.info(f"Loaded critical JS file: {filename}")
                     except Exception as e:
                         logger.warning(f"Error loading critical JS file {filename}: {str(e)}")
                 else:
                     logger.warning(f"Critical JS file not found: {filename}")
             
-            # Load Chart files
+            # Load Chart files with namespace protection
             js_content += "// ----- Chart JS Files ----- //\n\n"
             charts_dir = os.path.join(js_dir, "charts")
             if os.path.exists(charts_dir):
@@ -363,13 +383,28 @@ class RobustnessRenderer:
                         try:
                             file_path = os.path.join(charts_dir, filename)
                             with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
                                 js_content += f"// ----- charts/{filename} ----- //\n"
-                                js_content += f.read() + "\n\n"
-                            logger.info(f"Loaded chart JS file: {filename}")
+                                
+                                # Special handling for boxplot.js to prevent duplicate declaration
+                                if filename == "boxplot.js":
+                                    # Extract the content but wrap it in a registerModule call
+                                    js_content += """// Safely register BoxplotChartManager to prevent duplicates
+window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
+"""
+                                    # Replace the const declaration with the module content
+                                    content = content.replace("const BoxplotChartManager = {", "{")
+                                    js_content += content
+                                    js_content += "});\n\n"
+                                else:
+                                    # Normal IIFE wrapping for other chart files
+                                    js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                
+                                logger.info(f"Loaded chart JS file: {filename} with namespace protection")
                         except Exception as e:
                             logger.warning(f"Error loading chart JS file {filename}: {str(e)}")
             
-            # Load Controller files
+            # Load Controller files with namespace protection
             js_content += "// ----- Controller JS Files ----- //\n\n"
             controllers_dir = os.path.join(js_dir, "controllers")
             if os.path.exists(controllers_dir):
@@ -378,19 +413,43 @@ class RobustnessRenderer:
                         try:
                             file_path = os.path.join(controllers_dir, filename)
                             with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
                                 js_content += f"// ----- controllers/{filename} ----- //\n"
-                                js_content += f.read() + "\n\n"
-                            logger.info(f"Loaded controller JS file: {filename}")
+                                
+                                # Safely register controllers to prevent duplicates
+                                controller_name = filename.replace('.js', '')
+                                if "Controller" in controller_name:
+                                    # Extract the content but wrap it in a registerModule call if it's defining an object
+                                    if "const " + controller_name in content or "var " + controller_name in content:
+                                        # Replace the declaration with a registration
+                                        js_content += f"window.{controller_name} = registerModule('{controller_name}', function() {{\n"
+                                        content = content.replace(f"const {controller_name} = {{", "{").replace(f"var {controller_name} = {{", "{")
+                                        js_content += content
+                                        js_content += "});\n\n"
+                                    else:
+                                        # Normal IIFE wrapping
+                                        js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                else:
+                                    # Normal IIFE wrapping for other controllers
+                                    js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                
+                                logger.info(f"Loaded controller JS file: {filename} with namespace protection")
                         except Exception as e:
                             logger.warning(f"Error loading controller JS file {filename}: {str(e)}")
             
-            # Always load main.js last
+            # Always load main.js last, with special handling (no wrapping to allow it to see all other modules)
             main_js_path = os.path.join(js_dir, "main.js")
             if os.path.exists(main_js_path):
                 try:
                     with open(main_js_path, 'r', encoding='utf-8') as f:
                         js_content += "// ----- main.js ----- //\n"
-                        js_content += f.read() + "\n\n"
+                        # Do not wrap main.js since it needs to access all other modules
+                        main_content = f.read()
+                        
+                        # Remove any attempts to load external scripts
+                        main_content = main_content.replace("fixScript.src = 'js/fixed_syntax.js';", "// External script loading removed")
+                        
+                        js_content += main_content + "\n\n"
                     logger.info("Loaded main.js")
                 except Exception as e:
                     logger.warning(f"Error loading main.js: {str(e)}")
