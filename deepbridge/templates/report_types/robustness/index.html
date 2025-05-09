@@ -26,99 +26,741 @@
     <script>
         /* Embed Plotly directly in HTML to ensure autonomy */
         (function() {
-            // Define fallback version of Plotly that is embedded directly
-            // This is a minimal version for basic charts
+            /**
+             * Enhanced Plotly Fallback Implementation
+             * 
+             * This implementation provides a complete fallback for the Plotly library
+             * when it can't be loaded from CDN. It ensures all required methods are
+             * available so that the report can function without errors.
+             * 
+             * The goal is to gracefully degrade functionality rather than break with errors.
+             */
             window.Plotly = window.Plotly || {
+                // Track created plots to help with relayout and other operations
+                _plots: {},
+                
+                /**
+                 * Main method to create a new plot - core of the Plotly API
+                 * @param {string|HTMLElement} container - Container element or ID
+                 * @param {Array} data - The data array for the plot
+                 * @param {Object} layout - The layout configuration
+                 * @param {Object} config - Additional configuration
+                 * @returns {Promise} Promise resolving to the container element
+                 */
                 newPlot: function(container, data, layout, config) {
-                    console.log("Using fallback Plotly implementation");
-                    // Create a simplified fallback version that shows data in a table
-                    const fallbackContainer = document.getElementById(container);
-                    if (!fallbackContainer) {
-                        console.error("Container not found:", container);
-                        return Promise.reject(new Error("Container not found"));
+                    console.log("Using enhanced fallback Plotly implementation for newPlot");
+                    
+                    // Find or create container element using robust technique
+                    let containerElement = this._getContainerElement(container);
+                    
+                    // If still no container after our best efforts, return a rejected promise
+                    if (!containerElement) {
+                        console.error("Could not find or create container:", container);
+                        // But still create a dummy element to avoid breaking the chain
+                        containerElement = document.createElement('div');
+                        containerElement.style.display = 'none';
+                        document.body.appendChild(containerElement);
                     }
                     
-                    // Clear container and add fallback message
-                    fallbackContainer.innerHTML = '';
-                    const fallbackMsg = document.createElement('div');
-                    fallbackMsg.style.padding = '20px';
-                    fallbackMsg.style.textAlign = 'center';
-                    fallbackMsg.style.color = '#666';
-                    fallbackMsg.innerHTML = '<h3>Visualization available with Plotly</h3><p>Data is available but Plotly visualization library could not be loaded.</p>';
-                    fallbackContainer.appendChild(fallbackMsg);
+                    // Store information about this plot for later use
+                    const id = typeof container === 'string' ? container : containerElement.id || `plotly-plot-${Object.keys(this._plots).length}`;
+                    if (!containerElement.id) containerElement.id = id;
                     
-                    // Create a simple table to display data
-                    if (data && data.length > 0) {
-                        const table = document.createElement('table');
-                        table.style.width = '100%';
-                        table.style.borderCollapse = 'collapse';
-                        table.style.marginTop = '15px';
+                    this._plots[id] = {
+                        container: containerElement,
+                        data: JSON.parse(JSON.stringify(data || [])),
+                        layout: JSON.parse(JSON.stringify(layout || {})),
+                        config: JSON.parse(JSON.stringify(config || {}))
+                    };
+                    
+                    // Clear container and style it
+                    containerElement.innerHTML = '';
+                    containerElement.style.position = 'relative';
+                    
+                    try {
+                        // Create visualization based on data
+                        if (data && data.length > 0) {
+                            this._createVisualization(containerElement, data, layout);
+                        } else {
+                            // No data, show appropriate message
+                            this._createNoDataMessage(containerElement);
+                        }
+                    } catch (err) {
+                        console.error("Error creating visualization:", err);
+                        // Create error message in container
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; text-align: center;">
+                                <h3>Visualization Error</h3>
+                                <p>${err.message || "An error occurred rendering the chart"}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    return Promise.resolve(containerElement);
+                },
+                
+                /**
+                 * Find or create a container element with multiple fallbacks
+                 * @param {string|HTMLElement} container - Container element or ID
+                 * @returns {HTMLElement} The found or created container
+                 */
+                _getContainerElement: function(container) {
+                    let containerElement = null;
+                    
+                    // Case 1: Container is already an HTML element
+                    if (container instanceof HTMLElement) {
+                        return container;
+                    }
+                    
+                    // Case 2: Container is a string ID
+                    if (typeof container === 'string') {
+                        // Try getElementById first (most common case)
+                        containerElement = document.getElementById(container);
                         
-                        // Add header
-                        const thead = document.createElement('thead');
-                        const headerRow = document.createElement('tr');
-                        const headers = ['Series', 'Type', 'Points'];
-                        headers.forEach(h => {
-                            const th = document.createElement('th');
-                            th.style.padding = '8px';
-                            th.style.borderBottom = '1px solid #ddd';
-                            th.style.textAlign = 'left';
-                            th.textContent = h;
-                            headerRow.appendChild(th);
-                        });
-                        thead.appendChild(headerRow);
-                        table.appendChild(thead);
+                        // If that fails, try querySelector with ID
+                        if (!containerElement) {
+                            try {
+                                containerElement = document.querySelector('#' + container);
+                            } catch (e) {
+                                // Invalid selector, ignore
+                            }
+                        }
                         
-                        // Add data rows
-                        const tbody = document.createElement('tbody');
+                        // Try by class name
+                        if (!containerElement) {
+                            const elements = document.getElementsByClassName(container);
+                            if (elements.length > 0) containerElement = elements[0];
+                        }
+                        
+                        // Try as any CSS selector
+                        if (!containerElement) {
+                            try {
+                                containerElement = document.querySelector(container);
+                            } catch (e) {
+                                // Invalid selector, ignore
+                            }
+                        }
+                        
+                        // Try replacing dashes with underscores (common issue)
+                        if (!containerElement && container.includes('-')) {
+                            const altId = container.replace(/-/g, '_');
+                            containerElement = document.getElementById(altId);
+                        }
+                        
+                        // Try common patterns like "container" + id
+                        if (!containerElement && !container.includes('container')) {
+                            const possibleIds = [
+                                container + '-container',
+                                container + '_container',
+                                'container-' + container,
+                                'container_' + container
+                            ];
+                            
+                            for (const id of possibleIds) {
+                                containerElement = document.getElementById(id);
+                                if (containerElement) break;
+                            }
+                        }
+                    }
+                    
+                    // If still not found, create a new container as last resort
+                    if (!containerElement) {
+                        console.warn("Container not found:", container, "- Creating fallback");
+                        containerElement = document.createElement('div');
+                        containerElement.id = typeof container === 'string' ? container : 'plotly-fallback-container';
+                        containerElement.className = 'plotly-fallback-container';
+                        containerElement.style.margin = '20px';
+                        containerElement.style.padding = '20px';
+                        containerElement.style.border = '1px solid #ddd';
+                        containerElement.style.borderRadius = '4px';
+                        
+                        // Find best parent to append to
+                        const possibleParents = [
+                            document.querySelector('.chart-container'),
+                            document.querySelector('.chart-plot'),
+                            document.querySelector(`.${container}-container`),
+                            document.querySelector('#' + container + '-parent'),
+                            document.querySelector('.tab-content.active'),
+                            document.querySelector('.tab-panel.active'),
+                            document.querySelector('.report-content'),
+                            document.querySelector('.report-container'),
+                            document.querySelector('main'),
+                            document.body
+                        ];
+                        
+                        for (const parent of possibleParents) {
+                            if (parent) {
+                                parent.appendChild(containerElement);
+                                console.log("Appended fallback container to", parent.tagName, parent.className || parent.id);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    return containerElement;
+                },
+                
+                /**
+                 * Create a basic visualization based on the data provided
+                 * @param {HTMLElement} container - The container element
+                 * @param {Array} data - The data array for the plot
+                 * @param {Object} layout - The layout configuration
+                 */
+                _createVisualization: function(container, data, layout) {
+                    // Add a title if available in layout
+                    if (layout && layout.title) {
+                        const title = document.createElement('h3');
+                        title.className = 'chart-title';
+                        title.style.textAlign = 'center';
+                        title.style.marginBottom = '15px';
+                        title.textContent = typeof layout.title === 'string' ? layout.title : layout.title.text || 'Chart';
+                        container.appendChild(title);
+                    }
+                    
+                    // Check if this is a single numeric value (gauge or indicator)
+                    const isSingleValueChart = data.length === 1 && data[0].type === 'indicator';
+                    if (isSingleValueChart) {
+                        this._createIndicatorChart(container, data[0]);
+                        return;
+                    }
+                    
+                    // Create a more visually appealing fallback chart
+                    const chartArea = document.createElement('div');
+                    chartArea.className = 'chart-data-display';
+                    chartArea.style.display = 'flex';
+                    chartArea.style.flexDirection = 'column';
+                    chartArea.style.gap = '10px';
+                    
+                    // Create legend area if multiple series
+                    if (data.length > 1) {
+                        const legend = document.createElement('div');
+                        legend.className = 'chart-legend';
+                        legend.style.display = 'flex';
+                        legend.style.flexWrap = 'wrap';
+                        legend.style.justifyContent = 'center';
+                        legend.style.gap = '10px';
+                        legend.style.marginBottom = '15px';
+                        
                         data.forEach((series, i) => {
-                            const row = document.createElement('tr');
+                            const item = document.createElement('div');
+                            item.className = 'legend-item';
+                            item.style.display = 'flex';
+                            item.style.alignItems = 'center';
+                            item.style.gap = '5px';
                             
-                            // Series name
-                            const nameCell = document.createElement('td');
-                            nameCell.style.padding = '8px';
-                            nameCell.style.borderBottom = '1px solid #eee';
-                            nameCell.textContent = series.name || `Series ${i+1}`;
-                            row.appendChild(nameCell);
+                            const color = series.marker?.color || this._getDefaultColor(i);
+                            const marker = document.createElement('span');
+                            marker.style.display = 'inline-block';
+                            marker.style.width = '12px';
+                            marker.style.height = '12px';
+                            marker.style.backgroundColor = color;
                             
-                            // Chart type
-                            const typeCell = document.createElement('td');
-                            typeCell.style.padding = '8px';
-                            typeCell.style.borderBottom = '1px solid #eee';
-                            typeCell.textContent = series.type || 'scatter';
-                            row.appendChild(typeCell);
+                            const label = document.createElement('span');
+                            label.textContent = series.name || `Series ${i+1}`;
                             
-                            // Data points count
-                            const pointsCell = document.createElement('td');
-                            pointsCell.style.padding = '8px';
-                            pointsCell.style.borderBottom = '1px solid #eee';
-                            let pointCount = 0;
-                            if (Array.isArray(series.y)) pointCount = series.y.length;
-                            else if (Array.isArray(series.x)) pointCount = series.x.length;
-                            pointsCell.textContent = pointCount + ' points';
-                            row.appendChild(pointsCell);
-                            
-                            tbody.appendChild(row);
+                            item.appendChild(marker);
+                            item.appendChild(label);
+                            legend.appendChild(item);
                         });
-                        table.appendChild(tbody);
-                        fallbackContainer.appendChild(table);
+                        
+                        chartArea.appendChild(legend);
+                    }
+                    
+                    // Create a data table similar to what we had before but with enhanced styling
+                    const table = document.createElement('table');
+                    table.style.width = '100%';
+                    table.style.borderCollapse = 'collapse';
+                    table.style.border = '1px solid #e2e8f0';
+                    table.style.fontSize = '14px';
+                    
+                    // Add header with enhanced styling
+                    const thead = document.createElement('thead');
+                    thead.style.backgroundColor = '#f8fafc';
+                    const headerRow = document.createElement('tr');
+                    
+                    // Determine if we have X values to show
+                    const hasXValues = data.some(series => Array.isArray(series.x) && series.x.length >.0);
+                    
+                    // Create headers
+                    if (hasXValues) {
+                        const xHeader = document.createElement('th');
+                        xHeader.style.padding = '8px 12px';
+                        xHeader.style.textAlign = 'left';
+                        xHeader.style.borderBottom = '2px solid #e2e8f0';
+                        xHeader.textContent = layout?.xaxis?.title?.text || 'X';
+                        headerRow.appendChild(xHeader);
+                    }
+                    
+                    data.forEach((series, i) => {
+                        const th = document.createElement('th');
+                        th.style.padding = '8px 12px';
+                        th.style.textAlign = 'right';
+                        th.style.borderBottom = '2px solid #e2e8f0';
+                        th.textContent = series.name || `Series ${i+1}`;
+                        headerRow.appendChild(th);
+                    });
+                    
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+                    
+                    // Create body with sample data (showing at most 10 points)
+                    const tbody = document.createElement('tbody');
+                    
+                    // Find max data points across all series (up to 10)
+                    let maxPoints = Math.min(10, Math.max(...data.map(series => 
+                        Array.isArray(series.y) ? series.y.length : 0
+                    )));
+                    
+                    for (let i = 0; i < maxPoints; i++) {
+                        const row = document.createElement('tr');
+                        row.style.borderBottom = '1px solid #e2e8f0';
+                        
+                        // Add X value if available
+                        if (hasXValues) {
+                            const xCell = document.createElement('td');
+                            xCell.style.padding = '8px 12px';
+                            xCell.style.textAlign = 'left';
+                            
+                            // Find a series with X values
+                            const seriesWithX = data.find(s => Array.isArray(s.x) && i < s.x.length);
+                            xCell.textContent = seriesWithX ? this._formatValue(seriesWithX.x[i]) : i;
+                            
+                            row.appendChild(xCell);
+                        }
+                        
+                        // Add Y values for each series
+                        data.forEach(series => {
+                            const cell = document.createElement('td');
+                            cell.style.padding = '8px 12px';
+                            cell.style.textAlign = 'right';
+                            
+                            if (Array.isArray(series.y) && i < series.y.length) {
+                                cell.textContent = this._formatValue(series.y[i]);
+                            } else {
+                                cell.textContent = '-';
+                                cell.style.color = '#a0aec0';
+                            }
+                            
+                            row.appendChild(cell);
+                        });
+                        
+                        tbody.appendChild(row);
+                    }
+                    
+                    // Show indicator if there are more points
+                    if (data.some(series => Array.isArray(series.y) && series.y.length > maxPoints)) {
+                        const moreRow = document.createElement('tr');
+                        
+                        const moreCell = document.createElement('td');
+                        moreCell.colSpan = hasXValues ? data.length + 1 : data.length;
+                        moreCell.style.padding = '8px 12px';
+                        moreCell.style.textAlign = 'center';
+                        moreCell.style.color = '#718096';
+                        moreCell.style.fontStyle = 'italic';
+                        moreCell.textContent = '... more data points available ...';
+                        
+                        moreRow.appendChild(moreCell);
+                        tbody.appendChild(moreRow);
+                    }
+                    
+                    table.appendChild(tbody);
+                    chartArea.appendChild(table);
+                    container.appendChild(chartArea);
+                },
+                
+                /**
+                 * Create a special visualization for indicator (gauge) charts
+                 * @param {HTMLElement} container - The container element
+                 * @param {Object} data - The indicator data
+                 */
+                _createIndicatorChart: function(container, data) {
+                    const value = data.value;
+                    const mode = data.mode || 'gauge';
+                    const title = data.title?.text || '';
+                    
+                    const indicatorDiv = document.createElement('div');
+                    indicatorDiv.className = 'plotly-indicator';
+                    indicatorDiv.style.textAlign = 'center';
+                    indicatorDiv.style.padding = '20px';
+                    
+                    if (title) {
+                        const titleElem = document.createElement('h4');
+                        titleElem.style.marginBottom = '10px';
+                        titleElem.textContent = title;
+                        indicatorDiv.appendChild(titleElem);
+                    }
+                    
+                    const valueDiv = document.createElement('div');
+                    valueDiv.className = 'indicator-value';
+                    valueDiv.style.fontSize = '3rem';
+                    valueDiv.style.fontWeight = 'bold';
+                    valueDiv.style.color = '#2c5282';
+                    valueDiv.textContent = this._formatValue(value);
+                    
+                    indicatorDiv.appendChild(valueDiv);
+                    
+                    // If it's a gauge, add simple gauge representation
+                    if (mode.includes('gauge')) {
+                        const gaugeContainer = document.createElement('div');
+                        gaugeContainer.style.margin = '20px auto';
+                        gaugeContainer.style.width = '80%';
+                        gaugeContainer.style.maxWidth = '300px';
+                        
+                        const min = data.gauge?.axis?.range?.[0] || 0;
+                        const max = data.gauge?.axis?.range?.[1] || 100;
+                        const steps = data.gauge?.steps || [];
+                        
+                        // Create gauge bar
+                        const gaugeBar = document.createElement('div');
+                        gaugeBar.style.height = '10px';
+                        gaugeBar.style.width = '100%';
+                        gaugeBar.style.backgroundColor = '#e2e8f0';
+                        gaugeBar.style.borderRadius = '5px';
+                        gaugeBar.style.overflow = 'hidden';
+                        gaugeBar.style.position = 'relative';
+                        
+                        // Create filled portion
+                        if (typeof value === 'number') {
+                            const percentage = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+                            const filled = document.createElement('div');
+                            filled.style.position = 'absolute';
+                            filled.style.top = '0';
+                            filled.style.left = '0';
+                            filled.style.width = `${percentage}%`;
+                            filled.style.height = '100%';
+                            filled.style.backgroundColor = '#3182ce';
+                            gaugeBar.appendChild(filled);
+                        }
+                        
+                        gaugeContainer.appendChild(gaugeBar);
+                        
+                        // Add scale marks
+                        const scale = document.createElement('div');
+                        scale.style.display = 'flex';
+                        scale.style.justifyContent = 'space-between';
+                        scale.style.marginTop = '5px';
+                        scale.style.color = '#718096';
+                        scale.style.fontSize = '12px';
+                        
+                        const minLabel = document.createElement('span');
+                        minLabel.textContent = this._formatValue(min);
+                        scale.appendChild(minLabel);
+                        
+                        const maxLabel = document.createElement('span');
+                        maxLabel.textContent = this._formatValue(max);
+                        scale.appendChild(maxLabel);
+                        
+                        gaugeContainer.appendChild(scale);
+                        indicatorDiv.appendChild(gaugeContainer);
+                    }
+                    
+                    container.appendChild(indicatorDiv);
+                },
+                
+                /**
+                 * Create a message for when no data is available
+                 * @param {HTMLElement} container - The container element
+                 */
+                _createNoDataMessage: function(container) {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'no-data-message';
+                    msgDiv.style.textAlign = 'center';
+                    msgDiv.style.padding = '40px 20px';
+                    msgDiv.style.color = '#718096';
+                    
+                    const icon = document.createElement('div');
+                    icon.innerHTML = '📊';
+                    icon.style.fontSize = '2rem';
+                    icon.style.marginBottom = '10px';
+                    
+                    const text = document.createElement('p');
+                    text.textContent = 'No chart data available';
+                    
+                    msgDiv.appendChild(icon);
+                    msgDiv.appendChild(text);
+                    container.appendChild(msgDiv);
+                },
+                
+                /**
+                 * Format a value for display
+                 * @param {*} value - The value to format
+                 * @returns {string} Formatted value
+                 */
+                _formatValue: function(value) {
+                    if (value === undefined || value === null) return '-';
+                    if (typeof value === 'number') {
+                        // Format with appropriate precision
+                        return value.toLocaleString(undefined, { 
+                            maximumFractionDigits: 4,
+                            minimumFractionDigits: Math.abs(value) < 0.1 ? 4 : 2
+                        });
+                    }
+                    if (value instanceof Date) {
+                        return value.toLocaleString();
+                    }
+                    return String(value);
+                },
+                
+                /**
+                 * Get a color from a default color palette
+                 * @param {number} index - Index in the palette
+                 * @returns {string} Color value
+                 */
+                _getDefaultColor: function(index) {
+                    const colors = [
+                        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+                    ];
+                    return colors[index % colors.length];
+                },
+                
+                /**
+                 * Clean up a plot's DOM element
+                 * @param {string|HTMLElement} container - Container element or ID
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                purge: function(container) {
+                    console.log("Using fallback Plotly.purge");
+                    
+                    // Get the element
+                    const element = typeof container === 'string' ? 
+                        document.getElementById(container) : container;
+                        
+                    // Clear if found
+                    if (element) element.innerHTML = '';
+                    
+                    // Remove from tracked plots
+                    const id = typeof container === 'string' ? container : 
+                        (container && container.id) ? container.id : null;
+                        
+                    if (id && this._plots[id]) {
+                        delete this._plots[id];
                     }
                     
                     return Promise.resolve();
                 },
-                purge: function(container) {
-                    // Simple stub for purge method
-                    const element = typeof container === 'string' ? 
-                        document.getElementById(container) : container;
-                    if (element) element.innerHTML = '';
-                    return;
+                
+                /**
+                 * Update layout properties
+                 * @param {string|HTMLElement} container - Container element or ID
+                 * @param {Object} layoutUpdate - Layout properties to update
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                relayout: function(container, layoutUpdate) {
+                    console.log("Using enhanced fallback Plotly.relayout", container, layoutUpdate);
+                    
+                    const id = typeof container === 'string' ? container : 
+                        (container && container.id) ? container.id : null;
+                    
+                    // Update stored layout if we have it
+                    if (id && this._plots[id]) {
+                        const plotInfo = this._plots[id];
+                        plotInfo.layout = Object.assign({}, plotInfo.layout || {}, layoutUpdate);
+                        
+                        // If container exists, rerender the visualization with updated layout
+                        const containerElement = this._getContainerElement(container);
+                        if (containerElement) {
+                            containerElement.innerHTML = '';
+                            this._createVisualization(containerElement, plotInfo.data, plotInfo.layout);
+                        }
+                    } else {
+                        console.warn("Plot not found for relayout:", container);
+                    }
+                    
+                    return Promise.resolve();
+                },
+                
+                /**
+                 * Replace all traces in an existing plot
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                react: function(container, data, layout, config) {
+                    // For react, we basically do the same as newPlot
+                    return this.newPlot(container, data, layout, config);
+                },
+                
+                /**
+                 * Updates the traces of a plot with new data and layout
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                update: function(container, traceUpdate, layoutUpdate, traceIndices) {
+                    console.log("Using fallback Plotly.update");
+                    
+                    const id = typeof container === 'string' ? container : 
+                        (container && container.id) ? container.id : null;
+                    
+                    if (id && this._plots[id]) {
+                        const plotInfo = this._plots[id];
+                        
+                        // Update layout if provided
+                        if (layoutUpdate) {
+                            plotInfo.layout = Object.assign({}, plotInfo.layout || {}, layoutUpdate);
+                        }
+                        
+                        // Update traces if provided
+                        if (traceUpdate) {
+                            const indices = traceIndices || 
+                                Array.from({ length: plotInfo.data.length }, (_, i) => i);
+                                
+                            // Ensure indices is an array
+                            const indicesArray = Array.isArray(indices) ? indices : [indices];
+                            
+                            // Update each specified trace
+                            indicesArray.forEach(i => {
+                                if (i >= 0 && i < plotInfo.data.length) {
+                                    plotInfo.data[i] = Object.assign({}, plotInfo.data[i], traceUpdate);
+                                }
+                            });
+                        }
+                        
+                        // Rerender the plot
+                        const containerElement = this._getContainerElement(container);
+                        if (containerElement) {
+                            containerElement.innerHTML = '';
+                            this._createVisualization(containerElement, plotInfo.data, plotInfo.layout);
+                        }
+                    }
+                    
+                    return Promise.resolve();
+                },
+                
+                /**
+                 * Updates trace(s) properties
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                restyle: function(container, update, indices) {
+                    // For our fallback, restyle is essentially the same as update but only for traces
+                    return this.update(container, update, null, indices);
+                },
+                
+                /**
+                 * Add traces to an existing plot
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                addTraces: function(gd, traces, newIndices) {
+                    console.log("Using fallback Plotly.addTraces");
+                    
+                    const id = typeof gd === 'string' ? gd : 
+                        (gd && gd.id) ? gd.id : null;
+                    
+                    if (id && this._plots[id]) {
+                        const plotInfo = this._plots[id];
+                        const newTraces = Array.isArray(traces) ? traces : [traces];
+                        
+                        // Add new traces
+                        if (Array.isArray(newIndices) && newIndices.length === newTraces.length) {
+                            // Insert at specific indices
+                            newIndices.forEach((index, i) => {
+                                plotInfo.data.splice(index, 0, newTraces[i]);
+                            });
+                        } else {
+                            // Append to end
+                            plotInfo.data = plotInfo.data.concat(newTraces);
+                        }
+                        
+                        // Rerender the plot
+                        const containerElement = this._getContainerElement(gd);
+                        if (containerElement) {
+                            containerElement.innerHTML = '';
+                            this._createVisualization(containerElement, plotInfo.data, plotInfo.layout);
+                        }
+                    }
+                    
+                    return Promise.resolve();
+                },
+                
+                /**
+                 * Delete traces from an existing plot
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                deleteTraces: function(gd, indices) {
+                    console.log("Using fallback Plotly.deleteTraces");
+                    
+                    const id = typeof gd === 'string' ? gd : 
+                        (gd && gd.id) ? gd.id : null;
+                    
+                    if (id && this._plots[id]) {
+                        const plotInfo = this._plots[id];
+                        const indicesArray = Array.isArray(indices) ? indices : [indices];
+                        
+                        // Sort indices in descending order to avoid shifting issues
+                        const sortedIndices = indicesArray.slice().sort((a, b) => b - a);
+                        
+                        // Remove traces
+                        sortedIndices.forEach(index => {
+                            if (index >= 0 && index < plotInfo.data.length) {
+                                plotInfo.data.splice(index, 1);
+                            }
+                        });
+                        
+                        // Rerender the plot
+                        const containerElement = this._getContainerElement(gd);
+                        if (containerElement) {
+                            containerElement.innerHTML = '';
+                            this._createVisualization(containerElement, plotInfo.data, plotInfo.layout);
+                        }
+                    }
+                    
+                    return Promise.resolve();
+                },
+                
+                /**
+                 * Rearrange traces in an existing plot
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                moveTraces: function(gd, currentIndices, newIndices) {
+                    return Promise.resolve();
+                },
+                
+                /**
+                 * Convert a plot to an image
+                 * @returns {Promise} Promise resolving to a data URL
+                 */
+                toImage: function(gd, opts) {
+                    return Promise.resolve("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+                },
+                
+                /**
+                 * Download a plot as an image
+                 * @returns {Promise} Promise that resolves when complete
+                 */
+                downloadImage: function(gd, opts) {
+                    return Promise.resolve();
                 }
             };
             
-            // Define a fallback PerturbationResultsManager
+            // Define a robust fallback PerturbationResultsManager
             window.PerturbationResultsManager = window.PerturbationResultsManager || {
+                /**
+                 * Extract perturbation data from the global report data
+                 * @returns {Object} Structured perturbation data
+                 */
                 extractPerturbationData: function() {
-                    console.log("Using fallback PerturbationResultsManager");
+                    console.log("Using enhanced fallback PerturbationResultsManager");
+                    
+                    // Use global report data if available
+                    if (window.reportData) {
+                        try {
+                            // Try to extract data from perturbation_details_data
+                            if (window.reportData.perturbation_details_data) {
+                                return this._extractFromDetailData(window.reportData.perturbation_details_data);
+                            }
+                            
+                            // Try to extract from raw data
+                            if (window.reportData.raw && window.reportData.raw.by_level) {
+                                return this._extractFromRawData(window.reportData);
+                            }
+                            
+                            // Try to extract from chart data
+                            if (window.reportData.perturbation_chart_data) {
+                                return this._extractFromChartData(window.reportData.perturbation_chart_data);
+                            }
+                        } catch (err) {
+                            console.error("Error extracting perturbation data:", err);
+                        }
+                    }
+                    
+                    // Fallback with empty data
                     return {
                         modelName: window.reportData?.model_name || 'Model',
                         modelType: window.reportData?.model_type || 'Unknown',
@@ -127,47 +769,1108 @@
                         results: []  // Empty results array, will show "no data" message
                     };
                 },
+                
+                /**
+                 * Extract data from perturbation_details_data format
+                 * @param {Object} detailsData - The perturbation details data
+                 * @returns {Object} Structured perturbation data
+                 */
+                _extractFromDetailData: function(detailsData) {
+                    return {
+                        modelName: detailsData.modelName || 'Model',
+                        modelType: detailsData.modelType || 'Unknown',
+                        metric: detailsData.metric || 'Score',
+                        baseScore: detailsData.baseScore || 0,
+                        results: Array.isArray(detailsData.results) ? detailsData.results : []
+                    };
+                },
+                
+                /**
+                 * Extract data from raw results format
+                 * @param {Object} reportData - The full report data
+                 * @returns {Object} Structured perturbation data
+                 */
+                _extractFromRawData: function(reportData) {
+                    const rawData = reportData.raw.by_level;
+                    const results = [];
+                    
+                    // Sort levels and process each one
+                    const levels = Object.keys(rawData).map(Number).sort((a, b) => a - b);
+                    
+                    for (const level of levels) {
+                        const levelData = rawData[level];
+                        if (!levelData || !levelData.overall_result) continue;
+                        
+                        const result = {
+                            level: level,
+                            allFeatures: null,
+                            featureSubset: null
+                        };
+                        
+                        // Process all features
+                        if (levelData.overall_result.all_features) {
+                            const featureResult = levelData.overall_result.all_features;
+                            const baseScore = reportData.base_score || 0;
+                            const meanScore = featureResult.mean_score || 0;
+                            
+                            // Calculate impact safely
+                            let impact = 0;
+                            if (baseScore > 0) {
+                                impact = (baseScore - meanScore) / baseScore;
+                            }
+                            
+                            result.allFeatures = {
+                                baseScore: baseScore,
+                                meanScore: meanScore,
+                                worstScore: featureResult.worst_score || 0,
+                                impact: impact,
+                                iterations: []
+                            };
+                            
+                            // Add iterations if available
+                            if (levelData.runs && levelData.runs.all_features) {
+                                const iterations = [];
+                                for (const run of levelData.runs.all_features) {
+                                    if (run.iterations && Array.isArray(run.iterations.scores)) {
+                                        iterations.push(...run.iterations.scores);
+                                    }
+                                }
+                                result.allFeatures.iterations = iterations;
+                            }
+                        }
+                        
+                        // Process feature subset (same pattern as all features)
+                        if (levelData.overall_result.feature_subset) {
+                            const featureResult = levelData.overall_result.feature_subset;
+                            const baseScore = reportData.base_score || 0;
+                            const meanScore = featureResult.mean_score || 0;
+                            
+                            let impact = 0;
+                            if (baseScore > 0) {
+                                impact = (baseScore - meanScore) / baseScore;
+                            }
+                            
+                            result.featureSubset = {
+                                baseScore: baseScore,
+                                meanScore: meanScore,
+                                worstScore: featureResult.worst_score || 0,
+                                impact: impact,
+                                iterations: []
+                            };
+                            
+                            // Add iterations
+                            if (levelData.runs && levelData.runs.feature_subset) {
+                                const iterations = [];
+                                for (const run of levelData.runs.feature_subset) {
+                                    if (run.iterations && Array.isArray(run.iterations.scores)) {
+                                        iterations.push(...run.iterations.scores);
+                                    }
+                                }
+                                result.featureSubset.iterations = iterations;
+                            }
+                        }
+                        
+                        results.push(result);
+                    }
+                    
+                    return {
+                        modelName: reportData.model_name || 'Model',
+                        modelType: reportData.model_type || 'Unknown',
+                        metric: reportData.metric || 'Score',
+                        baseScore: reportData.base_score || 0,
+                        results: results
+                    };
+                },
+                
+                /**
+                 * Extract data from perturbation chart data format
+                 * @param {Object} chartData - The perturbation chart data
+                 * @returns {Object} Structured perturbation data
+                 */
+                _extractFromChartData: function(chartData) {
+                    const results = [];
+                    
+                    // If we have levels and scores
+                    if (Array.isArray(chartData.levels) && Array.isArray(chartData.scores)) {
+                        const baseScore = chartData.baseScore || 0;
+                        
+                        for (let i = 0; i < chartData.levels.length; i++) {
+                            const level = chartData.levels[i];
+                            const meanScore = chartData.scores[i] || 0;
+                            const worstScore = Array.isArray(chartData.worstScores) ? chartData.worstScores[i] || 0 : 0;
+                            
+                            let impact = 0;
+                            if (baseScore > 0) {
+                                impact = (baseScore - meanScore) / baseScore;
+                            }
+                            
+                            // Create result entry
+                            const result = {
+                                level: level,
+                                allFeatures: {
+                                    baseScore: baseScore,
+                                    meanScore: meanScore,
+                                    worstScore: worstScore,
+                                    impact: impact,
+                                    iterations: []
+                                },
+                                featureSubset: null
+                            };
+                            
+                            // Add to results
+                            results.push(result);
+                        }
+                    }
+                    
+                    return {
+                        modelName: chartData.modelName || 'Model',
+                        modelType: window.reportData?.model_type || 'Unknown',
+                        metric: chartData.metric || 'Score',
+                        baseScore: chartData.baseScore || 0,
+                        results: results
+                    };
+                },
+                
+                /**
+                 * Format a number with appropriate decimals
+                 * @param {number} number - Number to format
+                 * @param {number} decimals - Decimal places (default: 4)
+                 * @returns {string} Formatted number
+                 */
                 formatNumber: function(number, decimals = 4) {
-                    return Number(number).toFixed(decimals);
+                    if (number === undefined || number === null) return '-';
+                    
+                    try {
+                        return Number(number).toFixed(decimals);
+                    } catch (e) {
+                        return String(number);
+                    }
                 },
-                getScoreBgColorClass: function() {
-                    return '';
+                
+                /**
+                 * Get background color class for score based on comparison to base score
+                 * @param {number} score - The score to evaluate
+                 * @param {number} baseScore - The base score for comparison
+                 * @returns {string} CSS class name
+                 */
+                getScoreBgColorClass: function(score, baseScore) {
+                    if (score === undefined || score === null || baseScore === undefined) return '';
+                    
+                    try {
+                        const diff = score - baseScore;
+                        if (Math.abs(diff) < 0.001) return '';
+                        
+                        if (diff > 0) {
+                            return 'bg-green-50';
+                        } else {
+                            return 'bg-red-50';
+                        }
+                    } catch (e) {
+                        return '';
+                    }
                 },
-                getImpactColorClass: function() {
-                    return '';
+                
+                /**
+                 * Get color class for impact value
+                 * @param {number} impact - The impact value
+                 * @returns {string} CSS class name
+                 */
+                getImpactColorClass: function(impact) {
+                    if (impact === undefined || impact === null) return '';
+                    
+                    try {
+                        if (Math.abs(impact) < 0.001) return 'text-gray-600';
+                        
+                        if (impact < 0) {
+                            return 'text-green-600';
+                        } else if (impact < 0.05) {
+                            return 'text-blue-600';
+                        } else if (impact < 0.1) {
+                            return 'text-yellow-600';
+                        } else if (impact < 0.2) {
+                            return 'text-orange-600';
+                        } else {
+                            return 'text-red-600';
+                        }
+                    } catch (e) {
+                        return '';
+                    }
                 }
             };
             
-            // Define a standard ChartManager
+            // Define a comprehensive ChartManager with real data extraction
             window.ChartManager = window.ChartManager || {
-                initializePerturbationChart: function() {
-                    console.log("Using fallback ChartManager.initializePerturbationChart");
+                /**
+                 * Initialize perturbation chart showing score change across perturbation levels
+                 * @param {string} container - Container element ID
+                 */
+                initializePerturbationChart: function(container) {
+                    console.log("ChartManager: Initializing perturbation chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Extract data for chart
+                    const chartData = this.extractPerturbationChartData();
+                    
+                    // If no data, show message
+                    if (!chartData || !chartData.levels || chartData.levels.length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No perturbation data available for chart.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create traces for Plotly
+                    const traces = [];
+                    
+                    // Main model trace
+                    traces.push({
+                        x: chartData.levels.map(l => l * 100), // Convert to percentage
+                        y: chartData.scores,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: chartData.modelName || 'Primary Model',
+                        line: { width: 3, color: '#3182ce' },
+                        marker: { size: 8, color: '#3182ce' }
+                    });
+                    
+                    // Add baseline
+                    traces.push({
+                        x: [0, Math.max(...chartData.levels) * 100],
+                        y: [chartData.baseScore, chartData.baseScore],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Baseline',
+                        line: { dash: 'dash', color: '#718096' },
+                        hoverinfo: 'y'
+                    });
+                    
+                    // Add alternative models if available
+                    if (chartData.alternativeModels) {
+                        const colors = ['#f56565', '#48bb78', '#9f7aea', '#ed8936', '#0694a2'];
+                        let colorIndex = 0;
+                        
+                        for (const [modelName, modelData] of Object.entries(chartData.alternativeModels)) {
+                            if (Array.isArray(modelData.scores) && modelData.scores.length > 0) {
+                                const color = colors[colorIndex % colors.length];
+                                colorIndex++;
+                                
+                                traces.push({
+                                    x: chartData.levels.map(l => l * 100),
+                                    y: modelData.scores,
+                                    type: 'scatter',
+                                    mode: 'lines+markers',
+                                    name: modelName,
+                                    line: { width: 2, color: color },
+                                    marker: { size: 6, color: color }
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Layout configuration
+                    const layout = {
+                        title: 'Performance Across Perturbation Levels',
+                        xaxis: {
+                            title: 'Perturbation Level (%)',
+                            ticksuffix: '%'
+                        },
+                        yaxis: {
+                            title: chartData.metric || 'Score'
+                        },
+                        legend: {
+                            orientation: 'h', 
+                            y: -0.2
+                        },
+                        hovermode: 'closest',
+                        autosize: true,
+                        margin: {
+                            l: 50,
+                            r: 30,
+                            t: 50,
+                            b: 60,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config with responsive resize
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, traces, layout, config);
                 },
-                initializeWorstScoreChart: function() {
-                    console.log("Using fallback ChartManager.initializeWorstScoreChart");
+                
+                /**
+                 * Extract data for perturbation chart from report data
+                 * @returns {Object} Chart data
+                 */
+                extractPerturbationChartData: function() {
+                    if (window.reportData) {
+                        // Best source: perturbation_chart_data
+                        if (window.reportData.perturbation_chart_data) {
+                            return window.reportData.perturbation_chart_data;
+                        }
+                        
+                        // Try to extract from raw data
+                        if (window.reportData.raw && window.reportData.raw.by_level) {
+                            const rawData = window.reportData.raw.by_level;
+                            const levels = Object.keys(rawData).map(Number).sort((a, b) => a - b);
+                            const scores = [];
+                            const worstScores = [];
+                            
+                            for (const level of levels) {
+                                const levelData = rawData[level];
+                                if (!levelData || !levelData.overall_result || !levelData.overall_result.all_features) {
+                                    scores.push(null);
+                                    worstScores.push(null);
+                                    continue;
+                                }
+                                
+                                const result = levelData.overall_result.all_features;
+                                scores.push(result.mean_score);
+                                worstScores.push(result.worst_score);
+                            }
+                            
+                            return {
+                                modelName: window.reportData.model_name || 'Model',
+                                levels: levels,
+                                scores: scores,
+                                worstScores: worstScores,
+                                baseScore: window.reportData.base_score || 0,
+                                metric: window.reportData.metric || 'Score'
+                            };
+                        }
+                    }
+                    
+                    // Empty data as fallback
+                    return {
+                        modelName: 'Model',
+                        levels: [],
+                        scores: [],
+                        worstScores: [],
+                        baseScore: 0,
+                        metric: 'Score',
+                        alternativeModels: {}
+                    };
                 },
-                initializeMeanScoreChart: function() {
-                    console.log("Using fallback ChartManager.initializeMeanScoreChart");
+                
+                /**
+                 * Initialize worst score chart showing worst performance
+                 * @param {string} container - Container element ID
+                 */
+                initializeWorstScoreChart: function(container) {
+                    console.log("ChartManager: Initializing worst score chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Get data from perturbation chart data
+                    const chartData = this.extractPerturbationChartData();
+                    
+                    // If no worst scores or levels, show message
+                    if (!chartData || !chartData.levels || chartData.levels.length === 0 || 
+                        !chartData.worstScores || chartData.worstScores.length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No worst score data available for chart.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create traces for Plotly
+                    const traces = [
+                        // Worst scores trace
+                        {
+                            x: chartData.levels.map(l => l * 100),
+                            y: chartData.worstScores,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Worst Score',
+                            line: { width: 3, color: '#e53e3e' },
+                            marker: { size: 8, color: '#e53e3e' }
+                        },
+                        // Baseline
+                        {
+                            x: [0, Math.max(...chartData.levels) * 100],
+                            y: [chartData.baseScore, chartData.baseScore],
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Baseline',
+                            line: { dash: 'dash', color: '#718096' },
+                            hoverinfo: 'y'
+                        }
+                    ];
+                    
+                    // Layout configuration
+                    const layout = {
+                        title: 'Worst Performance Across Perturbation Levels',
+                        xaxis: {
+                            title: 'Perturbation Level (%)',
+                            ticksuffix: '%'
+                        },
+                        yaxis: {
+                            title: chartData.metric || 'Score'
+                        },
+                        legend: {
+                            orientation: 'h', 
+                            y: -0.2
+                        },
+                        hovermode: 'closest',
+                        autosize: true,
+                        margin: {
+                            l: 50,
+                            r: 30,
+                            t: 50,
+                            b: 60,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config with responsive resize
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, traces, layout, config);
                 },
-                initializeModelComparisonChart: function() {
-                    console.log("Using fallback ChartManager.initializeModelComparisonChart");
+                
+                /**
+                 * Initialize mean score chart
+                 * @param {string} container - Container element ID
+                 */
+                initializeMeanScoreChart: function(container) {
+                    // This is essentially the same as perturbation chart but with a different title
+                    console.log("ChartManager: Initializing mean score chart");
+                    
+                    // Just delegate to perturbation chart for now
+                    this.initializePerturbationChart(container);
                 },
-                initializeModelLevelDetailsChart: function() {
-                    console.log("Using fallback ChartManager.initializeModelLevelDetailsChart");
+                
+                /**
+                 * Initialize model comparison chart for comparing different models
+                 * @param {string} container - Container element ID
+                 */
+                initializeModelComparisonChart: function(container) {
+                    console.log("ChartManager: Initializing model comparison chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Try to get model comparison data
+                    const chartData = this.extractModelComparisonData();
+                    
+                    // If no data, show message
+                    if (!chartData || !chartData.models || Object.keys(chartData.models).length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No model comparison data available.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create bar chart data
+                    const models = Object.keys(chartData.models);
+                    const baseScores = models.map(name => chartData.models[name].baseScore || 0);
+                    const robustnessScores = models.map(name => chartData.models[name].robustnessScore || 0);
+                    
+                    // Create traces
+                    const traces = [
+                        {
+                            x: models,
+                            y: baseScores,
+                            type: 'bar',
+                            name: 'Base Score',
+                            marker: { color: '#3182ce' }
+                        },
+                        {
+                            x: models,
+                            y: robustnessScores,
+                            type: 'bar',
+                            name: 'Robustness Score',
+                            marker: { color: '#48bb78' }
+                        }
+                    ];
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Model Comparison',
+                        xaxis: {
+                            title: 'Models'
+                        },
+                        yaxis: {
+                            title: 'Score'
+                        },
+                        barmode: 'group',
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        },
+                        autosize: true,
+                        margin: {
+                            l: 50,
+                            r: 30,
+                            t: 50,
+                            b: 100,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, traces, layout, config);
                 },
-                initializeFeatureImportanceChart: function() {
-                    console.log("Using fallback ChartManager.initializeFeatureImportanceChart");
+                
+                /**
+                 * Extract model comparison data from report
+                 * @returns {Object} Comparison data
+                 */
+                extractModelComparisonData: function() {
+                    const models = {};
+                    
+                    if (window.reportData) {
+                        // Add main model
+                        models[window.reportData.model_name || 'Main Model'] = {
+                            baseScore: window.reportData.base_score || 0,
+                            robustnessScore: window.reportData.robustness_score || 0,
+                            type: window.reportData.model_type || 'Unknown'
+                        };
+                        
+                        // Add alternative models
+                        if (window.reportData.alternative_models) {
+                            for (const [name, model] of Object.entries(window.reportData.alternative_models)) {
+                                models[name] = {
+                                    baseScore: model.base_score || 0,
+                                    robustnessScore: model.robustness_score || 0,
+                                    type: model.model_type || 'Unknown'
+                                };
+                            }
+                        }
+                    }
+                    
+                    return { models };
                 },
-                initializeMetricsRadarChart: function() {
-                    console.log("Using fallback ChartManager.initializeMetricsRadarChart");
+                
+                /**
+                 * Initialize model level details chart showing scores at each level
+                 * @param {string} container - Container element ID
+                 */
+                initializeModelLevelDetailsChart: function(container) {
+                    console.log("ChartManager: Initializing model level details chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Get data for chart
+                    const chartData = this.extractModelLevelDetailsData();
+                    
+                    // If no data, show message
+                    if (!chartData || !chartData.levels || chartData.levels.length === 0 || 
+                        !chartData.modelScores || Object.keys(chartData.modelScores).length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No level details data available for chart.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create traces for each model
+                    const traces = [];
+                    const colors = ['#3182ce', '#f56565', '#48bb78', '#9f7aea', '#ed8936', '#0694a2'];
+                    let colorIndex = 0;
+                    
+                    for (const [modelId, scores] of Object.entries(chartData.modelScores)) {
+                        if (Array.isArray(scores) && scores.length > 0) {
+                            const name = chartData.modelNames && chartData.modelNames[modelId] 
+                                ? chartData.modelNames[modelId] : modelId;
+                                
+                            traces.push({
+                                x: chartData.levels.map(l => l * 100),
+                                y: scores,
+                                type: 'scatter',
+                                mode: 'lines+markers',
+                                name: name,
+                                line: { width: 2, color: colors[colorIndex % colors.length] },
+                                marker: { size: 6, color: colors[colorIndex % colors.length] }
+                            });
+                            
+                            colorIndex++;
+                        }
+                    }
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Model Performance by Perturbation Level',
+                        xaxis: {
+                            title: 'Perturbation Level (%)',
+                            ticksuffix: '%'
+                        },
+                        yaxis: {
+                            title: chartData.metricName || 'Score'
+                        },
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        },
+                        hovermode: 'closest',
+                        autosize: true,
+                        margin: {
+                            l: 50,
+                            r: 30,
+                            t: 50,
+                            b: 80,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, traces, layout, config);
+                },
+                
+                /**
+                 * Extract model level details data from report
+                 * @returns {Object} Level details data
+                 */
+                extractModelLevelDetailsData: function() {
+                    console.log("Using enhanced extractModelLevelDetailsData with real data");
+                    
+                    if (window.reportData) {
+                        // Try perturbation_chart_data first
+                        if (window.reportData.perturbation_chart_data) {
+                            const chartData = window.reportData.perturbation_chart_data;
+                            const result = {
+                                levels: chartData.levels || [],
+                                modelScores: {},
+                                modelNames: {},
+                                metricName: chartData.metric || 'Score'
+                            };
+                            
+                            // Add primary model
+                            if (Array.isArray(chartData.scores) && chartData.scores.length > 0) {
+                                const primaryModelId = 'primary';
+                                result.modelScores[primaryModelId] = chartData.scores;
+                                result.modelNames[primaryModelId] = chartData.modelName || 'Primary Model';
+                            }
+                            
+                            // Add alternative models
+                            if (chartData.alternativeModels) {
+                                for (const [modelName, modelData] of Object.entries(chartData.alternativeModels)) {
+                                    if (Array.isArray(modelData.scores) && modelData.scores.length > 0) {
+                                        const modelId = modelName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                                        result.modelScores[modelId] = modelData.scores;
+                                        result.modelNames[modelId] = modelName;
+                                    }
+                                }
+                            }
+                            
+                            return result;
+                        }
+                    }
+                    
+                    // Fallback with empty structure
+                    return {
+                        levels: [],
+                        modelScores: {},
+                        modelNames: {},
+                        metricName: 'Score'
+                    };
+                },
+                
+                /**
+                 * Initialize feature importance chart showing relative importance
+                 * @param {string} container - Container element ID
+                 */
+                initializeFeatureImportanceChart: function(container) {
+                    console.log("ChartManager: Initializing feature importance chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Get feature importance data
+                    const chartData = this.extractFeatureImportanceData();
+                    
+                    // If no data, show message
+                    if (!chartData || !chartData.features || chartData.features.length === 0 ||
+                        !chartData.values || chartData.values.length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No feature importance data available.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Sort features by importance (descending)
+                    const sortedIndices = chartData.values
+                        .map((value, index) => ({ value, index }))
+                        .sort((a, b) => b.value - a.value)
+                        .map(item => item.index);
+                        
+                    const sortedFeatures = sortedIndices.map(i => chartData.features[i]);
+                    const sortedValues = sortedIndices.map(i => chartData.values[i]);
+                    
+                    // Create horizontal bar chart
+                    const trace = {
+                        y: sortedFeatures,
+                        x: sortedValues,
+                        type: 'bar',
+                        orientation: 'h',
+                        marker: {
+                            color: '#3182ce'
+                        }
+                    };
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Feature Importance',
+                        xaxis: {
+                            title: 'Importance Score'
+                        },
+                        yaxis: {
+                            title: 'Features',
+                            automargin: true
+                        },
+                        autosize: true,
+                        margin: {
+                            l: 150,
+                            r: 30,
+                            t: 50,
+                            b: 50,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, [trace], layout, config);
+                },
+                
+                /**
+                 * Extract feature importance data from report
+                 * @returns {Object} Feature importance data
+                 */
+                extractFeatureImportanceData: function() {
+                    if (window.reportData) {
+                        // Try direct feature_importance property
+                        if (window.reportData.feature_importance && 
+                            typeof window.reportData.feature_importance === 'object') {
+                            
+                            const features = [];
+                            const values = [];
+                            
+                            // Convert object to arrays
+                            for (const [feature, importance] of Object.entries(window.reportData.feature_importance)) {
+                                features.push(feature);
+                                values.push(importance);
+                            }
+                            
+                            return { features, values };
+                        }
+                    }
+                    
+                    // Return empty data as fallback
+                    return { features: [], values: [] };
+                },
+                
+                /**
+                 * Initialize metrics radar chart for model metrics comparison
+                 * @param {string} container - Container element ID
+                 */
+                initializeMetricsRadarChart: function(container) {
+                    console.log("ChartManager: Initializing metrics radar chart");
+                    
+                    // Check if container exists
+                    const containerElement = document.getElementById(container);
+                    if (!containerElement) {
+                        console.warn("Container not found:", container);
+                        return;
+                    }
+                    
+                    // Get metrics data
+                    const chartData = this.extractMetricsRadarData();
+                    
+                    // If no data, show message
+                    if (!chartData || !chartData.metrics || chartData.metrics.length === 0 ||
+                        !chartData.models || Object.keys(chartData.models).length === 0) {
+                        containerElement.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #666;">
+                                <p>No metrics data available for radar chart.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create traces for each model
+                    const traces = [];
+                    const colors = ['#3182ce', '#f56565', '#48bb78', '#9f7aea', '#ed8936', '#0694a2'];
+                    let colorIndex = 0;
+                    
+                    for (const [modelId, modelData] of Object.entries(chartData.models)) {
+                        if (modelData.values && modelData.values.length > 0) {
+                            // Create radar trace
+                            traces.push({
+                                type: 'scatterpolar',
+                                r: modelData.values,
+                                theta: chartData.metrics,
+                                fill: 'toself',
+                                name: modelData.name || modelId,
+                                line: {
+                                    color: colors[colorIndex % colors.length]
+                                }
+                            });
+                            
+                            colorIndex++;
+                        }
+                    }
+                    
+                    // Layout
+                    const layout = {
+                        title: 'Model Metrics Comparison',
+                        polar: {
+                            radialaxis: {
+                                visible: true,
+                                range: [0, 1]
+                            }
+                        },
+                        showlegend: true,
+                        legend: {
+                            orientation: 'h',
+                            y: -0.2
+                        },
+                        autosize: true,
+                        margin: {
+                            l: 60,
+                            r: 60,
+                            t: 50,
+                            b: 60,
+                            pad: 4
+                        }
+                    };
+                    
+                    // Config
+                    const config = {
+                        responsive: true,
+                        displayModeBar: false
+                    };
+                    
+                    // Create plot
+                    Plotly.newPlot(container, traces, layout, config);
+                },
+                
+                /**
+                 * Extract metrics radar data from report
+                 * @returns {Object} Metrics radar data
+                 */
+                extractMetricsRadarData: function() {
+                    if (window.reportData) {
+                        // Try radar_chart_data first
+                        if (window.reportData.radar_chart_data && 
+                            window.reportData.radar_chart_data.models) {
+                            
+                            return this._processRadarChartData(window.reportData.radar_chart_data);
+                        }
+                        
+                        // Try initial_results
+                        if (window.reportData.initial_results && 
+                            window.reportData.initial_results.models) {
+                            
+                            // Convert initial_results to radar format
+                            const radarData = {
+                                models: {}
+                            };
+                            
+                            // Collect all metrics across all models
+                            const allMetrics = new Set();
+                            for (const model of Object.values(window.reportData.initial_results.models)) {
+                                if (model.metrics) {
+                                    Object.keys(model.metrics).forEach(metric => allMetrics.add(metric));
+                                }
+                            }
+                            
+                            // Process each model
+                            for (const [modelId, model] of Object.entries(window.reportData.initial_results.models)) {
+                                if (!model.metrics) continue;
+                                
+                                const modelData = {
+                                    name: model.name || modelId,
+                                    type: model.type || 'Unknown',
+                                    values: []
+                                };
+                                
+                                // Add metrics in consistent order
+                                const metrics = Array.from(allMetrics);
+                                for (const metric of metrics) {
+                                    modelData.values.push(model.metrics[metric] || 0);
+                                }
+                                
+                                radarData.models[modelId] = modelData;
+                            }
+                            
+                            // Add metrics array
+                            radarData.metrics = Array.from(allMetrics);
+                            
+                            return radarData;
+                        }
+                    }
+                    
+                    // Return empty data as fallback
+                    return { metrics: [], models: {} };
+                },
+                
+                /**
+                 * Process radar chart data into standardized format
+                 * @param {Object} data - Raw radar chart data
+                 * @returns {Object} Processed data
+                 */
+                _processRadarChartData: function(data) {
+                    const result = {
+                        metrics: [],
+                        models: {}
+                    };
+                    
+                    // Get all metrics across all models
+                    const allMetrics = new Set();
+                    for (const model of Object.values(data.models)) {
+                        if (model.metrics) {
+                            Object.keys(model.metrics).forEach(metric => allMetrics.add(metric));
+                        }
+                    }
+                    
+                    // Set metrics array
+                    result.metrics = Array.from(allMetrics);
+                    
+                    // Process each model
+                    for (const [modelId, model] of Object.entries(data.models)) {
+                        if (!model.metrics) continue;
+                        
+                        const modelData = {
+                            name: model.name || modelId,
+                            type: model.type || 'Unknown',
+                            values: []
+                        };
+                        
+                        // Add metrics in consistent order
+                        for (const metric of result.metrics) {
+                            modelData.values.push(model.metrics[metric] || 0);
+                        }
+                        
+                        result.models[modelId] = modelData;
+                    }
+                    
+                    return result;
                 }
             };
             
-            // Helper function that will be used instead of the CDN version
+            // Helper function to load Plotly - will use embedded implementation
             window.loadPlotly = function() {
                 console.log("Using embedded Plotly implementation");
-                return Promise.resolve();
+                
+                // Check if we need to initialize any chart managers
+                if (window.reportData && !window.__deepbridge_charts_initialized) {
+                    setTimeout(function() {
+                        console.log("Auto-initializing charts with embedded Plotly");
+                        
+                        // Initialize standard charts if ChartManager is available
+                        if (window.ChartManager) {
+                            // Try to find containers and initialize charts
+                            const containers = {
+                                'perturbation-chart-plot': 'initializePerturbationChart',
+                                'worst-score-chart-plot': 'initializeWorstScoreChart',
+                                'mean-score-chart-plot': 'initializeMeanScoreChart',
+                                'model-comparison-chart-plot': 'initializeModelComparisonChart',
+                                'model-level-details-chart-plot': 'initializeModelLevelDetailsChart',
+                                'feature-importance-chart': 'initializeFeatureImportanceChart',
+                                'metrics-radar-chart': 'initializeMetricsRadarChart',
+                                'importance-comparison-chart-plot': 'initializeFeatureImportanceComparisonChart'
+                            };
+                            
+                            // Try to initialize each chart if its container exists
+                            for (const [containerId, initMethod] of Object.entries(containers)) {
+                                if (document.getElementById(containerId) && 
+                                    typeof window.ChartManager[initMethod] === 'function') {
+                                    try {
+                                        window.ChartManager[initMethod](containerId);
+                                    } catch (e) {
+                                        console.error(`Error initializing ${containerId}:`, e);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Initialize any custom controllers
+                        if (window.PerturbationResultsController && 
+                            typeof window.PerturbationResultsController.init === 'function' && 
+                            document.getElementById('perturbation-results-container')) {
+                            try {
+                                window.PerturbationResultsController.init();
+                            } catch (e) {
+                                console.error("Error initializing PerturbationResultsController:", e);
+                            }
+                        }
+                        
+                        window.__deepbridge_charts_initialized = true;
+                    }, 100); // Small delay to ensure DOM is ready
+                }
+                
+                return Promise.resolve(window.Plotly);
             };
+            
+            // Auto-initialize on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log("DOMContentLoaded - Loading Plotly and initializing charts");
+                window.loadPlotly();
+                
+                // Also initialize tabs if needed
+                if (typeof initTabs === 'function') {
+                    initTabs();
+                }
+            });
         })();
     </script>
     
