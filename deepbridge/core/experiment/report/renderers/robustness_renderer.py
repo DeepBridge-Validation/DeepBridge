@@ -340,16 +340,16 @@ class RobustnessRenderer:
 window.__deepbridge_loaded_modules = window.__deepbridge_loaded_modules || {};
 
 // Function to safely register a module and prevent duplication
-function registerModule(name, factory) {
+window.registerModule = function(name, factory) {
     if (window.__deepbridge_loaded_modules[name]) {
         console.log(`Module ${name} already registered, using existing instance`);
         return window.__deepbridge_loaded_modules[name];
     }
     console.log(`Registering module ${name}`);
-    const module = factory();
+    var module = factory();
     window.__deepbridge_loaded_modules[name] = module;
     return module;
-}
+};
 
 // ----- Critical JS Files ----- //
 """
@@ -388,15 +388,15 @@ function registerModule(name, factory) {
                                 
                                 # Special handling for boxplot.js to prevent duplicate declaration
                                 if filename == "boxplot.js":
-                                    # Extract the content but wrap it in a registerModule call
-                                    js_content += """// Safely register BoxplotChartManager to prevent duplicates
-window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
-    return """
-                                    # Replace the const declaration with the module content
-                                    content = content.replace("const BoxplotChartManager = {", "{")
-                                    js_content += content
-                                    # The content ends with a closing bracket for the object, so we need to add the return statement
-                                    js_content += "});\n\n"
+                                    # Store the content minus the variable declaration
+                                    if "const BoxplotChartManager = {" in content:
+                                        object_content = content.replace("const BoxplotChartManager = {", "{")
+                                        js_content += """// Safely register BoxplotChartManager to prevent duplicates
+window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function() {
+    return """ + object_content + "});\n\n"
+                                    else:
+                                        # Fallback if the format is unexpected
+                                        js_content += f"(function() {{\n{content}\n}})();\n\n"
                                 else:
                                     # Normal IIFE wrapping for other chart files
                                     js_content += f"(function() {{\n{content}\n}})();\n\n"
@@ -420,15 +420,20 @@ window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
                                 # Safely register controllers to prevent duplicates
                                 controller_name = filename.replace('.js', '')
                                 if "Controller" in controller_name:
-                                    # Extract the content but wrap it in a registerModule call if it's defining an object
-                                    if "const " + controller_name in content or "var " + controller_name in content:
-                                        # Replace the declaration with a registration
-                                        js_content += f"window.{controller_name} = registerModule('{controller_name}', function() {{\n    return "
-                                        content = content.replace(f"const {controller_name} = {{", "{").replace(f"var {controller_name} = {{", "{")
-                                        js_content += content
-                                        js_content += "});\n\n"
+                                    # Check if the file defines a controller object
+                                    const_pattern = f"const {controller_name} = "
+                                    var_pattern = f"var {controller_name} = "
+                                    
+                                    if const_pattern in content:
+                                        object_content = content.replace(const_pattern + "{", "{")
+                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function() {{\n"
+                                        js_content += f"    return {object_content}}};\n\n"
+                                    elif var_pattern in content:
+                                        object_content = content.replace(var_pattern + "{", "{")
+                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function() {{\n"
+                                        js_content += f"    return {object_content}}};\n\n"
                                     else:
-                                        # Normal IIFE wrapping
+                                        # Normal IIFE wrapping for controllers without specific patterns
                                         js_content += f"(function() {{\n{content}\n}})();\n\n"
                                 else:
                                     # Normal IIFE wrapping for other controllers
@@ -449,6 +454,7 @@ window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
                         
                         # Remove any attempts to load external scripts
                         main_content = main_content.replace("fixScript.src = 'js/fixed_syntax.js';", "// External script loading removed")
+                        main_content = main_content.replace("script.src = 'js/", "// External script loading removed: script.src = 'js/")
                         
                         js_content += main_content + "\n\n"
                     logger.info("Loaded main.js")
@@ -463,6 +469,11 @@ window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
             except ImportError:
                 logger.warning("JavaScript syntax fixer not available")
                 
+            # Additional safety - remove any remaining external script loading attempts
+            js_content = js_content.replace(".src = 'js/", ".src = '//REMOVED_EXTERNAL_PATH_js/")
+            js_content = js_content.replace("src='js/", "src='//REMOVED_EXTERNAL_PATH_js/")
+            js_content = js_content.replace('src="js/', 'src="//REMOVED_EXTERNAL_PATH_js/')
+            
             return js_content
         except Exception as e:
             logger.error(f"Error loading JavaScript: {str(e)}")

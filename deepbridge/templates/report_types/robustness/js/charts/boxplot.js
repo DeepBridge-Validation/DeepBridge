@@ -435,7 +435,7 @@ const BoxplotChartManager = {
                 <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #d32f2f;">Dados não disponíveis</h3>
                 <p style="color: #333; font-size: 16px; line-height: 1.4;">${message}</p>
                 <p style="color: #333; margin-top: 20px; font-size: 14px;">
-                    Não serão gerados dados sintéticos ou demonstrativos. Execute testes com iterações múltiplas (n_iterations > 1).
+                    Somente dados reais são exibidos. Para visualizar os gráficos, execute testes com iterações múltiplas (n_iterations > 1).
                 </p>
             </div>`;
     },
