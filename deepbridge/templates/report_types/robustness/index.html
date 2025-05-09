@@ -166,7 +166,7 @@
         // para garantir que o relatório seja totalmente autônomo sem dados sintéticos
         
         // Inicialização segura - garantir que seja executado apenas quando o DOM estiver pronto
-        window.DeepBridgeInit = function() {
+        window.DeepBridgeInit = function deepBridgeInit() {
             console.log("DeepBridge report initialization - 100% autonomous mode");
             
             // Tentar carregar Plotly se ainda não estiver carregado
@@ -206,18 +206,18 @@
         };
         
         // Fallback initialization function
-        window.initFallbackMode = function() {
+        window.initFallbackMode = function initFallbackMode() {
             console.log("Using fallback mode initialization");
             
             // Inicializar abas
             const tabButtons = document.querySelectorAll('.tab-btn');
             if (tabButtons.length > 0) {
-                tabButtons.forEach(function(button) {
-                    button.addEventListener('click', function() {
+                tabButtons.forEach(function setupTabButton(button) {
+                    button.addEventListener('click', function tabClickHandler() {
                         const targetTab = this.getAttribute('data-tab');
                         
                         // Desativar todas as abas
-                        document.querySelectorAll('.tab-content').forEach(function(tab) {
+                        document.querySelectorAll('.tab-content').forEach(function hideTab(tab) {
                             tab.classList.remove('active');
                         });
                         
@@ -228,7 +228,7 @@
                         }
                         
                         // Desativar todos os botões
-                        tabButtons.forEach(function(btn) {
+                        tabButtons.forEach(function deactivateButton(btn) {
                             btn.classList.remove('active');
                         });
                         
@@ -246,11 +246,11 @@
         {{ js_content }}
         
         // Garantir que a inicialização ocorra quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
             console.log("DOM content loaded - initializing report...");
             
             // Uma pequena pausa para garantir que todos os dados estão disponíveis
-            setTimeout(function() {
+            setTimeout(function delayedInit() {
                 if (typeof window.DeepBridgeInit === 'function') {
                     try {
                         window.DeepBridgeInit();

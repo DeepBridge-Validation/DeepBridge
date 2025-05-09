@@ -367,7 +367,7 @@ window.registerModule = function(name, factory) {
                                 js_content += content + "\n\n"
                             else:
                                 # Wrap other files in IIFE for namespace protection
-                                js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                js_content += f"(function moduleIIFE{filename.replace('.js', '').replace('-', '_')}() {{\n{content}\n}})();\n\n"
                             logger.info(f"Loaded critical JS file: {filename}")
                     except Exception as e:
                         logger.warning(f"Error loading critical JS file {filename}: {str(e)}")
@@ -392,14 +392,14 @@ window.registerModule = function(name, factory) {
                                     if "const BoxplotChartManager = {" in content:
                                         object_content = content.replace("const BoxplotChartManager = {", "{")
                                         js_content += """// Safely register BoxplotChartManager to prevent duplicates
-window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function() {
+window.BoxplotChartManager = window.registerModule('BoxplotChartManager', function moduleFactory() {
     return """ + object_content + "});\n\n"
                                     else:
                                         # Fallback if the format is unexpected
-                                        js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                        js_content += f"(function moduleIIFEBoxplot() {{\n{content}\n}})();\n\n"
                                 else:
                                     # Normal IIFE wrapping for other chart files
-                                    js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                    js_content += f"(function moduleIIFE{filename.replace('.js', '').replace('-', '_')}() {{\n{content}\n}})();\n\n"
                                 
                                 logger.info(f"Loaded chart JS file: {filename} with namespace protection")
                         except Exception as e:
@@ -426,18 +426,18 @@ window.BoxplotChartManager = window.registerModule('BoxplotChartManager', functi
                                     
                                     if const_pattern in content:
                                         object_content = content.replace(const_pattern + "{", "{")
-                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function() {{\n"
+                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function moduleFactory{controller_name}() {{\n"
                                         js_content += f"    return {object_content}}};\n\n"
                                     elif var_pattern in content:
                                         object_content = content.replace(var_pattern + "{", "{")
-                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function() {{\n"
+                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function moduleFactory{controller_name}() {{\n"
                                         js_content += f"    return {object_content}}};\n\n"
                                     else:
                                         # Normal IIFE wrapping for controllers without specific patterns
-                                        js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                        js_content += f"(function moduleIIFE{controller_name}() {{\n{content}\n}})();\n\n"
                                 else:
                                     # Normal IIFE wrapping for other controllers
-                                    js_content += f"(function() {{\n{content}\n}})();\n\n"
+                                    js_content += f"(function moduleIIFE{controller_name.replace('.js', '')}() {{\n{content}\n}})();\n\n"
                                 
                                 logger.info(f"Loaded controller JS file: {filename} with namespace protection")
                         except Exception as e:
