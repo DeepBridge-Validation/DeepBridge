@@ -343,17 +343,20 @@ window.ChartInitializer = {
             boxplotContainer.style.minWidth = '100%';
             
             this.ensurePlotlyLoaded(() => {
-                if (typeof BoxplotChartManager !== 'undefined' && 
-                    typeof BoxplotChartManager.initializeBoxplotChart === 'function') {
-                    try {
-                        BoxplotChartManager.initializeBoxplotChart('boxplot-chart-container');
-                    } catch (e) {
-                        console.error("Error initializing boxplot chart:", e);
-                        this.showErrorForCharts('boxplot-chart-container', e.message);
+                try {
+                    // Get BoxplotChartManager from registry if available
+                    const boxplotManager = window.__deepbridge_loaded_modules['BoxplotChartManager'] || 
+                                          window.BoxplotChartManager;
+                    
+                    if (boxplotManager && typeof boxplotManager.initializeBoxplotChart === 'function') {
+                        boxplotManager.initializeBoxplotChart('boxplot-chart-container');
+                    } else {
+                        console.error("BoxplotChartManager not available or missing initialization method");
+                        this.showErrorForCharts('boxplot-chart-container', "Chart manager not available");
                     }
-                } else {
-                    console.error("BoxplotChartManager not available");
-                    this.showErrorForCharts('boxplot-chart-container', "Chart manager not available");
+                } catch (e) {
+                    console.error("Error initializing boxplot chart:", e);
+                    this.showErrorForCharts('boxplot-chart-container', e.message);
                 }
             });
         } else {

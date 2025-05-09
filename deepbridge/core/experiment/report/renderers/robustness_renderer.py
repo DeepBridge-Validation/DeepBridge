@@ -391,10 +391,11 @@ function registerModule(name, factory) {
                                     # Extract the content but wrap it in a registerModule call
                                     js_content += """// Safely register BoxplotChartManager to prevent duplicates
 window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
-"""
+    return """
                                     # Replace the const declaration with the module content
                                     content = content.replace("const BoxplotChartManager = {", "{")
                                     js_content += content
+                                    # The content ends with a closing bracket for the object, so we need to add the return statement
                                     js_content += "});\n\n"
                                 else:
                                     # Normal IIFE wrapping for other chart files
@@ -422,7 +423,7 @@ window.BoxplotChartManager = registerModule('BoxplotChartManager', function() {
                                     # Extract the content but wrap it in a registerModule call if it's defining an object
                                     if "const " + controller_name in content or "var " + controller_name in content:
                                         # Replace the declaration with a registration
-                                        js_content += f"window.{controller_name} = registerModule('{controller_name}', function() {{\n"
+                                        js_content += f"window.{controller_name} = registerModule('{controller_name}', function() {{\n    return "
                                         content = content.replace(f"const {controller_name} = {{", "{").replace(f"var {controller_name} = {{", "{")
                                         js_content += content
                                         js_content += "});\n\n"
