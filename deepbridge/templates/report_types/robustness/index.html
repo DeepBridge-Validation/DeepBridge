@@ -24,18 +24,23 @@
     
     <!-- Plotly library (incluído como conteúdo inline para garantir autonomia) -->
     <script>
-        /* Embed Plotly directly in HTML to ensure autonomy */
+        /* Minimum Plotly implementation for charts (produces actual charts, not just tables) */
         (function() {
+            // Make sure plotly wasn't already loaded
+            if (window.Plotly && typeof window.Plotly.newPlot === 'function') {
+                console.log("Plotly already loaded, skipping embedded implementation");
+                return;
+            }
+            
             /**
-             * Enhanced Plotly Fallback Implementation
+             * Simplified Plotly Implementation that renders actual charts
              * 
-             * This implementation provides a complete fallback for the Plotly library
-             * when it can't be loaded from CDN. It ensures all required methods are
-             * available so that the report can function without errors.
+             * This implementation creates simplified but functional charts
+             * using standard HTML5 canvas without external dependencies.
              * 
-             * The goal is to gracefully degrade functionality rather than break with errors.
+             * NO SYNTHETIC DATA - Only uses real data from the report.
              */
-            window.Plotly = window.Plotly || {
+            window.Plotly = {
                 // Track created plots to help with relayout and other operations
                 _plots: {},
                 
@@ -201,7 +206,7 @@
                 },
                 
                 /**
-                 * Create a basic visualization based on the data provided
+                 * Create a visualization using HTML5 Canvas
                  * @param {HTMLElement} container - The container element
                  * @param {Array} data - The data array for the plot
                  * @param {Object} layout - The layout configuration
@@ -224,14 +229,13 @@
                         return;
                     }
                     
-                    // Create a more visually appealing fallback chart
-                    const chartArea = document.createElement('div');
-                    chartArea.className = 'chart-data-display';
-                    chartArea.style.display = 'flex';
-                    chartArea.style.flexDirection = 'column';
-                    chartArea.style.gap = '10px';
+                    // Create a chart using canvas
+                    const chartContainer = document.createElement('div');
+                    chartContainer.style.position = 'relative';
+                    chartContainer.style.width = '100%';
+                    chartContainer.style.height = '400px';
                     
-                    // Create legend area if multiple series
+                    // Add legend if multiple series
                     if (data.length > 1) {
                         const legend = document.createElement('div');
                         legend.className = 'chart-legend';
@@ -263,23 +267,313 @@
                             legend.appendChild(item);
                         });
                         
-                        chartArea.appendChild(legend);
+                        container.appendChild(legend);
                     }
                     
-                    // Create a data table similar to what we had before but with enhanced styling
+                    // Create canvas for chart
+                    const canvas = document.createElement('canvas');
+                    canvas.width = container.clientWidth || 800;
+                    canvas.height = 400;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '400px';
+                    chartContainer.appendChild(canvas);
+                    container.appendChild(chartContainer);
+                    
+                    // Get 2D context for drawing
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        console.error("Canvas context not available");
+                        this._createFallbackTable(container, data, layout);
+                        return;
+                    }
+                    
+                    // Clear canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Calculate chart area (leave space for axes and labels)
+                    const chartArea = {
+                        left: 60,  // Space for y-axis labels
+                        top: 20,   // Space for title
+                        right: canvas.width - 20, // Right margin
+                        bottom: canvas.height - 40 // Space for x-axis labels
+                    };
+                    
+                    // Set chart background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Find min/max values for y-axis
+                    let minY = Infinity;
+                    let maxY = -Infinity;
+                    
+                    data.forEach(series => {
+                        if (Array.isArray(series.y)) {
+                            const seriesMin = Math.min(...series.y.filter(y => y !== null && y !== undefined));
+                            const seriesMax = Math.max(...series.y.filter(y => y !== null && y !== undefined));
+                            
+                            minY = Math.min(minY, seriesMin);
+                            maxY = Math.max(maxY, seriesMax);
+                        }
+                    });
+                    
+                    // Add some padding to min/max values
+                    const yRange = maxY - minY;
+                    minY = Math.max(0, minY - yRange * 0.1);  // Don't go below zero for most charts
+                    maxY = maxY + yRange * 0.1;
+                    
+                    // Determine if we have x values
+                    const hasXValues = data.some(series => Array.isArray(series.x) && series.x.length > 0);
+                    
+                    // Find min/max for x-axis (if available)
+                    let minX = 0;
+                    let maxX = 0;
+                    let xValues = [];
+                    
+                    if (hasXValues) {
+                        // Collect all x values
+                        data.forEach(series => {
+                            if (Array.isArray(series.x)) {
+                                xValues = xValues.concat(series.x.filter(x => x !== null && x !== undefined));
+                            }
+                        });
+                        
+                        if (xValues.length > 0) {
+                            minX = Math.min(...xValues);
+                            maxX = Math.max(...xValues);
+                        }
+                    } else {
+                        // Use indices as x values
+                        const maxLength = Math.max(...data.map(series => 
+                            Array.isArray(series.y) ? series.y.length : 0
+                        ));
+                        
+                        minX = 0;
+                        maxX = Math.max(1, maxLength - 1);  // At least 1 for proper scaling
+                    }
+                    
+                    // Add padding to x range
+                    const xRange = maxX - minX;
+                    minX = minX - xRange * 0.05;
+                    maxX = maxX + xRange * 0.05;
+                    
+                    // Draw axes
+                    ctx.strokeStyle = '#666666';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    
+                    // Y-axis
+                    ctx.moveTo(chartArea.left, chartArea.top);
+                    ctx.lineTo(chartArea.left, chartArea.bottom);
+                    
+                    // X-axis
+                    ctx.moveTo(chartArea.left, chartArea.bottom);
+                    ctx.lineTo(chartArea.right, chartArea.bottom);
+                    ctx.stroke();
+                    
+                    // Y-axis labels
+                    ctx.fillStyle = '#333333';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    
+                    const ySteps = 5;
+                    for (let i = 0; i <= ySteps; i++) {
+                        const y = minY + (maxY - minY) * (ySteps - i) / ySteps;
+                        const yPos = chartArea.top + (chartArea.bottom - chartArea.top) * i / ySteps;
+                        
+                        ctx.fillText(this._formatValue(y), chartArea.left - 10, yPos);
+                        
+                        // Draw grid line
+                        ctx.strokeStyle = '#dddddd';
+                        ctx.beginPath();
+                        ctx.moveTo(chartArea.left, yPos);
+                        ctx.lineTo(chartArea.right, yPos);
+                        ctx.stroke();
+                    }
+                    
+                    // X-axis labels
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    
+                    const xSteps = Math.min(10, Math.max(2, hasXValues ? xValues.length : maxX));
+                    for (let i = 0; i <= xSteps; i++) {
+                        const xRatio = i / xSteps;
+                        const x = minX + (maxX - minX) * xRatio;
+                        const xPos = chartArea.left + (chartArea.right - chartArea.left) * xRatio;
+                        
+                        let label = this._formatValue(x);
+                        if (layout && layout.xaxis && layout.xaxis.ticksuffix) {
+                            label += layout.xaxis.ticksuffix;
+                        }
+                        
+                        ctx.fillText(label, xPos, chartArea.bottom + 10);
+                        
+                        // Draw grid line
+                        ctx.strokeStyle = '#dddddd';
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, chartArea.top);
+                        ctx.lineTo(xPos, chartArea.bottom);
+                        ctx.stroke();
+                    }
+                    
+                    // Draw axis titles
+                    ctx.fillStyle = '#333333';
+                    ctx.font = 'bold 12px Arial';
+                    
+                    // Y-axis title
+                    if (layout && layout.yaxis && layout.yaxis.title) {
+                        ctx.save();
+                        ctx.translate(15, (chartArea.top + chartArea.bottom) / 2);
+                        ctx.rotate(-Math.PI / 2);
+                        ctx.textAlign = 'center';
+                        ctx.fillText(layout.yaxis.title.text || layout.yaxis.title, 0, 0);
+                        ctx.restore();
+                    }
+                    
+                    // X-axis title
+                    if (layout && layout.xaxis && layout.xaxis.title) {
+                        ctx.textAlign = 'center';
+                        ctx.fillText(
+                            layout.xaxis.title.text || layout.xaxis.title,
+                            (chartArea.left + chartArea.right) / 2,
+                            chartArea.bottom + 30
+                        );
+                    }
+                    
+                    // Draw data series
+                    data.forEach((series, seriesIndex) => {
+                        // Skip if no y values
+                        if (!Array.isArray(series.y) || series.y.length === 0) {
+                            return;
+                        }
+                        
+                        const color = series.marker?.color || this._getDefaultColor(seriesIndex);
+                        const mode = series.mode || 'lines+markers';
+                        const type = series.type || 'scatter';
+                        
+                        // Use consistent x values if available, otherwise use indices
+                        const xData = Array.isArray(series.x) && series.x.length >= series.y.length
+                            ? series.x
+                            : series.y.map((_, i) => i);
+                            
+                        // Skip data outside bounds
+                        const points = [];
+                        for (let i = 0; i < series.y.length; i++) {
+                            if (series.y[i] !== null && series.y[i] !== undefined && 
+                                xData[i] !== null && xData[i] !== undefined) {
+                                points.push({
+                                    x: xData[i],
+                                    y: series.y[i]
+                                });
+                            }
+                        }
+                        
+                        // Draw data points and/or lines
+                        if (points.length > 0) {
+                            // For bar charts
+                            if (type === 'bar') {
+                                this._drawBarChart(ctx, points, color, chartArea, minX, maxX, minY, maxY);
+                            } 
+                            // For all other charts (scatter/line)
+                            else {
+                                // Draw lines if mode includes 'lines'
+                                if (mode.includes('lines')) {
+                                    this._drawLines(ctx, points, color, chartArea, minX, maxX, minY, maxY);
+                                }
+                                
+                                // Draw markers if mode includes 'markers'
+                                if (mode.includes('markers')) {
+                                    this._drawMarkers(ctx, points, color, chartArea, minX, maxX, minY, maxY);
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                /**
+                 * Draw lines connecting data points
+                 */
+                _drawLines: function(ctx, points, color, chartArea, minX, maxX, minY, maxY) {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    points.forEach((point, i) => {
+                        // Convert to canvas coordinates
+                        const x = chartArea.left + (point.x - minX) / (maxX - minX) * (chartArea.right - chartArea.left);
+                        const y = chartArea.bottom - (point.y - minY) / (maxY - minY) * (chartArea.bottom - chartArea.top);
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    
+                    ctx.stroke();
+                },
+                
+                /**
+                 * Draw markers at data points
+                 */
+                _drawMarkers: function(ctx, points, color, chartArea, minX, maxX, minY, maxY) {
+                    const markerSize = 6;
+                    
+                    ctx.fillStyle = color;
+                    
+                    points.forEach(point => {
+                        // Convert to canvas coordinates
+                        const x = chartArea.left + (point.x - minX) / (maxX - minX) * (chartArea.right - chartArea.left);
+                        const y = chartArea.bottom - (point.y - minY) / (maxY - minY) * (chartArea.bottom - chartArea.top);
+                        
+                        // Draw a circle
+                        ctx.beginPath();
+                        ctx.arc(x, y, markerSize, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+                },
+                
+                /**
+                 * Draw bar chart
+                 */
+                _drawBarChart: function(ctx, points, color, chartArea, minX, maxX, minY, maxY) {
+                    const barWidth = (chartArea.right - chartArea.left) / (points.length * 1.5);
+                    
+                    ctx.fillStyle = color;
+                    
+                    points.forEach(point => {
+                        // Convert to canvas coordinates
+                        const x = chartArea.left + (point.x - minX) / (maxX - minX) * (chartArea.right - chartArea.left);
+                        const y = chartArea.bottom - (point.y - minY) / (maxY - minY) * (chartArea.bottom - chartArea.top);
+                        
+                        // Draw a bar from baseline to y
+                        const baseline = chartArea.bottom - (0 - minY) / (maxY - minY) * (chartArea.bottom - chartArea.top);
+                        const barHeight = baseline - y;
+                        
+                        ctx.fillRect(x - barWidth/2, y, barWidth, barHeight);
+                    });
+                },
+                
+                /**
+                 * Create a fallback table when canvas is not available
+                 */
+                _createFallbackTable: function(container, data, layout) {
+                    const tableContainer = document.createElement('div');
+                    tableContainer.style.overflowX = 'auto';
+                    
                     const table = document.createElement('table');
                     table.style.width = '100%';
                     table.style.borderCollapse = 'collapse';
                     table.style.border = '1px solid #e2e8f0';
                     table.style.fontSize = '14px';
                     
-                    // Add header with enhanced styling
+                    // Add header
                     const thead = document.createElement('thead');
                     thead.style.backgroundColor = '#f8fafc';
                     const headerRow = document.createElement('tr');
                     
                     // Determine if we have X values to show
-                    const hasXValues = data.some(series => Array.isArray(series.x) && series.x.length >.0);
+                    const hasXValues = data.some(series => Array.isArray(series.x) && series.x.length > 0);
                     
                     // Create headers
                     if (hasXValues) {
@@ -303,13 +597,16 @@
                     thead.appendChild(headerRow);
                     table.appendChild(thead);
                     
-                    // Create body with sample data (showing at most 10 points)
+                    // Create body with sample data
                     const tbody = document.createElement('tbody');
                     
-                    // Find max data points across all series (up to 10)
-                    let maxPoints = Math.min(10, Math.max(...data.map(series => 
+                    // Find max data points
+                    let maxPoints = Math.max(...data.map(series => 
                         Array.isArray(series.y) ? series.y.length : 0
-                    )));
+                    ));
+                    
+                    // Limit to 20 rows for performance
+                    maxPoints = Math.min(20, maxPoints);
                     
                     for (let i = 0; i < maxPoints; i++) {
                         const row = document.createElement('tr');
@@ -347,25 +644,9 @@
                         tbody.appendChild(row);
                     }
                     
-                    // Show indicator if there are more points
-                    if (data.some(series => Array.isArray(series.y) && series.y.length > maxPoints)) {
-                        const moreRow = document.createElement('tr');
-                        
-                        const moreCell = document.createElement('td');
-                        moreCell.colSpan = hasXValues ? data.length + 1 : data.length;
-                        moreCell.style.padding = '8px 12px';
-                        moreCell.style.textAlign = 'center';
-                        moreCell.style.color = '#718096';
-                        moreCell.style.fontStyle = 'italic';
-                        moreCell.textContent = '... more data points available ...';
-                        
-                        moreRow.appendChild(moreCell);
-                        tbody.appendChild(moreRow);
-                    }
-                    
                     table.appendChild(tbody);
-                    chartArea.appendChild(table);
-                    container.appendChild(chartArea);
+                    tableContainer.appendChild(table);
+                    container.appendChild(tableContainer);
                 },
                 
                 /**
@@ -1807,70 +2088,150 @@
                 }
             };
             
-            // Helper function to load Plotly - will use embedded implementation
-            window.loadPlotly = function() {
-                console.log("Using embedded Plotly implementation");
+            // Function to initialize all charts and controllers
+            window.initializeCharts = function() {
+                console.log("Initializing all charts...");
                 
-                // Check if we need to initialize any chart managers
-                if (window.reportData && !window.__deepbridge_charts_initialized) {
-                    setTimeout(function() {
-                        console.log("Auto-initializing charts with embedded Plotly");
-                        
-                        // Initialize standard charts if ChartManager is available
-                        if (window.ChartManager) {
-                            // Try to find containers and initialize charts
-                            const containers = {
-                                'perturbation-chart-plot': 'initializePerturbationChart',
-                                'worst-score-chart-plot': 'initializeWorstScoreChart',
-                                'mean-score-chart-plot': 'initializeMeanScoreChart',
-                                'model-comparison-chart-plot': 'initializeModelComparisonChart',
-                                'model-level-details-chart-plot': 'initializeModelLevelDetailsChart',
-                                'feature-importance-chart': 'initializeFeatureImportanceChart',
-                                'metrics-radar-chart': 'initializeMetricsRadarChart',
-                                'importance-comparison-chart-plot': 'initializeFeatureImportanceComparisonChart'
-                            };
-                            
-                            // Try to initialize each chart if its container exists
-                            for (const [containerId, initMethod] of Object.entries(containers)) {
-                                if (document.getElementById(containerId) && 
-                                    typeof window.ChartManager[initMethod] === 'function') {
-                                    try {
-                                        window.ChartManager[initMethod](containerId);
-                                    } catch (e) {
-                                        console.error(`Error initializing ${containerId}:`, e);
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Initialize any custom controllers
-                        if (window.PerturbationResultsController && 
-                            typeof window.PerturbationResultsController.init === 'function' && 
-                            document.getElementById('perturbation-results-container')) {
-                            try {
-                                window.PerturbationResultsController.init();
-                            } catch (e) {
-                                console.error("Error initializing PerturbationResultsController:", e);
-                            }
-                        }
-                        
-                        window.__deepbridge_charts_initialized = true;
-                    }, 100); // Small delay to ensure DOM is ready
+                // First make sure the window.reportData is available
+                if (!window.reportData && document.getElementById('reportDataJson')) {
+                    try {
+                        // Try to load from embedded data 
+                        const reportDataJson = document.getElementById('reportDataJson').textContent;
+                        window.reportData = JSON.parse(reportDataJson);
+                        console.log("Loaded report data from embedded JSON");
+                    } catch (e) {
+                        console.error("Failed to load report data from embedded JSON:", e);
+                    }
                 }
                 
+                // Also try to load chart data
+                if (!window.chartData && document.getElementById('chartDataJson')) {
+                    try {
+                        const chartDataJson = document.getElementById('chartDataJson').textContent;
+                        window.chartData = JSON.parse(chartDataJson);
+                        console.log("Loaded chart data from embedded JSON");
+                    } catch (e) {
+                        console.error("Failed to load chart data from embedded JSON:", e);
+                    }
+                }
+                
+                // Auto-detect and initialize all chart containers in the document
+                const chartContainers = document.querySelectorAll('.chart-plot, [id$="-chart"], [id$="-chart-plot"]');
+                console.log(`Found ${chartContainers.length} chart containers`);
+                
+                if (window.ChartManager) {
+                    // Define mapping of container IDs to initialization methods
+                    const containers = {
+                        'perturbation-chart-plot': 'initializePerturbationChart',
+                        'worst-score-chart-plot': 'initializeWorstScoreChart',
+                        'mean-score-chart-plot': 'initializeMeanScoreChart',
+                        'model-comparison-chart-plot': 'initializeModelComparisonChart',
+                        'model-level-details-chart-plot': 'initializeModelLevelDetailsChart',
+                        'feature-importance-chart': 'initializeFeatureImportanceChart',
+                        'metrics-radar-chart': 'initializeMetricsRadarChart',
+                        'importance-comparison-chart-plot': 'initializeFeatureImportanceComparisonChart'
+                    };
+                    
+                    // Try identified containers first
+                    for (const [containerId, initMethod] of Object.entries(containers)) {
+                        const container = document.getElementById(containerId);
+                        if (container && typeof window.ChartManager[initMethod] === 'function') {
+                            try {
+                                console.log(`Initializing ${containerId} with ${initMethod}`);
+                                window.ChartManager[initMethod](containerId);
+                                // Mark this container as initialized
+                                container.dataset.initialized = 'true';
+                            } catch (e) {
+                                console.error(`Error initializing ${containerId}:`, e);
+                            }
+                        }
+                    }
+                    
+                    // For any uninitialized containers, try best-effort initialization
+                    chartContainers.forEach(container => {
+                        if (container.dataset.initialized === 'true') return;
+                        
+                        const containerId = container.id;
+                        if (!containerId) return;
+                        
+                        // Try to determine the chart type from the ID
+                        let method = null;
+                        
+                        if (containerId.includes('perturbation')) {
+                            method = 'initializePerturbationChart';
+                        } else if (containerId.includes('worst-score')) {
+                            method = 'initializeWorstScoreChart';
+                        } else if (containerId.includes('mean-score')) {
+                            method = 'initializeMeanScoreChart';
+                        } else if (containerId.includes('model-comparison')) {
+                            method = 'initializeModelComparisonChart';
+                        } else if (containerId.includes('model-level')) {
+                            method = 'initializeModelLevelDetailsChart';
+                        } else if (containerId.includes('feature-importance')) {
+                            method = 'initializeFeatureImportanceChart';
+                        } else if (containerId.includes('metrics')) {
+                            method = 'initializeMetricsRadarChart';
+                        } else if (containerId.includes('importance-comparison')) {
+                            method = 'initializeFeatureImportanceComparisonChart';
+                        } else {
+                            // Fall back to a generic method if available
+                            method = 'initializeGenericChart';
+                        }
+                        
+                        if (method && typeof window.ChartManager[method] === 'function') {
+                            try {
+                                console.log(`Best-effort initializing ${containerId} with ${method}`);
+                                window.ChartManager[method](containerId);
+                                container.dataset.initialized = 'true';
+                            } catch (e) {
+                                console.error(`Error in best-effort initialization of ${containerId}:`, e);
+                            }
+                        }
+                    });
+                }
+                
+                // Initialize any custom controllers
+                if (window.PerturbationResultsController && 
+                    typeof window.PerturbationResultsController.init === 'function' && 
+                    document.getElementById('perturbation-results-container')) {
+                    try {
+                        console.log("Initializing PerturbationResultsController");
+                        window.PerturbationResultsController.init();
+                    } catch (e) {
+                        console.error("Error initializing PerturbationResultsController:", e);
+                    }
+                }
+                
+                console.log("Chart initialization complete");
+            };
+            
+            // Helper function for compatibility
+            window.loadPlotly = function() {
+                console.log("Using embedded Plotly implementation");
                 return Promise.resolve(window.Plotly);
             };
             
-            // Auto-initialize on page load
+            // Initialize everything on page load
             document.addEventListener('DOMContentLoaded', function() {
-                console.log("DOMContentLoaded - Loading Plotly and initializing charts");
-                window.loadPlotly();
+                console.log("DOMContentLoaded event - Starting initialization");
                 
-                // Also initialize tabs if needed
+                // Initialize tabs first to ensure chart containers are visible
                 if (typeof initTabs === 'function') {
+                    console.log("Initializing tabs");
                     initTabs();
                 }
+                
+                // Initialize charts with a slight delay to ensure DOM is fully ready
+                setTimeout(function() {
+                    window.initializeCharts();
+                }, 100);
             });
+            
+            // Also initialize if the page is already loaded
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                console.log("Document already loaded - Starting initialization");
+                setTimeout(window.initializeCharts, 100);
+            }
         })();
     </script>
     
@@ -1878,6 +2239,27 @@
     <style>
         {{ css_content }}
     </style>
+    
+    <!-- Embedding report data as JSON for chart initialization -->
+    <script id="reportDataJson" type="application/json">
+        {{ report_data_json }}
+    </script>
+    
+    <!-- Embedding chart data as JSON for chart initialization -->
+    <script id="chartDataJson" type="application/json">
+        {{ chart_data_json }}
+    </script>
+    
+    <!-- Making data available directly in window object -->
+    <script>
+        // Initialize report data in window object
+        window.reportData = {{ report_data_json|safe }};
+        
+        // Initialize chart data in window object
+        window.chartData = {{ chart_data_json|safe }};
+        
+        console.log("Report data and chart data initialized in window object");
+    </script>
 </head>
 <body>
     <div class="report-container {{ report_type }}-report">
@@ -2080,6 +2462,11 @@
                 }
             }, 100);
         });
+    </script>
+    
+    <!-- Embedded JavaScript modules -->
+    <script>
+        {{ js_content }}
     </script>
 </body>
 </html>

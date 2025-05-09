@@ -132,6 +132,13 @@ class RobustnessRenderer:
                 'favicon_base64': self.asset_manager.get_favicon_base64()
             }
             
+            # Add debug information to help with troubleshooting
+            logger.info(f"Template context created with: "
+                       f"report_data has {len(report_data.keys())} keys, "
+                       f"chart_data has {len(chart_data.keys())} keys, "
+                       f"css_content length: {len(css_content)}, "
+                       f"js_content length: {len(js_content)}")
+            
             # Add initial_results directly to the report_data for client-side access
             if initial_results:
                 report_data['initial_results'] = initial_results
