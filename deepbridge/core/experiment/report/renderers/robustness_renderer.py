@@ -467,9 +467,9 @@ window.{controller_name} = (function() {{
     return controllerObj;
 }})();
 """
-                                    else:
-                                        # Normal IIFE wrapping for controllers without specific patterns
-                                        js_content += f"(function moduleIIFE{controller_name}() {{\n{content}\n}})();\n\n"
+                                        else:
+                                            # Normal IIFE wrapping for controllers without specific patterns
+                                            js_content += f"(function moduleIIFE{controller_name}() {{\n{content}\n}})();\n\n"
                                 else:
                                     # Normal IIFE wrapping for other controllers
                                     js_content += f"(function moduleIIFE{controller_name.replace('.js', '')}() {{\n{content}\n}})();\n\n"
