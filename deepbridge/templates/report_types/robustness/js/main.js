@@ -423,6 +423,22 @@ function initializeControllers() {
                 DetailsController.init();
             }
         }},
+        { name: 'PerturbationResults', initializer: function() {
+            // Initialize PerturbationResultsManager for details tab
+            if (document.getElementById('perturbation-results-container')) {
+                if (typeof SafePerturbationResultsController !== 'undefined' && 
+                    typeof SafePerturbationResultsController.init === 'function') {
+                    console.log("Initializing SafePerturbationResultsController");
+                    SafePerturbationResultsController.init();
+                } else if (typeof PerturbationResultsController !== 'undefined' && 
+                           typeof PerturbationResultsController.init === 'function') {
+                    console.log("Initializing PerturbationResultsController");
+                    PerturbationResultsController.init();
+                } else {
+                    console.warn("No PerturbationResults controller available");
+                }
+            }
+        }},
         { name: 'BoxplotController', initializer: function() { 
             if (typeof BoxplotController !== 'undefined' && typeof BoxplotController.init === 'function') {
                 BoxplotController.init();
