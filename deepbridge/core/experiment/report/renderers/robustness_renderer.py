@@ -852,7 +852,7 @@ function initCharts() {
         # Add perturbation_chart_data to chart_data
         chart_data['perturbation_chart_data'] = perturbation_chart_data
         
-        # Prepare data for details section and PerturbationResultsManager
+        # Prepare data for details section and iteration analysis
         # Only prepare this section if it hasn't already been populated by the iteration collection code
         if 'iterations_by_level' not in chart_data and 'raw' in report_data and 'by_level' in report_data['raw']:
             iteration_data = {}
@@ -884,4 +884,116 @@ function initCharts() {
             # Clean up the temporary data structure to avoid confusion
             del chart_data['alt_iterations_by_level']
         
+        # Create perturbation_details_data with ONLY real data - no synthetic values
+        # This structured data will make it easier to render in the Details tab
+        perturbation_details_data = self._prepare_perturbation_details_data(report_data)
+        chart_data['perturbation_details_data'] = perturbation_details_data
+        
         return chart_data
+        
+    def _prepare_perturbation_details_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Prepare structured data specifically for the Details tab
+        perturbation analysis section.
+        
+        Parameters:
+        -----------
+        report_data : Dict[str, Any]
+            Transformed report data
+            
+        Returns:
+        --------
+        Dict[str, Any] : Structured perturbation details data
+        """
+        # Base structure with model info
+        details_data = {
+            'modelName': report_data.get('model_name', 'Model'),
+            'modelType': report_data.get('model_type', 'Unknown'),
+            'metric': report_data.get('metric', 'Score'),
+            'baseScore': report_data.get('base_score', 0),
+            'results': []
+        }
+        
+        # Extract real perturbation data for each level directly from raw data
+        if 'raw' in report_data and 'by_level' in report_data['raw']:
+            raw_data = report_data['raw']['by_level']
+            
+            # Get perturbation levels and sort them
+            levels = sorted([float(level) for level in raw_data.keys()])
+            
+            # Process each level
+            for level in levels:
+                level_str = str(level)
+                level_data = raw_data[level_str]
+                
+                # Skip if no overall results
+                if not level_data or 'overall_result' not in level_data:
+                    logger.info(f"No overall result for level {level}")
+                    continue
+                
+                level_result = {
+                    'level': level,
+                    'allFeatures': None,
+                    'featureSubset': None
+                }
+                
+                # Extract all features data
+                if 'all_features' in level_data['overall_result']:
+                    feature_result = level_data['overall_result']['all_features']
+                    base_score = details_data['baseScore']
+                    mean_score = feature_result.get('mean_score', 0)
+                    
+                    # Calculate impact safely
+                    impact = 0
+                    if base_score > 0:
+                        impact = (base_score - mean_score) / base_score
+                    
+                    level_result['allFeatures'] = {
+                        'baseScore': base_score,
+                        'meanScore': mean_score,
+                        'worstScore': feature_result.get('worst_score', 0),
+                        'impact': impact,
+                        'iterations': []
+                    }
+                    
+                    # Add iteration scores if available
+                    if 'runs' in level_data and 'all_features' in level_data['runs']:
+                        iterations = []
+                        for run in level_data['runs']['all_features']:
+                            if 'iterations' in run and 'scores' in run['iterations']:
+                                iterations.extend(run['iterations']['scores'])
+                        level_result['allFeatures']['iterations'] = iterations
+                
+                # Extract feature subset data
+                if 'feature_subset' in level_data['overall_result']:
+                    feature_result = level_data['overall_result']['feature_subset']
+                    base_score = details_data['baseScore']
+                    mean_score = feature_result.get('mean_score', 0)
+                    
+                    # Calculate impact safely
+                    impact = 0
+                    if base_score > 0:
+                        impact = (base_score - mean_score) / base_score
+                    
+                    level_result['featureSubset'] = {
+                        'baseScore': base_score,
+                        'meanScore': mean_score,
+                        'worstScore': feature_result.get('worst_score', 0),
+                        'impact': impact,
+                        'iterations': []
+                    }
+                    
+                    # Add iteration scores if available
+                    if 'runs' in level_data and 'feature_subset' in level_data['runs']:
+                        iterations = []
+                        for run in level_data['runs']['feature_subset']:
+                            if 'iterations' in run and 'scores' in run['iterations']:
+                                iterations.extend(run['iterations']['scores'])
+                        level_result['featureSubset']['iterations'] = iterations
+                
+                details_data['results'].append(level_result)
+                logger.info(f"Added perturbation details for level {level}")
+        else:
+            logger.warning("No raw data available for perturbation details")
+        
+        return details_data

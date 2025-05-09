@@ -53,14 +53,65 @@ window.ChartInitializer = {
         // Allow forced reinitialization with new sort order
         console.log("Initializing feature charts" + (sortBy ? ` with sort: ${sortBy}` : ""));
         
-        // Check data availability in both reportData and chart_data_json
-        const hasFeatureData = (window.reportData && 
-                             window.reportData.feature_importance && 
-                             Object.keys(window.reportData.feature_importance).length > 0) || 
-                            (window.reportData && 
-                             window.reportData.chart_data_json && 
-                             typeof window.reportData.chart_data_json === 'string' &&
-                             window.reportData.chart_data_json.includes('feature_importance'));
+        // More robust feature data availability check
+        const checkFeatureImportanceData = () => {
+            // First check if we have direct feature_importance
+            if (window.reportData && 
+                window.reportData.feature_importance && 
+                Object.keys(window.reportData.feature_importance).length > 0) {
+                console.log("Found feature importance directly in reportData");
+                return true;
+            }
+            
+            // Check in reportConfig
+            if (window.reportConfig && 
+                window.reportConfig.feature_importance && 
+                Object.keys(window.reportConfig.feature_importance).length > 0) {
+                console.log("Found feature importance in reportConfig");
+                return true;
+            }
+            
+            // Check in chartData
+            if (window.chartData && 
+                window.chartData.feature_importance && 
+                Object.keys(window.chartData.feature_importance).length > 0) {
+                console.log("Found feature importance in chartData");
+                return true;
+            }
+            
+            // Check in chart_data_json
+            if (window.reportData && 
+                window.reportData.chart_data_json && 
+                typeof window.reportData.chart_data_json === 'string' &&
+                window.reportData.chart_data_json.includes('feature_importance')) {
+                console.log("Found feature importance reference in chart_data_json");
+                return true;
+            }
+            
+            // Check in perturbation_details_data
+            if (window.reportData && 
+                window.reportData.perturbation_details_data && 
+                window.reportData.perturbation_details_data.results &&
+                window.reportData.perturbation_details_data.results.length > 0) {
+                console.log("Found potential feature importance data in perturbation_details_data");
+                return true;
+            }
+            
+            // If FeatureImportanceTableManager exists, try its extraction method
+            if (typeof FeatureImportanceTableManager !== 'undefined' && 
+                typeof FeatureImportanceTableManager.extractFeatureData === 'function') {
+                const featureData = FeatureImportanceTableManager.extractFeatureData();
+                if (featureData && featureData.length > 0) {
+                    console.log(`Found ${featureData.length} features through FeatureImportanceTableManager`);
+                    return true;
+                }
+            }
+            
+            console.warn("No feature importance data available through any channel");
+            return false;
+        };
+        
+        const hasFeatureData = checkFeatureImportanceData();
         
         if (!hasFeatureData) {
             console.warn("No feature importance data available for charts");
@@ -70,50 +121,110 @@ window.ChartInitializer = {
         }
         
         this.ensurePlotlyLoaded(() => {
-            // Clear any previous content and force redraw
-            const chartContainer = document.getElementById('feature-importance-chart');
-            if (chartContainer) {
-                // Clear previous chart
-                Plotly.purge(chartContainer);
-                chartContainer.innerHTML = '';
-                
-                if (typeof FeatureImportanceChartManager !== 'undefined' && 
-                    typeof FeatureImportanceChartManager.initializeFeatureImportanceChart === 'function') {
-                    FeatureImportanceChartManager.initializeFeatureImportanceChart('feature-importance-chart');
-                } else {
-                    console.error("FeatureImportanceChartManager not available");
-                    this.showErrorForCharts('feature-importance-chart', "Chart manager not available");
-                }
-            } else {
-                console.warn("Feature chart container not found");
-            }
-            
-            // Initialize comparison chart if container exists
-            const comparisonContainer = document.getElementById('importance-comparison-chart-plot');
-            if (comparisonContainer) {
-                // Clear previous chart
-                Plotly.purge(comparisonContainer);
-                comparisonContainer.innerHTML = '';
-                
-                if (typeof FeatureImportanceChartManager !== 'undefined' && 
-                    typeof FeatureImportanceChartManager.initializeImportanceComparisonChart === 'function') {
-                    try {
-                        FeatureImportanceChartManager.initializeImportanceComparisonChart('importance-comparison-chart-plot');
-                    } catch (e) {
-                        console.error("Error initializing importance comparison chart:", e);
-                        // Show graceful error
-                        comparisonContainer.innerHTML = `
-                            <div style="padding: 30px; text-align: center; background-color: #fff0f0; border-radius: 8px; margin: 20px auto;">
-                                <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
-                                <h3 style="font-size: 18px; margin-bottom: 10px; color: #e53935;">Chart Error</h3>
-                                <p style="color: #666; font-size: 14px;">${e.message || "Error rendering chart"}</p>
-                            </div>`;
+            // Try both standalone chart handlers first
+            try {
+                // First try StandaloneFeatureImportanceChart
+                if (typeof window.StandaloneFeatureImportanceChart !== 'undefined' && 
+                    typeof window.StandaloneFeatureImportanceChart.initialize === 'function') {
+                    const featureChartContainer = document.getElementById('feature-importance-chart');
+                    if (featureChartContainer) {
+                        console.log("Using StandaloneFeatureImportanceChart handler");
+                        Plotly.purge(featureChartContainer);
+                        featureChartContainer.innerHTML = '';
+                        
+                        // Give a small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            window.StandaloneFeatureImportanceChart.initialize('feature-importance-chart');
+                        }, 100);
                     }
                 }
+                
+                // Then try ImportanceComparisonHandler
+                if (typeof window.ImportanceComparisonHandler !== 'undefined' && 
+                    typeof window.ImportanceComparisonHandler.initialize === 'function') {
+                    const comparisonContainer = document.getElementById('importance-comparison-chart-plot');
+                    if (comparisonContainer) {
+                        console.log("Using ImportanceComparisonHandler");
+                        Plotly.purge(comparisonContainer);
+                        comparisonContainer.innerHTML = '';
+                        
+                        // Give a small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            window.ImportanceComparisonHandler.initialize();
+                        }, 100);
+                    }
+                }
+                
+                // Fallback to traditional managers when standalone handlers not available
+                if ((typeof window.StandaloneFeatureImportanceChart === 'undefined' || 
+                     typeof window.StandaloneFeatureImportanceChart.initialize !== 'function') && 
+                    document.getElementById('feature-importance-chart')) {
+                    
+                    // Try FeatureImportanceChartManager
+                    this.initializeFeatureChartWithManager();
+                }
+                
+            } catch (e) {
+                console.error("Error initializing feature charts with standalone handlers:", e);
+                // Fall back to traditional chart managers
+                this.initializeFeatureChartWithManager();
             }
             
             window.chartInitialized.features = true;
         });
+    },
+    
+    // Helper method to initialize feature chart with manager
+    initializeFeatureChartWithManager: function() {
+        const chartContainer = document.getElementById('feature-importance-chart');
+        if (!chartContainer) return;
+        
+        // Clear previous chart
+        if (typeof Plotly !== 'undefined') {
+            Plotly.purge(chartContainer);
+        }
+        chartContainer.innerHTML = '';
+        
+        if (typeof FeatureImportanceChartManager !== 'undefined' && 
+            typeof FeatureImportanceChartManager.initializeFeatureImportanceChart === 'function') {
+            console.log("Using FeatureImportanceChartManager");
+            FeatureImportanceChartManager.initializeFeatureImportanceChart('feature-importance-chart');
+        } 
+        else if (typeof FeatureImportanceHandler !== 'undefined' && 
+                 typeof FeatureImportanceHandler.initialize === 'function') {
+            console.log("Using FeatureImportanceHandler");
+            FeatureImportanceHandler.initialize();
+        }
+        else {
+            console.error("No feature chart manager available");
+            this.showErrorForCharts('feature-importance-chart', "Chart manager not available");
+        }
+        
+        // Also initialize comparison chart
+        const comparisonContainer = document.getElementById('importance-comparison-chart-plot');
+        if (comparisonContainer) {
+            // Clear previous chart
+            if (typeof Plotly !== 'undefined') {
+                Plotly.purge(comparisonContainer);
+            }
+            comparisonContainer.innerHTML = '';
+            
+            if (typeof FeatureImportanceChartManager !== 'undefined' && 
+                typeof FeatureImportanceChartManager.initializeImportanceComparisonChart === 'function') {
+                try {
+                    FeatureImportanceChartManager.initializeImportanceComparisonChart('importance-comparison-chart-plot');
+                } catch (e) {
+                    console.error("Error initializing importance comparison chart:", e);
+                    // Show graceful error
+                    comparisonContainer.innerHTML = `
+                        <div style="padding: 30px; text-align: center; background-color: #fff0f0; border-radius: 8px; margin: 20px auto;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                            <h3 style="font-size: 18px; margin-bottom: 10px; color: #e53935;">Chart Error</h3>
+                            <p style="color: #666; font-size: 14px;">${e.message || "Error rendering chart"}</p>
+                        </div>`;
+                }
+            }
+        }
     },
     
     // Initialize overview charts
