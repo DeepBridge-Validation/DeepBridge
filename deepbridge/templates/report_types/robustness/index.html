@@ -16,8 +16,6 @@
             return false; // Let other errors propagate
         };
     </script>
-    <script src="js/global_error_handler.js"></script>
-    <script src="js/syntax_fixer.js"></script>
     
     <!-- Favicon -->
     {% if favicon_base64 %}
@@ -26,28 +24,6 @@
     
     <!-- Plotly library -->
     <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
-    
-    <!-- Fix scripts for critical functionality -->
-    <script src="js/global_error_handler.js"></script>
-    <script src="js/syntax_fixer.js"></script>
-    <script src="js/fixed_syntax.js"></script>
-    <script src="js/model_chart_fix.js"></script>
-    <script src="js/patches.js"></script>
-    
-    <!-- Direct Perturbation Handler - extracts real data only -->
-    <script src="js/direct_perturbation_handler.js"></script>
-    
-    <!-- Feature Importance Handlers -->
-    <script src="js/feature_importance_chart.js"></script>
-    <script src="js/importance_comparison_handler.js"></script>
-    <script src="js/feature_importance_handler.js"></script>
-    <script src="js/charts/featuresTable.js"></script>
-    
-    <!-- Tab-specific controllers -->
-    <script src="js/controllers/details.js"></script>
-    <script src="js/charts/details.js"></script>
-    <script src="js/controllers/features.js"></script>
-    <script src="js/controllers/featuresTable.js"></script>
     
     <!-- CSS combinado -->
     <style>
@@ -107,16 +83,15 @@
         // Disponibilizar dados do relatório para todos os componentes
         window.reportData = {{ report_data_json|safe }};
         
-        // Debug info to verify data availability
-        console.log("Report data loaded. Keys:", Object.keys(window.reportData || {}));
-        console.log("Has initial_results:", !!(window.reportData && window.reportData.initial_results));
-        if (window.reportData && window.reportData.initial_results) {
-            console.log("Initial results keys:", Object.keys(window.reportData.initial_results));
-            if (window.reportData.initial_results.models) {
-                console.log("Initial results model count:", Object.keys(window.reportData.initial_results.models).length);
-                console.log("Initial results model keys:", Object.keys(window.reportData.initial_results.models));
-            }
-        }
+        // Configuração básica do relatório
+        window.reportConfig = {
+            reportType: '{{ report_type }}',
+            modelName: '{{ report_data.model_name }}',
+            // Incluir dados de importância de características diretamente para acesso mais fácil
+            feature_importance: {{ report_data.feature_importance|tojson|default('{}') }},
+            model_feature_importance: {{ report_data.model_feature_importance|tojson|default('{}') }},
+            feature_subset: {{ report_data.feature_subset|tojson|default('[]') }}
+        };
         
         // Extrair dados do gráfico, se disponíveis
         if (window.reportData && window.reportData.chart_data_json) {
@@ -138,19 +113,6 @@
                 // Analisar os dados JSON limpos
                 window.chartData = JSON.parse(cleanJson);
                 console.log("Dados de gráfico carregados com sucesso");
-                
-                // Debug chartData
-                console.log("ChartData keys:", Object.keys(window.chartData || {}));
-                console.log("Has initial_results in chartData:", !!(window.chartData && window.chartData.initial_results));
-                console.log("Has radar_chart_data in chartData:", !!(window.chartData && window.chartData.radar_chart_data));
-                
-                if (window.chartData && window.chartData.initial_results) {
-                    console.log("ChartData initial_results keys:", Object.keys(window.chartData.initial_results));
-                }
-                
-                if (window.chartData && window.chartData.radar_chart_data) {
-                    console.log("ChartData radar_chart_data keys:", Object.keys(window.chartData.radar_chart_data));
-                }
             } catch (e) {
                 console.error("Erro ao analisar dados do gráfico:", e);
                 window.chartData = {
@@ -161,16 +123,6 @@
                 };
             }
         }
-        
-        // Configuração básica do relatório
-        window.reportConfig = {
-            reportType: '{{ report_type }}',
-            modelName: '{{ report_data.model_name }}',
-            // Incluir dados de importância de características diretamente para acesso mais fácil
-            feature_importance: {{ report_data.feature_importance|tojson|default('{}') }},
-            model_feature_importance: {{ report_data.model_feature_importance|tojson|default('{}') }},
-            feature_subset: {{ report_data.feature_subset|tojson|default('[]') }}
-        };
     </script>
     
     <!-- Scripts combinados -->

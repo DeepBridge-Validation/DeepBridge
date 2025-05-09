@@ -302,8 +302,87 @@ class RobustnessRenderer:
         str : Combined JavaScript content
         """
         try:
-            # Use the asset manager's combined JS content method
-            js_content = self.asset_manager.get_combined_js_content("robustness")
+            # Explicitly identify key JS files to load in order
+            js_dir = self.asset_manager.find_js_path("robustness")
+            
+            # Define a specific loading order for critical files
+            critical_files = [
+                "global_error_handler.js",
+                "syntax_fixer.js",
+                "fixed_syntax.js",
+                "patches.js",
+                "model_chart_fix.js",
+                "direct_perturbation_handler.js",
+                "utils.js",
+                "feature_importance_chart.js",
+                "feature_importance_handler.js",
+                "importance_comparison_handler.js"
+            ]
+            
+            # Load each critical file first
+            js_content = "// ----- Critical JS Files ----- //\n\n"
+            for filename in critical_files:
+                file_path = os.path.join(js_dir, filename)
+                if os.path.exists(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            js_content += f"// ----- {filename} ----- //\n"
+                            js_content += f.read() + "\n\n"
+                        logger.info(f"Loaded critical JS file: {filename}")
+                    except Exception as e:
+                        logger.warning(f"Error loading critical JS file {filename}: {str(e)}")
+                else:
+                    logger.warning(f"Critical JS file not found: {filename}")
+            
+            # Load Chart files
+            js_content += "// ----- Chart JS Files ----- //\n\n"
+            charts_dir = os.path.join(js_dir, "charts")
+            if os.path.exists(charts_dir):
+                for filename in sorted(os.listdir(charts_dir)):
+                    if filename.endswith('.js'):
+                        try:
+                            file_path = os.path.join(charts_dir, filename)
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                js_content += f"// ----- charts/{filename} ----- //\n"
+                                js_content += f.read() + "\n\n"
+                            logger.info(f"Loaded chart JS file: {filename}")
+                        except Exception as e:
+                            logger.warning(f"Error loading chart JS file {filename}: {str(e)}")
+            
+            # Load Controller files
+            js_content += "// ----- Controller JS Files ----- //\n\n"
+            controllers_dir = os.path.join(js_dir, "controllers")
+            if os.path.exists(controllers_dir):
+                for filename in sorted(os.listdir(controllers_dir)):
+                    if filename.endswith('.js'):
+                        try:
+                            file_path = os.path.join(controllers_dir, filename)
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                js_content += f"// ----- controllers/{filename} ----- //\n"
+                                js_content += f.read() + "\n\n"
+                            logger.info(f"Loaded controller JS file: {filename}")
+                        except Exception as e:
+                            logger.warning(f"Error loading controller JS file {filename}: {str(e)}")
+            
+            # Always load main.js last
+            main_js_path = os.path.join(js_dir, "main.js")
+            if os.path.exists(main_js_path):
+                try:
+                    with open(main_js_path, 'r', encoding='utf-8') as f:
+                        js_content += "// ----- main.js ----- //\n"
+                        js_content += f.read() + "\n\n"
+                    logger.info("Loaded main.js")
+                except Exception as e:
+                    logger.warning(f"Error loading main.js: {str(e)}")
+                    
+            # Fix any JavaScript syntax issues
+            try:
+                from ..js_syntax_fixer import JavaScriptSyntaxFixer
+                js_content = JavaScriptSyntaxFixer.apply_all_fixes(js_content)
+                logger.info("Applied JavaScript syntax fixes")
+            except ImportError:
+                logger.warning("JavaScript syntax fixer not available")
+                
             return js_content
         except Exception as e:
             logger.error(f"Error loading JavaScript: {str(e)}")
