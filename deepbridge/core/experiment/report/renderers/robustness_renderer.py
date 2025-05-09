@@ -436,18 +436,37 @@ window.BoxplotChartManager = (function() {
                                 # Safely register controllers to prevent duplicates
                                 controller_name = filename.replace('.js', '')
                                 if "Controller" in controller_name:
-                                    # Check if the file defines a controller object
-                                    const_pattern = f"const {controller_name} = "
-                                    var_pattern = f"var {controller_name} = "
-                                    
-                                    if const_pattern in content:
-                                        object_content = content.replace(const_pattern + "{", "{")
-                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function moduleFactory{controller_name}() {{\n"
-                                        js_content += f"    return {object_content}}};\n\n"
-                                    elif var_pattern in content:
-                                        object_content = content.replace(var_pattern + "{", "{")
-                                        js_content += f"window.{controller_name} = window.registerModule('{controller_name}', function moduleFactory{controller_name}() {{\n"
-                                        js_content += f"    return {object_content}}};\n\n"
+                                    # For controller objects, use the same IIFE approach we used for BoxplotChartManager
+                                    # This avoids any issues with commas or function declarations
+                                    if controller_name == "PerturbationResultsController":
+                                        js_content += f"""// Safely register {controller_name} without losing named methods
+window.{controller_name} = (function() {{
+    // Directly use the original object with named methods
+    {content.replace(f"const {controller_name} =", f"const controllerObj =")}
+    return controllerObj;
+}})();
+"""
+                                    else:
+                                        # Check if the file defines a controller object
+                                        const_pattern = f"const {controller_name} = "
+                                        var_pattern = f"var {controller_name} = "
+                                        
+                                        if const_pattern in content:
+                                            js_content += f"""// Safely register {controller_name}
+window.{controller_name} = (function() {{
+    // Directly use the original object with named methods
+    {content.replace(f"const {controller_name} =", f"const controllerObj =")}
+    return controllerObj;
+}})();
+"""
+                                        elif var_pattern in content:
+                                            js_content += f"""// Safely register {controller_name}
+window.{controller_name} = (function() {{
+    // Directly use the original object with named methods
+    {content.replace(f"var {controller_name} =", f"const controllerObj =")}
+    return controllerObj;
+}})();
+"""
                                     else:
                                         # Normal IIFE wrapping for controllers without specific patterns
                                         js_content += f"(function moduleIIFE{controller_name}() {{\n{content}\n}})();\n\n"
