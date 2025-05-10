@@ -119,25 +119,8 @@ class RobustnessRenderer:
                     'models': models_metrics
                 }
             
-            # Create template context 
-            # We need to manually inject styles and scripts into the context
-            # rather than relying on loading from external files
-            context = {
-                'report_type': 'robustness',
-                'report_data': report_data,
-                'report_data_json': self._sanitize_json(report_data),
-                'chart_data_json': self._sanitize_json(chart_data),
-                'css_content': css_content,
-                'js_content': js_content,
-                'favicon_base64': self.asset_manager.get_favicon_base64()
-            }
-            
-            # Add debug information to help with troubleshooting
-            logger.info(f"Template context created with: "
-                       f"report_data has {len(report_data.keys())} keys, "
-                       f"chart_data has {len(chart_data.keys())} keys, "
-                       f"css_content length: {len(css_content)}, "
-                       f"js_content length: {len(js_content)}")
+            # Create template context
+            context = self.base_renderer._create_context(report_data, "robustness", css_content, js_content)
             
             # Add initial_results directly to the report_data for client-side access
             if initial_results:
@@ -145,16 +128,6 @@ class RobustnessRenderer:
                 
                 # Explicitly log for debugging
                 logger.info(f"Added initial_results to report_data with {len(initial_results.get('models', {}))} models")
-                
-            # Add perturbation chart data to ensure it's accessible in the template
-            if chart_data and 'perturbation_chart_data' in chart_data:
-                report_data['perturbation_chart_data'] = chart_data['perturbation_chart_data']
-                logger.info("Added perturbation_chart_data directly to report_data")
-                
-            # Add perturbation details data
-            if chart_data and 'perturbation_details_data' in chart_data:
-                report_data['perturbation_details_data'] = chart_data['perturbation_details_data']
-                logger.info("Added perturbation_details_data directly to report_data")
             
             # Add robustness-specific context with default values for all variables
             robustness_score = report_data.get('robustness_score', 0)
@@ -323,199 +296,49 @@ class RobustnessRenderer:
     def _load_js_content(self) -> str:
         """
         Load and combine JavaScript files for the robustness report.
-        
+
         Returns:
         --------
-        str : Combined JavaScript content with namespace safety
+        str : Combined JavaScript content
         """
         try:
-            # Explicitly identify key JS files to load in order
-            js_dir = self.asset_manager.find_js_path("robustness")
-            
-            # Define a specific loading order for critical files
-            critical_files = [
-                "global_error_handler.js",
-                "utils.js",  # Move utils earlier so it's available for other scripts
-                "feature_importance_chart.js",
-                "feature_importance_handler.js",
-                "importance_comparison_handler.js"
-            ]
-            
-            # Add a preamble to define a namespace safety mechanism
-            js_content = """// ----- Namespace Safety Mechanism ----- //
-// This prevents duplicate declarations of global objects
-window.__deepbridge_loaded_modules = window.__deepbridge_loaded_modules || {};
+            # Use the asset manager's combined JS content method
+            js_content = self.asset_manager.get_combined_js_content("robustness")
 
-// Function to safely register a module and prevent duplication
-window.registerModule = function(name, factory) {
-    if (window.__deepbridge_loaded_modules[name]) {
-        console.log(`Module ${name} already registered, using existing instance`);
-        return window.__deepbridge_loaded_modules[name];
-    }
-    console.log(`Registering module ${name}`);
-    var module = factory();
-    window.__deepbridge_loaded_modules[name] = module;
-    return module;
-};
+            # Ensure specific controllers for details tab are loaded
+            details_controller_path = os.path.join(
+                self.asset_manager.assets_dir,
+                "report_types", "robustness", "js", "controllers", "DetailsController.js"
+            )
 
-// ----- Critical JS Files ----- //
-"""
-            
-            # Load each critical file first with namespace protection
-            for filename in critical_files:
-                file_path = os.path.join(js_dir, filename)
-                if os.path.exists(file_path):
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            js_content += f"// ----- {filename} ----- //\n"
-                            content = f.read()
-                            # Don't wrap utility files, they should be available globally
-                            if filename in ["utils.js", "global_error_handler.js"]:
-                                js_content += content + "\n\n"
-                            else:
-                                # Wrap other files in IIFE for namespace protection
-                                js_content += f"(function moduleIIFE{filename.replace('.js', '').replace('-', '_')}() {{\n{content}\n}})();\n\n"
-                            logger.info(f"Loaded critical JS file: {filename}")
-                    except Exception as e:
-                        logger.warning(f"Error loading critical JS file {filename}: {str(e)}")
-                else:
-                    logger.warning(f"Critical JS file not found: {filename}")
-            
-            # Load Chart files with namespace protection
-            js_content += "// ----- Chart JS Files ----- //\n\n"
-            charts_dir = os.path.join(js_dir, "charts")
-            if os.path.exists(charts_dir):
-                for filename in sorted(os.listdir(charts_dir)):
-                    if filename.endswith('.js'):
-                        try:
-                            file_path = os.path.join(charts_dir, filename)
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                                js_content += f"// ----- charts/{filename} ----- //\n"
-                                
-                                # Special handling for boxplot.js to prevent duplicate declaration
-                                if filename == "boxplot.js":
-                                    # Store the content minus the variable declaration
-                                    # Save all function names in the format 'function functionName()'
-                                    import re
-                                    function_pattern = r'function\s+([a-zA-Z0-9_]+)\s*\('
-                                    function_names = re.findall(function_pattern, content)
-                                    
-                                    if "const BoxplotChartManager = {" in content:
-                                        # Keep function names by not replacing the named functions
-                                        # Create a unique wrapper that preserves all named methods
-                                        js_content += """// Safely register BoxplotChartManager without losing named methods
-window.BoxplotChartManager = (function() {
-    // Directly use the original object with named methods
-    """
-                                        # Insert the original object definition, just removing the const declaration
-                                        object_definition = content.replace("const BoxplotChartManager =", "const boxplotObj =")
-                                        js_content += object_definition
-                                        
-                                        # Return the created object
-                                        js_content += """
-    return boxplotObj;
-})();
-"""
-                                    else:
-                                        # Fallback if the format is unexpected
-                                        js_content += f"(function moduleIIFEBoxplot() {{\n{content}\n}})();\n\n"
-                                else:
-                                    # Normal IIFE wrapping for other chart files
-                                    js_content += f"(function moduleIIFE{filename.replace('.js', '').replace('-', '_')}() {{\n{content}\n}})();\n\n"
-                                
-                                logger.info(f"Loaded chart JS file: {filename} with namespace protection")
-                        except Exception as e:
-                            logger.warning(f"Error loading chart JS file {filename}: {str(e)}")
-            
-            # Load Controller files with namespace protection
-            js_content += "// ----- Controller JS Files ----- //\n\n"
-            controllers_dir = os.path.join(js_dir, "controllers")
-            if os.path.exists(controllers_dir):
-                for filename in sorted(os.listdir(controllers_dir)):
-                    if filename.endswith('.js'):
-                        try:
-                            file_path = os.path.join(controllers_dir, filename)
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                                js_content += f"// ----- controllers/{filename} ----- //\n"
-                                
-                                # Safely register controllers to prevent duplicates
-                                controller_name = filename.replace('.js', '')
-                                if "Controller" in controller_name:
-                                    # For controller objects, use the same IIFE approach we used for BoxplotChartManager
-                                    # This avoids any issues with commas or function declarations
-                                    if controller_name == "PerturbationResultsController":
-                                        js_content += f"""// Safely register {controller_name} without losing named methods
-window.{controller_name} = (function() {{
-    // Directly use the original object with named methods
-    {content.replace(f"const {controller_name} =", f"const controllerObj =")}
-    return controllerObj;
-}})();
-"""
-                                    else:
-                                        # Check if the file defines a controller object
-                                        const_pattern = f"const {controller_name} = "
-                                        var_pattern = f"var {controller_name} = "
-                                        
-                                        if const_pattern in content:
-                                            js_content += f"""// Safely register {controller_name}
-window.{controller_name} = (function() {{
-    // Directly use the original object with named methods
-    {content.replace(f"const {controller_name} =", f"const controllerObj =")}
-    return controllerObj;
-}})();
-"""
-                                        elif var_pattern in content:
-                                            js_content += f"""// Safely register {controller_name}
-window.{controller_name} = (function() {{
-    // Directly use the original object with named methods
-    {content.replace(f"var {controller_name} =", f"const controllerObj =")}
-    return controllerObj;
-}})();
-"""
-                                        else:
-                                            # Normal IIFE wrapping for controllers without specific patterns
-                                            js_content += f"(function moduleIIFE{controller_name}() {{\n{content}\n}})();\n\n"
-                                else:
-                                    # Normal IIFE wrapping for other controllers
-                                    js_content += f"(function moduleIIFE{controller_name.replace('.js', '')}() {{\n{content}\n}})();\n\n"
-                                
-                                logger.info(f"Loaded controller JS file: {filename} with namespace protection")
-                        except Exception as e:
-                            logger.warning(f"Error loading controller JS file {filename}: {str(e)}")
-            
-            # Always load main.js last, with special handling (no wrapping to allow it to see all other modules)
-            main_js_path = os.path.join(js_dir, "main.js")
-            if os.path.exists(main_js_path):
+            details_charts_path = os.path.join(
+                self.asset_manager.assets_dir,
+                "report_types", "robustness", "js", "charts", "details.js"
+            )
+
+            # Check if the files exist
+            if os.path.exists(details_controller_path):
                 try:
-                    with open(main_js_path, 'r', encoding='utf-8') as f:
-                        js_content += "// ----- main.js ----- //\n"
-                        # Do not wrap main.js since it needs to access all other modules
-                        main_content = f.read()
-                        
-                        # Remove any attempts to load external scripts
-                        main_content = main_content.replace("fixScript.src = 'js/fixed_syntax.js';", "// External script loading removed")
-                        main_content = main_content.replace("script.src = 'js/", "// External script loading removed: script.src = 'js/")
-                        
-                        js_content += main_content + "\n\n"
-                    logger.info("Loaded main.js")
-                except Exception as e:
-                    logger.warning(f"Error loading main.js: {str(e)}")
-                    
-            # Fix any JavaScript syntax issues
-            try:
-                from ..js_syntax_fixer import JavaScriptSyntaxFixer
-                js_content = JavaScriptSyntaxFixer.apply_all_fixes(js_content)
-                logger.info("Applied JavaScript syntax fixes")
-            except ImportError:
-                logger.warning("JavaScript syntax fixer not available")
-                
-            # Additional safety - remove any remaining external script loading attempts
-            js_content = js_content.replace(".src = 'js/", ".src = '//REMOVED_EXTERNAL_PATH_js/")
-            js_content = js_content.replace("src='js/", "src='//REMOVED_EXTERNAL_PATH_js/")
-            js_content = js_content.replace('src="js/', 'src="//REMOVED_EXTERNAL_PATH_js/')
-            
+                    with open(details_controller_path, 'r') as file:
+                        details_controller_content = file.read()
+                        # Process to remove any ES6 imports/exports
+                        details_controller_content = self._process_js_content(details_controller_content, details_controller_path)
+                        js_content += f"\n// Details Controller\n{details_controller_content}\n"
+                        logger.info(f"Added details controller from {details_controller_path}")
+                except Exception as file_error:
+                    logger.error(f"Error reading details controller: {str(file_error)}")
+
+            if os.path.exists(details_charts_path):
+                try:
+                    with open(details_charts_path, 'r') as file:
+                        details_charts_content = file.read()
+                        # Process to remove any ES6 imports/exports
+                        details_charts_content = self._process_js_content(details_charts_content, details_charts_path)
+                        js_content += f"\n// Details Charts\n{details_charts_content}\n"
+                        logger.info(f"Added details charts from {details_charts_path}")
+                except Exception as file_error:
+                    logger.error(f"Error reading details charts: {str(file_error)}")
+
             return js_content
         except Exception as e:
             logger.error(f"Error loading JavaScript: {str(e)}")
@@ -1064,7 +887,7 @@ function initCharts() {
         # Add perturbation_chart_data to chart_data
         chart_data['perturbation_chart_data'] = perturbation_chart_data
         
-        # Prepare data for details section and iteration analysis
+        # Prepare data for details section and PerturbationResultsManager
         # Only prepare this section if it hasn't already been populated by the iteration collection code
         if 'iterations_by_level' not in chart_data and 'raw' in report_data and 'by_level' in report_data['raw']:
             iteration_data = {}
@@ -1096,116 +919,4 @@ function initCharts() {
             # Clean up the temporary data structure to avoid confusion
             del chart_data['alt_iterations_by_level']
         
-        # Create perturbation_details_data with ONLY real data - no synthetic values
-        # This structured data will make it easier to render in the Details tab
-        perturbation_details_data = self._prepare_perturbation_details_data(report_data)
-        chart_data['perturbation_details_data'] = perturbation_details_data
-        
         return chart_data
-        
-    def _prepare_perturbation_details_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Prepare structured data specifically for the Details tab
-        perturbation analysis section.
-        
-        Parameters:
-        -----------
-        report_data : Dict[str, Any]
-            Transformed report data
-            
-        Returns:
-        --------
-        Dict[str, Any] : Structured perturbation details data
-        """
-        # Base structure with model info
-        details_data = {
-            'modelName': report_data.get('model_name', 'Model'),
-            'modelType': report_data.get('model_type', 'Unknown'),
-            'metric': report_data.get('metric', 'Score'),
-            'baseScore': report_data.get('base_score', 0),
-            'results': []
-        }
-        
-        # Extract real perturbation data for each level directly from raw data
-        if 'raw' in report_data and 'by_level' in report_data['raw']:
-            raw_data = report_data['raw']['by_level']
-            
-            # Get perturbation levels and sort them
-            levels = sorted([float(level) for level in raw_data.keys()])
-            
-            # Process each level
-            for level in levels:
-                level_str = str(level)
-                level_data = raw_data[level_str]
-                
-                # Skip if no overall results
-                if not level_data or 'overall_result' not in level_data:
-                    logger.info(f"No overall result for level {level}")
-                    continue
-                
-                level_result = {
-                    'level': level,
-                    'allFeatures': None,
-                    'featureSubset': None
-                }
-                
-                # Extract all features data
-                if 'all_features' in level_data['overall_result']:
-                    feature_result = level_data['overall_result']['all_features']
-                    base_score = details_data['baseScore']
-                    mean_score = feature_result.get('mean_score', 0)
-                    
-                    # Calculate impact safely
-                    impact = 0
-                    if base_score > 0:
-                        impact = (base_score - mean_score) / base_score
-                    
-                    level_result['allFeatures'] = {
-                        'baseScore': base_score,
-                        'meanScore': mean_score,
-                        'worstScore': feature_result.get('worst_score', 0),
-                        'impact': impact,
-                        'iterations': []
-                    }
-                    
-                    # Add iteration scores if available
-                    if 'runs' in level_data and 'all_features' in level_data['runs']:
-                        iterations = []
-                        for run in level_data['runs']['all_features']:
-                            if 'iterations' in run and 'scores' in run['iterations']:
-                                iterations.extend(run['iterations']['scores'])
-                        level_result['allFeatures']['iterations'] = iterations
-                
-                # Extract feature subset data
-                if 'feature_subset' in level_data['overall_result']:
-                    feature_result = level_data['overall_result']['feature_subset']
-                    base_score = details_data['baseScore']
-                    mean_score = feature_result.get('mean_score', 0)
-                    
-                    # Calculate impact safely
-                    impact = 0
-                    if base_score > 0:
-                        impact = (base_score - mean_score) / base_score
-                    
-                    level_result['featureSubset'] = {
-                        'baseScore': base_score,
-                        'meanScore': mean_score,
-                        'worstScore': feature_result.get('worst_score', 0),
-                        'impact': impact,
-                        'iterations': []
-                    }
-                    
-                    # Add iteration scores if available
-                    if 'runs' in level_data and 'feature_subset' in level_data['runs']:
-                        iterations = []
-                        for run in level_data['runs']['feature_subset']:
-                            if 'iterations' in run and 'scores' in run['iterations']:
-                                iterations.extend(run['iterations']['scores'])
-                        level_result['featureSubset']['iterations'] = iterations
-                
-                details_data['results'].append(level_result)
-                logger.info(f"Added perturbation details for level {level}")
-        else:
-            logger.warning("No raw data available for perturbation details")
-        
-        return details_data

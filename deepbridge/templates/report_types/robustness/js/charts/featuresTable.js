@@ -51,67 +51,6 @@ window.FeatureImportanceTableManager = {
                         console.error("Error parsing chart_data_json:", e);
                     }
                 }
-                // Try accessing perturbation_details_data for feature importance if none found
-                else if (window.reportData.perturbation_details_data && 
-                         window.reportData.perturbation_details_data.results && 
-                         window.reportData.perturbation_details_data.results.length > 0) {
-                    console.log("Extracting feature importance from perturbation_details_data");
-                    try {
-                        // Extract feature importance from perturbation results if available
-                        // This is a new data source added by the robustness_renderer.py _prepare_perturbation_details_data method
-                        const perturbData = window.reportData.perturbation_details_data;
-                        
-                        // Calculate feature importance based on impact at the highest perturbation level
-                        if (perturbData.results && perturbData.results.length > 0) {
-                            // Sort by level to get highest perturbation level
-                            const sortedResults = [...perturbData.results].sort((a, b) => b.level - a.level);
-                            const highestLevelData = sortedResults[0];
-                            
-                            if (highestLevelData && highestLevelData.allFeatures && highestLevelData.allFeatures.impact) {
-                                console.log(`Using impact data from perturbation level ${highestLevelData.level}`);
-                                featureImportance = { 
-                                    '__impact': highestLevelData.allFeatures.impact 
-                                };
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Error extracting data from perturbation_details_data:", e);
-                    }
-                }
-            }
-            
-            // Check for chartData directly as a global object (may be defined by inline script)
-            if (Object.keys(featureImportance).length === 0 && window.chartData) {
-                if (window.chartData.feature_importance) {
-                    featureImportance = window.chartData.feature_importance;
-                    modelFeatureImportance = window.chartData.model_feature_importance || {};
-                    featureSubset = window.chartData.feature_subset || [];
-                    console.log("Using feature data directly from window.chartData");
-                }
-            }
-            
-            // Check for raw report_data_json in window object
-            if (Object.keys(featureImportance).length === 0 && window.report_data_json) {
-                try {
-                    if (typeof window.report_data_json === 'string') {
-                        const parsedData = JSON.parse(window.report_data_json);
-                        if (parsedData && parsedData.feature_importance) {
-                            featureImportance = parsedData.feature_importance;
-                            modelFeatureImportance = parsedData.model_feature_importance || {};
-                            featureSubset = parsedData.feature_subset || [];
-                            console.log("Using feature data from report_data_json");
-                        }
-                    } else if (typeof window.report_data_json === 'object') {
-                        if (window.report_data_json.feature_importance) {
-                            featureImportance = window.report_data_json.feature_importance;
-                            modelFeatureImportance = window.report_data_json.model_feature_importance || {};
-                            featureSubset = window.report_data_json.feature_subset || [];
-                            console.log("Using feature data from report_data_json object");
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error parsing report_data_json:", e);
-                }
             }
             
             // Verificar se featureImportance é um objeto válido

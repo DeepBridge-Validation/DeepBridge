@@ -83,3 +83,83 @@
 .model-info-value {
     font-weight: 600;
 }
+
+/* Card styles */
+.card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 2px solid #eee;
+    background-color: #f9f9f9;
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.card-subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Info cards grid for model info */
+.info-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.info-card h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.info-card ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #555;
+}
+
+.info-card li {
+    margin-bottom: 0.5rem;
+}
+
+.info-card span {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-header, .card-body {
+        padding: 1rem;
+    }
+    
+    .info-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}

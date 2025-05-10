@@ -39,131 +39,21 @@ window.StandaloneFeatureImportanceChart = {
             let featureImportance = {};
             let modelFeatureImportance = {};
             
-            // Function to check if we have enough usable feature data
-            const hasEnoughFeatureData = (data) => {
-                return data && typeof data === 'object' && 
-                       Object.keys(data).length > 0 && 
-                       Object.keys(data).length < 1000; // Sanity check to avoid giant objects
-            };
-            
-            // Check multiple sources in order of preference
-            if (window.reportConfig && hasEnoughFeatureData(window.reportConfig.feature_importance)) {
+            if (window.reportConfig && window.reportConfig.feature_importance) {
                 featureImportance = window.reportConfig.feature_importance || {};
                 modelFeatureImportance = window.reportConfig.model_feature_importance || {};
                 console.log("Using feature importance from reportConfig");
             } 
-            else if (window.chartData && hasEnoughFeatureData(window.chartData.feature_importance)) {
-                featureImportance = window.chartData.feature_importance || {};
-                modelFeatureImportance = window.chartData.model_feature_importance || {};
-                console.log("Using feature importance from chartData");
-            }
             else if (window.reportData) {
-                if (hasEnoughFeatureData(window.reportData.feature_importance)) {
+                if (window.reportData.feature_importance) {
                     featureImportance = window.reportData.feature_importance;
                     modelFeatureImportance = window.reportData.model_feature_importance || {};
                     console.log("Using feature importance from reportData");
                 }
-                else if (window.reportData.chart_data_json && typeof window.reportData.chart_data_json === 'string') {
-                    // Try to parse the chart_data_json string
-                    try {
-                        const chartData = JSON.parse(window.reportData.chart_data_json);
-                        if (chartData && hasEnoughFeatureData(chartData.feature_importance)) {
-                            featureImportance = chartData.feature_importance;
-                            modelFeatureImportance = chartData.model_feature_importance || {};
-                            console.log("Using feature importance from parsed chart_data_json");
-                        }
-                    } catch (e) {
-                        console.error("Error parsing chart_data_json:", e);
-                    }
-                }
-                // Try to use perturbation_details_data as a source for feature importance
-                else if (window.reportData.perturbation_details_data &&
-                       window.reportData.perturbation_details_data.results &&
-                       window.reportData.perturbation_details_data.results.length > 0) {
-                    try {
-                        // Get perturbation data
-                        const perturbData = window.reportData.perturbation_details_data;
-                        
-                        // Extract feature impacts from all perturbation levels
-                        const extractedFeatures = {};
-                        let foundFeatures = false;
-                        
-                        // Check if there's a raw.features field with real perturbation impacts by feature
-                        if (window.reportData.raw && window.reportData.raw.features) {
-                            const rawFeatures = window.reportData.raw.features;
-                            console.log("Found raw.features data with feature impacts");
-                            
-                            // Extract feature impacts directly from raw data
-                            for (const featureName in rawFeatures) {
-                                const featureImpact = rawFeatures[featureName];
-                                if (typeof featureImpact === 'number') {
-                                    extractedFeatures[featureName] = featureImpact;
-                                    foundFeatures = true;
-                                }
-                            }
-                        }
-                        
-                        // If we found feature impacts, use them
-                        if (foundFeatures) {
-                            console.log(`Extracted ${Object.keys(extractedFeatures).length} features from raw data`);
-                            featureImportance = extractedFeatures;
-                        }
-                        
-                        // If no feature impacts found, try to get feature_importance directly from raw data
-                        else if (window.reportData.raw && window.reportData.raw.feature_importance) {
-                            console.log("Using feature_importance from raw data");
-                            featureImportance = window.reportData.raw.feature_importance;
-                        }
-                        
-                        // Check if no features were found, but we have overall impact scores
-                        else if (perturbData.results && perturbData.results.length > 0) {
-                            console.log("Using perturbation_details_data for impact scores");
-                            const levelImpacts = {};
-                            
-                            // Extract impacts by level
-                            for (const result of perturbData.results) {
-                                if (result.allFeatures && typeof result.allFeatures.impact === 'number') {
-                                    levelImpacts[`Level_${result.level}`] = result.allFeatures.impact;
-                                }
-                            }
-                            
-                            // Use level impacts if we found any
-                            if (Object.keys(levelImpacts).length > 0) {
-                                console.log(`Using ${Object.keys(levelImpacts).length} level impacts`);
-                                featureImportance = levelImpacts;
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Error extracting from perturbation details:", e);
-                    }
-                }
-            }
-            
-            // Try FeatureImportanceTableManager as a last resort
-            if (Object.keys(featureImportance).length === 0 && 
-                typeof FeatureImportanceTableManager !== 'undefined' && 
-                typeof FeatureImportanceTableManager.extractFeatureData === 'function') {
-                try {
-                    const featureData = FeatureImportanceTableManager.extractFeatureData();
-                    if (featureData && featureData.length > 0) {
-                        // Convert the array format back to object format
-                        featureImportance = {};
-                        modelFeatureImportance = {};
-                        
-                        featureData.forEach(item => {
-                            featureImportance[item.name] = item.robustness;
-                            modelFeatureImportance[item.name] = item.importance;
-                        });
-                        
-                        console.log("Using feature data from FeatureImportanceTableManager");
-                    }
-                } catch (e) {
-                    console.error("Error using FeatureImportanceTableManager:", e);
-                }
             }
             
             if (Object.keys(featureImportance).length === 0) {
-                console.warn("No feature importance data found in any source");
+                console.warn("No feature importance data found");
                 return null;
             }
             

@@ -8,7 +8,6 @@
 }
 
 .card-header {
-    background: linear-gradient(to right, var(--primary-color), var(--primary-color) 85%, #3498db);
     color: white;
     padding: 15px 20px;
     font-weight: bold;

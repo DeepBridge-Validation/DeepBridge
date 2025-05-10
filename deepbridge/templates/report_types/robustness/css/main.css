@@ -9,7 +9,7 @@
 @import url('components/tables.css');
 @import url('components/tabs.css');
 @import url('components/widgets.css');
-@import url('components/perturbation-details.css');
+@import url('components/details.css');
 
 /* Variables específicas para o relatório de robustez */
 :root {
