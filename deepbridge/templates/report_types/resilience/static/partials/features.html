@@ -1,0 +1,64 @@
+<!-- Static Resilience Report Features -->
+<div class="features-section">
+    {% if charts.feature_distribution_shift %}
+    <div class="chart-container">
+        <h3>Feature Distribution Shift</h3>
+        <p class="chart-description">Shows the distribution shift of features between normal and stressed conditions, highlighting features with significant changes.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.feature_distribution_shift }}" alt="Feature distribution shift" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if charts.critical_feature_distributions %}
+    <div class="chart-container">
+        <h3>Critical Feature Distributions</h3>
+        <p class="chart-description">Compares the distributions of the most critical features between normal and stressed conditions.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.critical_feature_distributions }}" alt="Critical feature distributions" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if charts.feature_importance_chart %}
+    <div class="chart-container">
+        <h3>Feature Importance for Resilience</h3>
+        <p class="chart-description">Shows the most important features affecting model resilience. Features with higher importance have greater impact on model performance under stress.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.feature_importance_chart }}" alt="Feature importance for resilience" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if charts.feature_comparison_chart %}
+    <div class="chart-container">
+        <h3>Feature Importance: Model vs Resilience Analysis</h3>
+        <p class="chart-description">Compares feature importance from the model's original training versus from resilience analysis, highlighting differences in what impacts general performance versus resilience.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.feature_comparison_chart }}" alt="Feature comparison" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if feature_importance %}
+    <div class="table-container">
+        <h3>Feature Importance</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Importance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature, importance in feature_importance|dictsort(by='value', reverse=true) %}
+                <tr>
+                    <td>{{ feature }}</td>
+                    <td class="numeric">{{ "%.4f"|format(importance) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>

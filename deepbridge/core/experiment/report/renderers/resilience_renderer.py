@@ -88,10 +88,10 @@ class ResilienceRenderer:
             logger.error(f"Error processing JS file {file_path}: {str(e)}")
             return f"// Error processing {file_path}: {str(e)}\n" + content
             
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
         """
         Render resilience report from results data.
-        
+
         Parameters:
         -----------
         results : Dict[str, Any]
@@ -100,11 +100,13 @@ class ResilienceRenderer:
             Path where the HTML report will be saved
         model_name : str, optional
             Name of the model for display in the report
-            
+        report_type : str, optional
+            Type of report to generate ('interactive' or 'static')
+
         Returns:
         --------
         str : Path to the generated report
-        
+
         Raises:
         -------
         FileNotFoundError: If template or assets not found
@@ -409,7 +411,7 @@ class ResilienceRenderer:
                 ]
             
             # Create template context
-            context = self.base_renderer._create_context(report_data, "resilience", css_content, js_content)
+            context = self.base_renderer._create_context(report_data, "resilience", css_content, js_content, report_type)
             
             # Add resilience-specific context with default values for all variables
             resilience_score = report_data.get('resilience_score', 0)

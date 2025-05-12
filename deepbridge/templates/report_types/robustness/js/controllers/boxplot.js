@@ -299,36 +299,57 @@ const BoxplotController = {
             // First check if we have processed boxplot data
             if (window.reportData && window.reportData.boxplot_data && window.reportData.boxplot_data.models) {
                 console.log("Using server-prepared boxplot data");
-                
+
                 // Filter models to only include those with real data
-                const validModels = window.reportData.boxplot_data.models.filter(model => 
+                const validModels = window.reportData.boxplot_data.models.filter(model =>
                     model.scores && model.scores.length > 0
                 );
-                
+
                 // Return null if no valid models
                 if (validModels.length === 0) {
                     console.error("No models with valid scores found in boxplot_data");
                     return null;
                 }
-                
+
                 return {
                     models: validModels,
                     metricName: window.reportData.metric || 'Score'
                 };
             }
-            
+
+            // Check for boxplot data in chartData
+            if (window.chartData && window.chartData.boxplot_data && window.chartData.boxplot_data.models) {
+                console.log("Using chart data boxplot_data");
+
+                // Filter models to only include those with real data
+                const validModels = window.chartData.boxplot_data.models.filter(model =>
+                    model.scores && model.scores.length > 0
+                );
+
+                // Return null if no valid models
+                if (validModels.length === 0) {
+                    console.error("No models with valid scores found in chartData.boxplot_data");
+                    return null;
+                }
+
+                return {
+                    models: validModels,
+                    metricName: window.reportData?.metric || 'Score'
+                };
+            }
+
             // If no boxplot_data, try to extract from raw results
             console.log("No pre-processed boxplot data found, extracting from raw results");
-            
+
             if (!window.reportData || !window.reportData.raw || !window.reportData.raw.by_level) {
                 console.warn("No raw data available for boxplot extraction");
                 return null;
             }
-            
+
             // Get metric name
             const metricName = window.reportData.metric || 'Score';
             console.log(`Using metric: ${metricName}`);
-            
+
             // Extract primary model data
             const primaryModelData = {
                 name: window.reportData.model_name || 'Primary Model',
@@ -336,17 +357,17 @@ const BoxplotController = {
                 baseScore: window.reportData.base_score || 0,
                 scores: []
             };
-            
+
             // Extract iteration scores from each perturbation level
             const rawData = window.reportData.raw.by_level;
             Object.keys(rawData).forEach(level => {
                 const levelData = rawData[level];
-                
+
                 if (!levelData.runs || !levelData.runs.all_features) {
                     console.log(`Level ${level}: No runs data found`);
                     return;
                 }
-                
+
                 // Extract scores from all runs at this level
                 levelData.runs.all_features.forEach(run => {
                     if (run.iterations && run.iterations.scores && run.iterations.scores.length > 0) {
@@ -355,38 +376,66 @@ const BoxplotController = {
                     }
                 });
             });
-            
+
+            // Check for iteration data in chartData
+            if (primaryModelData.scores.length === 0 && window.chartData && window.chartData.iterations_by_level) {
+                console.log("Trying to extract primary model scores from chartData.iterations_by_level");
+                Object.values(window.chartData.iterations_by_level).forEach(levelScores => {
+                    if (Array.isArray(levelScores) && levelScores.length > 0) {
+                        primaryModelData.scores.push(...levelScores);
+                    }
+                });
+                console.log(`Extracted ${primaryModelData.scores.length} scores from chartData for primary model`);
+            }
+
+            // Try to find data in initial_results
+            if (primaryModelData.scores.length === 0 &&
+                window.reportData.initial_results &&
+                window.reportData.initial_results.models) {
+
+                console.log("Looking for primary model scores in initial_results");
+                // Find the primary model
+                const primaryModel = Object.values(window.reportData.initial_results.models).find(
+                    model => model.name === primaryModelData.name || model.is_primary
+                );
+
+                if (primaryModel && primaryModel.evaluation_results && primaryModel.evaluation_results.scores) {
+                    console.log(`Found ${primaryModel.evaluation_results.scores.length} scores in initial_results`);
+                    primaryModelData.scores = primaryModel.evaluation_results.scores;
+                }
+            }
+
             console.log(`Primary model: extracted ${primaryModelData.scores.length} total scores`);
-            
+
             // Se não temos scores reais para o modelo primário, não gerar dados sintéticos
             if (primaryModelData.scores.length === 0) {
                 console.error("Nenhum score real encontrado para o modelo primário. Não serão gerados dados sintéticos.");
                 // We keep the array empty - no synthetic data
             }
-            
+
             const models = [];
             models.push(primaryModelData);
-            
+
             // Extract alternative models data
             if (window.reportData.alternative_models) {
                 console.log("Processing alternative models:", Object.keys(window.reportData.alternative_models));
-                
+
                 Object.keys(window.reportData.alternative_models).forEach(modelName => {
                     const modelData = window.reportData.alternative_models[modelName];
                     console.log(`Processing alternative model ${modelName}, data keys:`, Object.keys(modelData));
-                    
+
                     const altModelData = {
                         name: modelName,
                         modelType: modelData.model_type || 'Unknown',
                         baseScore: modelData.base_score || 0,
                         scores: []
                     };
-                    
+
                     // Extract scores from alternative model's raw data
                     if (modelData.raw && modelData.raw.by_level) {
                         Object.keys(modelData.raw.by_level).forEach(level => {
                             const levelData = modelData.raw.by_level[level];
-                            
+
                             if (levelData.runs && levelData.runs.all_features) {
                                 levelData.runs.all_features.forEach(run => {
                                     if (run.iterations && run.iterations.scores && run.iterations.scores.length > 0) {
@@ -403,25 +452,92 @@ const BoxplotController = {
                             }
                         });
                     }
-                    
+
+                    // Check for iteration data in chartData
+                    if (altModelData.scores.length === 0 &&
+                        window.chartData &&
+                        window.chartData.alternative_models_iterations &&
+                        window.chartData.alternative_models_iterations[modelName]) {
+
+                        console.log(`Trying to extract scores for ${modelName} from chartData.alternative_models_iterations`);
+                        Object.values(window.chartData.alternative_models_iterations[modelName]).forEach(levelScores => {
+                            if (Array.isArray(levelScores) && levelScores.length > 0) {
+                                altModelData.scores.push(...levelScores);
+                            }
+                        });
+                        console.log(`Extracted ${altModelData.scores.length} scores for ${modelName} from chartData`);
+                    }
+
+                    // Try to find data in initial_results
+                    if (altModelData.scores.length === 0 &&
+                        window.reportData.initial_results &&
+                        window.reportData.initial_results.models) {
+
+                        console.log(`Looking for ${modelName} scores in initial_results`);
+                        // Find the model by name
+                        const foundModel = Object.values(window.reportData.initial_results.models).find(
+                            model => model.name === modelName
+                        );
+
+                        if (foundModel && foundModel.evaluation_results && foundModel.evaluation_results.scores) {
+                            console.log(`Found ${foundModel.evaluation_results.scores.length} scores in initial_results for ${modelName}`);
+                            altModelData.scores = foundModel.evaluation_results.scores;
+                        }
+                    }
+
                     console.log(`Alternative model ${modelName}: extracted ${altModelData.scores.length} scores`);
-                    
+
                     // Se não há scores para o modelo alternativo, mostrar erro e não gerar dados sintéticos
                     if (altModelData.scores.length === 0) {
                         console.error(`Nenhum score encontrado para o modelo alternativo ${modelName}. Não serão gerados dados sintéticos.`);
-                        // We keep the array empty - no synthetic data
+                        // Still add the model to show its base score - with empty scores array
                     }
-                    
+
                     models.push(altModelData);
                 });
+            } else {
+                console.log("No alternative models found in reportData");
+
+                // Check for alternative models in initial_results
+                if (window.reportData.initial_results && window.reportData.initial_results.models) {
+                    const initialModels = window.reportData.initial_results.models;
+                    console.log(`Found ${Object.keys(initialModels).length} models in initial_results`);
+
+                    Object.values(initialModels).forEach(model => {
+                        // Skip the primary model which we already processed
+                        if (model.name === primaryModelData.name || model.is_primary) {
+                            return;
+                        }
+
+                        console.log(`Processing initial_results model: ${model.name}`);
+
+                        const altModelData = {
+                            name: model.name,
+                            modelType: model.type || 'Unknown',
+                            baseScore: model.base_score || 0,
+                            scores: []
+                        };
+
+                        if (model.evaluation_results && model.evaluation_results.scores) {
+                            console.log(`Found ${model.evaluation_results.scores.length} scores for ${model.name}`);
+                            altModelData.scores = model.evaluation_results.scores;
+                        }
+
+                        if (altModelData.scores.length === 0) {
+                            console.error(`No scores found for model ${model.name} in initial_results`);
+                        }
+
+                        models.push(altModelData);
+                    });
+                }
             }
-            
+
             // Se não houver modelos com scores, não gerar dados sintéticos
             if (models.length === 0 || !models.some(m => m.scores && m.scores.length > 0)) {
                 console.error("Nenhum modelo com scores foi encontrado. Não serão criados dados sintéticos.");
                 return null;
             }
-            
+
             console.log(`Extracted data for ${models.length} models`);
             return { models, metricName };
         } catch (error) {

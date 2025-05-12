@@ -12,39 +12,70 @@ import time
 import datetime
 from sklearn.model_selection import train_test_split
 from scipy import stats
-from sklearn.metrics import (roc_auc_score, average_precision_score, precision_score, 
-                            recall_score, f1_score, accuracy_score, mean_squared_error, 
+from sklearn.metrics import (roc_auc_score, average_precision_score, precision_score,
+                            recall_score, f1_score, accuracy_score, mean_squared_error,
                             mean_absolute_error, r2_score)
+
+from deepbridge.core.experiment.parameter_standards import (
+    get_test_config, TestType, ConfigName, is_valid_config_name
+)
 
 class ResilienceSuite:
     """
     Focused suite for model resilience testing under distribution shifts.
     """
-    
-    # Predefined configurations with varying test intensities
-    _CONFIG_TEMPLATES = {
-        'quick': [
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.2, 'metric': 'auc', 'distance_metric': 'PSI'}}
-        ],
-        
-        'medium': [
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.2, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.1, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'KS'}}
-        ],
-        
-        'full': [
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.2, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.1, 'metric': 'auc', 'distance_metric': 'PSI'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'KS'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.2, 'metric': 'auc', 'distance_metric': 'KS'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'auc', 'distance_metric': 'WD1'}},
-            {'method': 'distribution_shift', 'params': {'alpha': 0.3, 'metric': 'f1', 'distance_metric': 'PSI'}}
-        ]
-    }
+
+    # Load configurations from centralized parameter standards
+    def _get_config_templates(self):
+        """Get resilience configurations from the centralized parameter standards."""
+        try:
+            # Convert the drift-based configurations to test specific format
+            central_configs = {
+                config_name: get_test_config(TestType.RESILIENCE.value, config_name)
+                for config_name in [ConfigName.QUICK.value, ConfigName.MEDIUM.value, ConfigName.FULL.value]
+            }
+
+            # Transform the format to match what the resilience suite expects
+            test_configs = {}
+            for config_name, config in central_configs.items():
+                tests = []
+                drift_types = config.get('drift_types', [])
+                drift_intensities = config.get('drift_intensities', [])
+
+                # Create test configurations based on drift types and intensities
+                for drift_type in drift_types:
+                    for intensity in drift_intensities:
+                        # Create corresponding alpha and metric settings
+                        distance_metric = 'PSI'  # Default
+                        if drift_type == 'covariate':
+                            distance_metric = 'PSI'
+                        elif drift_type == 'concept':
+                            distance_metric = 'KS'
+                        elif drift_type == 'label':
+                            distance_metric = 'WD1'
+
+                        # Add test configuration
+                        tests.append({
+                            'method': 'distribution_shift',
+                            'params': {
+                                'alpha': intensity,
+                                'metric': 'auc',  # Default metric
+                                'distance_metric': distance_metric
+                            }
+                        })
+
+                test_configs[config_name] = tests
+
+            return test_configs
+        except Exception as e:
+            import logging
+            logging.getLogger("deepbridge.resilience").error(f"Error loading centralized configs: {str(e)}")
+            # Fallback to empty templates if centralized configs fail
+            return {
+                'quick': [],
+                'medium': [],
+                'full': []
+            }
     
     def __init__(self, dataset, verbose: bool = False, feature_subset: Optional[List[str]] = None, random_state: Optional[int] = None, metric: str = 'auc'):
         """
@@ -108,45 +139,52 @@ class ResilienceSuite:
     def config(self, config_name: str = 'quick', feature_subset: Optional[List[str]] = None) -> 'ResilienceSuite':
         """
         Set a predefined configuration for resilience tests.
-        
+
         Parameters:
         -----------
         config_name : str
             Name of the configuration to use: 'quick', 'medium', or 'full'
         feature_subset : List[str] or None
             Subset of features to test (overrides the one set in constructor)
-                
+
         Returns:
         --------
         self : Returns self to allow method chaining
         """
         self.feature_subset = feature_subset if feature_subset is not None else self.feature_subset
 
-        if config_name not in self._CONFIG_TEMPLATES:
-            raise ValueError(f"Unknown configuration: {config_name}. Available options: {list(self._CONFIG_TEMPLATES.keys())}")
-        
+        # Validate config_name
+        if not is_valid_config_name(config_name):
+            raise ValueError(f"Unknown configuration: {config_name}. Available options: {[ConfigName.QUICK.value, ConfigName.MEDIUM.value, ConfigName.FULL.value]}")
+
+        # Get the configuration templates from central location
+        config_templates = self._get_config_templates()
+
+        if config_name not in config_templates:
+            raise ValueError(f"Configuration '{config_name}' not found in templates. Available options: {list(config_templates.keys())}")
+
         # Clone the configuration template
-        self.current_config = self._clone_config(self._CONFIG_TEMPLATES[config_name])
-        
+        self.current_config = self._clone_config(config_templates[config_name])
+
         # Update feature_subset in tests if specified
         if self.feature_subset:
             for test in self.current_config:
                 if 'params' in test:
                     test['params']['feature_subset'] = self.feature_subset
-        
+
         if self.verbose:
             print(f"\nConfigured for {config_name} resilience test suite")
             if self.feature_subset:
                 print(f"Feature subset: {self.feature_subset}")
             print(f"\nTests that will be executed:")
-            
+
             # Print all configured tests
             for i, test in enumerate(self.current_config, 1):
                 test_method = test['method']
                 params = test.get('params', {})
                 param_str = ', '.join(f"{k}={v}" for k, v in params.items())
                 print(f"  {i}. {test_method} ({param_str})")
-        
+
         return self
     
     def _clone_config(self, config):

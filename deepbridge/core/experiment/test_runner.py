@@ -4,6 +4,9 @@ import numpy as np
 # Import dataset factory directly since it doesn't create circular dependencies
 from deepbridge.utils.dataset_factory import DBDatasetFactory
 from deepbridge.utils.logger import get_logger
+from deepbridge.core.experiment.parameter_standards import (
+    get_test_config, TestType, ConfigName, is_valid_test_type, is_valid_config_name
+)
 
 # Manager imports are moved to appropriate methods to avoid potential circular dependencies
 
@@ -282,73 +285,43 @@ class TestRunner:
             return {'error': str(e)}
     
     def _get_test_config(self, test_type: str) -> dict:
-        """Get configuration options for a specific test type."""
-        config_options = {
-            'quick': {},
-            'medium': {},
-            'full': {}
-        }
-        
-        if test_type == 'robustness':
-            config_options['quick'] = {
-                'perturbation_methods': ['raw', 'quantile'],
-                'levels': [0.1, 0.2],
-                'n_trials': 3
+        """
+        Get configuration options for a specific test type.
+
+        Args:
+            test_type: Type of test to get configurations for
+
+        Returns:
+            Dictionary containing configuration options for different levels ('quick', 'medium', 'full')
+        """
+        # Validate test type
+        if not is_valid_test_type(test_type):
+            self.logger.warning(f"Invalid test type: {test_type}. Using fallback configurations.")
+            return {
+                'quick': {},
+                'medium': {},
+                'full': {}
             }
-            config_options['medium'] = {
-                'perturbation_methods': ['raw', 'quantile', 'adversarial'],
-                'levels': [0.1, 0.2, 0.4],
-                'n_trials': 6
+
+        try:
+            # Use the centralized configuration from parameter_standards.py
+            quick_config = get_test_config(test_type, ConfigName.QUICK.value)
+            medium_config = get_test_config(test_type, ConfigName.MEDIUM.value)
+            full_config = get_test_config(test_type, ConfigName.FULL.value)
+
+            return {
+                'quick': quick_config,
+                'medium': medium_config,
+                'full': full_config
             }
-            config_options['full'] = {
-                'perturbation_methods': ['raw', 'quantile', 'adversarial', 'custom'],
-                'levels': [0.1, 0.2, 0.4, 0.6, 0.8, 1.0],
-                'n_trials': 10
+        except Exception as e:
+            self.logger.error(f"Error getting test config: {str(e)}")
+            # Return empty configurations as fallback
+            return {
+                'quick': {},
+                'medium': {},
+                'full': {}
             }
-        
-        elif test_type == 'uncertainty':
-            config_options['quick'] = {
-                'methods': ['crqr'],
-                'alpha_levels': [0.1, 0.2]
-            }
-            config_options['medium'] = {
-                'methods': ['crqr'],
-                'alpha_levels': [0.05, 0.1, 0.2]
-            }
-            config_options['full'] = {
-                'methods': ['crqr'],
-                'alpha_levels': [0.01, 0.05, 0.1, 0.2, 0.3]
-            }
-        
-        elif test_type == 'resilience':
-            config_options['quick'] = {
-                'drift_types': ['covariate', 'label'],
-                'drift_intensities': [0.1, 0.2]
-            }
-            config_options['medium'] = {
-                'drift_types': ['covariate', 'label', 'concept'],
-                'drift_intensities': [0.05, 0.1, 0.2]
-            }
-            config_options['full'] = {
-                'drift_types': ['covariate', 'label', 'concept', 'temporal'],
-                'drift_intensities': [0.01, 0.05, 0.1, 0.2, 0.3]
-            }
-        
-        elif test_type == 'hyperparameters':
-            config_options['quick'] = {
-                'n_trials': 10,
-                'optimization_metric': 'accuracy'
-            }
-            config_options['medium'] = {
-                'n_trials': 30,
-                'optimization_metric': 'accuracy'
-            }
-            config_options['full'] = {
-                'n_trials': 100,
-                'optimization_metric': 'accuracy'
-            }
-        
-        return config_options
         
     def _get_test_arguments(self, test_type: str, config_name: str, model_name: str, metric_param: str = None) -> dict:
         """

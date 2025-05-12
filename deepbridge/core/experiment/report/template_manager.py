@@ -59,45 +59,58 @@ class TemplateManager:
     
     def find_template(self, template_paths: List[str]) -> str:
         """
-        Find the template from the primary path.
-        
+        Find the template from the list of possible paths.
+
         Parameters:
         -----------
         template_paths : List[str]
             List of possible template paths to check
-            
+
         Returns:
         --------
         str : Path to the found template
-        
+
         Raises:
         -------
         FileNotFoundError: If the template is not found
         """
-        path = template_paths[0]  # Apenas usa o primeiro caminho (que será o principal)
-        if os.path.exists(path):
-            logger.info(f"Found template at: {path}")
-            return path
-        
-        raise FileNotFoundError(f"Template not found at the specified path: {path}")
+        # Try each path in order until we find an existing template
+        for path in template_paths:
+            if os.path.exists(path):
+                logger.info(f"Found template at: {path}")
+                return path
+
+        # If no template is found, raise an error with all paths that were checked
+        paths_str = '\n  - '.join(template_paths)
+        raise FileNotFoundError(f"Template not found at any of the specified paths:\n  - {paths_str}")
     
-    def get_template_paths(self, test_type: str) -> List[str]:
+    def get_template_paths(self, test_type: str, report_type: str = "interactive") -> List[str]:
         """
-        Get potential template paths for the specified test type.
-        
+        Get potential template paths for the specified test type and report type.
+
         Parameters:
         -----------
         test_type : str
             Type of test ('robustness', 'uncertainty', etc.)
-            
+        report_type : str, optional
+            Type of report ('interactive' or 'static')
+
         Returns:
         --------
         List[str] : List of potential template paths
         """
-        return [
-            # Primary path - report_types directory
-            os.path.join(self.templates_dir, f'report_types/{test_type}/index.html'),
-        ]
+        if report_type == "static":
+            return [
+                # Static report template path
+                os.path.join(self.templates_dir, f'report_types/{test_type}/static/index.html'),
+                # Fallback to default template if static not found
+                os.path.join(self.templates_dir, f'report_types/{test_type}/index.html'),
+            ]
+        else:
+            return [
+                # Interactive (default) template path
+                os.path.join(self.templates_dir, f'report_types/{test_type}/index.html'),
+            ]
     
     def load_template(self, template_path: str):
         """
@@ -135,8 +148,11 @@ class TemplateManager:
             lstrip_blocks=True
         )
         
-        # Add custom filter to prevent autoescape in JavaScript blocks
+        # Add custom filters
         env.filters['safe_js'] = lambda s: Markup(s)
+
+        # Add a custom abs filter
+        env.filters['abs_value'] = lambda x: abs(float(x)) if x is not None else 0.0
         
         # Load the template
         return env.get_template(os.path.basename(template_path))

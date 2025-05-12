@@ -34,10 +34,10 @@ class HyperparameterRenderer:
         from ..transformers.hyperparameter import HyperparameterDataTransformer
         self.data_transformer = HyperparameterDataTransformer()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
         """
         Render hyperparameter report from results data.
-        
+
         Parameters:
         -----------
         results : Dict[str, Any]
@@ -46,6 +46,8 @@ class HyperparameterRenderer:
             Path where the HTML report will be saved
         model_name : str, optional
             Name of the model for display in the report
+        report_type : str, optional
+            Type of report to generate ('interactive' or 'static')
             
         Returns:
         --------
@@ -89,7 +91,7 @@ class HyperparameterRenderer:
             report_data = self.data_transformer.transform(results, model_name)
             
             # Create template context
-            context = self.base_renderer._create_context(report_data, "hyperparameter", css_content, js_content)
+            context = self.base_renderer._create_context(report_data, "hyperparameter", css_content, js_content, report_type)
             
             # Add hyperparameter-specific context
             context.update({

@@ -40,10 +40,10 @@ class RobustnessRenderer:
         self.data_transformer = RobustnessDataTransformer()
         self.initial_results_transformer = InitialResultsTransformer()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
         """
         Render robustness report from results data.
-        
+
         Parameters:
         -----------
         results : Dict[str, Any]
@@ -52,7 +52,9 @@ class RobustnessRenderer:
             Path where the HTML report will be saved
         model_name : str, optional
             Name of the model for display in the report
-            
+        report_type : str, optional
+            Type of report to generate ('interactive' or 'static')
+
         Returns:
         --------
         str : Path to the generated report
@@ -120,7 +122,7 @@ class RobustnessRenderer:
                 }
             
             # Create template context
-            context = self.base_renderer._create_context(report_data, "robustness", css_content, js_content)
+            context = self.base_renderer._create_context(report_data, "robustness", css_content, js_content, report_type)
             
             # Add initial_results directly to the report_data for client-side access
             if initial_results:

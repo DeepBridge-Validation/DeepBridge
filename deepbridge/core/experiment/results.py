@@ -188,41 +188,43 @@ class ExperimentResult:
         """Get a specific test result by name"""
         return self.results.get(name.lower())
         
-    def save_html(self, test_type: str, file_path: str, model_name: str = "Model") -> str:
+    def save_html(self, test_type: str, file_path: str, model_name: str = "Model", report_type: str = "static", save_chart: bool = False) -> str:
         """
         Generate and save an HTML report for the specified test.
-        
+
         Args:
             test_type: Type of test ('robustness', 'uncertainty', 'resilience', 'hyperparameter')
             file_path: Path where the HTML report will be saved (relative or absolute)
             model_name: Name of the model for display in the report
-            
+            report_type: Type of report to generate ('interactive' or 'static')
+            save_chart: Whether to save charts as separate PNG files (default: False)
+
         Returns:
             Path to the generated report file
-            
+
         Raises:
             TestResultNotFoundError: If test results not found
             ReportGenerationError: If report generation fails
         """
         # Convert test_type to lowercase for consistency
         test_type = test_type.lower()
-        
+
         # Check if we have results for this test type
         # Handle the case where hyperparameters is plural but the key is singular
         lookup_key = test_type
         if test_type == "hyperparameters":
             lookup_key = "hyperparameter"
-            
+
         result = self.results.get(lookup_key)
         if not result:
             raise TestResultNotFoundError(f"No {test_type} test results found. Run the test first.")
-        
+
         # Usar o gerenciador de relatórios do módulo experiment
         from deepbridge.core.experiment import report_manager
-        
+
         # Create a complete structure for report generation
         report_data = {}
-        
+
         # For robustness tests, we need a specific structure with primary_model
         if test_type == 'robustness':
             # Get the results dictionary, maintaining the full structure
@@ -232,7 +234,7 @@ class ExperimentResult:
                 test_result = result.results
             else:
                 test_result = result  # If result is already a dict
-                
+
             # Check if we have primary_model directly or nested under 'results'
             if 'primary_model' in test_result:
                 # Direct structure - use as is
@@ -256,7 +258,7 @@ class ExperimentResult:
                         'model_feature_importance': test_result.get('model_feature_importance', {})
                     }
                 }
-                
+
                 # Add feature subset if available
                 if 'feature_subset' in test_result:
                     report_data['feature_subset'] = test_result['feature_subset']
@@ -268,33 +270,35 @@ class ExperimentResult:
                 report_data = result.results
             else:
                 report_data = result  # If result is already a dict
-                
-        # Add initial_results if available 
+
+        # Add initial_results if available
         if 'initial_results' in self.results:
             report_data['initial_results'] = self.results['initial_results']
-                
+
         # Add experiment config if not present
         if 'config' not in report_data:
             report_data['config'] = self.config
-            
+
         # Add experiment type
         report_data['experiment_type'] = self.experiment_type
-        
+
         # Add model_type directly - using the value from the primary model if available
         if 'primary_model' in report_data and 'model_type' in report_data['primary_model']:
             report_data['model_type'] = report_data['primary_model']['model_type']
-        
+
         # Ensure file_path is absolute
         if not os.path.isabs(file_path):
             file_path = os.path.abspath(file_path)
-            
+
         # Generate the report
         try:
             report_path = report_manager.generate_report(
                 test_type=test_type,
                 results=report_data,
                 file_path=file_path,
-                model_name=model_name
+                model_name=model_name,
+                report_type=report_type,
+                save_chart=save_chart
             )
             return report_path
         except NotImplementedError as e:

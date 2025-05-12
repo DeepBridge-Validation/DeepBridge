@@ -12,32 +12,33 @@ import time
 import datetime
 from sklearn.model_selection import train_test_split
 
+from deepbridge.core.experiment.parameter_standards import (
+    get_test_config, TestType, ConfigName, is_valid_config_name
+)
+
 class UncertaintySuite:
     """
     Focused suite for model uncertainty quantification using conformal prediction.
     """
-    
-    # Predefined configurations with varying confidence levels
-    _CONFIG_TEMPLATES = {
-        'quick': [
-            {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}}
-        ],
-        
-        'medium': [
-            {'method': 'crqr', 'params': {'alpha': 0.05, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}}
-        ],
-        
-        'full': [
-            {'method': 'crqr', 'params': {'alpha': 0.01, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.05, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}},
-            {'method': 'crqr', 'params': {'alpha': 0.3, 'test_size': 0.3, 'calib_ratio': 1/3}}
-        ]
-    }
+
+    # Load configurations from centralized parameter standards
+    def _get_config_templates(self):
+        """Get uncertainty configurations from the centralized parameter standards."""
+        try:
+            uncertainty_configs = {
+                config_name: get_test_config(TestType.UNCERTAINTY.value, config_name)
+                for config_name in [ConfigName.QUICK.value, ConfigName.MEDIUM.value, ConfigName.FULL.value]
+            }
+            return uncertainty_configs
+        except Exception as e:
+            import logging
+            logging.getLogger("deepbridge.uncertainty").error(f"Error loading centralized configs: {str(e)}")
+            # Fallback to empty templates if centralized configs fail
+            return {
+                'quick': [],
+                'medium': [],
+                'full': []
+            }
     
     def __init__(self, dataset, verbose: bool = False, feature_subset: Optional[List[str]] = None, random_state: Optional[int] = None):
         """
@@ -94,45 +95,52 @@ class UncertaintySuite:
     def config(self, config_name: str = 'quick', feature_subset: Optional[List[str]] = None) -> 'UncertaintySuite':
         """
         Set a predefined configuration for uncertainty tests.
-        
+
         Parameters:
         -----------
         config_name : str
             Name of the configuration to use: 'quick', 'medium', or 'full'
         feature_subset : List[str] or None
             Subset of features to test (overrides the one set in constructor)
-                
+
         Returns:
         --------
         self : Returns self to allow method chaining
         """
         self.feature_subset = feature_subset if feature_subset is not None else self.feature_subset
 
-        if config_name not in self._CONFIG_TEMPLATES:
-            raise ValueError(f"Unknown configuration: {config_name}. Available options: {list(self._CONFIG_TEMPLATES.keys())}")
-        
+        # Validate config_name
+        if not is_valid_config_name(config_name):
+            raise ValueError(f"Unknown configuration: {config_name}. Available options: {[ConfigName.QUICK.value, ConfigName.MEDIUM.value, ConfigName.FULL.value]}")
+
+        # Get the configuration templates from central location
+        config_templates = self._get_config_templates()
+
+        if config_name not in config_templates:
+            raise ValueError(f"Configuration '{config_name}' not found in templates. Available options: {list(config_templates.keys())}")
+
         # Clone the configuration template
-        self.current_config = self._clone_config(self._CONFIG_TEMPLATES[config_name])
-        
+        self.current_config = self._clone_config(config_templates[config_name])
+
         # Update feature_subset in tests if specified
         if self.feature_subset:
             for test in self.current_config:
                 if 'params' in test:
                     test['params']['feature_subset'] = self.feature_subset
-        
+
         if self.verbose:
             print(f"\nConfigured for {config_name} uncertainty test suite")
             if self.feature_subset:
                 print(f"Feature subset: {self.feature_subset}")
             print(f"\nTests that will be executed:")
-            
+
             # Print all configured tests
             for i, test in enumerate(self.current_config, 1):
                 test_method = test['method']
                 params = test.get('params', {})
                 param_str = ', '.join(f"{k}={v}" for k, v in params.items())
                 print(f"  {i}. {test_method} ({param_str})")
-        
+
         return self
     
     def _clone_config(self, config):

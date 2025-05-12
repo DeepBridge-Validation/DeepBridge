@@ -1,6 +1,7 @@
 """
 Parameter standardization and naming conventions for DeepBridge.
 This module defines standard parameter names and types to ensure consistency across the codebase.
+It also serves as a central repository for configuration templates used by different test types.
 """
 
 import typing as t
@@ -166,11 +167,123 @@ def is_valid_config_name(config_name: str) -> bool:
 def is_valid_experiment_type(experiment_type: str) -> bool:
     """
     Check if an experiment type string is valid.
-    
+
     Args:
         experiment_type: Experiment type string to check
-        
+
     Returns:
         True if valid, False otherwise
     """
     return experiment_type in get_experiment_types()
+
+# ---------------------------------------------------------------
+# Centralized Configuration Templates for Different Test Types
+# ---------------------------------------------------------------
+
+# Configuration templates for robustness testing
+ROBUSTNESS_CONFIGS = {
+    ConfigName.QUICK.value: {
+        'perturbation_methods': ['raw', 'quantile'],
+        'levels': [0.1, 0.2],
+        'n_trials': 3
+    },
+    ConfigName.MEDIUM.value: {
+        'perturbation_methods': ['raw', 'quantile', 'adversarial'],
+        'levels': [0.1, 0.2, 0.4],
+        'n_trials': 6
+    },
+    ConfigName.FULL.value: {
+        'perturbation_methods': ['raw', 'quantile', 'adversarial', 'custom'],
+        'levels': [0.1, 0.2, 0.4, 0.6, 0.8, 1.0],
+        'n_trials': 10
+    }
+}
+
+# Configuration templates for uncertainty testing
+UNCERTAINTY_CONFIGS = {
+    ConfigName.QUICK.value: [
+        {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}}
+    ],
+    ConfigName.MEDIUM.value: [
+        {'method': 'crqr', 'params': {'alpha': 0.05, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}}
+    ],
+    ConfigName.FULL.value: [
+        {'method': 'crqr', 'params': {'alpha': 0.01, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.05, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.1, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.2, 'test_size': 0.3, 'calib_ratio': 1/3}},
+        {'method': 'crqr', 'params': {'alpha': 0.3, 'test_size': 0.3, 'calib_ratio': 1/3}}
+    ]
+}
+
+# Configuration templates for resilience testing
+RESILIENCE_CONFIGS = {
+    ConfigName.QUICK.value: {
+        'drift_types': ['covariate', 'label'],
+        'drift_intensities': [0.1, 0.2]
+    },
+    ConfigName.MEDIUM.value: {
+        'drift_types': ['covariate', 'label', 'concept'],
+        'drift_intensities': [0.05, 0.1, 0.2]
+    },
+    ConfigName.FULL.value: {
+        'drift_types': ['covariate', 'label', 'concept', 'temporal'],
+        'drift_intensities': [0.01, 0.05, 0.1, 0.2, 0.3]
+    }
+}
+
+# Configuration templates for hyperparameter testing
+HYPERPARAMETER_CONFIGS = {
+    ConfigName.QUICK.value: {
+        'n_trials': 10,
+        'optimization_metric': 'accuracy'
+    },
+    ConfigName.MEDIUM.value: {
+        'n_trials': 30,
+        'optimization_metric': 'accuracy'
+    },
+    ConfigName.FULL.value: {
+        'n_trials': 100,
+        'optimization_metric': 'accuracy'
+    }
+}
+
+# Master configuration dictionary mapping test types to their configurations
+TEST_CONFIGS = {
+    TestType.ROBUSTNESS.value: ROBUSTNESS_CONFIGS,
+    TestType.UNCERTAINTY.value: UNCERTAINTY_CONFIGS,
+    TestType.RESILIENCE.value: RESILIENCE_CONFIGS,
+    TestType.HYPERPARAMETERS.value: HYPERPARAMETER_CONFIGS
+}
+
+def get_test_config(test_type: str, config_name: str) -> t.Dict[str, t.Any]:
+    """
+    Get configuration options for a specific test type and configuration level.
+
+    Args:
+        test_type: Type of test ('robustness', 'uncertainty', etc.)
+        config_name: Configuration level ('quick', 'medium', 'full')
+
+    Returns:
+        Dictionary with configuration options
+
+    Raises:
+        ValueError: If test_type or config_name is invalid
+    """
+    if not is_valid_test_type(test_type):
+        raise ValueError(f"Invalid test type: {test_type}. Valid options: {get_test_types()}")
+
+    if not is_valid_config_name(config_name):
+        raise ValueError(f"Invalid configuration name: {config_name}. Valid options: {get_config_names()}")
+
+    if test_type not in TEST_CONFIGS:
+        raise ValueError(f"No configuration template defined for test type: {test_type}")
+
+    test_config = TEST_CONFIGS[test_type]
+    if config_name not in test_config:
+        raise ValueError(f"No {config_name} configuration defined for test type: {test_type}")
+
+    return test_config[config_name]

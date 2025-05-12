@@ -38,10 +38,10 @@ class BaseRenderer:
         from ..base import DataTransformer
         self.data_transformer = DataTransformer()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
         """
         Render report from results data.
-        
+
         Parameters:
         -----------
         results : Dict[str, Any]
@@ -50,11 +50,15 @@ class BaseRenderer:
             Path where the HTML report will be saved
         model_name : str, optional
             Name of the model for display in the report
-            
+        report_type : str, optional
+            Type of report to generate ('interactive' or 'static')
+        save_chart : bool, optional
+            Whether to save charts as separate PNG files (default: False)
+
         Returns:
         --------
         str : Path to the generated report
-        
+
         Raises:
         -------
         NotImplementedError: Subclasses must implement this method
@@ -215,11 +219,11 @@ class BaseRenderer:
             
         return result
     
-    def _create_context(self, report_data: Dict[str, Any], test_type: str, 
-                       css_content: str, js_content: str) -> Dict[str, Any]:
+    def _create_context(self, report_data: Dict[str, Any], test_type: str,
+                       css_content: str, js_content: str, report_type: str = "interactive") -> Dict[str, Any]:
         """
         Create template context with common data.
-        
+
         Parameters:
         -----------
         report_data : Dict[str, Any]
@@ -230,7 +234,9 @@ class BaseRenderer:
             Combined CSS content
         js_content : str
             Combined JavaScript content
-            
+        report_type : str, optional
+            Type of report ('interactive' or 'static')
+
         Returns:
         --------
         Dict[str, Any] : Template context
@@ -280,7 +286,8 @@ class BaseRenderer:
             
             # Test type information
             'test_type': test_type,
-            'report_type': test_type,  # Explicitly set report_type for template includes
+            'test_report_type': test_type,  # The type of test
+            'report_type': report_type,  # The type of report (interactive or static)
             
             # Error message (None by default)
             'error_message': None
