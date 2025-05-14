@@ -40,7 +40,7 @@ class StaticRobustnessRenderer:
         from ...utils.seaborn_utils import SeabornChartGenerator
         self.chart_generator = SeabornChartGenerator()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "static") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "static", save_chart: bool = False) -> str:
         """
         Render static robustness report from results data.
         
@@ -54,6 +54,8 @@ class StaticRobustnessRenderer:
             Name of the model for display in the report
         report_type : str, optional
             Type of report to generate ('interactive' or 'static')
+        save_chart : bool, optional
+            Whether to save charts as separate PNG files (default: False)
             
         Returns:
         --------
