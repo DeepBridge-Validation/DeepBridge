@@ -54,6 +54,10 @@ class StaticUncertaintyRenderer:
     def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
               report_type: str = "static", save_chart: bool = True) -> str:
         """
+        If save_chart is True, charts will be saved as separate files and referenced with relative URLs.
+        If False, charts will be embedded as base64 data directly in the HTML.
+        """
+        """
         Render static uncertainty report from results data.
 
         Parameters:
@@ -186,11 +190,23 @@ class StaticUncertaintyRenderer:
                         if 'uncertainty_score' not in model_data:
                             report_data['alternative_models'][model_name]['uncertainty_score'] = 0
             
+            # List all charts that were generated
+            if 'charts' in context and context['charts']:
+                logger.info("----- Charts Generated For Report -----")
+                for chart_name in context['charts'].keys():
+                    logger.info(f"✓ {chart_name}")
+                logger.info("------------------------------------")
+            else:
+                logger.warning("No charts were generated for the report")
+                
             # Render the template
             rendered_html = self.template_manager.render_template(template, context)
 
             # Write the report to the file
-            return self.base_renderer._write_report(rendered_html, file_path)
+            report_path = self.base_renderer._write_report(rendered_html, file_path)
+            
+            logger.info(f"Uncertainty report generated at: {report_path}")
+            return report_path
             
         except Exception as e:
             logger.error(f"Error generating static uncertainty report: {str(e)}")
@@ -360,16 +376,59 @@ class StaticUncertaintyRenderer:
             # Get the directory of the report file
             report_dir = os.path.dirname(os.path.abspath(self.report_file_path))
             # Create a charts subdirectory
-            charts_dir = os.path.join(report_dir, "uncertainty_charts")
+            charts_subdir = "uncertainty_charts"
+            charts_dir = os.path.join(report_dir, charts_subdir)
             os.makedirs(charts_dir, exist_ok=True)
             logger.info(f"Created chart directory at: {charts_dir}")
         else:
             charts_dir = None
+            charts_subdir = None
 
         try:
             # Use the new modular chart generator system
             try:
                 from deepbridge.templates.report_types.uncertainty.static.charts import UncertaintyChartGenerator
+                
+                # Try to import enhanced charts - log more details about any error
+                try:
+                    import importlib
+                    module_name = 'deepbridge.templates.report_types.uncertainty.static.charts.enhanced_charts'
+                    logger.info(f"Attempting to import {module_name}")
+                    
+                    # Try to import the module directly first (this helps with debugging)
+                    try:
+                        enhanced_module = importlib.import_module(module_name)
+                        logger.info(f"Successfully imported module: {module_name}")
+                        logger.info(f"Module contents: {dir(enhanced_module)}")
+                    except Exception as module_error:
+                        logger.error(f"Error importing module {module_name}: {str(module_error)}")
+                    
+                    # Now try to import and instantiate the chart class
+                    from deepbridge.templates.report_types.uncertainty.static.charts.enhanced_charts import EnhancedUncertaintyCharts
+                    enhanced_charts = EnhancedUncertaintyCharts(self.chart_generator)
+                    
+                    # Verify that the charts object has the expected methods
+                    expected_methods = [
+                        'generate_reliability_distribution',
+                        'generate_marginal_bandwidth_chart',
+                        'generate_interval_widths_boxplot',
+                        'generate_model_metrics_comparison'
+                    ]
+                    
+                    available_methods = [method for method in expected_methods if hasattr(enhanced_charts, method)]
+                    logger.info(f"Successfully loaded enhanced uncertainty charts with methods: {available_methods}")
+                    
+                    if set(available_methods) != set(expected_methods):
+                        missing_methods = set(expected_methods) - set(available_methods)
+                        logger.warning(f"Enhanced charts is missing expected methods: {missing_methods}")
+                except ImportError as e:
+                    enhanced_charts = None
+                    logger.error(f"Enhanced uncertainty charts not available: {str(e)}")
+                except Exception as e:
+                    enhanced_charts = None
+                    logger.error(f"Error loading enhanced uncertainty charts: {str(e)}")
+                    import traceback
+                    logger.error(traceback.format_exc())
 
                 # Create chart generator with seaborn fallback
                 chart_generator = UncertaintyChartGenerator(self.chart_generator)
@@ -396,10 +455,41 @@ class StaticUncertaintyRenderer:
                     else:
                         logger.error("  - ERRO: alpha_levels não está disponível nos dados")
 
-                    coverage_chart = chart_generator.generate_coverage_vs_expected(report_data)
-                    if coverage_chart:
-                        charts['coverage_vs_expected'] = coverage_chart
-                        logger.info("Generated coverage vs expected coverage chart")
+                    # Add safeguards and better logging for coverage chart
+                    try:
+                        # Validate data exists in correct format
+                        if ('calibration_results' in report_data and 
+                            isinstance(report_data['calibration_results'], dict) and
+                            'alpha_values' in report_data['calibration_results'] and 
+                            'coverage_values' in report_data['calibration_results'] and
+                            'expected_coverages' in report_data['calibration_results']):
+                            
+                            # Log data for debugging
+                            alpha_values = report_data['calibration_results']['alpha_values']
+                            coverage_values = report_data['calibration_results']['coverage_values']
+                            expected_coverages = report_data['calibration_results']['expected_coverages']
+                            
+                            logger.info(f"Alpha values: {alpha_values} (type: {type(alpha_values)}, len: {len(alpha_values) if hasattr(alpha_values, '__len__') else 'NA'})")
+                            logger.info(f"Coverage values: {coverage_values} (type: {type(coverage_values)}, len: {len(coverage_values) if hasattr(coverage_values, '__len__') else 'NA'})")
+                            logger.info(f"Expected coverages: {expected_coverages} (type: {type(expected_coverages)}, len: {len(expected_coverages) if hasattr(expected_coverages, '__len__') else 'NA'})")
+                            
+                            # Make sure data is lists, not numpy arrays
+                            if hasattr(alpha_values, 'tolist') and callable(getattr(alpha_values, 'tolist')):
+                                report_data['calibration_results']['alpha_values'] = alpha_values.tolist()
+                            if hasattr(coverage_values, 'tolist') and callable(getattr(coverage_values, 'tolist')):
+                                report_data['calibration_results']['coverage_values'] = coverage_values.tolist()
+                            if hasattr(expected_coverages, 'tolist') and callable(getattr(expected_coverages, 'tolist')):
+                                report_data['calibration_results']['expected_coverages'] = expected_coverages.tolist()
+                            
+                            # Now generate chart
+                            coverage_chart = chart_generator.generate_coverage_vs_expected(report_data)
+                            if coverage_chart:
+                                charts['coverage_vs_expected'] = coverage_chart
+                                logger.info("Generated coverage vs expected coverage chart")
+                        else:
+                            logger.warning("Missing required data for coverage vs expected chart")
+                    except Exception as e:
+                        logger.error(f"Error in coverage chart generation: {str(e)}", exc_info=True)
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
@@ -409,9 +499,15 @@ class StaticUncertaintyRenderer:
                                 if coverage_chart.startswith('data:image/png;base64,'):
                                     img_data = coverage_chart.split('data:image/png;base64,')[1]
                                     # Save to file
-                                    with open(os.path.join(charts_dir, 'coverage_vs_expected.png'), 'wb') as f:
+                                    chart_filename = 'coverage_vs_expected.png'
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    with open(chart_path, 'wb') as f:
                                         f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved coverage_vs_expected.png to {charts_dir}")
+                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                    
+                                    # Replace base64 data with relative URL path to the saved file
+                                    # Use a path that's relative to the HTML file
+                                    charts['coverage_vs_expected'] = f"./{charts_subdir}/{chart_filename}"
                             except Exception as e:
                                 logger.error(f"Error saving coverage chart as PNG: {str(e)}")
                 except Exception as e:
@@ -438,10 +534,36 @@ class StaticUncertaintyRenderer:
                     else:
                         logger.error("  - ERRO: calibration_results não está disponível nos dados")
 
-                    width_chart = chart_generator.generate_width_vs_coverage(report_data)
-                    if width_chart:
-                        charts['width_vs_coverage'] = width_chart
-                        logger.info("Generated width vs coverage chart")
+                    # Add safeguards and better logging for width vs coverage chart
+                    try:
+                        # Validate data exists in correct format
+                        if ('calibration_results' in report_data and 
+                            isinstance(report_data['calibration_results'], dict) and
+                            'width_values' in report_data['calibration_results'] and 
+                            'coverage_values' in report_data['calibration_results']):
+                            
+                            # Log data for debugging
+                            width_values = report_data['calibration_results']['width_values']
+                            coverage_values = report_data['calibration_results']['coverage_values']
+                            
+                            logger.info(f"Width values: {width_values} (type: {type(width_values)}, len: {len(width_values) if hasattr(width_values, '__len__') else 'NA'})")
+                            logger.info(f"Coverage values: {coverage_values} (type: {type(coverage_values)}, len: {len(coverage_values) if hasattr(coverage_values, '__len__') else 'NA'})")
+                            
+                            # Make sure data is lists, not numpy arrays
+                            if hasattr(width_values, 'tolist') and callable(getattr(width_values, 'tolist')):
+                                report_data['calibration_results']['width_values'] = width_values.tolist()
+                            if hasattr(coverage_values, 'tolist') and callable(getattr(coverage_values, 'tolist')):
+                                report_data['calibration_results']['coverage_values'] = coverage_values.tolist()
+                            
+                            # Now generate chart
+                            width_chart = chart_generator.generate_width_vs_coverage(report_data)
+                            if width_chart:
+                                charts['width_vs_coverage'] = width_chart
+                                logger.info("Generated width vs coverage chart")
+                        else:
+                            logger.warning("Missing required data for width vs coverage chart")
+                    except Exception as e:
+                        logger.error(f"Error in width vs coverage chart generation: {str(e)}", exc_info=True)
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
@@ -451,9 +573,15 @@ class StaticUncertaintyRenderer:
                                 if width_chart.startswith('data:image/png;base64,'):
                                     img_data = width_chart.split('data:image/png;base64,')[1]
                                     # Save to file
-                                    with open(os.path.join(charts_dir, 'width_vs_coverage.png'), 'wb') as f:
+                                    chart_filename = 'width_vs_coverage.png'
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    with open(chart_path, 'wb') as f:
                                         f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved width_vs_coverage.png to {charts_dir}")
+                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                    
+                                    # Replace base64 data with relative URL path to the saved file
+                                    # Use a path that's relative to the HTML file
+                                    charts['width_vs_coverage'] = f"./{charts_subdir}/{chart_filename}"
                             except Exception as e:
                                 logger.error(f"Error saving width chart as PNG: {str(e)}")
                 except Exception as e:
@@ -498,9 +626,15 @@ class StaticUncertaintyRenderer:
                                 if metrics_chart.startswith('data:image/png;base64,'):
                                     img_data = metrics_chart.split('data:image/png;base64,')[1]
                                     # Save to file
-                                    with open(os.path.join(charts_dir, 'uncertainty_metrics.png'), 'wb') as f:
+                                    chart_filename = 'uncertainty_metrics.png'
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    with open(chart_path, 'wb') as f:
                                         f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved uncertainty_metrics.png to {charts_dir}")
+                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                    
+                                    # Replace base64 data with relative URL path to the saved file
+                                    # Use a path that's relative to the HTML file
+                                    charts['uncertainty_metrics'] = f"./{charts_subdir}/{chart_filename}"
                             except Exception as e:
                                 logger.error(f"Error saving metrics chart as PNG: {str(e)}")
                 except Exception as e:
@@ -536,9 +670,15 @@ class StaticUncertaintyRenderer:
                                     if importance_chart.startswith('data:image/png;base64,'):
                                         img_data = importance_chart.split('data:image/png;base64,')[1]
                                         # Save to file
-                                        with open(os.path.join(charts_dir, 'feature_importance.png'), 'wb') as f:
+                                        chart_filename = 'feature_importance.png'
+                                        chart_path = os.path.join(charts_dir, chart_filename)
+                                        with open(chart_path, 'wb') as f:
                                             f.write(base64.b64decode(img_data))
-                                        logger.info(f"Saved feature_importance.png to {charts_dir}")
+                                        logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                        
+                                        # Replace base64 data with relative URL path to the saved file
+                                        # Use a path that's relative to the HTML file
+                                        charts['feature_importance'] = f"./{charts_subdir}/{chart_filename}"
                                 except Exception as e:
                                     logger.error(f"Error saving importance chart as PNG: {str(e)}")
                     except Exception as e:
@@ -596,9 +736,15 @@ class StaticUncertaintyRenderer:
                                 if comparison_chart.startswith('data:image/png;base64,'):
                                     img_data = comparison_chart.split('data:image/png;base64,')[1]
                                     # Save to file
-                                    with open(os.path.join(charts_dir, 'model_comparison.png'), 'wb') as f:
+                                    chart_filename = 'model_comparison.png'
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    with open(chart_path, 'wb') as f:
                                         f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved model_comparison.png to {charts_dir}")
+                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                    
+                                    # Replace base64 data with relative URL path to the saved file
+                                    # Use a path that's relative to the HTML file
+                                    charts['model_comparison'] = f"./{charts_subdir}/{chart_filename}"
                             except Exception as e:
                                 logger.error(f"Error saving comparison chart as PNG: {str(e)}")
                 except Exception as e:
@@ -652,13 +798,238 @@ class StaticUncertaintyRenderer:
                                 if performance_gap_chart.startswith('data:image/png;base64,'):
                                     img_data = performance_gap_chart.split('data:image/png;base64,')[1]
                                     # Save to file
-                                    with open(os.path.join(charts_dir, 'performance_gap_by_alpha.png'), 'wb') as f:
+                                    chart_filename = 'performance_gap_by_alpha.png'
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    with open(chart_path, 'wb') as f:
                                         f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved performance_gap_by_alpha.png to {charts_dir}")
+                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                    
+                                    # Replace base64 data with relative URL path to the saved file
+                                    # Use a path that's relative to the HTML file
+                                    charts['performance_gap_by_alpha'] = f"./{charts_subdir}/{chart_filename}"
                             except Exception as e:
                                 logger.error(f"Error saving performance gap chart as PNG: {str(e)}")
                 except Exception as e:
                     logger.error(f"Error generating performance gap by alpha chart: {str(e)}")
+                    
+                # Generate enhanced charts if available
+                if enhanced_charts:
+                    logger.info("Generating enhanced uncertainty charts")
+                    
+                    # Generate reliability distribution chart for top feature
+                    try:
+                        # Check if reliability analysis data is available
+                        if 'reliability_analysis' in report_data:
+                            logger.info("Attempting to generate reliability distribution chart")
+                            logger.info(f"reliability_analysis keys: {list(report_data['reliability_analysis'].keys())}")
+                            
+                            # Check if feature_distributions is available
+                            if 'feature_distributions' in report_data['reliability_analysis']:
+                                logger.info(f"feature_distributions available with types: {list(report_data['reliability_analysis']['feature_distributions'].keys())}")
+                                
+                                for dist_type, features in report_data['reliability_analysis']['feature_distributions'].items():
+                                    logger.info(f"Type {dist_type} has features: {list(features.keys())}")
+                            else:
+                                logger.warning("feature_distributions not available in reliability_analysis")
+                            
+                            # Get top feature from feature importance
+                            top_feature = None
+                            if 'feature_importance' in report_data and report_data['feature_importance']:
+                                # Sort by importance and get top feature
+                                top_feature = sorted(report_data['feature_importance'].items(), 
+                                                   key=lambda x: x[1], reverse=True)[0][0]
+                                logger.info(f"Selected top feature: {top_feature}")
+                            else:
+                                logger.warning("No feature_importance available to select top feature")
+                                
+                            # Ensure enhanced_charts exists and has the required method
+                            if enhanced_charts and hasattr(enhanced_charts, 'generate_reliability_distribution'):
+                                logger.info("Calling generate_reliability_distribution")
+                                reliability_chart = enhanced_charts.generate_reliability_distribution(report_data, top_feature)
+                                
+                                if reliability_chart:
+                                    charts['reliability_distribution'] = reliability_chart
+                                    logger.info("Successfully generated reliability distribution chart")
+                                    
+                                    # Save chart to PNG if requested
+                                    if save_chart and charts_dir:
+                                        import base64
+                                        try:
+                                            # Extract the base64 part
+                                            if reliability_chart.startswith('data:image/png;base64,'):
+                                                img_data = reliability_chart.split('data:image/png;base64,')[1]
+                                                # Save to file
+                                                chart_filename = 'reliability_distribution.png'
+                                                chart_path = os.path.join(charts_dir, chart_filename)
+                                                with open(chart_path, 'wb') as f:
+                                                    f.write(base64.b64decode(img_data))
+                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                                
+                                                # Replace base64 data with relative URL path to the saved file
+                                                # Use a path that's relative to the HTML file
+                                                charts['reliability_distribution'] = f"./{charts_subdir}/{chart_filename}"
+                                        except Exception as e:
+                                            logger.error(f"Error saving reliability chart as PNG: {str(e)}")
+                                else:
+                                    logger.warning("generate_reliability_distribution returned None")
+                            else:
+                                logger.error("Enhanced charts not available or missing generate_reliability_distribution method")
+                        else:
+                            logger.warning("reliability_analysis not available in report_data")
+                    except Exception as e:
+                        logger.error(f"Error generating reliability distribution chart: {str(e)}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                    
+                    # Generate marginal bandwidth chart for top feature
+                    try:
+                        # Check if marginal bandwidth data is available
+                        if 'marginal_bandwidth' in report_data:
+                            logger.info("Attempting to generate marginal bandwidth chart")
+                            logger.info(f"marginal_bandwidth keys: {list(report_data['marginal_bandwidth'].keys())}")
+                            
+                            # Get first feature in marginal bandwidth data
+                            top_feature = None
+                            if report_data['marginal_bandwidth']:
+                                top_feature = list(report_data['marginal_bandwidth'].keys())[0]
+                                logger.info(f"Selected feature for bandwidth chart: {top_feature}")
+                                
+                                # Log the structure of data for this feature
+                                feature_data = report_data['marginal_bandwidth'][top_feature]
+                                logger.info(f"Feature data keys: {list(feature_data.keys())}")
+                                for key, value in feature_data.items():
+                                    if isinstance(value, (list, tuple)):
+                                        logger.info(f"  - {key}: {len(value)} values")
+                                    else:
+                                        logger.info(f"  - {key}: {value}")
+                            else:
+                                logger.warning("marginal_bandwidth dictionary is empty")
+                                
+                            # Ensure enhanced_charts exists and has the required method
+                            if enhanced_charts and hasattr(enhanced_charts, 'generate_marginal_bandwidth_chart'):
+                                logger.info("Calling generate_marginal_bandwidth_chart")
+                                bandwidth_chart = enhanced_charts.generate_marginal_bandwidth_chart(report_data, top_feature)
+                                
+                                if bandwidth_chart:
+                                    charts['marginal_bandwidth'] = bandwidth_chart
+                                    logger.info("Successfully generated marginal bandwidth chart")
+                                    
+                                    # Save chart to PNG if requested
+                                    if save_chart and charts_dir:
+                                        import base64
+                                        try:
+                                            # Extract the base64 part
+                                            if bandwidth_chart.startswith('data:image/png;base64,'):
+                                                img_data = bandwidth_chart.split('data:image/png;base64,')[1]
+                                                # Save to file
+                                                chart_filename = 'marginal_bandwidth.png'
+                                                chart_path = os.path.join(charts_dir, chart_filename)
+                                                with open(chart_path, 'wb') as f:
+                                                    f.write(base64.b64decode(img_data))
+                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                                
+                                                # Replace base64 data with relative URL path to the saved file
+                                                # Use a path that's relative to the HTML file
+                                                charts['marginal_bandwidth'] = f"./{charts_subdir}/{chart_filename}"
+                                        except Exception as e:
+                                            logger.error(f"Error saving bandwidth chart as PNG: {str(e)}")
+                                else:
+                                    logger.warning("generate_marginal_bandwidth_chart returned None")
+                            else:
+                                logger.error("Enhanced charts not available or missing generate_marginal_bandwidth_chart method")
+                        else:
+                            logger.warning("marginal_bandwidth not available in report_data")
+                    except Exception as e:
+                        logger.error(f"Error generating marginal bandwidth chart: {str(e)}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                    
+                    # Generate interval widths boxplot
+                    try:
+                        # Check if interval widths data is available
+                        if 'interval_widths' in report_data:
+                            logger.info("Attempting to generate interval widths boxplot")
+                            
+                            # Log information about the interval_widths data
+                            if isinstance(report_data['interval_widths'], list):
+                                logger.info(f"interval_widths is a list with {len(report_data['interval_widths'])} elements")
+                                if report_data['interval_widths'] and isinstance(report_data['interval_widths'][0], list):
+                                    logger.info(f"First element is a list with {len(report_data['interval_widths'][0])} values")
+                            elif isinstance(report_data['interval_widths'], dict):
+                                logger.info(f"interval_widths is a dictionary with keys: {list(report_data['interval_widths'].keys())}")
+                                for model, widths in report_data['interval_widths'].items():
+                                    if isinstance(widths, list):
+                                        logger.info(f"  - {model}: {len(widths)} values")
+                            else:
+                                logger.warning(f"interval_widths has unexpected type: {type(report_data['interval_widths'])}")
+                            
+                            # Ensure enhanced_charts exists and has the required method
+                            if enhanced_charts and hasattr(enhanced_charts, 'generate_interval_widths_boxplot'):
+                                logger.info("Calling generate_interval_widths_boxplot")
+                                interval_chart = enhanced_charts.generate_interval_widths_boxplot(report_data)
+                                
+                                if interval_chart:
+                                    charts['interval_widths_boxplot'] = interval_chart
+                                    logger.info("Successfully generated interval widths boxplot")
+                                    
+                                    # Save chart to PNG if requested
+                                    if save_chart and charts_dir:
+                                        import base64
+                                        try:
+                                            # Extract the base64 part
+                                            if interval_chart.startswith('data:image/png;base64,'):
+                                                img_data = interval_chart.split('data:image/png;base64,')[1]
+                                                # Save to file
+                                                chart_filename = 'interval_widths_boxplot.png'
+                                                chart_path = os.path.join(charts_dir, chart_filename)
+                                                with open(chart_path, 'wb') as f:
+                                                    f.write(base64.b64decode(img_data))
+                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                                
+                                                # Replace base64 data with relative URL path to the saved file
+                                                # Use a path that's relative to the HTML file
+                                                charts['interval_widths_boxplot'] = f"./{charts_subdir}/{chart_filename}"
+                                        except Exception as e:
+                                            logger.error(f"Error saving interval chart as PNG: {str(e)}")
+                                else:
+                                    logger.warning("generate_interval_widths_boxplot returned None")
+                            else:
+                                logger.error("Enhanced charts not available or missing generate_interval_widths_boxplot method")
+                        else:
+                            logger.warning("interval_widths not available in report_data")
+                    except Exception as e:
+                        logger.error(f"Error generating interval widths boxplot: {str(e)}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                    
+                    # Generate model metrics comparison
+                    try:
+                        logger.info("Generating model metrics comparison")
+                        metrics_chart = enhanced_charts.generate_model_metrics_comparison(report_data)
+                        if metrics_chart:
+                            charts['model_metrics_comparison'] = metrics_chart
+                            logger.info("Generated model metrics comparison")
+                            
+                            # Save chart to PNG if requested
+                            if save_chart and charts_dir:
+                                import base64
+                                try:
+                                    # Extract the base64 part
+                                    if metrics_chart.startswith('data:image/png;base64,'):
+                                        img_data = metrics_chart.split('data:image/png;base64,')[1]
+                                        # Save to file
+                                        chart_filename = 'model_metrics_comparison.png'
+                                        chart_path = os.path.join(charts_dir, chart_filename)
+                                        with open(chart_path, 'wb') as f:
+                                            f.write(base64.b64decode(img_data))
+                                        logger.info(f"Saved {chart_filename} to {charts_dir}")
+                                        
+                                        # Replace base64 data with relative URL path to the saved file
+                                        charts['model_metrics_comparison'] = f"./{charts_subdir}/{chart_filename}"
+                                except Exception as e:
+                                    logger.error(f"Error saving metrics chart as PNG: {str(e)}")
+                    except Exception as e:
+                        logger.error(f"Error generating model metrics comparison: {str(e)}")
 
             except ImportError as e:
                 logger.warning(f"Could not import modular chart generator: {str(e)}")
@@ -685,9 +1056,16 @@ class StaticUncertaintyRenderer:
 
                         # Add to charts if generated successfully
                         if chart_path and os.path.exists(chart_path):
-                            with open(chart_path, 'rb') as img_file:
-                                chart_data = base64.b64encode(img_file.read()).decode('utf-8')
-                            charts['interval_widths_comparison'] = f"data:image/png;base64,{chart_data}"
+                            # Get the filename from the path
+                            chart_filename = os.path.basename(chart_path)
+                            # Use relative URL for the chart
+                            if save_chart and charts_dir:
+                                charts['interval_widths_comparison'] = f"./{charts_subdir}/{chart_filename}"
+                            else:
+                                # If not using save_chart, still include as base64
+                                with open(chart_path, 'rb') as img_file:
+                                    chart_data = base64.b64encode(img_file.read()).decode('utf-8')
+                                charts['interval_widths_comparison'] = f"data:image/png;base64,{chart_data}"
                             logger.info(f"Successfully generated interval widths comparison chart at {chart_path}")
                     except Exception as e:
                         logger.error(f"Error generating interval widths chart: {str(e)}")
@@ -735,6 +1113,27 @@ class StaticUncertaintyRenderer:
                     additional_charts = generate_all_uncertainty_charts(additional_charts_dir)
 
                     if additional_charts:
+                        # Convert base64 data to relative paths if save_chart is True
+                        if save_chart and charts_dir:
+                            for chart_name, chart_data in additional_charts.items():
+                                if isinstance(chart_data, str) and chart_data.startswith('data:image/png;base64,'):
+                                    # Extract chart filename
+                                    chart_filename = f"{chart_name}.png"
+                                    # Create relative path
+                                    additional_charts[chart_name] = f"./{charts_subdir}/{chart_filename}"
+                                    
+                                    # Save the file if it doesn't exist already
+                                    chart_path = os.path.join(charts_dir, chart_filename)
+                                    if not os.path.exists(chart_path):
+                                        try:
+                                            import base64
+                                            img_data = chart_data.split('data:image/png;base64,')[1]
+                                            with open(chart_path, 'wb') as f:
+                                                f.write(base64.b64decode(img_data))
+                                            logger.info(f"Saved additional chart {chart_filename} to {charts_dir}")
+                                        except Exception as e:
+                                            logger.error(f"Error saving additional chart {chart_name}: {str(e)}")
+                                    
                         charts.update(additional_charts)
                         logger.info(f"Added {len(additional_charts)} additional uncertainty charts to {additional_charts_dir}")
                     else:

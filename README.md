@@ -113,6 +113,10 @@ We welcome contributions! Please see our contribution guidelines for details on 
 4. Push to the branch
 5. Open a Pull Request
 
+### Recent Fixes
+
+- **2025-05-15**: Fixed static report chart URLs to properly use relative paths with `./` prefix for improved portability across different environments
+
 ## Development Setup
 
 ```bash
