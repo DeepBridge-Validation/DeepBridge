@@ -190,8 +190,63 @@ class StaticUncertaintyRenderer:
                         if 'uncertainty_score' not in model_data:
                             report_data['alternative_models'][model_name]['uncertainty_score'] = 0
             
-            # List all charts that were generated
+            # Map chart names to match the template's expected names
+            chart_name_mapping = {
+                # Names based on the template's expectations
+                'model_comparison_chart': 'model_comparison',
+                'performance_gap_by_alpha_chart': 'performance_gap_by_alpha',
+                'reliability_distribution_chart': 'feature_reliability',
+                'marginal_bandwidth_chart': 'interval_widths_comparison',
+                'interval_widths_chart': 'interval_widths_comparison',
+                'interval_widths_boxplot': 'interval_widths_comparison',
+                'model_metrics_chart': 'model_comparison',
+                'feature_importance_chart': 'feature_importance',
+                'coverage_vs_expected_chart': 'coverage_vs_expected',
+                'width_vs_coverage_chart': 'width_vs_coverage',
+                'uncertainty_metrics_chart': 'uncertainty_metrics',
+                
+                # Also map the original names for backwards compatibility
+                'model_comparison': 'model_comparison',
+                'performance_gap_by_alpha': 'performance_gap_by_alpha',
+                'reliability_distribution': 'feature_reliability',
+                'marginal_bandwidth': 'interval_widths_comparison',
+                'model_metrics_comparison': 'model_comparison',
+                'feature_importance': 'feature_importance',
+                'coverage_vs_expected': 'coverage_vs_expected',
+                'width_vs_coverage': 'width_vs_coverage',
+                'uncertainty_metrics': 'uncertainty_metrics',
+                'feature_reliability': 'feature_reliability'
+            }
+            
+            # Add aliases for chart names to match template expectations
             if 'charts' in context and context['charts']:
+                # Clone the charts dictionary
+                mapped_charts = context['charts'].copy()
+                
+                # Add aliases for chart names to match template expectations
+                for old_name, new_name in chart_name_mapping.items():
+                    if old_name in context['charts']:
+                        mapped_charts[new_name] = context['charts'][old_name]
+                        logger.info(f"Mapped chart '{old_name}' to '{new_name}' for template compatibility")
+                
+                # Ensure all template-expected chart names are included if we have them
+                template_expected_charts = [
+                    'model_comparison', 'coverage_vs_expected', 'width_vs_coverage', 
+                    'performance_gap_by_alpha', 'uncertainty_metrics', 'feature_importance',
+                    'feature_reliability', 'interval_widths_comparison', 'residual_distribution',
+                    'feature_residual_correlation', 'distance_metrics_comparison',
+                    'feature_distance_heatmap', 'model_comparison_chart', 'model_resilience_scores'
+                ]
+                
+                # Log which expected charts are missing
+                missing_charts = [chart for chart in template_expected_charts if chart not in mapped_charts]
+                if missing_charts:
+                    logger.info(f"Missing charts needed by template: {missing_charts}")
+                
+                # Replace the charts with the mapped version
+                context['charts'] = mapped_charts
+                
+                # List all charts that were generated
                 logger.info("----- Charts Generated For Report -----")
                 for chart_name in context['charts'].keys():
                     logger.info(f"✓ {chart_name}")
@@ -352,6 +407,50 @@ class StaticUncertaintyRenderer:
             logger.error(f"Error generating placeholder chart: {str(e)}")
             return None
     
+    def _save_base64_to_file(self, base64_data: str, chart_name: str, charts_dir: str, charts_subdir: str) -> str:
+        """
+        Converts a base64 image string to a file and returns the relative URL.
+
+        Parameters:
+        -----------
+        base64_data : str
+            Base64 encoded image data (including the data:image/png;base64, prefix)
+        chart_name : str
+            Name of the chart (used for the filename)
+        charts_dir : str
+            Directory path where the chart should be saved
+        charts_subdir : str
+            Subdirectory name for the chart (used in the relative URL)
+
+        Returns:
+        --------
+        str : Relative URL path to the saved file
+        """
+        import base64
+        import os
+        
+        try:
+            # Extract the base64 part
+            if base64_data.startswith('data:image/png;base64,'):
+                img_data = base64_data.split('data:image/png;base64,')[1]
+                # Generate filename
+                chart_filename = f"{chart_name}.png"
+                chart_path = os.path.join(charts_dir, chart_filename)
+                
+                # Save to file
+                with open(chart_path, 'wb') as f:
+                    f.write(base64.b64decode(img_data))
+                logger.info(f"Saved {chart_filename} to {charts_dir}")
+                
+                # Return relative URL path to the saved file
+                return f"./{charts_subdir}/{chart_filename}"
+            else:
+                logger.error(f"Invalid base64 image format for chart {chart_name}")
+                return base64_data
+        except Exception as e:
+            logger.error(f"Error saving {chart_name} chart as PNG: {str(e)}")
+            return base64_data
+            
     def _generate_charts(self, report_data: Dict[str, Any], save_chart: bool = True) -> Dict[str, str]:
         """
         Generate all charts needed for the static report.
@@ -365,7 +464,7 @@ class StaticUncertaintyRenderer:
 
         Returns:
         --------
-        Dict[str, str] : Dictionary of chart names and their base64 encoded images
+        Dict[str, str] : Dictionary of chart names and either their base64 encoded images or file paths
         """
         # Initialize empty charts dictionary
         charts = {}
@@ -493,23 +592,7 @@ class StaticUncertaintyRenderer:
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
-                            import base64
-                            try:
-                                # Extract the base64 part
-                                if coverage_chart.startswith('data:image/png;base64,'):
-                                    img_data = coverage_chart.split('data:image/png;base64,')[1]
-                                    # Save to file
-                                    chart_filename = 'coverage_vs_expected.png'
-                                    chart_path = os.path.join(charts_dir, chart_filename)
-                                    with open(chart_path, 'wb') as f:
-                                        f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                    
-                                    # Replace base64 data with relative URL path to the saved file
-                                    # Use a path that's relative to the HTML file
-                                    charts['coverage_vs_expected'] = f"./{charts_subdir}/{chart_filename}"
-                            except Exception as e:
-                                logger.error(f"Error saving coverage chart as PNG: {str(e)}")
+                            charts['coverage_vs_expected'] = self._save_base64_to_file(coverage_chart, 'coverage_vs_expected', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating coverage vs expected chart: {str(e)}")
 
@@ -567,23 +650,7 @@ class StaticUncertaintyRenderer:
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
-                            import base64
-                            try:
-                                # Extract the base64 part
-                                if width_chart.startswith('data:image/png;base64,'):
-                                    img_data = width_chart.split('data:image/png;base64,')[1]
-                                    # Save to file
-                                    chart_filename = 'width_vs_coverage.png'
-                                    chart_path = os.path.join(charts_dir, chart_filename)
-                                    with open(chart_path, 'wb') as f:
-                                        f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                    
-                                    # Replace base64 data with relative URL path to the saved file
-                                    # Use a path that's relative to the HTML file
-                                    charts['width_vs_coverage'] = f"./{charts_subdir}/{chart_filename}"
-                            except Exception as e:
-                                logger.error(f"Error saving width chart as PNG: {str(e)}")
+                            charts['width_vs_coverage'] = self._save_base64_to_file(width_chart, 'width_vs_coverage', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating width vs coverage chart: {str(e)}")
 
@@ -620,23 +687,7 @@ class StaticUncertaintyRenderer:
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
-                            import base64
-                            try:
-                                # Extract the base64 part
-                                if metrics_chart.startswith('data:image/png;base64,'):
-                                    img_data = metrics_chart.split('data:image/png;base64,')[1]
-                                    # Save to file
-                                    chart_filename = 'uncertainty_metrics.png'
-                                    chart_path = os.path.join(charts_dir, chart_filename)
-                                    with open(chart_path, 'wb') as f:
-                                        f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                    
-                                    # Replace base64 data with relative URL path to the saved file
-                                    # Use a path that's relative to the HTML file
-                                    charts['uncertainty_metrics'] = f"./{charts_subdir}/{chart_filename}"
-                            except Exception as e:
-                                logger.error(f"Error saving metrics chart as PNG: {str(e)}")
+                            charts['uncertainty_metrics'] = self._save_base64_to_file(metrics_chart, 'uncertainty_metrics', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating uncertainty metrics chart: {str(e)}")
 
@@ -664,23 +715,7 @@ class StaticUncertaintyRenderer:
 
                             # Save chart to PNG if requested
                             if save_chart and charts_dir:
-                                import base64
-                                try:
-                                    # Extract the base64 part
-                                    if importance_chart.startswith('data:image/png;base64,'):
-                                        img_data = importance_chart.split('data:image/png;base64,')[1]
-                                        # Save to file
-                                        chart_filename = 'feature_importance.png'
-                                        chart_path = os.path.join(charts_dir, chart_filename)
-                                        with open(chart_path, 'wb') as f:
-                                            f.write(base64.b64decode(img_data))
-                                        logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                        
-                                        # Replace base64 data with relative URL path to the saved file
-                                        # Use a path that's relative to the HTML file
-                                        charts['feature_importance'] = f"./{charts_subdir}/{chart_filename}"
-                                except Exception as e:
-                                    logger.error(f"Error saving importance chart as PNG: {str(e)}")
+                                charts['feature_importance'] = self._save_base64_to_file(importance_chart, 'feature_importance', charts_dir, charts_subdir)
                     except Exception as e:
                         logger.error(f"Error generating feature importance chart: {str(e)}")
                 else:
@@ -730,23 +765,7 @@ class StaticUncertaintyRenderer:
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
-                            import base64
-                            try:
-                                # Extract the base64 part
-                                if comparison_chart.startswith('data:image/png;base64,'):
-                                    img_data = comparison_chart.split('data:image/png;base64,')[1]
-                                    # Save to file
-                                    chart_filename = 'model_comparison.png'
-                                    chart_path = os.path.join(charts_dir, chart_filename)
-                                    with open(chart_path, 'wb') as f:
-                                        f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                    
-                                    # Replace base64 data with relative URL path to the saved file
-                                    # Use a path that's relative to the HTML file
-                                    charts['model_comparison'] = f"./{charts_subdir}/{chart_filename}"
-                            except Exception as e:
-                                logger.error(f"Error saving comparison chart as PNG: {str(e)}")
+                            charts['model_comparison'] = self._save_base64_to_file(comparison_chart, 'model_comparison', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating model comparison chart: {str(e)}")
 
@@ -792,23 +811,7 @@ class StaticUncertaintyRenderer:
 
                         # Save chart to PNG if requested
                         if save_chart and charts_dir:
-                            import base64
-                            try:
-                                # Extract the base64 part
-                                if performance_gap_chart.startswith('data:image/png;base64,'):
-                                    img_data = performance_gap_chart.split('data:image/png;base64,')[1]
-                                    # Save to file
-                                    chart_filename = 'performance_gap_by_alpha.png'
-                                    chart_path = os.path.join(charts_dir, chart_filename)
-                                    with open(chart_path, 'wb') as f:
-                                        f.write(base64.b64decode(img_data))
-                                    logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                    
-                                    # Replace base64 data with relative URL path to the saved file
-                                    # Use a path that's relative to the HTML file
-                                    charts['performance_gap_by_alpha'] = f"./{charts_subdir}/{chart_filename}"
-                            except Exception as e:
-                                logger.error(f"Error saving performance gap chart as PNG: {str(e)}")
+                            charts['performance_gap_by_alpha'] = self._save_base64_to_file(performance_gap_chart, 'performance_gap_by_alpha', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating performance gap by alpha chart: {str(e)}")
                     
@@ -853,23 +856,7 @@ class StaticUncertaintyRenderer:
                                     
                                     # Save chart to PNG if requested
                                     if save_chart and charts_dir:
-                                        import base64
-                                        try:
-                                            # Extract the base64 part
-                                            if reliability_chart.startswith('data:image/png;base64,'):
-                                                img_data = reliability_chart.split('data:image/png;base64,')[1]
-                                                # Save to file
-                                                chart_filename = 'reliability_distribution.png'
-                                                chart_path = os.path.join(charts_dir, chart_filename)
-                                                with open(chart_path, 'wb') as f:
-                                                    f.write(base64.b64decode(img_data))
-                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                                
-                                                # Replace base64 data with relative URL path to the saved file
-                                                # Use a path that's relative to the HTML file
-                                                charts['reliability_distribution'] = f"./{charts_subdir}/{chart_filename}"
-                                        except Exception as e:
-                                            logger.error(f"Error saving reliability chart as PNG: {str(e)}")
+                                        charts['reliability_distribution'] = self._save_base64_to_file(reliability_chart, 'reliability_distribution', charts_dir, charts_subdir)
                                 else:
                                     logger.warning("generate_reliability_distribution returned None")
                             else:
@@ -916,23 +903,7 @@ class StaticUncertaintyRenderer:
                                     
                                     # Save chart to PNG if requested
                                     if save_chart and charts_dir:
-                                        import base64
-                                        try:
-                                            # Extract the base64 part
-                                            if bandwidth_chart.startswith('data:image/png;base64,'):
-                                                img_data = bandwidth_chart.split('data:image/png;base64,')[1]
-                                                # Save to file
-                                                chart_filename = 'marginal_bandwidth.png'
-                                                chart_path = os.path.join(charts_dir, chart_filename)
-                                                with open(chart_path, 'wb') as f:
-                                                    f.write(base64.b64decode(img_data))
-                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                                
-                                                # Replace base64 data with relative URL path to the saved file
-                                                # Use a path that's relative to the HTML file
-                                                charts['marginal_bandwidth'] = f"./{charts_subdir}/{chart_filename}"
-                                        except Exception as e:
-                                            logger.error(f"Error saving bandwidth chart as PNG: {str(e)}")
+                                        charts['marginal_bandwidth'] = self._save_base64_to_file(bandwidth_chart, 'marginal_bandwidth', charts_dir, charts_subdir)
                                 else:
                                     logger.warning("generate_marginal_bandwidth_chart returned None")
                             else:
@@ -974,23 +945,7 @@ class StaticUncertaintyRenderer:
                                     
                                     # Save chart to PNG if requested
                                     if save_chart and charts_dir:
-                                        import base64
-                                        try:
-                                            # Extract the base64 part
-                                            if interval_chart.startswith('data:image/png;base64,'):
-                                                img_data = interval_chart.split('data:image/png;base64,')[1]
-                                                # Save to file
-                                                chart_filename = 'interval_widths_boxplot.png'
-                                                chart_path = os.path.join(charts_dir, chart_filename)
-                                                with open(chart_path, 'wb') as f:
-                                                    f.write(base64.b64decode(img_data))
-                                                logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                                
-                                                # Replace base64 data with relative URL path to the saved file
-                                                # Use a path that's relative to the HTML file
-                                                charts['interval_widths_boxplot'] = f"./{charts_subdir}/{chart_filename}"
-                                        except Exception as e:
-                                            logger.error(f"Error saving interval chart as PNG: {str(e)}")
+                                        charts['interval_widths_boxplot'] = self._save_base64_to_file(interval_chart, 'interval_widths_boxplot', charts_dir, charts_subdir)
                                 else:
                                     logger.warning("generate_interval_widths_boxplot returned None")
                             else:
@@ -1012,22 +967,7 @@ class StaticUncertaintyRenderer:
                             
                             # Save chart to PNG if requested
                             if save_chart and charts_dir:
-                                import base64
-                                try:
-                                    # Extract the base64 part
-                                    if metrics_chart.startswith('data:image/png;base64,'):
-                                        img_data = metrics_chart.split('data:image/png;base64,')[1]
-                                        # Save to file
-                                        chart_filename = 'model_metrics_comparison.png'
-                                        chart_path = os.path.join(charts_dir, chart_filename)
-                                        with open(chart_path, 'wb') as f:
-                                            f.write(base64.b64decode(img_data))
-                                        logger.info(f"Saved {chart_filename} to {charts_dir}")
-                                        
-                                        # Replace base64 data with relative URL path to the saved file
-                                        charts['model_metrics_comparison'] = f"./{charts_subdir}/{chart_filename}"
-                                except Exception as e:
-                                    logger.error(f"Error saving metrics chart as PNG: {str(e)}")
+                                charts['model_metrics_comparison'] = self._save_base64_to_file(metrics_chart, 'model_metrics_comparison', charts_dir, charts_subdir)
                     except Exception as e:
                         logger.error(f"Error generating model metrics comparison: {str(e)}")
 
