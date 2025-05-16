@@ -15,6 +15,56 @@ class CoverageVsExpectedChart(BaseChartGenerator):
     Generate charts comparing real coverage with expected coverage at different alpha levels.
     """
     
+    def _validate_data(self, models_data):
+        """Validate input data for the chart."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        
+        logger.info(f"Validating coverage vs expected data: {type(models_data)}")
+        
+        if not isinstance(models_data, dict) or not models_data:
+            logger.warning("models_data is not a dictionary or is empty")
+            return False
+            
+        # Log the keys of models_data
+        logger.info(f"models_data keys: {list(models_data.keys())}")
+        
+        # At least one model needs to have valid data
+        for model_name, model_data in models_data.items():
+            logger.info(f"Checking model data for '{model_name}': {type(model_data)}")
+            
+            if not isinstance(model_data, dict):
+                logger.warning(f"Model data for '{model_name}' is not a dictionary")
+                continue
+                
+            # Log the keys in model_data
+            logger.info(f"model_data keys for '{model_name}': {list(model_data.keys())}")
+            
+            required_keys = ['alphas', 'coverages', 'expected_coverages']
+            for key in required_keys:
+                if key not in model_data:
+                    logger.warning(f"Missing required key '{key}' in model data for '{model_name}'")
+                    
+            if all(key in model_data for key in required_keys):
+                # Check if data is not empty
+                is_valid = True
+                for key in required_keys:
+                    if not isinstance(model_data[key], (list, tuple)):
+                        logger.warning(f"'{key}' for model '{model_name}' is not a list or tuple: {type(model_data[key])}")
+                        is_valid = False
+                    elif len(model_data[key]) == 0:
+                        logger.warning(f"'{key}' for model '{model_name}' is empty")
+                        is_valid = False
+                    else:
+                        logger.info(f"'{key}' for model '{model_name}' has {len(model_data[key])} values")
+                        
+                if is_valid:
+                    logger.info(f"Found valid data for model '{model_name}'")
+                    return True
+                        
+        logger.warning("No valid data found in models_data")
+        return False
+    
     def generate(self,
                 models_data: Dict[str, Dict[str, Any]],
                 title: str = "Coverage vs Expected Coverage",

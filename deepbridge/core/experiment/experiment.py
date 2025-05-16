@@ -70,8 +70,8 @@ class Experiment(IExperiment):
     
     def _process_initial_metrics(self):
         """Calculate initial metrics and standardize format"""
-        # Calculate initial metrics
-        self.initial_results = self.test_runner.run_initial_tests()
+        # Calculate initial metrics - pass self as experiment to allow access to surrogate model
+        self.initial_results = self.test_runner.run_initial_tests(experiment=self)
         
         # Process all models to ensure roc_auc is present and properly formatted
         if 'models' in self.initial_results:
@@ -410,10 +410,13 @@ class Experiment(IExperiment):
         
         # First, ensure we have initial metrics
         if not hasattr(self, 'initial_results') or not self.initial_results:
-            self.initial_results = self.test_runner.run_initial_tests()
+            # Pass self as experiment to allow access to surrogate model
+            self.initial_results = self.test_runner.run_initial_tests(experiment=self)
             
-        # Run the requested tests
-        test_results = self.test_runner.run_tests(config_name, **kwargs)
+        # Run the requested tests - pass self as experiment to allow access to surrogate model
+        test_kwargs = kwargs.copy()
+        test_kwargs['experiment'] = self
+        test_results = self.test_runner.run_tests(config_name, **test_kwargs)
         self._test_results.update(test_results)
         
         # Make model feature importance available in test_results for the report

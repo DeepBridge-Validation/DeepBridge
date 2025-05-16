@@ -1,5 +1,6 @@
 import typing as t
 import numpy as np
+import inspect
 
 # Import dataset factory directly since it doesn't create circular dependencies
 from deepbridge.utils.dataset_factory import DBDatasetFactory
@@ -65,10 +66,15 @@ class TestRunner:
         # Store test results
         self.test_results = {}
         
-    def run_initial_tests(self) -> dict:
+    def run_initial_tests(self, **kwargs) -> dict:
         """
         Simplified version that only calculates basic metrics for original and alternative models,
         and returns experiment configurations.
+        
+        Args:
+            **kwargs : dict
+                Additional parameters. Can include:
+                - experiment: The parent Experiment object
         
         Returns:
         --------
@@ -82,12 +88,46 @@ class TestRunner:
             'models': {}
         }
         
-        # Check if we have models to evaluate
-        if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            self.logger.warning("No model found in dataset.")
+        # Get the experiment object if provided
+        experiment = kwargs.get('experiment', None)
+        experiment_model = None
+        
+        # If experiment is provided, try to get the surrogate model
+        if experiment is not None and hasattr(experiment, 'distillation_model') and experiment.distillation_model is not None:
+            experiment_model = experiment.distillation_model
+            self.logger.info("Found surrogate model in provided experiment object for initial tests.")
+        else:
+            # Fallback to stack inspection method if experiment not provided directly
+            try:
+                frame = inspect.currentframe()
+                # Go up through the stack frames
+                while frame:
+                    if 'self' in frame.f_locals and isinstance(frame.f_locals['self'], object):
+                        parent = frame.f_locals['self']
+                        if hasattr(parent, 'distillation_model') and parent.distillation_model is not None:
+                            experiment_model = parent.distillation_model
+                            self.logger.info("Found surrogate model through stack inspection for initial tests.")
+                            break
+                    frame = frame.f_back
+            except Exception as e:
+                self.logger.warning(f"Error during stack inspection: {e}")
+                
+        # If no model in dataset and no surrogate model in experiment, skip further evaluation
+        if (not hasattr(self.dataset, 'model') or self.dataset.model is None) and experiment_model is None:
+            self.logger.warning("No model found in dataset or parent experiment.")
             
             # Still include configuration details
             return results
+            
+        # If we have a surrogate model in the experiment but not in dataset, use it for testing
+        if (not hasattr(self.dataset, 'model') or self.dataset.model is None) and experiment_model is not None:
+            self.logger.info("Using surrogate model from parent experiment for initial metrics.")
+            # Temporarily set the model in the dataset for testing using set_model method
+            if hasattr(self.dataset, 'set_model'):
+                self.dataset.set_model(experiment_model)
+                self.logger.info("Successfully set surrogate model in dataset.")
+            else:
+                self.logger.warning("Dataset does not have set_model method. Cannot use surrogate model.")
             
         # Calculate metrics for primary model
         primary_metrics = self._calculate_model_metrics(self.dataset.model, "primary_model")
@@ -450,7 +490,7 @@ class TestRunner:
         
         return test_results
     
-    def run_tests(self, config_name: str = 'quick') -> dict:
+    def run_tests(self, config_name: str = 'quick', **kwargs) -> dict:
         """
         Run all tests specified during initialization with the given configuration.
         
@@ -458,6 +498,9 @@ class TestRunner:
         -----------
         config_name : str
             Name of the configuration to use: 'quick', 'medium', or 'full'
+        **kwargs : dict
+            Additional parameters for tests. Can include:
+            - experiment: The parent Experiment object
             
         Returns:
         --------
@@ -465,10 +508,44 @@ class TestRunner:
         """
         self.logger.info(f"Running tests with {config_name} configuration...")
             
-        # Check if we have a model to test
-        if not hasattr(self.dataset, 'model') or self.dataset.model is None:
-            self.logger.warning("No model found in dataset. Skipping tests.")
+        # Get the experiment object if provided
+        experiment = kwargs.get('experiment', None)
+        experiment_model = None
+        
+        # If experiment is provided, try to get the surrogate model
+        if experiment is not None and hasattr(experiment, 'distillation_model') and experiment.distillation_model is not None:
+            experiment_model = experiment.distillation_model
+            self.logger.info("Found surrogate model in provided experiment object.")
+        else:
+            # Fallback to stack inspection method if experiment not provided directly
+            try:
+                frame = inspect.currentframe()
+                # Go up through the stack frames
+                while frame:
+                    if 'self' in frame.f_locals and isinstance(frame.f_locals['self'], object):
+                        parent = frame.f_locals['self']
+                        if hasattr(parent, 'distillation_model') and parent.distillation_model is not None:
+                            experiment_model = parent.distillation_model
+                            self.logger.info("Found surrogate model through stack inspection.")
+                            break
+                    frame = frame.f_back
+            except Exception as e:
+                self.logger.warning(f"Error during stack inspection: {e}")
+                
+        # If no model in dataset and no surrogate model in experiment, skip tests
+        if (not hasattr(self.dataset, 'model') or self.dataset.model is None) and experiment_model is None:
+            self.logger.warning("No model found in dataset or parent experiment. Skipping tests.")
             return {}
+        
+        # If we have a surrogate model in the experiment but not in dataset, use it for testing
+        if (not hasattr(self.dataset, 'model') or self.dataset.model is None) and experiment_model is not None:
+            self.logger.info("Using surrogate model from parent experiment for tests.")
+            # Temporarily set the model in the dataset for testing using set_model method
+            if hasattr(self.dataset, 'set_model'):
+                self.dataset.set_model(experiment_model)
+                self.logger.info("Successfully set surrogate model in dataset.")
+            else:
+                self.logger.warning("Dataset does not have set_model method. Cannot use surrogate model.")
             
         # Make sure we have run initial tests first to get base metrics
         if not hasattr(self, 'test_results') or not self.test_results or not 'models' in self.test_results:

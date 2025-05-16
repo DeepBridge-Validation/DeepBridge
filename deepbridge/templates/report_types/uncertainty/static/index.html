@@ -990,7 +990,7 @@
         {% endif %}
         
         <!-- Model Comparison Section -->
-        {% if charts.model_comparison_chart or charts.performance_gap_by_alpha or charts.model_resilience_scores %}
+        {% if charts.model_comparison_chart or charts.model_resilience_scores %}
         <div class="section">
             <h2 class="section-title">Model Comparison</h2>
 
@@ -1000,16 +1000,6 @@
                 <p class="chart-description">Compares resilience performance across different models under increasing stress levels. Models with more gradual decline are more resilient.</p>
                 <div class="chart-image-container">
                     <img src="{{ charts.model_comparison_chart }}" alt="Model resilience comparison" class="full-width-chart">
-                </div>
-            </div>
-            {% endif %}
-
-            {% if charts.performance_gap_by_alpha %}
-            <div class="chart-container">
-                <h3>Performance Gap by Alpha Level</h3>
-                <p class="chart-description">Shows how the performance gap changes across different alpha levels for each model. Models with smaller gaps at higher alpha levels demonstrate better resilience.</p>
-                <div class="chart-image-container">
-                    <img src="{{ charts.performance_gap_by_alpha }}" alt="Performance gap by alpha level" class="full-width-chart">
                 </div>
             </div>
             {% endif %}

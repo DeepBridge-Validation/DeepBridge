@@ -19,6 +19,80 @@ class ModelComparisonChart(BaseChartGenerator):
     """
     Generator for model comparison charts in uncertainty reports.
     """
+    
+    def _validate_data(self, models_data):
+        """
+        Validate data for model comparison chart.
+        
+        Parameters:
+        -----------
+        models_data : Dict[str, Any]
+            Data to validate
+        
+        Returns:
+        --------
+        bool : Whether the data is valid
+        """
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        
+        logger.info(f"Validating model comparison data: {type(models_data)}")
+        
+        if not isinstance(models_data, dict):
+            logger.warning("models_data is not a dictionary")
+            return False
+            
+        # Log the keys in models_data
+        logger.info(f"models_data keys: {list(models_data.keys())}")
+        
+        # Check for primary model metrics
+        has_primary_metrics = False
+        standard_metrics = ['uncertainty_score', 'coverage', 'mean_width']
+        
+        # Check each metric directly in models_data
+        for metric in standard_metrics:
+            if metric in models_data:
+                logger.info(f"Found primary model metric '{metric}': {models_data[metric]}")
+                has_primary_metrics = True
+                
+        # Check metrics dictionary if present
+        if 'metrics' in models_data and isinstance(models_data['metrics'], dict):
+            logger.info(f"metrics keys: {list(models_data['metrics'].keys())}")
+            for metric in standard_metrics:
+                if metric in models_data['metrics']:
+                    logger.info(f"Found primary model metric '{metric}' in metrics: {models_data['metrics'][metric]}")
+                    has_primary_metrics = True
+                    
+        # Check alternative models
+        has_alternative_models = False
+        if 'alternative_models' in models_data and isinstance(models_data['alternative_models'], dict):
+            logger.info(f"Found {len(models_data['alternative_models'])} alternative models")
+            
+            # Log up to 3 model names as examples
+            model_names = list(models_data['alternative_models'].keys())
+            if model_names:
+                logger.info(f"Example models: {model_names[:3]}")
+                
+            # Check if any alternative model has metrics
+            for model_name, model_data in models_data['alternative_models'].items():
+                if isinstance(model_data, dict):
+                    for metric in standard_metrics:
+                        if metric in model_data:
+                            logger.info(f"Found metric '{metric}' in alternative model '{model_name}'")
+                            has_alternative_models = True
+                            break
+                            
+                    if 'metrics' in model_data and isinstance(model_data['metrics'], dict):
+                        for metric in standard_metrics:
+                            if metric in model_data['metrics']:
+                                logger.info(f"Found metric '{metric}' in metrics of alternative model '{model_name}'")
+                                has_alternative_models = True
+                                break
+        
+        # Valid if we have either primary or alternative model metrics
+        is_valid = has_primary_metrics or has_alternative_models
+        logger.info(f"Model comparison data validation result: {is_valid}")
+        return is_valid
 
     def generate(self, models_data: Dict[str, Any], 
                  metrics: List[str] = None,

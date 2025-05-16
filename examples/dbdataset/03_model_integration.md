@@ -100,6 +100,59 @@ print(f"Dataset created with predictions only (no model object)")
 os.remove(model_path)
 ```
 
+## Method 5: Working with only class 1 probabilities for binary classification
+
+When working with binary classification, you can provide just the probability for class 1. The system will automatically calculate the probability for class 0 as (1 - probability for class 1).
+
+```python
+import pandas as pd
+import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from deepbridge.core.db_data import DBDataset
+
+# Load a binary classification dataset
+cancer = load_breast_cancer()
+X = pd.DataFrame(cancer.data, columns=cancer.feature_names)
+y = pd.Series(cancer.target, name='target')
+data = pd.concat([X, y], axis=1)
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# Let's say we only have class 1 probabilities (no model)
+# In a real scenario, these might come from an external source
+class1_train_probs = np.random.random(len(X_train))  # Simulated class 1 probabilities
+class1_test_probs = np.random.random(len(X_test))    # Simulated class 1 probabilities
+
+# Create DataFrames with only class 1 probability
+train_prob_df = pd.DataFrame({'prob_class_1': class1_train_probs})
+test_prob_df = pd.DataFrame({'prob_class_1': class1_test_probs})
+
+# Create dataset with just the class 1 probabilities
+# Note: prob_cols only includes the column for class 1
+db_dataset5 = DBDataset(
+    train_data=pd.concat([X_train.reset_index(drop=True), 
+                         y_train.reset_index(drop=True)], axis=1),
+    test_data=pd.concat([X_test.reset_index(drop=True), 
+                        y_test.reset_index(drop=True)], axis=1),
+    target_column='target',
+    prob_cols=['prob_class_1'],  # Only specify the class 1 probability column
+    train_predictions=train_prob_df,
+    test_predictions=test_prob_df
+)
+
+print("Dataset created with only class 1 probability")
+
+# You can access the probabilities and the system automatically calculates class 0 probability
+train_probs = db_dataset5.get_probabilities('train')
+print(f"Shape of probabilities array: {train_probs.shape}")  # Will have 2 columns (class 0 and class 1)
+print(f"First few probabilities:\n{train_probs[:5]}")  
+# Notice that class 0 probability (first column) is 1 - class 1 probability (second column)
+```
+
 ## Key Points
 
 - `DBDataset` offers multiple ways to work with models:
@@ -107,6 +160,8 @@ os.remove(model_path)
   2. Provide a trained model when creating the dataset
   3. Provide a path to a saved model file
   4. Provide pre-computed predictions when you don't have the original model
+  5. For binary classification, provide only class 1 probability
 
 - When providing a model or model path, `DBDataset` automatically generates predictions
 - The `prob_cols` parameter allows working with pre-computed probabilities when you don't have the model
+- For binary classification, you can provide just the probability for class 1, and the system will calculate class 0 probability as (1 - class 1 probability)

@@ -54,7 +54,15 @@ class ModelEvaluation:
                 if 'prob_class_1' in prob.columns:
                     print(f"Using 'prob_class_1' column from teacher probabilities")
                     teacher_prob_pos = prob['prob_class_1'].values
-                    teacher_probs = prob[['prob_class_0', 'prob_class_1']].values
+                    
+                    # Verifica se a coluna prob_class_0 existe, caso contrário, calcula-a
+                    if 'prob_class_0' in prob.columns:
+                        print(f"Found 'prob_class_0' column in teacher probabilities")
+                        teacher_probs = prob[['prob_class_0', 'prob_class_1']].values
+                    else:
+                        print(f"Calculating 'prob_class_0' as (1 - prob_class_1)")
+                        # Calcula prob_class_0 como 1 - prob_class_1
+                        teacher_probs = np.column_stack([1 - teacher_prob_pos, teacher_prob_pos])
                 else:
                     # Assume the last column is the probability of the positive class
                     print(f"Using last column as positive class probability")

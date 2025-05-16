@@ -49,7 +49,10 @@ class StaticUncertaintyTransformer:
         output = {
             'model_name': model_name,
             'test_type': 'uncertainty',
-            'timestamp': data.get('timestamp')
+            'timestamp': data.get('timestamp'),
+            # Initialize with empty structures to avoid KeyErrors
+            'metrics': {},  # Fix for "metrics não está disponível nos dados"
+            'feature_importance': {}
         }
 
         # Extract model type if available
@@ -126,16 +129,62 @@ class StaticUncertaintyTransformer:
                 # Extract alpha comparison data
                 if 'alpha_comparison' in plot_data:
                     alpha_data = plot_data['alpha_comparison']
+                    
+                    # Log what's in alpha_data
+                    logger.info(f"alpha_comparison keys: {list(alpha_data.keys()) if isinstance(alpha_data, dict) else 'not a dict'}")
+                    
+                    # Make sure we always have lists, not numpy arrays
+                    alpha_values = alpha_data.get('alphas', [])
+                    coverage_values = alpha_data.get('coverages', [])
+                    expected_coverages = alpha_data.get('expected_coverages', [])
+                    width_values = alpha_data.get('mean_widths', [])
+                    
+                    # Convert numpy arrays to lists if needed
+                    if hasattr(alpha_values, 'tolist') and callable(getattr(alpha_values, 'tolist')):
+                        alpha_values = alpha_values.tolist()
+                    elif not isinstance(alpha_values, list):
+                        try:
+                            alpha_values = list(alpha_values)
+                        except:
+                            alpha_values = []
+                            
+                    if hasattr(coverage_values, 'tolist') and callable(getattr(coverage_values, 'tolist')):
+                        coverage_values = coverage_values.tolist()
+                    elif not isinstance(coverage_values, list):
+                        try:
+                            coverage_values = list(coverage_values)
+                        except:
+                            coverage_values = []
+                            
+                    if hasattr(expected_coverages, 'tolist') and callable(getattr(expected_coverages, 'tolist')):
+                        expected_coverages = expected_coverages.tolist()
+                    elif not isinstance(expected_coverages, list):
+                        try:
+                            expected_coverages = list(expected_coverages)
+                        except:
+                            expected_coverages = []
+                            
+                    if hasattr(width_values, 'tolist') and callable(getattr(width_values, 'tolist')):
+                        width_values = width_values.tolist()
+                    elif not isinstance(width_values, list):
+                        try:
+                            width_values = list(width_values)
+                        except:
+                            width_values = []
+                    
                     output['calibration_results'] = {
-                        'alpha_values': alpha_data.get('alphas', []),
-                        'coverage_values': alpha_data.get('coverages', []),
-                        'expected_coverages': alpha_data.get('expected_coverages', []),
-                        'width_values': alpha_data.get('mean_widths', [])
+                        'alpha_values': alpha_values,
+                        'coverage_values': coverage_values,
+                        'expected_coverages': expected_coverages,
+                        'width_values': width_values
                     }
+                    
+                    # Log transformed data
+                    logger.info(f"Transformed calibration_results: {output['calibration_results']}")
 
                     # If alphas not already set, use from alpha_comparison
-                    if 'alpha_levels' not in output and 'alphas' in alpha_data:
-                        output['alpha_levels'] = alpha_data['alphas']
+                    if 'alpha_levels' not in output and alpha_values:
+                        output['alpha_levels'] = alpha_values
 
                 # Extract feature importance with proper format
                 if 'feature_importance' in plot_data and isinstance(plot_data['feature_importance'], list):
@@ -168,10 +217,118 @@ class StaticUncertaintyTransformer:
             # Extract feature reliability if available
             if 'feature_reliability' in primary_model:
                 output['feature_reliability'] = primary_model['feature_reliability']
+                
+            # Extract enhanced reliability analysis if available with detailed logging
+            if 'reliability_analysis' in primary_model:
+                logger.info("[TRANSFORM_DEBUG] Found reliability_analysis in primary_model")
+                logger.info(f"[TRANSFORM_DEBUG] reliability_analysis keys: {list(primary_model['reliability_analysis'].keys())}")
+                
+                # Check if feature_distributions is present
+                if 'feature_distributions' in primary_model['reliability_analysis']:
+                    ra_fd = primary_model['reliability_analysis']['feature_distributions']
+                    logger.info(f"[TRANSFORM_DEBUG] feature_distributions types: {list(ra_fd.keys())}")
+                    
+                    # Check each distribution type
+                    for dist_type, features in ra_fd.items():
+                        logger.info(f"[TRANSFORM_DEBUG] '{dist_type}' has {len(features)} features")
+                        feature_names = list(features.keys())
+                        if feature_names:
+                            logger.info(f"[TRANSFORM_DEBUG] '{dist_type}' example features: {feature_names[:3]}")
+                            
+                            # Check feature value arrays
+                            for feature in feature_names[:2]:
+                                values = features[feature]
+                                if isinstance(values, list):
+                                    logger.info(f"[TRANSFORM_DEBUG] '{dist_type}' feature '{feature}' has {len(values)} values")
+                                else:
+                                    logger.info(f"[TRANSFORM_DEBUG] '{dist_type}' feature '{feature}' has non-list data: {type(values)}")
+                
+                # Copy the data to output
+                output['reliability_analysis'] = primary_model['reliability_analysis'].copy()
+                logger.info("[TRANSFORM_DEBUG] Copied reliability_analysis to output")
+                
+            # Extract marginal bandwidth data if available
+            if 'marginal_bandwidth' in primary_model:
+                logger.info("[TRANSFORM_DEBUG] Found marginal_bandwidth in primary_model")
+                logger.info(f"[TRANSFORM_DEBUG] marginal_bandwidth has {len(primary_model['marginal_bandwidth'])} features")
+                
+                feature_names = list(primary_model['marginal_bandwidth'].keys())
+                if feature_names:
+                    logger.info(f"[TRANSFORM_DEBUG] marginal_bandwidth features: {feature_names}")
+                    
+                    # Check each feature's data
+                    for feature in feature_names[:2]:  # Look at first 2 features
+                        feature_data = primary_model['marginal_bandwidth'][feature]
+                        logger.info(f"[TRANSFORM_DEBUG] Feature '{feature}' data keys: {list(feature_data.keys())}")
+                        
+                        # Check arrays
+                        for key, value in feature_data.items():
+                            if isinstance(value, list):
+                                logger.info(f"[TRANSFORM_DEBUG] '{feature}' {key} has {len(value)} values")
+                            else:
+                                logger.info(f"[TRANSFORM_DEBUG] '{feature}' {key} = {value}")
+                
+                # Copy the data to output
+                output['marginal_bandwidth'] = primary_model['marginal_bandwidth'].copy()
+                logger.info("[TRANSFORM_DEBUG] Copied marginal_bandwidth to output")
+                
+            # Extract interval widths for boxplots/violinplots
+            if 'interval_widths' in primary_model:
+                logger.info("[TRANSFORM_DEBUG] Found interval_widths in primary_model")
+                
+                # Log details based on type
+                if isinstance(primary_model['interval_widths'], dict):
+                    logger.info(f"[TRANSFORM_DEBUG] interval_widths is a dictionary with keys: {list(primary_model['interval_widths'].keys())}")
+                    
+                    # Check values
+                    for model, widths in primary_model['interval_widths'].items():
+                        if isinstance(widths, list):
+                            logger.info(f"[TRANSFORM_DEBUG] Model '{model}' has {len(widths)} width values")
+                        else:
+                            logger.info(f"[TRANSFORM_DEBUG] Model '{model}' has non-list data: {type(widths)}")
+                            
+                elif isinstance(primary_model['interval_widths'], list):
+                    logger.info(f"[TRANSFORM_DEBUG] interval_widths is a list with {len(primary_model['interval_widths'])} elements")
+                    
+                    # Check first element
+                    if primary_model['interval_widths']:
+                        first_item = primary_model['interval_widths'][0]
+                        logger.info(f"[TRANSFORM_DEBUG] First element type: {type(first_item)}")
+                        
+                        if isinstance(first_item, dict):
+                            logger.info(f"[TRANSFORM_DEBUG] First element keys: {list(first_item.keys())}")
+                        elif isinstance(first_item, list):
+                            logger.info(f"[TRANSFORM_DEBUG] First element is a list with {len(first_item)} values")
+                else:
+                    logger.info(f"[TRANSFORM_DEBUG] interval_widths has unexpected type: {type(primary_model['interval_widths'])}")
+                
+                # Copy the data to output
+                output['interval_widths'] = primary_model['interval_widths']
+                logger.info("[TRANSFORM_DEBUG] Copied interval_widths to output")
 
         # If feature_importance not in plot_data, try getting from top level
         if 'feature_importance' not in output and 'feature_importance' in data:
             output['feature_importance'] = data['feature_importance']
+            
+        # Check for enhanced data at top level
+        if 'reliability_analysis' not in output and 'reliability_analysis' in data:
+            output['reliability_analysis'] = data['reliability_analysis']
+            
+        if 'marginal_bandwidth' not in output and 'marginal_bandwidth' in data:
+            output['marginal_bandwidth'] = data['marginal_bandwidth']
+            
+        if 'interval_widths' not in output and 'interval_widths' in data:
+            output['interval_widths'] = data['interval_widths']
+            
+        # Additional metrics from top level
+        if 'mse' in data:
+            output['mse'] = data['mse']
+        if 'mae' in data:
+            output['mae'] = data['mae']
+        if 'predictions' in data:
+            output['predictions'] = data['predictions']
+        if 'dataset' in data:
+            output['dataset'] = data['dataset']
 
             # Format for charts if needed
             if 'feature_importance_data' not in output:
