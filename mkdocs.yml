@@ -7,52 +7,101 @@ repo_name: deepbridge
 theme:
   name: material
   palette:
-    primary: indigo
-    accent: indigo
-  logo: assets/images/deepbridge-logo.svg
-  favicon: assets/images/deepbridge-logo.svg
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.ico
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
     - navigation.instant
     - navigation.tracking
     - navigation.top
+    - navigation.indexes
     - search.highlight
     - search.share
+    - search.suggest
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+    - toc.integrate
   font:
-    text: Roboto
-    code: Roboto Mono
+    text: Inter
+    code: JetBrains Mono
   language: en
   mathjax: true 
 
 nav:
   - Home: index.md
-  - User Guide:
+  
+  - Getting Started:
+    - Installation: tutorials/install.md
     - Quick Start: tutorials/quickstart.md
-    - Auto Distiller: tutorials/AutoDistiller.md
-    - Model Validation: guides/validation.md
-    - Model Distillation: guides/distillation.md
-    - CLI Usage: guides/cli.md
-  - API Reference:
-    - Data: api/db_data.md
-    - Experiment: api/experiment.md
-    - CLI: api/cli.md
-  - Synthetic Data: 
-      - Synthesizer: api/synthetic.md
-      - Methods: 
-          - UltraLightGenerator: concepts/synthetic_UltraLightGenerator.md
-          - Gaussian Copula: concepts/synthetic_gaussian_copula.md
-          - CTGAN: concepts/synthetic_ctgan.md          
-  - Distiller Models:
-    - Knowledge Distillation: concepts/knowledge_distillation.md
-    - How a Student Model Learns from a Teacher Model: concepts/model_learns.md
-    - What is Knowledge Distillation?: concepts/what_Knowledge.md
-    - Auto Distiller: concepts/auto_distillation.md
+    - Basic Examples: tutorials/basic_examples.md
+    
+  - User Guide:
+    - Core Concepts:
+      - Model Validation: guides/validation.md
+      - Model Distillation: guides/distillation.md
+      - Synthetic Data: guides/synthetic_data.md
+    - Tutorials:
+      - Auto Distiller Tutorial: tutorials/AutoDistiller.md
+      - Complete Workflow: tutorials/complete_workflow.md
+    - CLI Reference: guides/cli.md
+    
+  - Features:
+    - Model Validation:
+      - Testing Framework: technical/testing_framework.md
+      - Robustness Testing: concepts/robustness.md
+      - Report Generation: technical/report_generation.md
+    - Model Distillation:
+      - Knowledge Distillation Concepts: concepts/knowledge_distillation.md
+      - How Models Learn: concepts/model_learns.md
+      - What is Knowledge Distillation?: concepts/what_Knowledge.md
+      - Auto Distillation: concepts/auto_distillation.md
+    - Synthetic Data:
+      - Overview: concepts/synthetic_data.md
+      - Gaussian Copula: concepts/synthetic_gaussian_copula.md
+      - UltraLight Generator: concepts/synthetic_UltraLightGenerator.md
+      - CTGAN: concepts/synthetic_ctgan.md
+      
+  - Technical Reference:
+    - Architecture:
+      - Implementation Guide: technical/implementation_guide.md
+    - API Reference:
+      - Complete API Reference: api/complete_reference.md
+      - Core APIs:
+        - DBDataset: api/db_data.md
+        - Experiment: api/experiment.md
+        - Auto Distiller: api/auto_distiller.md
+        - Synthetic Data: api/synthetic.md
+      - CLI API: api/cli.md
+      
   - Advanced Topics:
     - Custom Models: advanced/custom_models.md
-    - Optimization: advanced/optimization.md
-    - Deployment: advanced/deployment.md
-  - Contributing: contributing.md
-  - License: license.md
+    - Performance Optimization: advanced/optimization.md
+    - Production Deployment: advanced/deployment.md
+    
+  - Resources:
+    - FAQ: resources/faq.md
+    - Troubleshooting: resources/troubleshooting.md
+    - Contributing: contributing.md
+    - License: license.md
 
 extra_css:
   - assets/custom.css
@@ -62,32 +111,72 @@ markdown_extensions:
   - codehilite
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
-  - pymdownx.tasklist
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
   - toc:
       permalink: true
+      toc_depth: 3
+  - attr_list
+  - md_in_html
+  - def_list
 
 plugins:
-- macros
-- mkdocstrings:
-    handlers:
-      python:
-        paths: [deepbridge]
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+  - macros
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [deepbridge]
+          options:
+            show_source: true
+            show_bases: true
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/DeepBridge-Validation/DeepBridge
+      name: GitHub Repository
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/deepbridge/
+      name: PyPI Package
+    - icon: fontawesome/solid/envelope
+      link: mailto:gustavo.haase@gmail.com
+      name: Contact Us
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+  version:
+    provider: mike
+    default: latest
 
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js
+  - assets/js/custom.js
 
 copyright: Copyright &copy; 2025 DeepBridge-Validation

@@ -3,6 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/deepbridge/badge/?version=latest)](https://deepbridge.readthedocs.io/en/latest/)
 [![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
 [![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
+[![PyPI Downloads](https://static.pepy.tech/badge/deepbridge)](https://pepy.tech/projects/deepbridge)
 
 DeepBridge is a comprehensive Python library for advanced machine learning model validation, distillation, and performance analysis. It provides powerful tools to manage experiments, validate models, create more efficient model versions, and conduct in-depth performance evaluations.
 
@@ -24,6 +25,12 @@ pip install -e .
 
 ## Key Features
 
+- **Comprehensive Testing Framework**
+  - Robustness testing with perturbation analysis
+  - Uncertainty quantification using conformal prediction
+  - Resilience testing under distribution shifts
+  - Hyperparameter importance analysis
+
 - **Model Validation**
   - Experiment tracking and management
   - Comprehensive model performance analysis
@@ -32,36 +39,57 @@ pip install -e .
 
 - **Model Distillation**
   - Knowledge distillation across multiple model types
-  - Advanced configuration options
-  - Performance optimization
-  - Probabilistic model compression
+  - Automated distillation with hyperparameter optimization
+  - Support for GBM, XGBoost, and neural networks
+  - Performance optimization and model compression
 
-- **Advanced Analytics**
-  - Detailed performance metrics
-  - Distribution analysis
-  - Visualization of model performance
-  - Precision-recall trade-off analysis
+- **Advanced Analytics & Reporting**
+  - Interactive HTML reports with Plotly visualizations
+  - Static reports for documentation
+  - Detailed performance metrics and analysis
+  - Multi-model comparison capabilities
+
+- **Synthetic Data Generation**
+  - Gaussian Copula method
+  - Privacy-preserving data synthesis
+  - Quality metrics and validation
+  - Integration with validation pipeline
 
 ## Quick Start
 
-### Model Distillation
+### Model Validation
 ```python
-from deepbridge.model_distiller import ModelDistiller
-
-# Create and train distilled model
-distiller = ModelDistiller(model_type="gbm")
-distiller.fit(X=features, probas=predictions)
-
-# Make predictions
-predictions = distiller.predict(X_new)
-```
-
-### Automated Distillation
-```python
-from deepbridge.auto_distiller import AutoDistiller
+from deepbridge.core.experiment import Experiment
 from deepbridge.db_data import DBDataset
 
 # Create dataset
+dataset = DBDataset(
+    data=df,
+    target_column='target',
+    features=['feature1', 'feature2', 'feature3']
+)
+
+# Create experiment
+experiment = Experiment(
+    name='model_validation',
+    dataset=dataset,
+    models={'my_model': trained_model}
+)
+
+# Run validation tests
+robustness_results = experiment.run_test('robustness', config='medium')
+uncertainty_results = experiment.run_test('uncertainty', config='medium')
+
+# Generate comprehensive report
+experiment.generate_report('robustness', output_dir='./reports')
+```
+
+### Model Distillation
+```python
+from deepbridge.distillation import AutoDistiller
+from deepbridge.db_data import DBDataset
+
+# Create dataset with predictions
 dataset = DBDataset(
     data=df,
     target_column='target',
@@ -81,27 +109,52 @@ results = distiller.run(use_probabilities=True)
 
 ## Command-Line Interface
 ```bash
-# Create experiment
-deepbridge validation create my_experiment --path ./experiments
+# Run model validation
+deepbridge validate --dataset data.csv --model model.pkl --tests all
+
+# Generate reports
+deepbridge report --results ./results --output ./reports --format interactive
 
 # Train distilled model
 deepbridge distill train gbm predictions.csv features.csv -s ./models
+
+# Generate synthetic data
+deepbridge synthetic generate --data original.csv --method gaussian_copula --samples 10000
 ```
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10-3.12
 - Key Dependencies:
-  - numpy
-  - pandas
-  - scikit-learn
-  - xgboost
-  - scipy
-  - matplotlib
+  - numpy >= 2.2.3
+  - pandas >= 2.2.3
+  - scikit-learn >= 1.6.1
+  - xgboost >= 2.1.4
+  - scipy >= 1.15.1
+  - matplotlib >= 3.10.0
+  - seaborn >= 0.13.2
+  - plotly >= 6.0.0
+  - optuna >= 4.2.1
+  - jinja2 >= 3.1.5
 
 ## Documentation
 
-Full documentation available at: [DeepBridge Documentation](https://deepbridge.readthedocs.io/)
+Full documentation is available at: [DeepBridge Documentation](https://deepbridge.readthedocs.io/)
+
+### Key Documentation Sections
+
+- **[Getting Started](https://deepbridge.readthedocs.io/en/latest/tutorials/install/)** - Installation and basic examples
+- **[User Guide](https://deepbridge.readthedocs.io/en/latest/guides/validation/)** - Core concepts and tutorials
+- **[Technical Reference](https://deepbridge.readthedocs.io/en/latest/technical/implementation_guide/)** - Architecture and implementation details
+- **[API Reference](https://deepbridge.readthedocs.io/en/latest/api/complete_reference/)** - Complete API documentation
+
+### Quick Links
+
+- [Installation Guide](https://deepbridge.readthedocs.io/en/latest/tutorials/install/)
+- [Basic Examples](https://deepbridge.readthedocs.io/en/latest/tutorials/basic_examples/)
+- [Complete Workflow](https://deepbridge.readthedocs.io/en/latest/tutorials/complete_workflow/)
+- [FAQ](https://deepbridge.readthedocs.io/en/latest/resources/faq/)
+- [Troubleshooting](https://deepbridge.readthedocs.io/en/latest/resources/troubleshooting/)
 
 ## Contributing
 
@@ -113,8 +166,9 @@ We welcome contributions! Please see our contribution guidelines for details on 
 4. Push to the branch
 5. Open a Pull Request
 
-### Recent Fixes
+### Recent Updates
 
+- **2025-07-02**: Added comprehensive documentation including Implementation Guide, Testing Framework, Report Generation, and complete API Reference
 - **2025-05-15**: Fixed static report chart URLs to properly use relative paths with `./` prefix for improved portability across different environments
 
 ## Development Setup

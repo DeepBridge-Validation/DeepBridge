@@ -336,9 +336,9 @@ except Exception as e:
 
 ## Next Steps
 
-- Explore the [Advanced Guides](advanced/index.md)
-- Consult the [API Reference](api/index.md)
-- Join the [DeepBridge Community](community.md)
+- Explore the [Advanced Topics](../advanced/custom_models.md)
+- Consult the [API Reference](../api/complete_reference.md)
+- Join the [DeepBridge Community](https://github.com/DeepBridge-Validation/DeepBridge/discussions)
 
 ## Final Tips
 

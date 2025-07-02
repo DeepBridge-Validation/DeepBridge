@@ -1,9 +1,14 @@
-![DeepBridge Logo](/assets/images/logo.svg)
+<div align="center" style="background: #1A237E; padding: 3rem; border-radius: 20px; margin: 2rem auto; max-width: 800px;">
 
-# DeepBridge: Advanced Machine Learning Model Validation and Distillation
+<img src="assets/images/logo.png" alt="DeepBridge Logo" style="max-width: 1000px; margin: 1rem auto; display: block; filter: none;">
+
+</div>
+
+<h1 align="center" style="color: #1a237e; margin-top: 2rem;">DeepBridge: Advanced Machine Learning Model Validation and Distillation</h1>
 
 [![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
 [![Documentation Status](https://readthedocs.org/projects/deepbridge/badge/?version=latest)](https://deepbridge.readthedocs.io/en/latest/)
+[![PyPI Downloads](https://static.pepy.tech/badge/deepbridge)](https://pepy.tech/projects/deepbridge)
 
 ## Why DeepBridge?
 
@@ -101,7 +106,7 @@ deepbridge distill predict ./models/model.joblib new_data.csv -o predictions.csv
 - Check out the [Quick Start Guide](tutorials/quickstart.md) for a detailed introduction
 - Learn about [Model Validation](guides/validation.md)
 - Explore [Model Distillation](guides/distillation.md)
-- See the [API Reference](api/model_validation.md) for detailed documentation
+- See the [API Reference](api/complete_reference.md) for detailed documentation
 
 ## Contributing
 

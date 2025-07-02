@@ -306,5 +306,5 @@ def manage_resources(data_size, available_memory):
 ## Next Steps
 
 - Check [Model Validation](../guides/validation.md) for experiment management
-- See [Custom Models](../guides/custom_models.md) for model implementation
-- Review [API Reference](../api/model_validation.md) for detailed documentation
+- See [Custom Models](custom_models.md) for model implementation
+- Review [API Reference](../api/complete_reference.md) for detailed documentation
