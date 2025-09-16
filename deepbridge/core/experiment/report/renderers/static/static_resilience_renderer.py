@@ -1122,5 +1122,106 @@ class StaticResilienceRenderer:
             logger.error(f"Error generating performance gap by alpha chart: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
 
+        # 12. Model Resilience Scores Chart (Added to fix missing chart)
+        logger.info("Generating model resilience scores chart")
+        try:
+            # Prepare models data for resilience scores
+            models_scores_data = {}
+
+            # Get primary model data
+            primary_model_name = report_data.get('model_name', 'Primary Model')
+            primary_resilience_score = report_data.get('resilience_score')
+
+            if primary_resilience_score is not None:
+                models_scores_data[primary_model_name] = {
+                    'score': primary_resilience_score,
+                    'performance_gap': report_data.get('avg_performance_gap', 0)
+                }
+
+            # Add alternative models
+            alternative_models = report_data.get('alternative_models', {})
+            if alternative_models and isinstance(alternative_models, dict):
+                for model_name, model_data in alternative_models.items():
+                    if isinstance(model_data, dict):
+                        model_score = model_data.get('resilience_score')
+                        if model_score is not None:
+                            models_scores_data[model_name] = {
+                                'score': model_score,
+                                'performance_gap': model_data.get('avg_performance_gap', 0)
+                            }
+
+            # Generate the chart if we have data
+            if models_scores_data and self.resilience_chart_generator:
+                try:
+                    logger.info(f"Calling generate_model_resilience_scores with {len(models_scores_data)} models")
+                    scores_chart = self.resilience_chart_generator.generate_model_resilience_scores(
+                        models_data=models_scores_data,
+                        title="Resilience Scores by Model",
+                        sort_by="score",
+                        ascending=False
+                    )
+
+                    if scores_chart:
+                        charts['model_resilience_scores'] = scores_chart
+                        logger.info(f"Generated model resilience scores chart: {len(scores_chart)} bytes")
+                    else:
+                        logger.error("generate_model_resilience_scores returned empty result")
+                except Exception as inner_e:
+                    logger.error(f"Error in generate_model_resilience_scores: {str(inner_e)}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+            else:
+                if not models_scores_data:
+                    logger.warning("No models data available for resilience scores chart")
+                if not self.resilience_chart_generator:
+                    logger.error("resilience_chart_generator is not available")
+        except Exception as e:
+            logger.error(f"Error generating model resilience scores chart: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        # 13. Performance Gap by Alpha Chart (ensure it's generated properly)
+        logger.info("Ensuring Performance Gap by Alpha chart is generated")
+        try:
+            # Check if we have by_alpha data
+            by_alpha = report_data.get('by_alpha')
+            if by_alpha and isinstance(by_alpha, dict) and 'performance_gap_by_alpha' not in charts:
+                # Prepare data for the chart
+                alpha_levels = []
+                performance_gaps = []
+
+                for alpha_str in sorted(by_alpha.keys()):
+                    alpha_data = by_alpha[alpha_str]
+                    if isinstance(alpha_data, dict):
+                        try:
+                            alpha_levels.append(float(alpha_str))
+                            gap = alpha_data.get('performance_gap',
+                                                alpha_data.get('remaining_score', 0) - alpha_data.get('worst_score', 0))
+                            performance_gaps.append(gap)
+                        except (ValueError, TypeError):
+                            continue
+
+                if alpha_levels and performance_gaps and self.resilience_chart_generator:
+                    # Create models_data with single model
+                    models_perf_data = {
+                        report_data.get('model_name', 'Model'): {
+                            'gaps': performance_gaps
+                        }
+                    }
+
+                    try:
+                        gap_chart = self.resilience_chart_generator.generate_performance_gap_by_alpha(
+                            alpha_levels=alpha_levels,
+                            models_data=models_perf_data,
+                            title="Performance Gap by Alpha Level",
+                            y_label="Performance Gap"
+                        )
+
+                        if gap_chart:
+                            charts['performance_gap_by_alpha'] = gap_chart
+                            logger.info(f"Generated performance gap by alpha chart: {len(gap_chart)} bytes")
+                    except Exception as inner_e:
+                        logger.error(f"Error in generate_performance_gap_by_alpha: {str(inner_e)}")
+        except Exception as e:
+            logger.error(f"Error ensuring performance gap by alpha chart: {str(e)}")
+
         logger.info(f"Generated {len(charts)} charts for resilience report")
         return charts

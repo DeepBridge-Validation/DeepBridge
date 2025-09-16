@@ -30,13 +30,13 @@ class RobustnessSuite:
             {'type': 'raw', 'params': {'level': 0.1}},
             {'type': 'raw', 'params': {'level': 0.2}}
         ],
-        
+
         'medium': [
             {'type': 'raw', 'params': {'level': 0.1}},
             {'type': 'raw', 'params': {'level': 0.2}},
             {'type': 'raw', 'params': {'level': 0.4}}
         ],
-        
+
         'full': [
             {'type': 'raw', 'params': {'level': 0.1}},
             {'type': 'raw', 'params': {'level': 0.2}},
@@ -44,6 +44,38 @@ class RobustnessSuite:
             {'type': 'raw', 'params': {'level': 0.6}},
             {'type': 'raw', 'params': {'level': 0.8}},
             {'type': 'raw', 'params': {'level': 1.0}}
+        ],
+
+        # Method comparison configurations (includes both raw and quantile)
+        'quick_compare': [
+            {'type': 'raw', 'params': {'level': 0.1}},
+            {'type': 'raw', 'params': {'level': 0.2}},
+            {'type': 'quantile', 'params': {'level': 0.1}},
+            {'type': 'quantile', 'params': {'level': 0.2}}
+        ],
+
+        'medium_compare': [
+            {'type': 'raw', 'params': {'level': 0.1}},
+            {'type': 'raw', 'params': {'level': 0.2}},
+            {'type': 'raw', 'params': {'level': 0.4}},
+            {'type': 'quantile', 'params': {'level': 0.1}},
+            {'type': 'quantile', 'params': {'level': 0.2}},
+            {'type': 'quantile', 'params': {'level': 0.4}}
+        ],
+
+        'full_compare': [
+            {'type': 'raw', 'params': {'level': 0.1}},
+            {'type': 'raw', 'params': {'level': 0.2}},
+            {'type': 'raw', 'params': {'level': 0.4}},
+            {'type': 'raw', 'params': {'level': 0.6}},
+            {'type': 'raw', 'params': {'level': 0.8}},
+            {'type': 'raw', 'params': {'level': 1.0}},
+            {'type': 'quantile', 'params': {'level': 0.1}},
+            {'type': 'quantile', 'params': {'level': 0.2}},
+            {'type': 'quantile', 'params': {'level': 0.4}},
+            {'type': 'quantile', 'params': {'level': 0.6}},
+            {'type': 'quantile', 'params': {'level': 0.8}},
+            {'type': 'quantile', 'params': {'level': 1.0}}
         ]
     }
     
@@ -231,73 +263,94 @@ class RobustnessSuite:
             if self.verbose:
                 print(f"\nRunning test {test_idx}/{len(self.current_config)}: {test_type}, level={level}")
                 
-            # Evaluate perturbation
-            eval_result = self.evaluator.evaluate_perturbation(
-                X, y, test_type, level, test_feature_subset
-            )
-            
             # Store result by level
             level_key = str(level)
-            # Simplify to just use the current run state
-            run_key = 'feature_subset' if self.feature_subset else 'all_features'
+
+            # For feature subset comparison, test both all_features and feature_subset
+            if test_feature_subset:
+                # Test both all features and feature subset for comparison
+                eval_results = {}
+
+                # Test all features
+                eval_results['all_features'] = self.evaluator.evaluate_perturbation(
+                    X, y, test_type, level, None  # None = all features
+                )
+
+                # Test feature subset
+                eval_results['feature_subset'] = self.evaluator.evaluate_perturbation(
+                    X, y, test_type, level, test_feature_subset
+                )
+            else:
+                # Only test all features if no subset specified
+                eval_results = {
+                    'all_features': self.evaluator.evaluate_perturbation(
+                        X, y, test_type, level, None
+                    )
+                }
             
+            # Process results for raw method
             if test_type == 'raw':
                 if level_key not in results['raw']['by_level']:
                     results['raw']['by_level'][level_key] = {'runs': {}, 'overall_result': {}}
-                
+
                 # Initialize storage for both all_features and feature_subset if they don't exist
                 if 'all_features' not in results['raw']['by_level'][level_key]['runs']:
                     results['raw']['by_level'][level_key]['runs']['all_features'] = []
                 if 'feature_subset' not in results['raw']['by_level'][level_key]['runs']:
                     results['raw']['by_level'][level_key]['runs']['feature_subset'] = []
-                
-                # Add result to the appropriate category
-                results['raw']['by_level'][level_key]['runs'][run_key].append(eval_result)
-                all_raw_impacts.append(eval_result['impact'])
-                all_impacts.append(eval_result['impact'])
-                
-                # Calculate overall result for this level and run_key
-                runs = results['raw']['by_level'][level_key]['runs'][run_key]
-                mean_score = np.mean([run['perturbed_score'] for run in runs])
-                std_score = np.std([run['perturbed_score'] for run in runs])
-                worst_scores = [run.get('worst_score', 0) for run in runs]
-                
-                # Store results under the appropriate key
-                results['raw']['by_level'][level_key]['overall_result'][run_key] = {
-                    'mean_score': mean_score,
-                    'std_score': std_score,
-                    'impact': np.mean([run['impact'] for run in runs]),
-                    'worst_score': np.mean(worst_scores) if worst_scores else 0
-                }
-                
+
+                # Process each eval_result
+                for run_key, eval_result in eval_results.items():
+                    # Add result to the appropriate category
+                    results['raw']['by_level'][level_key]['runs'][run_key].append(eval_result)
+                    all_raw_impacts.append(eval_result['impact'])
+                    all_impacts.append(eval_result['impact'])
+
+                    # Calculate overall result for this level and run_key
+                    runs = results['raw']['by_level'][level_key]['runs'][run_key]
+                    mean_score = np.mean([run['perturbed_score'] for run in runs])
+                    std_score = np.std([run['perturbed_score'] for run in runs])
+                    worst_scores = [run.get('worst_score', 0) for run in runs]
+
+                    # Store results under the appropriate key
+                    results['raw']['by_level'][level_key]['overall_result'][run_key] = {
+                        'mean_score': mean_score,
+                        'std_score': std_score,
+                        'impact': np.mean([run['impact'] for run in runs]),
+                        'worst_score': np.mean(worst_scores) if worst_scores else 0
+                    }
+
+            # Process results for quantile method
             elif test_type == 'quantile':
                 if level_key not in results['quantile']['by_level']:
                     results['quantile']['by_level'][level_key] = {'runs': {}, 'overall_result': {}}
-                
+
                 # Initialize storage for both all_features and feature_subset if they don't exist
                 if 'all_features' not in results['quantile']['by_level'][level_key]['runs']:
                     results['quantile']['by_level'][level_key]['runs']['all_features'] = []
                 if 'feature_subset' not in results['quantile']['by_level'][level_key]['runs']:
                     results['quantile']['by_level'][level_key]['runs']['feature_subset'] = []
-                
-                # Add result to the appropriate category
-                results['quantile']['by_level'][level_key]['runs'][run_key].append(eval_result)
-                all_quantile_impacts.append(eval_result['impact'])
-                all_impacts.append(eval_result['impact'])
-                
-                # Calculate overall result for this level and run_key
-                runs = results['quantile']['by_level'][level_key]['runs'][run_key]
-                mean_score = np.mean([run['perturbed_score'] for run in runs])
-                std_score = np.std([run['perturbed_score'] for run in runs])
-                worst_scores = [run.get('worst_score', 0) for run in runs]
-                
-                # Store results under the appropriate key
-                results['quantile']['by_level'][level_key]['overall_result'][run_key] = {
-                    'mean_score': mean_score,
-                    'std_score': std_score,
-                    'impact': np.mean([run['impact'] for run in runs]),
-                    'worst_score': np.mean(worst_scores) if worst_scores else 0
-                }
+
+                # Process each eval_result
+                for run_key, eval_result in eval_results.items():
+                    # Add result to the appropriate category
+                    results['quantile']['by_level'][level_key]['runs'][run_key].append(eval_result)
+                    all_quantile_impacts.append(eval_result['impact'])
+                    all_impacts.append(eval_result['impact'])
+
+                    # Calculate overall result for this level and run_key
+                    runs = results['quantile']['by_level'][level_key]['runs'][run_key]
+                    mean_score = np.mean([run['perturbed_score'] for run in runs])
+                    std_score = np.std([run['perturbed_score'] for run in runs])
+                    worst_scores = [run.get('worst_score', 0) for run in runs]
+
+                    # Store results under the appropriate key
+                    results['quantile']['by_level'][level_key]['overall_result'][run_key] = {
+                        'mean_score': mean_score,
+                        'std_score': std_score,
+                        'impact': np.mean([run['impact'] for run in runs]),
+                        'worst_score': np.mean(worst_scores) if worst_scores else 0
+                    }
         
         # Evaluate feature importance using the median level from configurations
         if self.verbose:

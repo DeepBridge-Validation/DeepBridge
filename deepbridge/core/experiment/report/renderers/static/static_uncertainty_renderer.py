@@ -7,6 +7,7 @@ import sys
 import logging
 import datetime
 import traceback
+import numpy as np
 from typing import Dict, List, Any, Optional
 
 # Configure logger
@@ -1224,6 +1225,200 @@ class StaticUncertaintyRenderer:
 
         except Exception as e:
             logger.error(f"Error generating charts: {str(e)}")
+            logger.error(traceback.format_exc())
+
+        # ========== GENERATE NEW CUSTOM CHARTS ==========
+        # Generate our 3 new charts: Interval Boxplot, PSI Analysis, and Top Features Distribution
+        try:
+            logger.info("=" * 50)
+            logger.info("Generating custom DeepBridge charts")
+            logger.info("=" * 50)
+
+            # 1. INTERVAL BOXPLOT CHART
+            try:
+                logger.info("Generating Interval Boxplot chart...")
+
+                # Prepare data for boxplot
+                boxplot_data = {'results': []}
+
+                # Try to extract widths from different possible locations
+
+                # Check for interval_widths (from transformed data)
+                if 'interval_widths' in report_data:
+                    logger.info("Found interval_widths in report_data")
+                    interval_widths = report_data['interval_widths']
+
+                    # If it's a dictionary with model names
+                    if isinstance(interval_widths, dict):
+                        for model_name, widths in interval_widths.items():
+                            if isinstance(widths, list) and widths:
+                                # Use default alpha values if not available
+                                alpha = 0.1 if model_name == 'primary_model' else 0.2
+                                boxplot_data['results'].append({
+                                    'alpha': alpha,
+                                    'widths': widths,
+                                    'coverage': report_data.get('coverage', 0.9),
+                                    'mean_width': report_data.get('mean_width', np.mean(widths) if widths else 0)
+                                })
+                    # If it's a list of widths directly
+                    elif isinstance(interval_widths, list):
+                        if interval_widths:
+                            # Check if it's a list of lists (multiple alpha levels)
+                            if isinstance(interval_widths[0], list):
+                                for i, widths in enumerate(interval_widths):
+                                    alpha = report_data.get('alpha_levels', [0.1, 0.2])[i] if i < len(report_data.get('alpha_levels', [])) else 0.1 + i * 0.1
+                                    boxplot_data['results'].append({
+                                        'alpha': alpha,
+                                        'widths': widths,
+                                        'coverage': 0.9,  # default
+                                        'mean_width': np.mean(widths) if widths else 0
+                                    })
+                            else:
+                                # Single list of widths
+                                boxplot_data['results'].append({
+                                    'alpha': report_data.get('alpha', 0.1),
+                                    'widths': interval_widths,
+                                    'coverage': report_data.get('coverage', 0.9),
+                                    'mean_width': report_data.get('mean_width', np.mean(interval_widths))
+                                })
+
+                # Also check calibration_results for alpha-specific data
+                if not boxplot_data['results'] and 'calibration_results' in report_data:
+                    calib = report_data['calibration_results']
+                    if 'alpha_values' in calib and 'width_values' in calib:
+                        logger.info("Using calibration_results for boxplot data")
+                        # Note: width_values here are mean widths per alpha, not full distributions
+                        # So we can't create a proper boxplot from this data
+                        pass
+
+                # Fallback: Check for multiple configurations (different alpha values)
+                if not boxplot_data['results'] and 'results' in report_data and isinstance(report_data['results'], list):
+                    for result in report_data['results']:
+                        if 'widths' in result and 'alpha' in result:
+                            boxplot_data['results'].append({
+                                'alpha': result['alpha'],
+                                'widths': result['widths'],
+                                'coverage': result.get('coverage', 0),
+                                'mean_width': result.get('mean_width', 0)
+                            })
+                # Single configuration
+                elif not boxplot_data['results'] and 'widths' in report_data:
+                    boxplot_data['results'].append({
+                        'alpha': report_data.get('alpha', 0.1),
+                        'widths': report_data['widths'],
+                        'coverage': report_data.get('coverage', 0),
+                        'mean_width': report_data.get('mean_width', 0)
+                    })
+
+                if boxplot_data['results']:
+                    interval_boxplot_chart = chart_generator.generate_interval_boxplot(boxplot_data)
+                    if interval_boxplot_chart:
+                        charts['interval_boxplot'] = interval_boxplot_chart
+                        logger.info("✅ Successfully generated Interval Boxplot chart")
+
+                        # Save chart to file if requested
+                        if save_chart and charts_dir:
+                            charts['interval_boxplot'] = self._save_base64_to_file(
+                                interval_boxplot_chart, 'interval_boxplot', charts_dir, charts_subdir
+                            )
+                    else:
+                        logger.warning("Interval Boxplot chart generation returned None")
+                else:
+                    logger.warning("No data available for Interval Boxplot chart")
+
+            except Exception as e:
+                logger.error(f"Error generating Interval Boxplot chart: {str(e)}")
+                logger.error(traceback.format_exc())
+
+            # 2. PSI ANALYSIS CHART
+            try:
+                logger.info("Generating PSI Analysis chart...")
+
+                # Check for reliability analysis with PSI values
+                psi_data = None
+                if 'reliability_analysis' in report_data:
+                    if 'psi_values' in report_data['reliability_analysis']:
+                        psi_data = {
+                            'reliability_analysis': report_data['reliability_analysis']
+                        }
+                # Alternative: check in results
+                elif 'results' in report_data:
+                    if isinstance(report_data['results'], dict):
+                        if 'reliability_analysis' in report_data['results']:
+                            psi_data = {'results': report_data['results']}
+                    elif isinstance(report_data['results'], list) and report_data['results']:
+                        # Check first result
+                        if 'reliability_analysis' in report_data['results'][0]:
+                            psi_data = {'results': report_data['results'][0]}
+
+                if psi_data:
+                    psi_chart = chart_generator.generate_psi_analysis(psi_data)
+                    if psi_chart:
+                        charts['psi_analysis'] = psi_chart
+                        logger.info("✅ Successfully generated PSI Analysis chart")
+
+                        # Save chart to file if requested
+                        if save_chart and charts_dir:
+                            charts['psi_analysis'] = self._save_base64_to_file(
+                                psi_chart, 'psi_analysis', charts_dir, charts_subdir
+                            )
+                    else:
+                        logger.warning("PSI Analysis chart generation returned None")
+                else:
+                    logger.warning("No PSI data available for PSI Analysis chart")
+
+            except Exception as e:
+                logger.error(f"Error generating PSI Analysis chart: {str(e)}")
+                logger.error(traceback.format_exc())
+
+            # 3. TOP FEATURES DISTRIBUTION CHART
+            try:
+                logger.info("Generating Top Features Distribution chart...")
+
+                # Check for reliability analysis with distributions
+                dist_data = None
+                if 'reliability_analysis' in report_data:
+                    if ('psi_values' in report_data['reliability_analysis'] and
+                        'feature_distributions' in report_data['reliability_analysis']):
+                        dist_data = {
+                            'reliability_analysis': report_data['reliability_analysis']
+                        }
+                # Alternative: check in results
+                elif 'results' in report_data:
+                    if isinstance(report_data['results'], dict):
+                        if 'reliability_analysis' in report_data['results']:
+                            dist_data = {'results': report_data['results']}
+                    elif isinstance(report_data['results'], list) and report_data['results']:
+                        # Check first result
+                        if 'reliability_analysis' in report_data['results'][0]:
+                            dist_data = {'results': report_data['results'][0]}
+
+                if dist_data:
+                    dist_chart = chart_generator.generate_top_features_distribution(dist_data, top_n=3)
+                    if dist_chart:
+                        charts['top_features_distribution'] = dist_chart
+                        logger.info("✅ Successfully generated Top Features Distribution chart")
+
+                        # Save chart to file if requested
+                        if save_chart and charts_dir:
+                            charts['top_features_distribution'] = self._save_base64_to_file(
+                                dist_chart, 'top_features_distribution', charts_dir, charts_subdir
+                            )
+                    else:
+                        logger.warning("Top Features Distribution chart generation returned None")
+                else:
+                    logger.warning("No distribution data available for Top Features Distribution chart")
+
+            except Exception as e:
+                logger.error(f"Error generating Top Features Distribution chart: {str(e)}")
+                logger.error(traceback.format_exc())
+
+            logger.info("=" * 50)
+            logger.info(f"Custom charts generation completed. Total charts: {len(charts)}")
+            logger.info("=" * 50)
+
+        except Exception as e:
+            logger.error(f"Error in custom charts generation block: {str(e)}")
             logger.error(traceback.format_exc())
 
         return charts

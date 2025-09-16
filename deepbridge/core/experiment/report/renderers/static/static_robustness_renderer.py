@@ -467,7 +467,80 @@ class StaticRobustnessRenderer:
                     title="Model vs. Robustness Feature Importance"
                 )
                 logger.info("Generated feature comparison chart")
-            
+
+            # Generate individual feature impact chart
+            individual_feature_impacts = report_data.get('individual_feature_impacts', {})
+            if individual_feature_impacts:
+                charts['individual_feature_impact_chart'] = self.chart_generator.individual_feature_impact_chart(
+                    feature_impacts=individual_feature_impacts,
+                    title="Individual Feature Robustness Impact",
+                    max_features=20
+                )
+                logger.info(f"Generated individual feature impact chart with {len(individual_feature_impacts)} features")
+
+            # Generate method comparison chart if both raw and quantile data exist
+            method_comparison = report_data.get('method_comparison', {})
+            if method_comparison and 'perturbation_levels' in method_comparison:
+                charts['method_comparison_chart'] = self.chart_generator.method_comparison_chart(
+                    perturbation_levels=method_comparison['perturbation_levels'],
+                    raw_scores=method_comparison['raw_scores'],
+                    quantile_scores=method_comparison['quantile_scores'],
+                    base_score=method_comparison.get('base_score', 0),
+                    metric_name=method_comparison.get('metric', 'Score'),
+                    raw_worst_scores=method_comparison.get('raw_worst_scores'),
+                    quantile_worst_scores=method_comparison.get('quantile_worst_scores')
+                )
+                logger.info(f"Generated method comparison chart for {len(method_comparison['perturbation_levels'])} perturbation levels")
+
+            # Generate selected features comparison chart if both all_features and feature_subset data exist
+            selected_features_comparison = report_data.get('selected_features_comparison', {})
+            if selected_features_comparison and 'perturbation_levels' in selected_features_comparison:
+                charts['selected_features_comparison_chart'] = self.chart_generator.selected_features_comparison_chart(
+                    perturbation_levels=selected_features_comparison['perturbation_levels'],
+                    all_features_scores=selected_features_comparison['all_features_scores'],
+                    selected_features_scores=selected_features_comparison['selected_features_scores'],
+                    selected_features=selected_features_comparison['selected_features'],
+                    base_score=selected_features_comparison.get('base_score', 0),
+                    metric_name=selected_features_comparison.get('metric', 'Score'),
+                    all_features_worst=selected_features_comparison.get('all_features_worst'),
+                    selected_features_worst=selected_features_comparison.get('selected_features_worst')
+                )
+                logger.info(f"Generated selected features comparison chart for {len(selected_features_comparison['selected_features'])} selected features")
+
+            # Generate detailed boxplot chart if distribution data is available
+            detailed_distribution = report_data.get('detailed_distribution', {})
+            if detailed_distribution and 'perturbation_data' in detailed_distribution:
+                charts['detailed_boxplot_chart'] = self.chart_generator.detailed_boxplot_chart(
+                    perturbation_data=detailed_distribution['perturbation_data'],
+                    base_score=detailed_distribution.get('base_score', 0),
+                    metric_name=detailed_distribution.get('metric', 'Score'),
+                    title="Detailed Performance Distribution Analysis",
+                    show_coverage=True,
+                    coverage_threshold=0.95
+                )
+                logger.info(f"Generated detailed boxplot chart for {detailed_distribution['n_levels']} perturbation levels with {detailed_distribution['total_scores']} total samples")
+
+            # Generate distribution grid chart for comprehensive model comparison
+            distribution_grid = report_data.get('distribution_grid', {})
+            logger.info(f"Distribution grid data check: has_data={bool(distribution_grid)}, has_models_data={'models_data' in distribution_grid}")
+            if distribution_grid:
+                logger.info(f"Distribution grid keys: {list(distribution_grid.keys())}")
+                if 'models_data' in distribution_grid:
+                    logger.info(f"Models in distribution_grid: {list(distribution_grid['models_data'].keys())}")
+
+            if distribution_grid and 'models_data' in distribution_grid:
+                try:
+                    charts['distribution_grid_chart'] = self.chart_generator.distribution_grid_chart(
+                        models_data=distribution_grid['models_data'],
+                        title="Performance Distribution Grid",
+                        metric_name=distribution_grid.get('metric', 'Score'),
+                        show_stats=True,
+                        baseline_scores=distribution_grid.get('baseline_scores', {})
+                    )
+                    logger.info(f"Generated distribution grid chart for {distribution_grid['n_models']} models across {distribution_grid['n_levels']} perturbation levels")
+                except Exception as e:
+                    logger.error(f"Failed to generate distribution_grid_chart: {str(e)}", exc_info=True)
+
             # Generate boxplot chart for score distributions
             boxplot_models = []
             

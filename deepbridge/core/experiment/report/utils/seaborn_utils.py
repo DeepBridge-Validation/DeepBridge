@@ -529,9 +529,492 @@ class SeabornChartGenerator:
             # Add grid for better readability
             ax.grid(True, axis='y', linestyle='--', alpha=0.7)
         
-        return self.generate_encoded_chart(_generate_chart, clean_model_importance, clean_robustness_importance, 
+        return self.generate_encoded_chart(_generate_chart, clean_model_importance, clean_robustness_importance,
                                          title, max_features, figsize=(12, 8))
-    
+
+    def individual_feature_impact_chart(self, feature_impacts: Dict[str, float],
+                                       title: str = "Individual Feature Robustness Impact",
+                                       max_features: int = 20) -> str:
+        """
+        Generate a horizontal bar chart showing the impact of perturbing each feature individually.
+
+        Parameters:
+        -----------
+        feature_impacts : Dict[str, float]
+            Dictionary of feature names and their impact scores (negative = performance drop)
+        title : str, optional
+            Chart title
+        max_features : int, optional
+            Maximum number of features to display
+
+        Returns:
+        --------
+        str : Base64 encoded image data
+        """
+        if not feature_impacts:
+            logger.warning("Empty feature impacts dictionary provided")
+            return ""
+
+        # Sort features by absolute impact and take top N
+        sorted_features = sorted(feature_impacts.items(),
+                               key=lambda x: abs(x[1]),
+                               reverse=True)[:max_features]
+
+        if not sorted_features:
+            logger.warning("No valid features found for impact chart")
+            return ""
+
+        def _generate_chart(ax, sorted_features, title):
+            features = [f[0] for f in sorted_features]
+            impacts = [f[1] for f in sorted_features]
+
+            # Create color map: red for negative impact, green for positive
+            colors = ['#d62728' if impact < 0 else '#2ca02c' for impact in impacts]
+
+            # Create horizontal bar chart
+            bars = ax.barh(range(len(features)), impacts, color=colors, alpha=0.7)
+
+            # Customize the chart
+            ax.set_yticks(range(len(features)))
+            ax.set_yticklabels(features, fontsize=10)
+            ax.set_xlabel('Impact on Performance', fontsize=12)
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+
+            # Add a vertical line at x=0
+            ax.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
+
+            # Add value labels on the bars
+            for i, (bar, impact) in enumerate(zip(bars, impacts)):
+                # Position text based on bar direction
+                if impact >= 0:
+                    ha = 'left'
+                    offset = 0.002
+                else:
+                    ha = 'right'
+                    offset = -0.002
+
+                ax.text(impact + offset, bar.get_y() + bar.get_height()/2,
+                       f'{impact:.3f}',
+                       ha=ha, va='center', fontsize=9)
+
+            # Add grid for better readability
+            ax.grid(True, axis='x', linestyle='--', alpha=0.3)
+            ax.set_xlim([min(impacts) * 1.1 if min(impacts) < 0 else -0.05,
+                        max(impacts) * 1.1 if max(impacts) > 0 else 0.05])
+
+            # Add legend
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor='#d62728', alpha=0.7, label='Negative Impact'),
+                Patch(facecolor='#2ca02c', alpha=0.7, label='Positive Impact')
+            ]
+            ax.legend(handles=legend_elements, loc='lower right', fontsize=10)
+
+            # Use the figure's tight_layout instead of plt
+            ax.figure.tight_layout()
+
+        # Calculate appropriate figure height based on number of features
+        fig_height = max(6, min(12, len(sorted_features) * 0.4))
+
+        return self.generate_encoded_chart(_generate_chart, sorted_features, title,
+                                          figsize=(10, fig_height))
+
+    def method_comparison_chart(self, perturbation_levels: List[float],
+                               raw_scores: List[float], quantile_scores: List[float],
+                               base_score: float, metric_name: str = "Score",
+                               raw_worst_scores: List[float] = None,
+                               quantile_worst_scores: List[float] = None) -> str:
+        """
+        Generate a chart comparing performance between raw and quantile perturbation methods.
+
+        Parameters:
+        -----------
+        perturbation_levels : List[float]
+            List of perturbation levels used
+        raw_scores : List[float]
+            Average scores for raw perturbation method
+        quantile_scores : List[float]
+            Average scores for quantile perturbation method
+        base_score : float
+            Baseline score without perturbation
+        metric_name : str, optional
+            Name of the performance metric
+        raw_worst_scores : List[float], optional
+            Worst case scores for raw method
+        quantile_worst_scores : List[float], optional
+            Worst case scores for quantile method
+
+        Returns:
+        --------
+        str : Base64 encoded image data
+        """
+        if not perturbation_levels or not raw_scores or not quantile_scores:
+            logger.warning("Empty data provided for method comparison chart")
+            return ""
+
+        if len(perturbation_levels) != len(raw_scores) or len(perturbation_levels) != len(quantile_scores):
+            logger.warning("Mismatched data lengths for method comparison chart")
+            return ""
+
+        def _generate_chart(ax, perturbation_levels, raw_scores, quantile_scores, base_score,
+                           metric_name, raw_worst_scores, quantile_worst_scores):
+
+            # Plot baseline
+            ax.axhline(y=base_score, color='black', linestyle='--', linewidth=2,
+                      label=f'Baseline {metric_name}', alpha=0.8)
+
+            # Plot average performance lines
+            ax.plot(perturbation_levels, raw_scores, 'o-', color='#1f77b4', linewidth=2.5,
+                   markersize=8, label='Raw Perturbation (avg)', alpha=0.8)
+            ax.plot(perturbation_levels, quantile_scores, 's-', color='#ff7f0e', linewidth=2.5,
+                   markersize=8, label='Quantile Perturbation (avg)', alpha=0.8)
+
+            # Plot worst case lines if available
+            if raw_worst_scores and len(raw_worst_scores) == len(perturbation_levels):
+                ax.plot(perturbation_levels, raw_worst_scores, 'o--', color='#1f77b4',
+                       linewidth=1.5, markersize=6, alpha=0.6, label='Raw Perturbation (worst)')
+
+            if quantile_worst_scores and len(quantile_worst_scores) == len(perturbation_levels):
+                ax.plot(perturbation_levels, quantile_worst_scores, 's--', color='#ff7f0e',
+                       linewidth=1.5, markersize=6, alpha=0.6, label='Quantile Perturbation (worst)')
+
+            # Fill area between methods to highlight differences
+            ax.fill_between(perturbation_levels, raw_scores, quantile_scores,
+                           alpha=0.2, color='gray', label='Performance Difference')
+
+            # Customize the chart
+            ax.set_xlabel('Perturbation Level', fontsize=12)
+            ax.set_ylabel(f'{metric_name}', fontsize=12)
+            ax.set_title('Perturbation Method Comparison', fontsize=14, fontweight='bold', pad=20)
+
+            # Add grid
+            ax.grid(True, linestyle='--', alpha=0.3)
+
+            # Set x-axis to start from 0
+            ax.set_xlim(left=0)
+
+            # Calculate which method is better at each level
+            differences = [q - r for q, r in zip(quantile_scores, raw_scores)]
+            avg_diff = sum(differences) / len(differences)
+
+            # Add annotation about which method performs better
+            if abs(avg_diff) > 0.001:  # Only if there's a meaningful difference
+                better_method = "Quantile" if avg_diff > 0 else "Raw"
+                worse_method = "Raw" if avg_diff > 0 else "Quantile"
+                ax.text(0.02, 0.98, f'{better_method} method generally outperforms {worse_method}',
+                       transform=ax.transAxes, fontsize=10,
+                       verticalalignment='top', horizontalalignment='left',
+                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+            # Position legend
+            ax.legend(loc='best', fontsize=10, framealpha=0.9)
+
+            # Use the figure's tight_layout
+            ax.figure.tight_layout()
+
+        return self.generate_encoded_chart(_generate_chart, perturbation_levels, raw_scores, quantile_scores,
+                                          base_score, metric_name, raw_worst_scores, quantile_worst_scores,
+                                          figsize=(12, 6))
+
+    def selected_features_comparison_chart(self, perturbation_levels: List[float],
+                                          all_features_scores: List[float],
+                                          selected_features_scores: List[float],
+                                          selected_features: List[str],
+                                          base_score: float,
+                                          metric_name: str = "Score",
+                                          all_features_worst: List[float] = None,
+                                          selected_features_worst: List[float] = None) -> str:
+        """
+        Generate a chart comparing the impact of perturbing all features vs selected features.
+
+        Parameters:
+        -----------
+        perturbation_levels : List[float]
+            List of perturbation levels used
+        all_features_scores : List[float]
+            Average scores when perturbing all features
+        selected_features_scores : List[float]
+            Average scores when perturbing only selected features
+        selected_features : List[str]
+            List of feature names that were selected for perturbation
+        base_score : float
+            Baseline score without perturbation
+        metric_name : str, optional
+            Name of the performance metric
+        all_features_worst : List[float], optional
+            Worst case scores when perturbing all features
+        selected_features_worst : List[float], optional
+            Worst case scores when perturbing selected features
+
+        Returns:
+        --------
+        str : Base64 encoded image data
+        """
+        if not perturbation_levels or not all_features_scores or not selected_features_scores:
+            logger.warning("Empty data provided for selected features comparison chart")
+            return ""
+
+        if len(perturbation_levels) != len(all_features_scores) or len(perturbation_levels) != len(selected_features_scores):
+            logger.warning("Mismatched data lengths for selected features comparison chart")
+            return ""
+
+        def _generate_chart(ax, perturbation_levels, all_features_scores, selected_features_scores,
+                           selected_features, base_score, metric_name, all_features_worst, selected_features_worst):
+
+            # Plot baseline
+            ax.axhline(y=base_score, color='black', linestyle='--', linewidth=2,
+                      label=f'Baseline {metric_name}', alpha=0.8)
+
+            # Plot main performance lines
+            ax.plot(perturbation_levels, all_features_scores, 'o-', color='#d62728', linewidth=2.5,
+                   markersize=8, label=f'All Features (avg)', alpha=0.8)
+            ax.plot(perturbation_levels, selected_features_scores, 's-', color='#2ca02c', linewidth=2.5,
+                   markersize=8, label=f'Selected Features (avg)', alpha=0.8)
+
+            # Plot worst case lines if available
+            if all_features_worst and len(all_features_worst) == len(perturbation_levels):
+                ax.plot(perturbation_levels, all_features_worst, 'o--', color='#d62728',
+                       linewidth=1.5, markersize=6, alpha=0.6, label='All Features (worst)')
+
+            if selected_features_worst and len(selected_features_worst) == len(perturbation_levels):
+                ax.plot(perturbation_levels, selected_features_worst, 's--', color='#2ca02c',
+                       linewidth=1.5, markersize=6, alpha=0.6, label='Selected Features (worst)')
+
+            # Fill area between curves to highlight differences
+            ax.fill_between(perturbation_levels, all_features_scores, selected_features_scores,
+                           alpha=0.2, color='orange', label='Performance Difference')
+
+            # Customize the chart
+            ax.set_xlabel('Perturbation Level', fontsize=12)
+            ax.set_ylabel(f'{metric_name}', fontsize=12)
+            ax.set_title('All Features vs Selected Features Comparison', fontsize=14, fontweight='bold', pad=20)
+
+            # Add grid
+            ax.grid(True, linestyle='--', alpha=0.3)
+
+            # Set x-axis to start from 0
+            ax.set_xlim(left=0)
+
+            # Calculate performance differences
+            differences = [sel - all_feat for sel, all_feat in zip(selected_features_scores, all_features_scores)]
+            avg_diff = sum(differences) / len(differences) if differences else 0
+
+            # Create info box with selected features and performance summary
+            info_text = []
+            info_text.append(f"Selected Features ({len(selected_features)}):")
+
+            # Show up to 6 features in the annotation, with "..." if more
+            display_features = selected_features[:6]
+            if len(selected_features) > 6:
+                display_features.append("...")
+
+            for i, feat in enumerate(display_features):
+                if i < 3:  # First 3 on first line
+                    info_text.append(f"  {feat}")
+                else:  # Rest on second line
+                    if i == 3:
+                        info_text.append(f"  {feat}")
+                    else:
+                        info_text[-1] += f", {feat}"
+
+            # Add performance summary
+            if abs(avg_diff) > 0.001:
+                better_approach = "Selected features" if avg_diff > 0 else "All features"
+                info_text.append(f"\n{better_approach} approach")
+                info_text.append(f"performs better on average")
+            else:
+                info_text.append(f"\nSimilar performance between approaches")
+
+            # Position info box
+            ax.text(0.02, 0.98, '\n'.join(info_text),
+                   transform=ax.transAxes, fontsize=9,
+                   verticalalignment='top', horizontalalignment='left',
+                   bbox=dict(boxstyle='round,pad=0.5', facecolor='lightblue', alpha=0.8))
+
+            # Position legend at bottom right
+            ax.legend(loc='lower right', fontsize=10, framealpha=0.9)
+
+            # Use the figure's tight_layout
+            ax.figure.tight_layout()
+
+        return self.generate_encoded_chart(_generate_chart, perturbation_levels, all_features_scores,
+                                          selected_features_scores, selected_features, base_score, metric_name,
+                                          all_features_worst, selected_features_worst, figsize=(12, 6))
+
+    def detailed_boxplot_chart(self, perturbation_data: Dict[float, List[float]],
+                              base_score: float,
+                              metric_name: str = "Score",
+                              title: str = "Performance Distribution by Perturbation Level",
+                              show_coverage: bool = True,
+                              coverage_threshold: float = 0.95) -> str:
+        """
+        Generate a detailed boxplot with comprehensive annotations and statistics.
+
+        Parameters:
+        -----------
+        perturbation_data : Dict[float, List[float]]
+            Dictionary mapping perturbation levels to lists of scores
+        base_score : float
+            Baseline score without perturbation
+        metric_name : str, optional
+            Name of the performance metric
+        title : str, optional
+            Chart title
+        show_coverage : bool, optional
+            Whether to show coverage percentages
+        coverage_threshold : float, optional
+            Threshold for coverage calculation (default 95%)
+
+        Returns:
+        --------
+        str : Base64 encoded image data
+        """
+        if not perturbation_data:
+            logger.warning("Empty perturbation data provided for detailed boxplot")
+            return ""
+
+        # Sort levels and prepare data
+        sorted_levels = sorted(perturbation_data.keys())
+
+        # Prepare data for plotting
+        plot_data = []
+        level_labels = []
+        statistics = {}
+
+        for level in sorted_levels:
+            scores = perturbation_data[level]
+            if not scores:
+                continue
+
+            level_str = f"{level:.1f}"
+            level_labels.append(level_str)
+            plot_data.extend([(level_str, score) for score in scores])
+
+            # Calculate detailed statistics
+            scores_array = self.np.array(scores)
+            statistics[level_str] = {
+                'mean': self.np.mean(scores_array),
+                'median': self.np.median(scores_array),
+                'std': self.np.std(scores_array),
+                'min': self.np.min(scores_array),
+                'max': self.np.max(scores_array),
+                'q25': self.np.percentile(scores_array, 25),
+                'q75': self.np.percentile(scores_array, 75),
+                'count': len(scores_array),
+                'coverage': self.np.sum(scores_array >= base_score * coverage_threshold) / len(scores_array) * 100
+            }
+
+        if not plot_data:
+            logger.warning("No valid data for detailed boxplot")
+            return ""
+
+        def _generate_chart(ax, plot_data, level_labels, statistics, base_score, metric_name, title,
+                           show_coverage, coverage_threshold):
+
+            # Convert to DataFrame for seaborn
+            df = self.pd.DataFrame(plot_data, columns=['Perturbation_Level', 'Score'])
+
+            # Create detailed boxplot with gradient colors
+            colors = self.plt.cm.RdYlBu_r(self.np.linspace(0.2, 0.8, len(level_labels)))
+
+            # Create boxplot
+            box_plot = self.sns.boxplot(
+                data=df,
+                x='Perturbation_Level',
+                y='Score',
+                ax=ax,
+                palette=colors,
+                linewidth=1.5
+            )
+
+            # Customize boxplot appearance
+            for patch, color in zip(box_plot.artists, colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.7)
+
+            # Add baseline reference line
+            ax.axhline(y=base_score, color='red', linestyle='--', linewidth=2,
+                      alpha=0.8, label=f'Baseline {metric_name}')
+
+            # Add coverage threshold line if different from baseline
+            coverage_line = base_score * coverage_threshold
+            if abs(coverage_line - base_score) > 0.001:
+                ax.axhline(y=coverage_line, color='orange', linestyle=':', linewidth=1.5,
+                          alpha=0.6, label=f'{coverage_threshold*100:.0f}% Coverage Threshold')
+
+            # Add detailed annotations for each level
+            for i, level_str in enumerate(level_labels):
+                stats = statistics[level_str]
+
+                # Position for annotations (alternating above/below)
+                y_pos = ax.get_ylim()[1] if i % 2 == 0 else ax.get_ylim()[0]
+                y_offset = -0.02 if i % 2 == 0 else 0.08
+                va = 'top' if i % 2 == 0 else 'bottom'
+
+                # Create annotation text
+                annotation_lines = []
+                annotation_lines.append(f"μ={stats['mean']:.3f}")
+                annotation_lines.append(f"σ={stats['std']:.3f}")
+                annotation_lines.append(f"n={stats['count']}")
+
+                if show_coverage:
+                    annotation_lines.append(f"cov={stats['coverage']:.1f}%")
+
+                annotation_text = '\n'.join(annotation_lines)
+
+                # Add annotation box
+                ax.annotate(annotation_text,
+                           xy=(i, y_pos),
+                           xytext=(i, y_pos + y_offset),
+                           ha='center', va=va,
+                           fontsize=8,
+                           bbox=dict(boxstyle='round,pad=0.3',
+                                   facecolor='white',
+                                   edgecolor='gray',
+                                   alpha=0.8),
+                           arrowprops=dict(arrowstyle='->',
+                                         color='gray',
+                                         alpha=0.5))
+
+            # Customize chart appearance
+            ax.set_xlabel('Perturbation Level', fontsize=12, fontweight='bold')
+            ax.set_ylabel(f'{metric_name}', fontsize=12, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+
+            # Add grid
+            ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+
+            # Improve x-axis labels
+            ax.set_xticklabels([f"Level {label}" for label in level_labels], fontsize=10)
+
+            # Add legend
+            ax.legend(loc='upper right', fontsize=10, framealpha=0.9)
+
+            # Add summary statistics box
+            total_scores = len(plot_data)
+            overall_mean = self.np.mean([score for _, score in plot_data])
+            overall_std = self.np.std([score for _, score in plot_data])
+
+            summary_text = f"Overall Statistics:\n"
+            summary_text += f"Total Samples: {total_scores}\n"
+            summary_text += f"Mean {metric_name}: {overall_mean:.3f}\n"
+            summary_text += f"Std {metric_name}: {overall_std:.3f}\n"
+            summary_text += f"Baseline: {base_score:.3f}"
+
+            ax.text(0.02, 0.02, summary_text,
+                   transform=ax.transAxes, fontsize=9,
+                   verticalalignment='bottom', horizontalalignment='left',
+                   bbox=dict(boxstyle='round,pad=0.5',
+                           facecolor='lightcyan',
+                           alpha=0.8))
+
+            # Use the figure's tight_layout
+            ax.figure.tight_layout()
+
+        return self.generate_encoded_chart(_generate_chart, plot_data, level_labels, statistics,
+                                          base_score, metric_name, title, show_coverage, coverage_threshold,
+                                          figsize=(14, 8))
+
     def boxplot_chart(self, models_data: List[Dict], title: str = "Performance Distribution",
                      metric_name: str = "Score") -> str:
         """
@@ -990,6 +1473,163 @@ class SeabornChartGenerator:
             ax.grid(True, axis='y', linestyle='--', alpha=0.7)
 
         return self.generate_encoded_chart(_generate_chart, psi_data, title, figsize=(12, 7))
+
+    def distribution_grid_chart(self, models_data: Dict[str, Dict[float, List[float]]],
+                               title: str = "Performance Distribution Grid",
+                               metric_name: str = "Score",
+                               show_stats: bool = True,
+                               baseline_scores: Dict[str, float] = None) -> str:
+        """
+        Generate a comprehensive distribution grid chart showing performance distributions
+        across multiple models and perturbation levels in a matrix layout.
+
+        Parameters:
+        -----------
+        models_data : Dict[str, Dict[float, List[float]]]
+            Dictionary with model names as keys, each containing perturbation levels
+            and their corresponding score lists
+        title : str, optional
+            Chart title
+        metric_name : str, optional
+            Name of the metric being displayed
+        show_stats : bool, optional
+            Whether to show statistical annotations
+        baseline_scores : Dict[str, float], optional
+            Baseline scores for each model
+
+        Returns:
+        --------
+        str : Base64 encoded image data
+        """
+        if not models_data:
+            logger.error("No models data provided for distribution grid chart")
+            return ""
+
+        # Extract all unique perturbation levels across all models
+        all_levels = set()
+        for model_data in models_data.values():
+            all_levels.update(model_data.keys())
+        sorted_levels = sorted(list(all_levels))
+
+        model_names = list(models_data.keys())
+        n_models = len(model_names)
+        n_levels = len(sorted_levels)
+
+        if n_models == 0 or n_levels == 0:
+            logger.warning("Insufficient data for grid visualization")
+            return ""
+
+        # Calculate appropriate figure size
+        fig_width = max(4 * n_levels, 12)
+        fig_height = max(3 * n_models, 8)
+
+        # Create a new figure with subplots
+        fig, axes = self.plt.subplots(n_models, n_levels,
+                                     figsize=(fig_width, fig_height),
+                                     sharex=False, sharey=True)
+
+        # Handle single row/column cases
+        if n_models == 1 and n_levels == 1:
+            axes = [[axes]]
+        elif n_models == 1:
+            axes = [axes]
+        elif n_levels == 1:
+            axes = [[ax] for ax in axes]
+
+        # Color palette for models
+        colors = self.plt.cm.Set3(self.np.linspace(0, 1, n_models))
+
+        # Create plots for each model-level combination
+        for i, model_name in enumerate(model_names):
+            model_data = models_data[model_name]
+
+            for j, level in enumerate(sorted_levels):
+                ax_current = axes[i][j]
+
+                if level in model_data and len(model_data[level]) > 0:
+                    scores = model_data[level]
+
+                    # Create violin plot
+                    parts = ax_current.violinplot([scores], positions=[0],
+                                                widths=0.6, showmeans=True,
+                                                showmedians=True)
+
+                    # Set violin color
+                    for pc in parts['bodies']:
+                        pc.set_facecolor(colors[i])
+                        pc.set_alpha(0.7)
+
+                    # Overlay boxplot
+                    bp = ax_current.boxplot([scores], positions=[0], widths=0.3,
+                                          patch_artist=True, showfliers=False)
+                    bp['boxes'][0].set_facecolor(colors[i])
+                    bp['boxes'][0].set_alpha(0.9)
+
+                    # Add statistical annotations if enabled
+                    if show_stats and len(scores) > 1:
+                        mean_score = self.np.mean(scores)
+                        std_score = self.np.std(scores)
+                        n_samples = len(scores)
+
+                        stats_text = f"μ={mean_score:.3f}\nσ={std_score:.3f}\nn={n_samples}"
+                        ax_current.text(0.02, 0.98, stats_text,
+                                      transform=ax_current.transAxes,
+                                      verticalalignment='top',
+                                      fontsize=8,
+                                      bbox=dict(boxstyle="round,pad=0.3",
+                                               facecolor='white', alpha=0.8))
+
+                    # Add baseline reference if available
+                    if baseline_scores and model_name in baseline_scores:
+                        baseline = baseline_scores[model_name]
+                        ax_current.axhline(y=baseline, color='red',
+                                         linestyle='--', alpha=0.7, linewidth=1)
+
+                    ax_current.set_xlim(-0.5, 0.5)
+                    ax_current.set_xticks([])
+
+                else:
+                    # No data for this combination
+                    ax_current.text(0.5, 0.5, "No data",
+                                  ha='center', va='center',
+                                  transform=ax_current.transAxes,
+                                  fontsize=10, alpha=0.5)
+                    ax_current.set_xticks([])
+                    ax_current.set_yticks([])
+
+                # Set subplot titles
+                if i == 0:  # Top row
+                    ax_current.set_title(f"Level {level}", fontsize=10, fontweight='bold')
+
+                if j == 0:  # Left column
+                    ax_current.set_ylabel(f"{model_name}\n{metric_name}",
+                                        fontsize=10, fontweight='bold')
+
+        # Add main title
+        fig.suptitle(title, fontsize=14, fontweight='bold', y=0.98)
+
+        # Add legend for baseline if used
+        if baseline_scores:
+            legend_elements = [self.plt.Line2D([0], [0], color='red',
+                                             linestyle='--', label='Baseline')]
+            fig.legend(handles=legend_elements, loc='upper right',
+                      bbox_to_anchor=(0.98, 0.95))
+
+        # Adjust layout
+        self.plt.tight_layout()
+        self.plt.subplots_adjust(top=0.93)
+
+        # Convert to base64
+        import io
+        import base64
+
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        self.plt.close(fig)
+
+        return f"data:image/png;base64,{image_base64}"
 
     def coverage_analysis_chart(self, alpha_values: List[float], coverage_values: List[float],
                                title: str = "Coverage Analysis") -> str:

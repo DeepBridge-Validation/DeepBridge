@@ -883,6 +883,41 @@
             </div>
             {% endif %}
 
+            <!-- ========== NEW CUSTOM DEEPBRIDGE CHARTS ========== -->
+
+            <!-- Interval Boxplot Chart -->
+            {% if charts.interval_boxplot %}
+            <div class="chart-container">
+                <h3>Interval Width Boxplot Comparison</h3>
+                <p class="chart-description">Compares the distribution of prediction interval widths across different confidence levels (alpha values). Shows both boxplot and violin plot representations for detailed analysis of interval width distributions.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.interval_boxplot }}" alt="Interval width boxplot comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- PSI Analysis Chart -->
+            {% if charts.psi_analysis %}
+            <div class="chart-container">
+                <h3>Population Stability Index (PSI) Analysis</h3>
+                <p class="chart-description">Shows the PSI values for each feature, indicating distribution shifts between reliable and unreliable predictions. Features with PSI ≥ 0.25 show significant distribution changes that may impact model reliability.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.psi_analysis }}" alt="PSI analysis" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Top Features Distribution Chart -->
+            {% if charts.top_features_distribution %}
+            <div class="chart-container">
+                <h3>Top Features Distribution Comparison</h3>
+                <p class="chart-description">Compares the distributions of features with highest PSI values between reliable and unreliable predictions. Shows histograms with KDE overlays to visualize how these critical features differ between the two groups.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.top_features_distribution }}" alt="Top features distribution comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Feature PSI Scores -->
             {% if report_data.psi_scores %}
             <div class="table-container">

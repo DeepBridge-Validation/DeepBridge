@@ -1,10 +1,11 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.39"
+version = "0.1.40"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
 packages = [{include = "deepbridge"}]
+exclude = ["simular_lib/**"]
 classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Environment :: Console",

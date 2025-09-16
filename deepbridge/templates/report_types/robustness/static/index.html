@@ -949,7 +949,82 @@
             {% endif %}
         </div>
         {% endif %}
-        
+
+        <!-- Individual Feature Impact Section -->
+        {% if charts.individual_feature_impact_chart %}
+        <div class="section">
+            <h2 class="section-title">Individual Feature Impact Analysis</h2>
+
+            <div class="chart-container">
+                <h3>Feature Sensitivity to Perturbation</h3>
+                <p class="chart-description">Shows the impact on model performance when each feature is perturbed individually. Red bars indicate performance degradation (feature is important for robustness), while green bars indicate performance improvement or no impact.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.individual_feature_impact_chart }}" alt="Individual feature impact analysis" class="full-width-chart">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Method Comparison Section -->
+        {% if charts.method_comparison_chart %}
+        <div class="section">
+            <h2 class="section-title">Perturbation Method Comparison</h2>
+
+            <div class="chart-container">
+                <h3>Raw vs Quantile Perturbation Performance</h3>
+                <p class="chart-description">Compares the effectiveness of raw (Gaussian noise) vs quantile-based perturbation methods. The filled area highlights performance differences between methods, helping identify which perturbation approach is more suitable for this model.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.method_comparison_chart }}" alt="Comparison of raw vs quantile perturbation methods" class="full-width-chart">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Selected Features Comparison Section -->
+        {% if charts.selected_features_comparison_chart %}
+        <div class="section">
+            <h2 class="section-title">Selected Features Analysis</h2>
+
+            <div class="chart-container">
+                <h3>All Features vs Selected Features Comparison</h3>
+                <p class="chart-description">Compares the robustness impact when perturbing all features versus only a selected subset. This analysis helps identify whether focusing on specific features provides similar insights with reduced testing time, and shows the relative sensitivity of the selected features.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.selected_features_comparison_chart }}" alt="Comparison of all features vs selected features perturbation" class="full-width-chart">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Detailed Distribution Analysis Section -->
+        {% if charts.detailed_boxplot_chart %}
+        <div class="section">
+            <h2 class="section-title">Detailed Distribution Analysis</h2>
+
+            <div class="chart-container">
+                <h3>Enhanced Performance Distribution by Perturbation Level</h3>
+                <p class="chart-description">Provides comprehensive statistical analysis of performance distributions across perturbation levels. Features detailed annotations including mean (μ), standard deviation (σ), sample count (n), and coverage percentages (cov). The gradient colors and statistical overlays offer deep insights into model robustness patterns.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.detailed_boxplot_chart }}" alt="Detailed statistical analysis of performance distribution" class="full-width-chart">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Distribution Grid Section -->
+        {% if charts.distribution_grid_chart %}
+        <div class="section">
+            <h2 class="section-title">Comprehensive Distribution Grid</h2>
+
+            <div class="chart-container">
+                <h3>Model × Perturbation Distribution Matrix</h3>
+                <p class="chart-description">Advanced matrix visualization showing performance distributions across multiple models and perturbation levels. Each cell combines violin plots (density distributions) with boxplots (quartile statistics) to provide comprehensive insights into model behavior under different stress conditions. Statistical annotations include mean (μ), standard deviation (σ), and sample counts (n), while baseline references enable direct performance comparisons across models and perturbation levels.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.distribution_grid_chart }}" alt="Comprehensive distribution grid showing model performance across perturbation levels" class="full-width-chart">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Performance Distribution Section -->
         <div class="section">
             <h2 class="section-title">Performance Distribution</h2>

@@ -9,6 +9,9 @@ from .uncertainty_metrics import UncertaintyMetricsChart
 from .feature_importance import FeatureImportanceChart
 from .model_comparison import ModelComparisonChart
 from .performance_gap_by_alpha import PerformanceGapByAlphaChart
+from .interval_boxplot import IntervalBoxplotChart
+from .psi_analysis import PSIAnalysisChart
+from .top_features_distribution import TopFeaturesDistributionChart
 
 # Import and apply fixes
 import logging
@@ -75,6 +78,9 @@ class UncertaintyChartGenerator:
         self.feature_importance = FeatureImportanceChart(seaborn_chart_generator)
         self.model_comparison = ModelComparisonChart(seaborn_chart_generator)
         self.performance_gap_by_alpha = PerformanceGapByAlphaChart(seaborn_chart_generator)
+        self.interval_boxplot = IntervalBoxplotChart()
+        self.psi_analysis = PSIAnalysisChart()
+        self.top_features_distribution = TopFeaturesDistributionChart()
     
     # Wrapper methods to maintain backward compatibility
     
@@ -360,6 +366,50 @@ class UncertaintyChartGenerator:
             return self.performance_gap_by_alpha.generate(models_data, title, add_annotations)
         except Exception as e:
             logger.error(f"Error generating performance gap by alpha chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_interval_boxplot(self, models_data, title="Interval Width Distribution"):
+        """Generate a boxplot chart showing interval width distributions."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_interval_boxplot called with: models_data={type(models_data)}")
+
+        try:
+            return self.interval_boxplot.generate(models_data, title=title)
+        except Exception as e:
+            logger.error(f"Error generating interval boxplot chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_psi_analysis(self, models_data, title="PSI Distribution Analysis", max_features=20):
+        """Generate PSI analysis chart showing feature distribution shifts."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_psi_analysis called with: models_data={type(models_data)}")
+
+        try:
+            return self.psi_analysis.generate(models_data, title=title, max_features=max_features)
+        except Exception as e:
+            logger.error(f"Error generating PSI analysis chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_top_features_distribution(self, models_data, top_n=3, show_kde=True, bins=20):
+        """Generate distribution comparison for top features by PSI."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_top_features_distribution called with: models_data={type(models_data)}, top_n={top_n}")
+
+        try:
+            return self.top_features_distribution.generate(
+                models_data, top_n=top_n, show_kde=show_kde, bins=bins
+            )
+        except Exception as e:
+            logger.error(f"Error generating top features distribution chart: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
