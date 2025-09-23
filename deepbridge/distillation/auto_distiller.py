@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Any, Tuple, Union
+import logging
 
 from deepbridge.utils.model_registry import ModelType
 from deepbridge.core.db_data import DBDataset
@@ -11,7 +12,10 @@ from deepbridge.config.settings import DistillationConfig
 from deepbridge.distillation.experiment_runner import ExperimentRunner
 from deepbridge.metrics.evaluator import MetricsEvaluator
 
-# Visualization and reporting functionality has been removed
+# Import HPM components
+from deepbridge.distillation.techniques.hpm import HPMDistiller, HPMConfig
+
+logger = logging.getLogger(__name__)
 
 class AutoDistiller:
     """
@@ -37,11 +41,12 @@ class AutoDistiller:
         random_state: int = 42,
         n_trials: int = 10,
         validation_split: float = 0.2,
-        verbose: bool = False
+        verbose: bool = False,
+        method: str = 'auto'
     ):
         """
         Initialize the AutoDistiller.
-        
+
         Args:
             dataset: DBDataset instance containing features, target, and probabilities
             output_dir: Directory to save results and visualizations
@@ -50,7 +55,41 @@ class AutoDistiller:
             n_trials: Number of Optuna trials for hyperparameter optimization
             validation_split: Fraction of data to use for validation during optimization
             verbose: Whether to show progress messages
+            method: Distillation method ('auto', 'legacy', 'hpm', 'hybrid')
+                - 'auto': Automatically choose best method based on dataset
+                - 'legacy': Use traditional grid search approach
+                - 'hpm': Use new HPM-KD approach
+                - 'hybrid': Run both and compare results
         """
+        self.dataset = dataset
+        self.method = method
+
+        # Determine actual method if 'auto'
+        if method == 'auto':
+            self.method = self._choose_best_method(dataset)
+            if verbose:
+                logger.info(f"Auto-selected method: {self.method}")
+
+        # Initialize based on method
+        if self.method == 'hpm':
+            # Use HPM distiller
+            self._init_hpm(dataset, output_dir, test_size, random_state,
+                          n_trials, validation_split, verbose)
+        elif self.method == 'hybrid':
+            # Initialize both
+            self._init_hybrid(dataset, output_dir, test_size, random_state,
+                            n_trials, validation_split, verbose)
+        else:  # 'legacy'
+            # Use traditional approach
+            self._init_legacy(dataset, output_dir, test_size, random_state,
+                             n_trials, validation_split, verbose)
+
+        # Initialize cache for original metrics
+        self._original_metrics_cache = None
+
+    def _init_legacy(self, dataset, output_dir, test_size, random_state,
+                    n_trials, validation_split, verbose):
+        """Initialize legacy distillation components."""
         # Initialize configuration
         self.config = DistillationConfig(
             output_dir=output_dir,
@@ -60,21 +99,95 @@ class AutoDistiller:
             validation_split=validation_split,
             verbose=verbose
         )
-        
+
         # Initialize experiment runner
         self.experiment_runner = ExperimentRunner(
             dataset=dataset,
             config=self.config
         )
-        
+
         # Other components will be initialized after experiments are run
         self.metrics_evaluator = None
         self.visualizer = None
         self.report_generator = None
         self.results_df = None
-        
-        # Initialize cache for original metrics
-        self._original_metrics_cache = None
+
+    def _init_hpm(self, dataset, output_dir, test_size, random_state,
+                 n_trials, validation_split, verbose):
+        """Initialize HPM distillation components."""
+        # Create HPM configuration
+        hpm_config = HPMConfig(
+            max_configs=16,  # Reduce from 64 to 16
+            n_trials=max(3, n_trials // 3),  # Reduce trials with warm start
+            validation_split=validation_split,
+            random_state=random_state,
+            verbose=verbose,
+            use_parallel=True,
+            use_cache=True,
+            use_progressive=True,
+            use_multi_teacher=True,
+            use_adaptive_temperature=True
+        )
+
+        # Initialize HPM distiller
+        self.hpm_distiller = HPMDistiller(config=hpm_config)
+
+        # Create compatibility layer
+        self.config = DistillationConfig(
+            output_dir=output_dir,
+            test_size=test_size,
+            random_state=random_state,
+            n_trials=n_trials,
+            validation_split=validation_split,
+            verbose=verbose
+        )
+
+        # Compatibility attributes
+        self.experiment_runner = None  # HPM handles this internally
+        self.metrics_evaluator = None
+        self.results_df = None
+
+    def _init_hybrid(self, dataset, output_dir, test_size, random_state,
+                    n_trials, validation_split, verbose):
+        """Initialize both legacy and HPM components."""
+        # Initialize legacy
+        self._init_legacy(dataset, output_dir, test_size, random_state,
+                         n_trials, validation_split, verbose)
+
+        # Also initialize HPM
+        hpm_config = HPMConfig(
+            max_configs=8,  # Even fewer for hybrid mode
+            n_trials=max(2, n_trials // 4),
+            validation_split=validation_split,
+            random_state=random_state,
+            verbose=verbose
+        )
+        self.hpm_distiller = HPMDistiller(config=hpm_config)
+
+    def _choose_best_method(self, dataset: DBDataset) -> str:
+        """
+        Choose the best distillation method based on dataset characteristics.
+
+        Args:
+            dataset: The dataset to analyze
+
+        Returns:
+            Best method name ('legacy' or 'hpm')
+        """
+        # Get dataset size
+        n_samples = len(dataset.X)
+        n_features = dataset.X.shape[1] if hasattr(dataset.X, 'shape') else 10
+
+        # Heuristics for method selection
+        if n_samples > 10000 or n_features > 50:
+            # Large dataset - HPM more efficient
+            return 'hpm'
+        elif n_samples < 1000:
+            # Small dataset - legacy might be sufficient
+            return 'legacy'
+        else:
+            # Medium dataset - use HPM for better quality
+            return 'hpm'
     
     def customize_config(
         self,
