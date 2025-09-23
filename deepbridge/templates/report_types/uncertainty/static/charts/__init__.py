@@ -12,6 +12,9 @@ from .performance_gap_by_alpha import PerformanceGapByAlphaChart
 from .interval_boxplot import IntervalBoxplotChart
 from .psi_analysis import PSIAnalysisChart
 from .top_features_distribution import TopFeaturesDistributionChart
+from .reliability_bandwidth import ReliabilityBandwidthChart
+from .reliability_performance import ReliabilityPerformanceChart
+from .reliability_regions import ReliabilityRegionsChart
 
 # Import and apply fixes
 import logging
@@ -81,6 +84,9 @@ class UncertaintyChartGenerator:
         self.interval_boxplot = IntervalBoxplotChart()
         self.psi_analysis = PSIAnalysisChart()
         self.top_features_distribution = TopFeaturesDistributionChart()
+        self.reliability_bandwidth = ReliabilityBandwidthChart(seaborn_chart_generator)
+        self.reliability_performance = ReliabilityPerformanceChart(seaborn_chart_generator)
+        self.reliability_regions = ReliabilityRegionsChart(seaborn_chart_generator)
     
     # Wrapper methods to maintain backward compatibility
     
@@ -410,6 +416,62 @@ class UncertaintyChartGenerator:
             )
         except Exception as e:
             logger.error(f"Error generating top features distribution chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_reliability_bandwidth(self, models_data, n_bins=10, confidence=0.95,
+                                      title="Reliability Bandwidth (Calibration)",
+                                      show_confidence_bands=True, show_histogram=True):
+        """Generate reliability bandwidth (calibration) chart."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_reliability_bandwidth called with: models_data={type(models_data)}")
+
+        try:
+            return self.reliability_bandwidth.generate(
+                models_data, n_bins=n_bins, confidence=confidence,
+                title=title, show_confidence_bands=show_confidence_bands,
+                show_histogram=show_histogram
+            )
+        except Exception as e:
+            logger.error(f"Error generating reliability bandwidth chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_reliability_performance(self, models_data, n_bins=10, metric='accuracy',
+                                        title="Reliability Performance",
+                                        show_sample_sizes=True, show_confidence_bars=True):
+        """Generate reliability performance chart."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_reliability_performance called with: models_data={type(models_data)}")
+
+        try:
+            return self.reliability_performance.generate(
+                models_data, n_bins=n_bins, metric=metric,
+                title=title, show_sample_sizes=show_sample_sizes,
+                show_confidence_bars=show_confidence_bars
+            )
+        except Exception as e:
+            logger.error(f"Error generating reliability performance chart: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def generate_reliability_regions(self, reliability_data, title="Feature Reliability Regions", show_top_n=3):
+        """Generate reliability regions chart for top features."""
+        import logging
+        logger = logging.getLogger("deepbridge.reports")
+        logger.info(f"generate_reliability_regions called with: reliability_data={type(reliability_data)}")
+
+        try:
+            return self.reliability_regions.generate(
+                reliability_data, title=title, show_top_n=show_top_n
+            )
+        except Exception as e:
+            logger.error(f"Error generating reliability regions chart: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None

@@ -107,7 +107,18 @@ class StaticRobustnessRenderer:
             
             # Create the context for the template
             context = self.base_renderer._create_static_context(report_data, "robustness", css_content)
-            
+
+            # Add logo and favicon to context
+            try:
+                logo_base64 = self.asset_manager.get_logo_base64()
+                favicon_base64 = self.asset_manager.get_favicon_base64()
+                context['logo'] = logo_base64
+                context['favicon'] = favicon_base64
+            except Exception as e:
+                logger.warning(f"Error loading logo/favicon: {str(e)}")
+                context['logo'] = ""
+                context['favicon'] = ""
+
             # Generate charts for the static report
             try:
                 charts = self._generate_charts(report_data)
@@ -158,11 +169,12 @@ class StaticRobustnessRenderer:
                         logger.info(f"Model {model_name} has metrics: {list(model_data['metrics'].keys()) if isinstance(model_data['metrics'], dict) else 'None'}")
 
             context.update({
-                # Core metrics with defaults
-                'robustness_score': robustness_score,
-                'resilience_score': robustness_score,  # Backward compatibility
-                'raw_impact': report_data.get('raw_impact', 0),
-                'quantile_impact': report_data.get('quantile_impact', 0),
+                # Core metrics with defaults - ensure numeric values
+                'robustness_score': float(robustness_score) if robustness_score is not None else 0.0,
+                'resilience_score': float(robustness_score) if robustness_score is not None else 0.0,  # Backward compatibility
+                'raw_impact': float(report_data.get('raw_impact', 0)) if report_data.get('raw_impact') is not None else 0.0,
+                'quantile_impact': float(report_data.get('quantile_impact', 0)) if report_data.get('quantile_impact') is not None else 0.0,
+                'base_score': float(report_data.get('base_score', 0)) if report_data.get('base_score') is not None else 0.0,
 
                 # Feature importance data
                 'feature_importance': report_data.get('feature_importance', {}),
@@ -186,6 +198,8 @@ class StaticRobustnessRenderer:
                 rendered_html = self.template_manager.render_template(template, context)
             except Exception as template_error:
                 logger.error(f"Error rendering template: {str(template_error)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 # Generate a simplified fallback report
                 rendered_html = self._generate_fallback_report(report_data, model_name)
 
@@ -520,26 +534,27 @@ class StaticRobustnessRenderer:
                 )
                 logger.info(f"Generated detailed boxplot chart for {detailed_distribution['n_levels']} perturbation levels with {detailed_distribution['total_scores']} total samples")
 
-            # Generate distribution grid chart for comprehensive model comparison
-            distribution_grid = report_data.get('distribution_grid', {})
-            logger.info(f"Distribution grid data check: has_data={bool(distribution_grid)}, has_models_data={'models_data' in distribution_grid}")
-            if distribution_grid:
-                logger.info(f"Distribution grid keys: {list(distribution_grid.keys())}")
-                if 'models_data' in distribution_grid:
-                    logger.info(f"Models in distribution_grid: {list(distribution_grid['models_data'].keys())}")
+            # # Generate distribution grid chart for comprehensive model comparison
+            # # REMOVED: Enhanced Performance Distribution by Perturbation Level chart
+            # distribution_grid = report_data.get('distribution_grid', {})
+            # logger.info(f"Distribution grid data check: has_data={bool(distribution_grid)}, has_models_data={'models_data' in distribution_grid}")
+            # if distribution_grid:
+            #     logger.info(f"Distribution grid keys: {list(distribution_grid.keys())}")
+            #     if 'models_data' in distribution_grid:
+            #         logger.info(f"Models in distribution_grid: {list(distribution_grid['models_data'].keys())}")
 
-            if distribution_grid and 'models_data' in distribution_grid:
-                try:
-                    charts['distribution_grid_chart'] = self.chart_generator.distribution_grid_chart(
-                        models_data=distribution_grid['models_data'],
-                        title="Performance Distribution Grid",
-                        metric_name=distribution_grid.get('metric', 'Score'),
-                        show_stats=True,
-                        baseline_scores=distribution_grid.get('baseline_scores', {})
-                    )
-                    logger.info(f"Generated distribution grid chart for {distribution_grid['n_models']} models across {distribution_grid['n_levels']} perturbation levels")
-                except Exception as e:
-                    logger.error(f"Failed to generate distribution_grid_chart: {str(e)}", exc_info=True)
+            # if distribution_grid and 'models_data' in distribution_grid:
+            #     try:
+            #         charts['distribution_grid_chart'] = self.chart_generator.distribution_grid_chart(
+            #             models_data=distribution_grid['models_data'],
+            #             title="Performance Distribution Grid",
+            #             metric_name=distribution_grid.get('metric', 'Score'),
+            #             show_stats=True,
+            #             baseline_scores=distribution_grid.get('baseline_scores', {})
+            #         )
+            #         logger.info(f"Generated distribution grid chart for {distribution_grid['n_models']} models across {distribution_grid['n_levels']} perturbation levels")
+            #     except Exception as e:
+            #         logger.error(f"Failed to generate distribution_grid_chart: {str(e)}", exc_info=True)
 
             # Generate boxplot chart for score distributions
             boxplot_models = []

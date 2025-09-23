@@ -1,0 +1,134 @@
+<!-- Overview Tab Content -->
+<div class="overview-section">
+    <!-- Process Flow Diagram -->
+    <div class="chart-container">
+        <h2>📊 Distillation Process Overview</h2>
+        <div id="sankey-diagram" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Radar Comparison Chart -->
+    <div class="chart-container">
+        <h2>🎯 Original vs Best Distilled Model</h2>
+        <div id="radar-comparison" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Quick Summary Table -->
+    <div class="chart-container">
+        <h2>📋 Experiment Configuration</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Model Types Tested</td>
+                    <td>{{ report_data.experiment_summary.model_types|join(", ") }}</td>
+                </tr>
+                <tr>
+                    <td>Temperature Range</td>
+                    <td>{{ report_data.experiment_summary.temperature_range.min }} - {{ report_data.experiment_summary.temperature_range.max }}</td>
+                </tr>
+                <tr>
+                    <td>Alpha Range</td>
+                    <td>{{ report_data.experiment_summary.alpha_range.min }} - {{ report_data.experiment_summary.alpha_range.max }}</td>
+                </tr>
+                <tr>
+                    <td>Total Configurations</td>
+                    <td>{{ total_models }}</td>
+                </tr>
+                <tr>
+                    <td>Trials per Configuration</td>
+                    <td>{{ report_data.experiment_summary.n_trials }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function initializeOverviewCharts() {
+    // Sankey Diagram
+    if (document.getElementById('sankey-diagram')) {
+        const sankeyData = {
+            type: "sankey",
+            orientation: "h",
+            node: {
+                pad: 15,
+                thickness: 30,
+                line: {
+                    color: "black",
+                    width: 0.5
+                },
+                label: [
+                    "Original Model",
+                    "Teacher Knowledge",
+                    "Knowledge Distillation",
+                    "Student Models",
+                    "Best Model"
+                ],
+                color: ["#1e40af", "#3b82f6", "#8b5cf6", "#f59e0b", "#10b981"]
+            },
+            link: {
+                source: [0, 1, 2, 3],
+                target: [1, 2, 3, 4],
+                value: [100, 100, 100, 20],
+                color: ["rgba(31, 119, 180, 0.3)", "rgba(139, 92, 246, 0.3)",
+                        "rgba(245, 158, 11, 0.3)", "rgba(16, 185, 129, 0.3)"]
+            }
+        };
+
+        const layout = {
+            title: "Knowledge Distillation Flow",
+            font: { size: 10 },
+            height: 300,
+            margin: { t: 40, b: 20 }
+        };
+
+        Plotly.newPlot('sankey-diagram', [sankeyData], layout, {responsive: true});
+    }
+
+    // Radar Chart Comparison
+    if (document.getElementById('radar-comparison') && window.reportData) {
+        const original = window.reportData.original_model.test_metrics || {};
+        const best = window.reportData.best_model.metrics || {};
+
+        const metrics = ['accuracy', 'precision', 'recall', 'f1_score', 'auc_roc'];
+        const labels = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC'];
+
+        const originalTrace = {
+            type: 'scatterpolar',
+            r: metrics.map(m => original[m] || 0),
+            theta: labels,
+            fill: 'toself',
+            name: 'Original Model',
+            marker: { color: '#1e40af' }
+        };
+
+        const bestTrace = {
+            type: 'scatterpolar',
+            r: metrics.map(m => best['test_' + m] || 0),
+            theta: labels,
+            fill: 'toself',
+            name: 'Best Distilled',
+            marker: { color: '#10b981' }
+        };
+
+        const layout = {
+            polar: {
+                radialaxis: {
+                    visible: true,
+                    range: [0, 1]
+                }
+            },
+            showlegend: true,
+            title: "Performance Comparison",
+            height: 400
+        };
+
+        Plotly.newPlot('radar-comparison', [originalTrace, bestTrace], layout, {responsive: true});
+    }
+}
+</script>

@@ -1,0 +1,129 @@
+<!-- Model Comparison Tab -->
+<div class="model-comparison-section">
+    <!-- Performance Heatmap -->
+    <div class="chart-container">
+        <h2>🔥 Model Performance Heatmap</h2>
+        <div id="performance-heatmap" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Parallel Coordinates Plot -->
+    <div class="chart-container">
+        <h2>📈 Multi-Dimensional Comparison</h2>
+        <div id="parallel-coordinates" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Top Models Table -->
+    <div class="chart-container">
+        <h2>🏆 Top 10 Models by Accuracy</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Model Type</th>
+                    <th>Temperature</th>
+                    <th>Alpha</th>
+                    <th>Accuracy</th>
+                    <th>F1 Score</th>
+                    <th>Complexity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in report_data.all_models[:10] %}
+                <tr>
+                    <td>#{{ loop.index }}</td>
+                    <td>{{ model.model_type }}</td>
+                    <td>{{ model.temperature }}</td>
+                    <td>{{ model.alpha }}</td>
+                    <td>{{ "%.4f" | format(model.metrics.test_accuracy) if model.metrics and model.metrics.test_accuracy else "N/A" }}</td>
+                    <td>{{ "%.4f" | format(model.metrics.test_f1_score) if model.metrics and model.metrics.test_f1_score else "N/A" }}</td>
+                    <td>{{ "%.2f" | format(model.model_complexity) if model.model_complexity else "N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function initializeComparisonCharts() {
+    if (!window.chartData || !window.chartData.model_comparison) return;
+
+    const data = window.chartData.model_comparison;
+
+    // Performance Heatmap
+    if (document.getElementById('performance-heatmap') && data.heatmap) {
+        const heatmapTrace = {
+            z: data.heatmap.data,
+            x: data.heatmap.metrics,
+            y: data.heatmap.models.slice(0, 15), // Limit to top 15
+            type: 'heatmap',
+            colorscale: 'RdYlGn',
+            reversescale: false,
+            showscale: true,
+            colorbar: {
+                title: 'Score',
+                titleside: 'right'
+            }
+        };
+
+        const layout = {
+            title: 'Model Performance Across Metrics',
+            xaxis: { title: 'Metrics' },
+            yaxis: { title: 'Model Configuration', automargin: true },
+            height: 500
+        };
+
+        Plotly.newPlot('performance-heatmap', [heatmapTrace], layout, {responsive: true});
+    }
+
+    // Parallel Coordinates
+    if (document.getElementById('parallel-coordinates') && data.scatter_data) {
+        const dimensions = [
+            {
+                label: 'Accuracy',
+                values: data.scatter_data.map(d => d.accuracy),
+                range: [
+                    Math.min(...data.scatter_data.map(d => d.accuracy)),
+                    Math.max(...data.scatter_data.map(d => d.accuracy))
+                ]
+            },
+            {
+                label: 'F1 Score',
+                values: data.scatter_data.map(d => d.f1_score),
+                range: [
+                    Math.min(...data.scatter_data.map(d => d.f1_score)),
+                    Math.max(...data.scatter_data.map(d => d.f1_score))
+                ]
+            },
+            {
+                label: 'Complexity',
+                values: data.scatter_data.map(d => d.complexity),
+                range: [
+                    Math.min(...data.scatter_data.map(d => d.complexity)),
+                    Math.max(...data.scatter_data.map(d => d.complexity))
+                ]
+            }
+        ];
+
+        const trace = {
+            type: 'parcoords',
+            line: {
+                color: data.scatter_data.map(d => d.accuracy),
+                colorscale: 'Viridis',
+                showscale: true,
+                cmin: Math.min(...data.scatter_data.map(d => d.accuracy)),
+                cmax: Math.max(...data.scatter_data.map(d => d.accuracy))
+            },
+            dimensions: dimensions
+        };
+
+        const layout = {
+            title: 'Multi-Dimensional Model Analysis',
+            height: 400,
+            margin: { b: 40 }
+        };
+
+        Plotly.newPlot('parallel-coordinates', [trace], layout, {responsive: true});
+    }
+}
+</script>

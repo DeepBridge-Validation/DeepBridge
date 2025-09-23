@@ -1,0 +1,396 @@
+<!-- Frequency Distribution Comparison Tab -->
+<div class="frequency-distribution-section">
+    <h2>📊 Prediction Frequency Distribution Analysis</h2>
+    <p class="section-description">
+        Compare the prediction probability distributions between the original model and the best distilled model.
+        This analysis helps understand how knowledge distillation affects the confidence and calibration of predictions.
+    </p>
+
+    {% if chart_data and chart_data.frequency_distribution_data and chart_data.frequency_distribution_data.has_data %}
+
+    <!-- Histogram Comparison -->
+    <div class="chart-container">
+        <h3>Prediction Probability Distribution</h3>
+        <div id="frequency-histogram" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Cumulative Distribution -->
+    <div class="chart-container">
+        <h3>Cumulative Distribution Function</h3>
+        <div id="frequency-cdf" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Statistics Summary -->
+    <div class="statistics-summary">
+        <h3>Distribution Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>🔵 Original Model</h4>
+                <div class="stat-row">
+                    <span class="label">Model Type:</span>
+                    <span class="value">{{ chart_data.frequency_distribution_data.original.model_type }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Accuracy:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.original.accuracy) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Mean Probability:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.original.mean) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Std Deviation:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.original.std) }}</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h4>🔴 Best Distilled Model</h4>
+                <div class="stat-row">
+                    <span class="label">Model Type:</span>
+                    <span class="value">{{ chart_data.frequency_distribution_data.best.model_type }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Accuracy:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.best.accuracy) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Mean Probability:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.best.mean) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Std Deviation:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.best.std) }}</span>
+                </div>
+            </div>
+
+            {% if chart_data.frequency_distribution_data.ks_statistic %}
+            <div class="stat-card">
+                <h4>📈 Comparison Metrics</h4>
+                <div class="stat-row">
+                    <span class="label">KS Statistic:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.ks_statistic) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Mean Difference:</span>
+                    <span class="value">{{ "%.3f" | format(chart_data.frequency_distribution_data.best.mean - chart_data.frequency_distribution_data.original.mean) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">Accuracy Change:</span>
+                    <span class="value">{{ "%+.3f" | format(chart_data.frequency_distribution_data.best.accuracy - chart_data.frequency_distribution_data.original.accuracy) }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="no-data-message">
+        <p>No frequency distribution data available. Ensure that both original and distilled models have been evaluated.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function initializeFrequencyDistributionCharts() {
+    if (!window.chartData || !window.chartData.frequency_distribution_data) {
+        console.log('No frequency distribution data available');
+        return;
+    }
+
+    const data = window.chartData.frequency_distribution_data;
+
+    if (!data.has_data) {
+        console.log('Frequency distribution data is empty');
+        return;
+    }
+
+    // Histogram Comparison
+    if (document.getElementById('frequency-histogram')) {
+        const bins = data.bins.slice(0, -1).map((v, i) => (v + data.bins[i + 1]) / 2);
+
+        const trace1 = {
+            x: bins,
+            y: data.original.histogram,
+            type: 'bar',
+            name: 'Original Model',
+            marker: {
+                color: 'rgba(99, 102, 241, 0.6)',
+                line: {
+                    color: 'rgba(99, 102, 241, 1)',
+                    width: 1
+                }
+            },
+            opacity: 0.7
+        };
+
+        const trace2 = {
+            x: bins,
+            y: data.best.histogram,
+            type: 'bar',
+            name: `Best Distilled (${data.best.model_type})`,
+            marker: {
+                color: 'rgba(239, 68, 68, 0.6)',
+                line: {
+                    color: 'rgba(239, 68, 68, 1)',
+                    width: 1
+                }
+            },
+            opacity: 0.7
+        };
+
+        // Add mean lines
+        const meanLineOriginal = {
+            x: [data.original.mean, data.original.mean],
+            y: [0, Math.max(...data.original.histogram, ...data.best.histogram)],
+            mode: 'lines',
+            name: `Original Mean: ${data.original.mean.toFixed(3)}`,
+            line: {
+                color: 'blue',
+                dash: 'dash',
+                width: 2
+            }
+        };
+
+        const meanLineBest = {
+            x: [data.best.mean, data.best.mean],
+            y: [0, Math.max(...data.original.histogram, ...data.best.histogram)],
+            mode: 'lines',
+            name: `Best Mean: ${data.best.mean.toFixed(3)}`,
+            line: {
+                color: 'red',
+                dash: 'dash',
+                width: 2
+            }
+        };
+
+        const layout = {
+            title: 'Prediction Probability Distribution Comparison',
+            xaxis: {
+                title: 'Prediction Probability',
+                range: [0, 1]
+            },
+            yaxis: {
+                title: 'Frequency (Density)'
+            },
+            barmode: 'overlay',
+            showlegend: true,
+            legend: {
+                x: 0.7,
+                y: 1,
+                bgcolor: 'rgba(255, 255, 255, 0.8)',
+                bordercolor: '#e5e7eb',
+                borderwidth: 1
+            },
+            height: 400
+        };
+
+        Plotly.newPlot('frequency-histogram', [trace1, trace2, meanLineOriginal, meanLineBest], layout, {responsive: true});
+    }
+
+    // Cumulative Distribution Function
+    if (document.getElementById('frequency-cdf')) {
+        // Sort probabilities for CDF
+        const originalSorted = data.original.probabilities.sort((a, b) => a - b);
+        const bestSorted = data.best.probabilities.sort((a, b) => a - b);
+
+        // Calculate cumulative probabilities
+        const cumOriginal = originalSorted.map((_, i) => (i + 1) / originalSorted.length);
+        const cumBest = bestSorted.map((_, i) => (i + 1) / bestSorted.length);
+
+        const trace1 = {
+            x: originalSorted,
+            y: cumOriginal,
+            mode: 'lines',
+            name: 'Original Model',
+            line: {
+                color: 'blue',
+                width: 2
+            }
+        };
+
+        const trace2 = {
+            x: bestSorted,
+            y: cumBest,
+            mode: 'lines',
+            name: `Best Distilled (${data.best.model_type})`,
+            line: {
+                color: 'red',
+                width: 2
+            }
+        };
+
+        // Add diagonal reference line
+        const diagonal = {
+            x: [0, 1],
+            y: [0, 1],
+            mode: 'lines',
+            name: 'Uniform',
+            line: {
+                color: 'gray',
+                dash: 'dash',
+                width: 1
+            }
+        };
+
+        const traces = [trace1, trace2, diagonal];
+
+        // Add KS statistic visualization if available
+        if (data.ks_statistic) {
+            // Find approximate maximum difference point
+            const interpBest = [];
+            let maxDiff = 0;
+            let maxDiffX = 0;
+            let maxDiffYOrig = 0;
+            let maxDiffYBest = 0;
+
+            originalSorted.forEach((x, i) => {
+                // Find closest point in best distribution
+                let closestIdx = 0;
+                let minDist = Math.abs(bestSorted[0] - x);
+                for (let j = 1; j < bestSorted.length; j++) {
+                    const dist = Math.abs(bestSorted[j] - x);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = j;
+                    }
+                }
+                const diff = Math.abs(cumOriginal[i] - cumBest[closestIdx]);
+                if (diff > maxDiff) {
+                    maxDiff = diff;
+                    maxDiffX = x;
+                    maxDiffYOrig = cumOriginal[i];
+                    maxDiffYBest = cumBest[closestIdx];
+                }
+            });
+
+            // Add KS statistic line
+            const ksLine = {
+                x: [maxDiffX, maxDiffX],
+                y: [maxDiffYOrig, maxDiffYBest],
+                mode: 'lines+markers',
+                name: `KS Statistic: ${data.ks_statistic.toFixed(3)}`,
+                line: {
+                    color: 'green',
+                    width: 3
+                },
+                marker: {
+                    size: 8,
+                    color: 'green'
+                }
+            };
+            traces.push(ksLine);
+        }
+
+        const layout = {
+            title: 'Cumulative Distribution Function Comparison',
+            xaxis: {
+                title: 'Prediction Probability',
+                range: [0, 1]
+            },
+            yaxis: {
+                title: 'Cumulative Probability',
+                range: [0, 1]
+            },
+            showlegend: true,
+            legend: {
+                x: 0.05,
+                y: 0.95,
+                bgcolor: 'rgba(255, 255, 255, 0.8)',
+                bordercolor: '#e5e7eb',
+                borderwidth: 1
+            },
+            height: 400
+        };
+
+        Plotly.newPlot('frequency-cdf', traces, layout, {responsive: true});
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize frequency charts when the tab is clicked
+    const freqTab = document.querySelector('[data-target="frequency-distribution"]');
+    if (freqTab) {
+        freqTab.addEventListener('click', function() {
+            setTimeout(() => {
+                initializeFrequencyDistributionCharts();
+            }, 100);
+        });
+    }
+});
+</script>
+
+<style>
+.frequency-distribution-section {
+    padding: 1rem;
+}
+
+.section-description {
+    color: #6b7280;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.statistics-summary {
+    margin-top: 2rem;
+    background: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.statistics-summary h3 {
+    margin-bottom: 1rem;
+    color: #1f2937;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.stat-card h4 {
+    margin: 0 0 1rem;
+    color: #4b5563;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+}
+
+.stat-row .label {
+    color: #6b7280;
+}
+
+.stat-row .value {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.no-data-message {
+    text-align: center;
+    padding: 3rem;
+    color: #9ca3af;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+
+.chart-wrapper {
+    margin: 1rem 0;
+}
+</style>

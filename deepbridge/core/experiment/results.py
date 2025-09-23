@@ -305,7 +305,188 @@ class ExperimentResult:
             raise ReportGenerationError(f"HTML report generation for {test_type} tests is not implemented: {str(e)}")
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate HTML report: {str(e)}")
-    
+
+    def save_json(self, test_type: str, file_path: str, include_summary: bool = True) -> str:
+        """
+        Save test results to a JSON file for AI analysis.
+
+        Args:
+            test_type: Type of test results to save ('robustness', 'uncertainty', etc.)
+            file_path: Path where to save the JSON file
+            include_summary: Whether to include a summary section with key findings (default: True)
+
+        Returns:
+            Path to the saved JSON file
+
+        Raises:
+            TestResultNotFoundError: If test results not found
+        """
+        import numpy as np
+
+        # Convert test_type to lowercase for consistency
+        test_type = test_type.lower()
+
+        # Check if we have results for this test type
+        lookup_key = test_type
+        if test_type == "hyperparameters":
+            lookup_key = "hyperparameter"
+
+        result = self.results.get(lookup_key)
+        if not result:
+            raise TestResultNotFoundError(f"No {test_type} test results found. Run the test first.")
+
+        # Get the results dictionary
+        if hasattr(result, 'clean_results_dict'):
+            test_data = result.clean_results_dict()
+        elif hasattr(result, 'results'):
+            test_data = result.results
+        else:
+            test_data = result
+
+        # Create the JSON structure
+        json_data = {
+            "experiment_info": {
+                "test_type": test_type,
+                "experiment_type": self.experiment_type,
+                "generation_time": self.generation_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "config": self.config
+            },
+            "test_results": test_data
+        }
+
+        # Add initial model evaluation if available
+        if 'initial_results' in self.results:
+            json_data["initial_model_evaluation"] = self.results['initial_results']
+
+        # Add summary for robustness tests
+        if include_summary and test_type == 'robustness':
+            summary = self._generate_robustness_summary(test_data)
+            json_data["summary"] = summary
+
+        # Function to convert numpy types to Python types
+        def convert_numpy_types(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(v) for v in obj]
+            return obj
+
+        # Convert all numpy types before serialization
+        json_data = convert_numpy_types(json_data)
+
+        # Ensure file_path is absolute
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Save to JSON file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+        return file_path
+
+    def _generate_robustness_summary(self, test_data: dict) -> dict:
+        """
+        Generate a summary of key findings from robustness test results.
+
+        Args:
+            test_data: Dictionary containing robustness test results
+
+        Returns:
+            Summary dictionary with key findings
+        """
+        summary = {
+            "key_findings": [],
+            "model_performance": {},
+            "feature_impacts": {},
+            "recommendations": []
+        }
+
+        # Analyze primary model if available
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+
+            # Model robustness score
+            robustness_score = primary.get('robustness_score', 1.0 - primary.get('avg_overall_impact', 0))
+            summary["model_performance"]["robustness_score"] = round(robustness_score, 4)
+
+            # Key metrics
+            if 'metrics' in primary:
+                summary["model_performance"]["metrics"] = primary['metrics']
+
+            # Average impacts
+            summary["model_performance"]["average_impacts"] = {
+                "raw_perturbation": round(primary.get('avg_raw_impact', 0), 4),
+                "quantile_perturbation": round(primary.get('avg_quantile_impact', 0), 4),
+                "overall": round(primary.get('avg_overall_impact', 0), 4)
+            }
+
+            # Top impacted features
+            if 'feature_importance' in primary:
+                features = primary['feature_importance']
+                sorted_features = sorted(features.items(), key=lambda x: x[1], reverse=True)
+                summary["feature_impacts"]["most_sensitive_features"] = [
+                    {"feature": name, "impact": round(impact, 4)}
+                    for name, impact in sorted_features[:10]
+                ]
+                summary["feature_impacts"]["least_sensitive_features"] = [
+                    {"feature": name, "impact": round(impact, 4)}
+                    for name, impact in sorted_features[-5:]
+                ]
+
+            # Generate key findings
+            if robustness_score >= 0.9:
+                summary["key_findings"].append("Model shows excellent robustness (score >= 0.9)")
+            elif robustness_score >= 0.8:
+                summary["key_findings"].append("Model shows good robustness (score >= 0.8)")
+            elif robustness_score >= 0.7:
+                summary["key_findings"].append("Model shows moderate robustness (score >= 0.7)")
+            else:
+                summary["key_findings"].append(f"Model shows low robustness (score: {robustness_score:.4f})")
+
+            # Add findings about feature sensitivity
+            if 'feature_importance' in primary and len(features) > 0:
+                high_impact_features = [k for k, v in features.items() if v > 0.1]
+                if high_impact_features:
+                    summary["key_findings"].append(f"Found {len(high_impact_features)} highly sensitive features (impact > 0.1)")
+
+            # Recommendations based on results
+            if robustness_score < 0.8:
+                summary["recommendations"].append("Consider model regularization to improve robustness")
+
+            if len(summary["feature_impacts"].get("most_sensitive_features", [])) > 0:
+                top_feature = summary["feature_impacts"]["most_sensitive_features"][0]
+                if top_feature["impact"] > 0.2:
+                    summary["recommendations"].append(f"Feature '{top_feature['feature']}' is highly sensitive - consider feature engineering or validation")
+
+        # Analyze alternative models if available
+        if 'alternative_models' in test_data:
+            alt_models = {}
+            for model_name, model_data in test_data['alternative_models'].items():
+                if 'metrics' in model_data:
+                    alt_models[model_name] = {
+                        "metrics": model_data['metrics'],
+                        "robustness_score": round(1.0 - model_data.get('avg_overall_impact', 0), 4)
+                    }
+
+            if alt_models:
+                summary["alternative_models_comparison"] = alt_models
+
+                # Find best alternative model
+                best_alt = max(alt_models.items(), key=lambda x: x[1].get('robustness_score', 0))
+                if best_alt[1]['robustness_score'] > summary["model_performance"]["robustness_score"]:
+                    summary["key_findings"].append(f"Alternative model '{best_alt[0]}' shows better robustness")
+
+        return summary
+
     def to_dict(self) -> dict:
         """
         Convert all results to a dictionary for serialization.

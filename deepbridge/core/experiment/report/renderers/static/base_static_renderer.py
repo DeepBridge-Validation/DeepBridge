@@ -435,20 +435,84 @@ class BaseStaticRenderer:
     def _load_static_css_content(self) -> str:
         """
         Load and combine CSS files for static reports.
-        
+
         Returns:
         --------
         str : Combined CSS content
         """
-        # Basic CSS for static reports
+        try:
+            # Load main CSS but exclude interactive-specific components for static reports
+            css_dir = self.asset_manager.get_generic_css_path()
+            css_content = ""
+
+            # Load main.css first
+            main_css_path = os.path.join(css_dir, 'main.css')
+            if os.path.exists(main_css_path):
+                with open(main_css_path, 'r', encoding='utf-8') as f:
+                    css_content = f.read() + "\n\n"
+
+            # Load component CSS but skip charts.css which has interactive-specific styles
+            components_dir = os.path.join(css_dir, 'components')
+            if os.path.exists(components_dir):
+                # List of components to include for static reports
+                static_safe_components = ['buttons', 'cards', 'tables', 'typography', 'utilities', 'messages']
+
+                for component in static_safe_components:
+                    component_path = os.path.join(components_dir, f'{component}.css')
+                    if os.path.exists(component_path):
+                        with open(component_path, 'r', encoding='utf-8') as f:
+                            css_content += f"/* ----- {component} ----- */\n"
+                            css_content += f.read() + "\n\n"
+
+            # If we got content, return it with static report additions
+            if css_content:
+                # Add static-specific styles and overrides
+                css_content += """
+
+                /* Additional styles for static reports */
+                .chart-container {
+                    margin: 2rem 0;
+                    text-align: center;
+                    display: block !important; /* Override any display:none from interactive CSS */
+                }
+
+                .chart-container img {
+                    max-width: 100%;
+                    height: auto;
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                }
+
+                /* Ensure all chart containers are visible in static reports */
+                .chart-container.active,
+                .chart-container {
+                    display: block !important;
+                }
+                """
+                return css_content
+
+        except Exception as e:
+            # Fall back to basic CSS if loading fails
+            pass
+
+        # Default basic CSS for static reports
         return """
         /* Base styles for static reports */
         :root {
             --primary-color: #1b78de;
             --secondary-color: #2c3e50;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
             --text-color: #333;
-            --background-color: #f8f9fa;
+            --text-muted: #6c757d;
             --border-color: #ddd;
+            --background-color: #f8f9fa;
+            --card-bg: #fff;
+            --header-bg: #ffffff;
         }
         
         * {

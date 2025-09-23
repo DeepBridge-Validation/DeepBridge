@@ -451,13 +451,27 @@ class TestRunner:
                 self._standardize_metrics(primary_results['metrics'])
         
         # Store primary model results
-        test_results['primary_model'] = primary_results
-        
+        # Check if primary_results already has the structure with primary_model
+        if 'primary_model' in primary_results:
+            # Use the primary_model from the results directly
+            test_results['primary_model'] = primary_results['primary_model']
+            # Add other top-level keys that might be important
+            for key in primary_results:
+                if key not in ['primary_model', 'alternative_models']:
+                    test_results[key] = primary_results[key]
+        else:
+            # If no nested structure, use as is
+            test_results['primary_model'] = primary_results
+
         # Add model_type to primary model results
         if hasattr(self.dataset, 'model'):
             test_results['primary_model']['model_type'] = type(self.dataset.model).__name__
         
-        # Test alternative models
+        # Handle alternative_models if they exist in primary_results
+        if 'alternative_models' in primary_results:
+            test_results['alternative_models'] = primary_results['alternative_models']
+
+        # Test additional alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
                 self.logger.info(f"Testing {test_type} of alternative model: {model_name}")

@@ -954,6 +954,16 @@
             </div>
             {% endif %}
 
+            {% if charts.model_comparison_scatter %}
+            <div class="chart-container">
+                <h3>Accuracy vs Resilience Score</h3>
+                <p class="chart-description">Scatter plot comparing model accuracy versus resilience score, helping identify models that maintain both high performance and resilience.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_comparison_scatter }}" alt="Model comparison scatter plot" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
             {% if charts.distance_metrics_comparison %}
             <div class="chart-container">
                 <h3>Distance Metrics Comparison by Alpha</h3>

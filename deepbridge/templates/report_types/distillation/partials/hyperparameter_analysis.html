@@ -1,0 +1,186 @@
+<!-- Hyperparameter Analysis Tab -->
+<div class="hyperparameter-section">
+    <!-- 3D Surface Plot -->
+    <div class="chart-container">
+        <h2>🗺️ Hyperparameter Impact Surface</h2>
+        <div id="hyperparameter-surface" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Temperature Impact -->
+    <div class="chart-container">
+        <h2>🌡️ Temperature Effect on Performance</h2>
+        <div id="temperature-impact" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Alpha Impact -->
+    <div class="chart-container">
+        <h2>⚖️ Alpha Effect on Performance</h2>
+        <div id="alpha-impact" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Optimal Ranges -->
+    {% if report_data.hyperparameter_analysis.optimal_ranges %}
+    <div class="chart-container">
+        <h2>✅ Optimal Hyperparameter Ranges</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+            <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 4px solid #10b981;">
+                <h3 style="margin: 0 0 0.5rem; color: #10b981;">Temperature</h3>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Optimal Range:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.temperature.min) }} -
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.temperature.max) }}
+                </p>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Best Value:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.temperature_impact.best) }}
+                </p>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Mean in Range:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.temperature.mean) }}
+                </p>
+            </div>
+
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <h3 style="margin: 0 0 0.5rem; color: #3b82f6;">Alpha</h3>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Optimal Range:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.alpha.min) }} -
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.alpha.max) }}
+                </p>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Best Value:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.alpha_impact.best) }}
+                </p>
+                <p style="margin: 0.25rem 0;">
+                    <strong>Mean in Range:</strong>
+                    {{ "%.2f" | format(report_data.hyperparameter_analysis.optimal_ranges.alpha.mean) }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function initializeHyperparameterCharts() {
+    if (!window.chartData || !window.chartData.hyperparameter_data) return;
+
+    const data = window.chartData.hyperparameter_data;
+
+    // 3D Surface Plot (using heatmap as 2D representation)
+    if (document.getElementById('hyperparameter-surface') && data.interaction_matrix) {
+        const surfaceTrace = {
+            z: data.interaction_matrix.data,
+            x: data.interaction_matrix.alphas,
+            y: data.interaction_matrix.temperatures,
+            type: 'surface',
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+                title: 'Test Accuracy',
+                titleside: 'right'
+            }
+        };
+
+        const layout = {
+            title: 'Temperature vs Alpha Interaction',
+            scene: {
+                xaxis: { title: 'Alpha' },
+                yaxis: { title: 'Temperature' },
+                zaxis: { title: 'Test Accuracy' },
+                camera: {
+                    eye: { x: 1.5, y: 1.5, z: 1.5 }
+                }
+            },
+            height: 500,
+            margin: { t: 40, b: 0 }
+        };
+
+        Plotly.newPlot('hyperparameter-surface', [surfaceTrace], layout, {responsive: true});
+    }
+
+    // Temperature Impact Chart
+    if (document.getElementById('temperature-impact') && data.temperature_impact) {
+        const temps = Object.keys(data.temperature_impact.values).map(Number).sort((a, b) => a - b);
+        const values = temps.map(t => data.temperature_impact.values[t]);
+        const stds = temps.map(t => data.temperature_impact.std[t] || 0);
+
+        const trace = {
+            x: temps,
+            y: values,
+            error_y: {
+                type: 'data',
+                array: stds,
+                visible: true
+            },
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Mean Accuracy',
+            line: { color: '#10b981', width: 3 },
+            marker: { size: 8 }
+        };
+
+        // Add best temperature line
+        const bestTrace = {
+            x: [data.temperature_impact.best, data.temperature_impact.best],
+            y: [Math.min(...values), Math.max(...values)],
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Best Temperature',
+            line: { color: '#ef4444', width: 2, dash: 'dash' }
+        };
+
+        const layout = {
+            title: 'Temperature Impact on Test Accuracy',
+            xaxis: { title: 'Temperature' },
+            yaxis: { title: 'Test Accuracy' },
+            showlegend: true,
+            height: 400
+        };
+
+        Plotly.newPlot('temperature-impact', [trace, bestTrace], layout, {responsive: true});
+    }
+
+    // Alpha Impact Chart
+    if (document.getElementById('alpha-impact') && data.alpha_impact) {
+        const alphas = Object.keys(data.alpha_impact.values).map(Number).sort((a, b) => a - b);
+        const values = alphas.map(a => data.alpha_impact.values[a]);
+        const stds = alphas.map(a => data.alpha_impact.std[a] || 0);
+
+        const trace = {
+            x: alphas,
+            y: values,
+            error_y: {
+                type: 'data',
+                array: stds,
+                visible: true
+            },
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Mean Accuracy',
+            line: { color: '#3b82f6', width: 3 },
+            marker: { size: 8 }
+        };
+
+        // Add best alpha line
+        const bestTrace = {
+            x: [data.alpha_impact.best, data.alpha_impact.best],
+            y: [Math.min(...values), Math.max(...values)],
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Best Alpha',
+            line: { color: '#ef4444', width: 2, dash: 'dash' }
+        };
+
+        const layout = {
+            title: 'Alpha Impact on Test Accuracy',
+            xaxis: { title: 'Alpha (Weight of Distillation Loss)' },
+            yaxis: { title: 'Test Accuracy' },
+            showlegend: true,
+            height: 400
+        };
+
+        Plotly.newPlot('alpha-impact', [trace, bestTrace], layout, {responsive: true});
+    }
+}
+</script>

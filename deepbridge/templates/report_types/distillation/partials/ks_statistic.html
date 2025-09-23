@@ -1,0 +1,270 @@
+<!-- KS Statistic Distribution Analysis Tab -->
+<div class="ks-statistic-section">
+    <h2>📊 KS Statistic Distribution Analysis</h2>
+    <p class="section-description">
+        The Kolmogorov-Smirnov (KS) statistic measures the maximum difference between the predicted and actual cumulative distributions.
+        Lower values indicate better distribution matching between predictions and actual outcomes.
+    </p>
+
+    <!-- KS Distribution Box Plot -->
+    <div class="chart-container">
+        <h3>KS Statistic Distribution by Model Type</h3>
+        <div id="ks-distribution-boxplot" class="chart-wrapper"></div>
+    </div>
+
+    <!-- KS vs Accuracy Scatter Plot -->
+    <div class="chart-container">
+        <h3>KS Statistic vs Model Accuracy</h3>
+        <div id="ks-vs-accuracy-scatter" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Summary Statistics -->
+    {% if chart_data_json and chart_data.ks_statistic_data.has_data %}
+    <div class="statistics-summary">
+        <h3>Summary Statistics</h3>
+        <div class="metrics-grid">
+            {% for model_data in chart_data.ks_statistic_data.box_data %}
+            <div class="metric-card">
+                <h4>{{ model_data.name }}</h4>
+                <div class="metric-row">
+                    <span class="label">Mean KS:</span>
+                    <span class="value">{{ "%.4f" | format(model_data.mean) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="label">Min/Max:</span>
+                    <span class="value">{{ "%.4f" | format(model_data.min) }} / {{ "%.4f" | format(model_data.max) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="label">Models:</span>
+                    <span class="value">{{ model_data.count }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="no-data-message">
+        <p>No KS statistic data available for the models in this experiment.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function initializeKSStatisticCharts() {
+    if (!window.chartData || !window.chartData.ks_statistic_data) {
+        console.log('No KS statistic data available');
+        return;
+    }
+
+    const ksData = window.chartData.ks_statistic_data;
+
+    if (!ksData.has_data) {
+        console.log('KS statistic data is empty');
+        return;
+    }
+
+    // Box Plot for KS Distribution by Model Type
+    if (document.getElementById('ks-distribution-boxplot') && ksData.box_data) {
+        const traces = ksData.box_data.map(modelData => ({
+            y: modelData.values,
+            name: modelData.name,
+            type: 'box',
+            boxpoints: 'all',
+            jitter: 0.3,
+            pointpos: -1.8,
+            marker: {
+                color: 'rgb(99, 102, 241)',
+                size: 4
+            },
+            boxmean: true
+        }));
+
+        const layout = {
+            title: 'KS Statistic Distribution by Model Type',
+            yaxis: {
+                title: 'KS Statistic Value',
+                zeroline: false
+            },
+            xaxis: {
+                title: 'Model Type'
+            },
+            showlegend: false,
+            height: 400,
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot('ks-distribution-boxplot', traces, layout, {responsive: true});
+    }
+
+    // Scatter Plot: KS Statistic vs Accuracy
+    if (document.getElementById('ks-vs-accuracy-scatter') && ksData.scatter_data) {
+        // Group by model type for different colors
+        const modelTypes = [...new Set(ksData.scatter_data.map(d => d.model_type))];
+        const colorScale = Plotly.d3.scale.category10();
+
+        const traces = modelTypes.map((modelType, idx) => {
+            const modelData = ksData.scatter_data.filter(d => d.model_type === modelType);
+            return {
+                x: modelData.map(d => d.ks_statistic),
+                y: modelData.map(d => d.accuracy),
+                mode: 'markers',
+                type: 'scatter',
+                name: modelType,
+                text: modelData.map(d =>
+                    `Model: ${d.model_type}<br>` +
+                    `Config: ${d.config}<br>` +
+                    `KS Statistic: ${d.ks_statistic.toFixed(4)}<br>` +
+                    `Accuracy: ${d.accuracy.toFixed(4)}<br>` +
+                    `Temperature: ${d.temperature}<br>` +
+                    `Alpha: ${d.alpha}`
+                ),
+                hovertemplate: '%{text}<extra></extra>',
+                marker: {
+                    size: 10,
+                    color: colorScale(idx),
+                    opacity: 0.7,
+                    line: {
+                        color: 'white',
+                        width: 1
+                    }
+                }
+            };
+        });
+
+        // Add trend line
+        const allKS = ksData.scatter_data.map(d => d.ks_statistic);
+        const allAccuracy = ksData.scatter_data.map(d => d.accuracy);
+
+        // Simple linear regression for trend line
+        const n = allKS.length;
+        const sumX = allKS.reduce((a, b) => a + b, 0);
+        const sumY = allAccuracy.reduce((a, b) => a + b, 0);
+        const sumXY = allKS.reduce((sum, x, i) => sum + x * allAccuracy[i], 0);
+        const sumX2 = allKS.reduce((sum, x) => sum + x * x, 0);
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        const xMin = Math.min(...allKS);
+        const xMax = Math.max(...allKS);
+
+        traces.push({
+            x: [xMin, xMax],
+            y: [slope * xMin + intercept, slope * xMax + intercept],
+            mode: 'lines',
+            name: 'Trend',
+            line: {
+                color: 'rgba(128, 128, 128, 0.5)',
+                width: 2,
+                dash: 'dash'
+            },
+            showlegend: false
+        });
+
+        const layout = {
+            title: 'KS Statistic vs Model Accuracy',
+            xaxis: {
+                title: 'KS Statistic (lower is better)',
+                zeroline: false
+            },
+            yaxis: {
+                title: 'Model Accuracy',
+                zeroline: false
+            },
+            height: 450,
+            hovermode: 'closest',
+            legend: {
+                x: 1,
+                y: 1,
+                xanchor: 'right',
+                bgcolor: 'rgba(255, 255, 255, 0.8)',
+                bordercolor: '#e5e7eb',
+                borderwidth: 1
+            }
+        };
+
+        Plotly.newPlot('ks-vs-accuracy-scatter', traces, layout, {responsive: true});
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize KS charts when the tab is clicked
+    const ksTab = document.querySelector('[data-target="ks-statistic"]');
+    if (ksTab) {
+        ksTab.addEventListener('click', function() {
+            setTimeout(() => {
+                initializeKSStatisticCharts();
+            }, 100);
+        });
+    }
+});
+</script>
+
+<style>
+.ks-statistic-section {
+    padding: 1rem;
+}
+
+.section-description {
+    color: #6b7280;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.statistics-summary {
+    margin-top: 2rem;
+    background: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.statistics-summary h3 {
+    margin-bottom: 1rem;
+    color: #1f2937;
+}
+
+.statistics-summary .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.statistics-summary .metric-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.statistics-summary .metric-card h4 {
+    margin: 0 0 0.75rem;
+    color: #4b5563;
+    font-size: 1rem;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+}
+
+.metric-row .label {
+    color: #6b7280;
+}
+
+.metric-row .value {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.no-data-message {
+    text-align: center;
+    padding: 3rem;
+    color: #9ca3af;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+</style>

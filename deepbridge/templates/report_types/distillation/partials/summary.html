@@ -1,0 +1,72 @@
+<!-- Summary Dashboard -->
+<div class="summary-grid">
+    <!-- Total Models Card -->
+    <div class="metric-card primary">
+        <div class="icon">
+            <i class="fas fa-robot"></i>
+        </div>
+        <h3>Models Tested</h3>
+        <div class="value">{{ total_models }}</div>
+        <div class="comparison">
+            {{ report_data.experiment_summary.model_types|length }} model types
+        </div>
+    </div>
+
+    <!-- Best Accuracy Card -->
+    <div class="metric-card success">
+        <div class="icon">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <h3>Best Accuracy</h3>
+        <div class="value">{{ "%.2f" | format(best_accuracy * 100) }}%</div>
+        <div class="comparison">
+            {% set improvement = ((best_accuracy - original_model.test_metrics.accuracy) * 100) if original_model.has_metrics else 0 %}
+            {% if improvement > 0 %}
+                <span class="positive">+{{ "%.2f" | format(improvement) }}% vs original</span>
+            {% elif improvement < 0 %}
+                <span class="negative">{{ "%.2f" | format(improvement) }}% vs original</span>
+            {% else %}
+                <span>Same as original</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Compression Rate Card -->
+    <div class="metric-card warning">
+        <div class="icon">
+            <i class="fas fa-compress"></i>
+        </div>
+        <h3>Compression Rate</h3>
+        <div class="value">{{ "%.1f" | format(compression_rate) }}%</div>
+        <div class="comparison">
+            Model size reduction
+        </div>
+    </div>
+
+
+    <!-- Best Model Type Card -->
+    <div class="metric-card primary">
+        <div class="icon">
+            <i class="fas fa-award"></i>
+        </div>
+        <h3>Best Model Type</h3>
+        <div class="value" style="font-size: 1.2rem;">{{ best_model.model_type }}</div>
+        <div class="comparison">
+            T={{ best_model.temperature }}, α={{ best_model.alpha }}
+        </div>
+    </div>
+
+    <!-- Hyperparameter Range Card -->
+    <div class="metric-card info">
+        <div class="icon">
+            <i class="fas fa-sliders-h"></i>
+        </div>
+        <h3>Hyperparameters</h3>
+        <div class="value" style="font-size: 1rem;">
+            {{ report_data.experiment_summary.temperature_range['values']|length }} × {{ report_data.experiment_summary.alpha_range['values']|length }}
+        </div>
+        <div class="comparison">
+            Temperature × Alpha combinations
+        </div>
+    </div>
+</div>

@@ -389,10 +389,20 @@ class EnhancedUncertaintySuite(UncertaintySuite):
         dict : Enhanced test results with detailed performance metrics
         """
         logger.info("[RUN_DEBUG] Starting enhanced uncertainty analysis")
-        
+
         # Get standard results first
         results = super().run()
         logger.info(f"[RUN_DEBUG] Base results contain top-level keys: {list(results.keys())}")
+
+        # Preserve test_predictions and test_labels if they exist
+        test_predictions = None
+        test_labels = None
+        if 'test_predictions' in results:
+            test_predictions = results['test_predictions']
+            logger.info(f"[RUN_DEBUG] Preserving test_predictions with shape: {test_predictions.shape if hasattr(test_predictions, 'shape') else 'N/A'}")
+        if 'test_labels' in results:
+            test_labels = results['test_labels']
+            logger.info(f"[RUN_DEBUG] Preserving test_labels with shape: {test_labels.shape if hasattr(test_labels, 'shape') else 'N/A'}")
         
         # Check CRQR results
         if 'crqr' in results:
@@ -544,7 +554,44 @@ class EnhancedUncertaintySuite(UncertaintySuite):
             "random_state": self.random_state,
             "threshold_ratio": self.reliable_threshold_ratio
         }
-        
+
+        # Re-add test_predictions and test_labels if they were preserved
+        if test_predictions is not None:
+            results['test_predictions'] = test_predictions
+            logger.info(f"[RUN_DEBUG] Re-added test_predictions to final results")
+        if test_labels is not None:
+            results['test_labels'] = test_labels
+            logger.info(f"[RUN_DEBUG] Re-added test_labels to final results")
+
+        # IMPORTANT: The base run() returns a structured result with primary_model
+        # We need to preserve this structure and add our enhancements to the right place
+        if 'primary_model' in results:
+            logger.info(f"[RUN_DEBUG] primary_model exists, keys: {list(results['primary_model'].keys())[:10]}")
+
+            # Check if plot_data exists
+            if 'plot_data' in results['primary_model']:
+                logger.info(f"[RUN_DEBUG] plot_data exists in primary_model with keys: {list(results['primary_model']['plot_data'].keys())}")
+            else:
+                logger.warning("[RUN_DEBUG] plot_data NOT in primary_model")
+
+            # Add our enhancements to the primary_model
+            if 'reliability_analysis' in results:
+                results['primary_model']['reliability_analysis'] = results.pop('reliability_analysis')
+                logger.info("[RUN_DEBUG] Moved reliability_analysis to primary_model")
+            if 'marginal_bandwidth' in results:
+                results['primary_model']['marginal_bandwidth'] = results.pop('marginal_bandwidth')
+                logger.info("[RUN_DEBUG] Moved marginal_bandwidth to primary_model")
+            if 'interval_widths' in results:
+                results['primary_model']['interval_widths'] = results.pop('interval_widths')
+                logger.info("[RUN_DEBUG] Moved interval_widths to primary_model")
+
+            # Ensure plot_data is preserved
+            if 'plot_data' not in results['primary_model'] and 'plot_data' in results:
+                results['primary_model']['plot_data'] = results['plot_data']
+                logger.info("[RUN_DEBUG] Copied plot_data to primary_model")
+
+            logger.info(f"[RUN_DEBUG] Final primary_model keys: {list(results['primary_model'].keys())[:15]}")
+
         return results
 
 

@@ -1,0 +1,134 @@
+<!-- Trade-off Analysis Tab -->
+<div class="tradeoff-section">
+    <!-- Accuracy vs Complexity Scatter -->
+    <div class="chart-container">
+        <h2>⚖️ Accuracy vs Model Complexity</h2>
+        <div id="accuracy-complexity-scatter" class="chart-wrapper"></div>
+    </div>
+
+
+    <!-- Top Efficient Models -->
+    <div class="chart-container">
+        <h2>🏅 Most Efficient Models</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Model</th>
+                    <th>Configuration</th>
+                    <th>Efficiency Score</th>
+                    <th>Accuracy</th>
+                    <th>Complexity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in report_data.tradeoff_analysis.efficiency_scores[:10] %}
+                <tr>
+                    <td>#{{ loop.index }}</td>
+                    <td>{{ model.model }}</td>
+                    <td>{{ model.config }}</td>
+                    <td>{{ "%.3f" | format(model.efficiency) }}</td>
+                    <td>{{ "%.4f" | format(model.accuracy) }}</td>
+                    <td>{{ "%.2f" | format(model.complexity) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pareto Optimal Models -->
+    {% if report_data.tradeoff_analysis.pareto_frontier %}
+    <div class="chart-container">
+        <h2>🎯 Pareto Optimal Models</h2>
+        <p style="color: #6b7280; margin-bottom: 1rem;">
+            These models represent the best trade-offs between accuracy and complexity.
+            No other model provides better accuracy with less complexity.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+            {% for model in report_data.tradeoff_analysis.pareto_frontier %}
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; border-left: 4px solid #10b981;">
+                <h4 style="margin: 0 0 0.5rem; color: #1f2937;">{{ model.model }}</h4>
+                <p style="margin: 0.25rem 0; font-size: 0.875rem; color: #6b7280;">{{ model.config }}</p>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                    <span style="font-size: 0.875rem;">
+                        <strong>Acc:</strong> {{ "%.3f" | format(model.accuracy) }}
+                    </span>
+                    <span style="font-size: 0.875rem;">
+                        <strong>Comp:</strong> {{ "%.1f" | format(model.complexity) }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function initializeTradeoffCharts() {
+    if (!window.chartData || !window.chartData.tradeoff_data) return;
+
+    const data = window.chartData.tradeoff_data;
+
+    // Accuracy vs Complexity Scatter with Pareto Frontier
+    if (document.getElementById('accuracy-complexity-scatter') && data.accuracy_vs_complexity) {
+        const scatterTrace = {
+            x: data.accuracy_vs_complexity.map(d => d.complexity),
+            y: data.accuracy_vs_complexity.map(d => d.accuracy),
+            text: data.accuracy_vs_complexity.map(d => d.config),
+            mode: 'markers',
+            type: 'scatter',
+            name: 'Models',
+            marker: {
+                size: 10,
+                color: data.accuracy_vs_complexity.map(d => d.accuracy),
+                colorscale: 'Viridis',
+                showscale: true,
+                colorbar: {
+                    title: 'Accuracy',
+                    titleside: 'right'
+                }
+            },
+            hovertemplate: '<b>%{text}</b><br>' +
+                          'Complexity: %{x:.2f}<br>' +
+                          'Accuracy: %{y:.4f}<extra></extra>'
+        };
+
+        const traces = [scatterTrace];
+
+        // Add Pareto frontier if available
+        if (data.pareto_frontier && data.pareto_frontier.length > 0) {
+            const paretoTrace = {
+                x: data.pareto_frontier.map(d => d.complexity),
+                y: data.pareto_frontier.map(d => d.accuracy),
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Pareto Frontier',
+                line: {
+                    color: '#ef4444',
+                    width: 2,
+                    dash: 'dash'
+                },
+                marker: {
+                    size: 12,
+                    color: '#ef4444',
+                    symbol: 'star'
+                }
+            };
+            traces.push(paretoTrace);
+        }
+
+        const layout = {
+            title: 'Model Trade-off: Accuracy vs Complexity',
+            xaxis: { title: 'Model Complexity' },
+            yaxis: { title: 'Test Accuracy' },
+            showlegend: true,
+            height: 500,
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot('accuracy-complexity-scatter', traces, layout, {responsive: true});
+    }
+
+}
+</script>

@@ -6,8 +6,8 @@
     <title>DeepBridge {{ test_type|capitalize }} Report: {{ model_name }}</title>
     
     <!-- Favicon -->
-    {% if favicon_base64 %}
-    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% if favicon %}
+    <link rel="icon" type="image/x-icon" href="{{ favicon }}">
     {% endif %}
     
     <style>
@@ -492,9 +492,11 @@
         <header class="report-header">
             <div class="header-container">
                 <div class="header-content">
+                    {% if logo %}
                     <div class="header-logo">
-                        <img src="data:image/png;base64, {{ logo|default('') }}" alt="Logo" class="logo">
+                        <img src="{{ logo }}" alt="DeepBridge Logo" class="logo">
                     </div>
+                    {% endif %}
                     <div class="header-info">
                         <h1>Model Validation Report</h1>
                         <p class="report-subtitle">Performance Analysis Report</p>
@@ -542,17 +544,17 @@
 
                             <!-- Center value -->
                             <text x="60" y="65" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">
-                                {{ (robustness_score|default(0) * 100) | round(1) }}%
+                                {{ robustness_score|default(0)|safe_multiply(100)|safe_round(1) }}%
                             </text>
                         </svg>
                     </div>
                     <div class="score-metrics">
                         <div class="metric-item">
-                            <span class="metric-value">{{ (base_score|default(0) * 100) | round(1) }}%</span>
+                            <span class="metric-value">{{ base_score|default(0)|safe_multiply(100)|safe_round(1) }}%</span>
                             <span class="metric-label">Base Score</span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-value">{{ (raw_impact|default(0) * 100) | round(2) }}%</span>
+                            <span class="metric-value">{{ raw_impact|default(0)|safe_multiply(100)|safe_round(2) }}%</span>
                             <span class="metric-label">Impact</span>
                         </div>
                     </div>
@@ -625,7 +627,7 @@
                                         {% endif %}
                                     {% endfor %}
                                 {% endif %}
-                                {{ (max_level.impact * 100)|round(2) }}% at {{ max_level.level }}
+                                {{ max_level.impact|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ max_level.level|default('N/A') }}
                             </td>
                         </tr>
                         {% if feature_subset %}
@@ -634,7 +636,7 @@
                             <td>
                                 <!-- First try to use pre-computed max impact -->
                                 {% if report_data and report_data.feature_subset_max_impact and report_data.feature_subset_max_impact.value > 0 %}
-                                    {{ (report_data.feature_subset_max_impact.value * 100)|round(2) }}% at {{ report_data.feature_subset_max_impact.level }}
+                                    {{ report_data.feature_subset_max_impact.value|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ report_data.feature_subset_max_impact.level|default('N/A') }}
                                 <!-- If not available, calculate in template -->
                                 {% else %}
                                     {% set max_subset_impact = {'level': '0', 'impact': 0} %}
@@ -646,7 +648,7 @@
                                         {% endfor %}
                                     {% endif %}
                                     {% if max_subset_impact.impact > 0 %}
-                                        {{ (max_subset_impact.impact * 100)|round(2) }}% at {{ max_subset_impact.level }}
+                                        {{ max_subset_impact.impact|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ max_subset_impact.level|default('N/A') }}
                                     {% else %}
                                         0.00%
                                     {% endif %}
@@ -995,7 +997,7 @@
         </div>
         {% endif %}
 
-        <!-- Detailed Distribution Analysis Section -->
+        {# Detailed Distribution Analysis Section - REMOVIDO: Enhanced Performance Distribution by Perturbation Level
         {% if charts.detailed_boxplot_chart %}
         <div class="section">
             <h2 class="section-title">Detailed Distribution Analysis</h2>
@@ -1009,8 +1011,9 @@
             </div>
         </div>
         {% endif %}
+        #}
 
-        <!-- Distribution Grid Section -->
+        {# Distribution Grid Section - REMOVIDO
         {% if charts.distribution_grid_chart %}
         <div class="section">
             <h2 class="section-title">Comprehensive Distribution Grid</h2>
@@ -1024,6 +1027,7 @@
             </div>
         </div>
         {% endif %}
+        #}
 
         <!-- Performance Distribution Section -->
         <div class="section">

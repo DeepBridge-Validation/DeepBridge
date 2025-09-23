@@ -1,0 +1,154 @@
+<!-- Recommendations Tab -->
+<div class="recommendations-section">
+    <div class="chart-container">
+        <h2>💡 Model Recommendations</h2>
+        <p style="color: #6b7280; margin-bottom: 1.5rem;">
+            Based on the analysis of all tested configurations, here are the recommended models for different scenarios:
+        </p>
+
+        <div class="recommendations-grid">
+            {% for rec in recommendations %}
+            <div class="recommendation-card">
+                <h3>{{ rec.scenario }}</h3>
+                <div class="model-name">{{ rec.model }}</div>
+                <div class="config">{{ rec.config }}</div>
+                <div class="reason">{{ rec.reason }}</div>
+
+                <div class="metrics">
+                    {% if rec.metrics.accuracy %}
+                    <div class="metric-item">
+                        <span class="metric-label">Accuracy:</span>
+                        <span class="metric-value">{{ "%.4f" | format(rec.metrics.accuracy) }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.f1_score %}
+                    <div class="metric-item">
+                        <span class="metric-label">F1:</span>
+                        <span class="metric-value">{{ "%.4f" | format(rec.metrics.f1_score) }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.training_time %}
+                    <div class="metric-item">
+                        <span class="metric-label">Time:</span>
+                        <span class="metric-value">{{ "%.2f" | format(rec.metrics.training_time) }}s</span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.complexity %}
+                    <div class="metric-item">
+                        <span class="metric-label">Complexity:</span>
+                        <span class="metric-value">{{ "%.2f" | format(rec.metrics.complexity) }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.efficiency %}
+                    <div class="metric-item">
+                        <span class="metric-label">Efficiency:</span>
+                        <span class="metric-value">{{ "%.3f" | format(rec.metrics.efficiency) }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.improvement %}
+                    <div class="metric-item">
+                        <span class="metric-label">Improvement:</span>
+                        <span class="metric-value" style="color: #10b981;">
+                            +{{ "%.4f" | format(rec.metrics.improvement) }}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if rec.metrics.production_score %}
+                    <div class="metric-item">
+                        <span class="metric-label">Prod Score:</span>
+                        <span class="metric-value">{{ "%.3f" | format(rec.metrics.production_score) }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Decision Matrix -->
+    <div class="chart-container">
+        <h2>📋 Decision Matrix</h2>
+        <p style="color: #6b7280; margin-bottom: 1rem;">
+            Choose the right model based on your priorities:
+        </p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Priority</th>
+                    <th>Recommended Model</th>
+                    <th>Key Advantage</th>
+                    <th>Trade-off</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Maximum Accuracy</strong></td>
+                    <td>{{ best_model.model_type }} (T={{ best_model.temperature }}, α={{ best_model.alpha }})</td>
+                    <td>Highest test accuracy</td>
+                    <td>May have higher complexity</td>
+                </tr>
+                <tr>
+                    <td><strong>Fast Inference</strong></td>
+                    <td>Look for low complexity models</td>
+                    <td>Quick predictions</td>
+                    <td>Potentially lower accuracy</td>
+                </tr>
+                <tr>
+                    <td><strong>Resource Constrained</strong></td>
+                    <td>Models with lowest complexity score</td>
+                    <td>Minimal memory/compute needs</td>
+                    <td>Reduced performance</td>
+                </tr>
+                <tr>
+                    <td><strong>Production Ready</strong></td>
+                    <td>Balanced score models</td>
+                    <td>Good accuracy with reasonable resources</td>
+                    <td>Not the absolute best in any metric</td>
+                </tr>
+                <tr>
+                    <td><strong>Experimentation</strong></td>
+                    <td>Fast training models</td>
+                    <td>Quick iteration cycles</td>
+                    <td>May not be optimal for deployment</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="chart-container" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">
+        <h2>🚀 Next Steps</h2>
+        <ol style="margin: 1rem 0; padding-left: 1.5rem;">
+            <li style="margin: 0.5rem 0;">
+                <strong>Validate the recommended model</strong> on a holdout dataset to confirm performance.
+            </li>
+            <li style="margin: 0.5rem 0;">
+                <strong>Fine-tune hyperparameters</strong> around the optimal ranges identified
+                (Temperature: {{ "%.2f-%.2f" | format(
+                    report_data.hyperparameter_analysis.optimal_ranges.temperature.min,
+                    report_data.hyperparameter_analysis.optimal_ranges.temperature.max
+                ) }},
+                Alpha: {{ "%.2f-%.2f" | format(
+                    report_data.hyperparameter_analysis.optimal_ranges.alpha.min,
+                    report_data.hyperparameter_analysis.optimal_ranges.alpha.max
+                ) }}).
+            </li>
+            <li style="margin: 0.5rem 0;">
+                <strong>Consider ensemble methods</strong> combining multiple distilled models if accuracy is critical.
+            </li>
+            <li style="margin: 0.5rem 0;">
+                <strong>Evaluate on production data</strong> to ensure the model generalizes well.
+            </li>
+            <li style="margin: 0.5rem 0;">
+                <strong>Monitor performance</strong> after deployment and retrain if necessary.
+            </li>
+        </ol>
+    </div>
+</div>

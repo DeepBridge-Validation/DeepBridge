@@ -537,17 +537,17 @@ class AssetProcessor:
     
     def get_base64_image(self, image_path: str) -> str:
         """
-        Convert image to base64 string.
-        
+        Convert image to base64 string with data URL format.
+
         Parameters:
         -----------
         image_path : str
             Path to the image file
-            
+
         Returns:
         --------
-        str : Base64 encoded image string
-        
+        str : Base64 encoded image string as data URL
+
         Raises:
         -------
         FileNotFoundError: If the image file doesn't exist
@@ -555,10 +555,23 @@ class AssetProcessor:
         """
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
-            
+
         try:
+            # Determine MIME type based on file extension
+            ext = os.path.splitext(image_path)[1].lower()
+            mime_types = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.svg': 'image/svg+xml',
+                '.ico': 'image/x-icon'
+            }
+            mime_type = mime_types.get(ext, 'image/png')
+
             with open(image_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode('utf-8')
+                base64_str = base64.b64encode(img_file.read()).decode('utf-8')
+                return f"data:{mime_type};base64,{base64_str}"
         except Exception as e:
             logger.error(f"Error encoding image {image_path}: {str(e)}")
             raise

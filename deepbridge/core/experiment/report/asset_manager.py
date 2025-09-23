@@ -41,8 +41,10 @@ class AssetManager:
         # Set up paths for assets directories
         self.assets_dir = os.path.join(self.templates_dir, 'assets')
         self.common_dir = os.path.join(self.templates_dir, 'common')
-        self.images_dir = os.path.join(self.assets_dir, 'images')
-        
+
+        # Use templates/assets/images folder for images (logo and favicon)
+        self.images_dir = os.path.join(self.templates_dir, 'assets', 'images')
+
         # Set up paths for favicon and logo
         self.favicon_path = os.path.join(self.images_dir, 'favicon.ico')
         self.logo_path = os.path.join(self.images_dir, 'logo.png')
@@ -81,6 +83,37 @@ class AssetManager:
         """Find JavaScript directory for the specified test type."""
         return self.file_manager.find_js_path(test_type)
     
+    def get_asset_path(self, report_type: str, asset_path: str) -> str:
+        """
+        Get the full path to an asset file.
+
+        Parameters:
+        -----------
+        report_type : str
+            The type of report (e.g., 'distillation', 'uncertainty', etc.)
+        asset_path : str
+            The relative path to the asset within the report type directory
+
+        Returns:
+        --------
+        str
+            The full path to the asset file
+        """
+        # Try to find in report-specific assets first
+        report_dir = os.path.join(self.templates_dir, 'report_types', report_type)
+        specific_path = os.path.join(report_dir, asset_path)
+
+        if os.path.exists(specific_path):
+            return specific_path
+
+        # Fall back to common assets
+        common_path = os.path.join(self.assets_dir, asset_path)
+        if os.path.exists(common_path):
+            return common_path
+
+        # If not found, return the expected path anyway
+        return specific_path
+
     def get_generic_css_path(self) -> str:
         """Get path to generic CSS assets."""
         return self.file_manager.get_generic_css_path()

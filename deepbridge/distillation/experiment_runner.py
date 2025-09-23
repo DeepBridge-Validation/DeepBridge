@@ -112,6 +112,7 @@ class ExperimentRunner:
             Dictionary containing experiment results
         """
         try:
+            # fit method returns self (Experiment object)
             self.experiment.fit(
                 student_model_type=model_type,
                 temperature=temperature,
@@ -122,10 +123,10 @@ class ExperimentRunner:
                 verbose=False,
                 distillation_method=distillation_method
             )
-            
-            # Get metrics from experiment results
-            train_metrics = self.experiment.results['train']
-            test_metrics = self.experiment.results['test']
+
+            # Get metrics from experiment's results data
+            train_metrics = self.experiment._results_data['train']
+            test_metrics = self.experiment._results_data['test']
             
             # Store results with all available metrics
             result = {
@@ -141,6 +142,9 @@ class ExperimentRunner:
                 'test_recall': test_metrics.get('recall', None),
                 'train_f1': train_metrics.get('f1_score', None),
                 'test_f1': test_metrics.get('f1_score', None),
+                # Also store with full name for compatibility with compare_models
+                'train_f1_score': train_metrics.get('f1_score', None),
+                'test_f1_score': test_metrics.get('f1_score', None),
                 'train_auc_roc': train_metrics.get('auc_roc', None),
                 'test_auc_roc': test_metrics.get('auc_roc', None),
                 'train_auc_pr': train_metrics.get('auc_pr', None),

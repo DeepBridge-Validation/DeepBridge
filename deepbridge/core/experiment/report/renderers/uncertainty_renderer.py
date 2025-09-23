@@ -44,7 +44,7 @@ class UncertaintyRenderer:
             self.chart_generator = None
             logger.warning("UncertaintyChartGenerator not available, chart generation may be limited")
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
         """
         Render uncertainty report from results data.
 
@@ -58,6 +58,8 @@ class UncertaintyRenderer:
             Name of the model for display in the report
         report_type : str, optional
             Type of report to generate ('interactive' or 'static')
+        save_chart : bool, optional
+            Whether to save charts as separate files (only for static reports)
 
         Returns:
         --------
@@ -77,7 +79,7 @@ class UncertaintyRenderer:
                 logger.info("Static report requested, using StaticUncertaintyRenderer")
                 from .static.static_uncertainty_renderer import StaticUncertaintyRenderer
                 static_renderer = StaticUncertaintyRenderer(self.template_manager, self.asset_manager)
-                return static_renderer.render(results, file_path, model_name, report_type)
+                return static_renderer.render(results, file_path, model_name, report_type, save_chart)
             except Exception as e:
                 logger.error(f"Error using static renderer: {str(e)}")
                 import traceback

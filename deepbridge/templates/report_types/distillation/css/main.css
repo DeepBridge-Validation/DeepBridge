@@ -1,0 +1,221 @@
+/* Distillation Report Main CSS */
+
+/* Base styles */
+.distillation-report {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+.report-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header styles */
+.report-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px 8px 0 0;
+}
+
+/* Metrics grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.metric-card {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.12);
+}
+
+.metric-card h3 {
+    margin: 0 0 0.5rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-card .value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #212529;
+    line-height: 1.2;
+    margin: 0.5rem 0;
+}
+
+/* Chart containers */
+.chart-container {
+    background: white;
+    padding: 2rem;
+    margin: 2rem 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chart-wrapper {
+    width: 100%;
+    height: 400px;
+    position: relative;
+}
+
+/* Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Recommendation cards */
+.recommendation-card {
+    background: #e7f3ff;
+    border-left: 4px solid #0066cc;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.recommendation-card h3 {
+    margin: 0 0 0.5rem;
+    color: #004080;
+}
+
+/* Tab navigation */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 2rem;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0066cc;
+    border-bottom: 2px solid #0066cc;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #0066cc;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-card .value {
+        font-size: 1.5rem;
+    }
+
+    .chart-wrapper {
+        height: 300px;
+    }
+
+    .best-model-summary {
+        padding: 1rem;
+    }
+
+    .model-details {
+        padding: 0.75rem;
+    }
+}
+
+/* Executive Summary Improvements */
+.metric-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.best-model-summary {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+    border-left: 4px solid #667eea;
+}
+
+.best-model-summary h3 {
+    margin: 0 0 1rem;
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.model-details {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.model-details p {
+    margin: 0.5rem 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.model-details p strong {
+    color: #212529;
+    font-weight: 600;
+}
+
+/* Print styles */
+@media print {
+    .nav-tabs {
+        display: none;
+    }
+
+    .chart-container {
+        page-break-inside: avoid;
+    }
+}

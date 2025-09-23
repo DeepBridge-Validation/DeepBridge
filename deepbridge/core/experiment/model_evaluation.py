@@ -29,19 +29,22 @@ class ModelEvaluation:
         """
         Evaluate the distillation model for the specified dataset.
         """
-        print(f"\n=== Evaluating distillation model on {dataset} dataset ===")
-        
+        import logging
+        logger = logging.getLogger("deepbridge.evaluation")
+
+        logger.debug(f"Evaluating distillation model on {dataset} dataset")
+
         # Get probabilities
         student_probs = model.predict(X)
-        
+
         # Convert probabilities to binary predictions
         y_pred = (student_probs > 0.5).astype(int)
-        
+
         # Get full probabilities (for both classes)
         y_prob = model.predict_proba(X)
-        
-        print(f"Student predictions shape: {y_prob.shape}")
-        print(f"First 3 student probabilities: {y_prob[:3]}")
+
+        logger.debug(f"Student predictions shape: {y_prob.shape}")
+        logger.debug(f"First 3 student probabilities: {y_prob[:3]}")
         
         # Extract probability of positive class for student
         student_prob_pos = y_prob[:, 1] if y_prob.shape[1] > 1 else student_probs
@@ -49,37 +52,37 @@ class ModelEvaluation:
         # Prepare teacher probabilities
         teacher_prob_pos = None
         if prob is not None:
-            print(f"Teacher probabilities type: {type(prob)}")
+            logger.debug(f"Teacher probabilities type: {type(prob)}")
             if isinstance(prob, pd.DataFrame):
                 if 'prob_class_1' in prob.columns:
-                    print(f"Using 'prob_class_1' column from teacher probabilities")
+                    logger.debug(f"Using 'prob_class_1' column from teacher probabilities")
                     teacher_prob_pos = prob['prob_class_1'].values
-                    
+
                     # Verifica se a coluna prob_class_0 existe, caso contrário, calcula-a
                     if 'prob_class_0' in prob.columns:
-                        print(f"Found 'prob_class_0' column in teacher probabilities")
+                        logger.debug(f"Found 'prob_class_0' column in teacher probabilities")
                         teacher_probs = prob[['prob_class_0', 'prob_class_1']].values
                     else:
-                        print(f"Calculating 'prob_class_0' as (1 - prob_class_1)")
+                        logger.debug(f"Calculating 'prob_class_0' as (1 - prob_class_1)")
                         # Calcula prob_class_0 como 1 - prob_class_1
                         teacher_probs = np.column_stack([1 - teacher_prob_pos, teacher_prob_pos])
                 else:
                     # Assume the last column is the probability of the positive class
-                    print(f"Using last column as positive class probability")
+                    logger.debug(f"Using last column as positive class probability")
                     pos_prob = prob.iloc[:, -1].values
                     teacher_prob_pos = pos_prob
                     teacher_probs = np.column_stack([1 - pos_prob, pos_prob])
             else:
                 teacher_probs = prob
                 teacher_prob_pos = prob[:, 1] if prob.shape[1] > 1 else prob
-                    
-            print(f"Teacher probabilities shape: {teacher_probs.shape if hasattr(teacher_probs, 'shape') else 'unknown'}")
-            print(f"First 3 teacher probabilities (positive class): {teacher_prob_pos[:3]}")
-            
+
+            logger.debug(f"Teacher probabilities shape: {teacher_probs.shape if hasattr(teacher_probs, 'shape') else 'unknown'}")
+            logger.debug(f"First 3 teacher probabilities (positive class): {teacher_prob_pos[:3]}")
+
             # Calculate distribution comparison metrics
             ks_stat, ks_pvalue, r2 = self._calculate_distribution_metrics(teacher_prob_pos, student_prob_pos)
         else:
-            print(f"No teacher probabilities available for {dataset} dataset")
+            logger.debug(f"No teacher probabilities available for {dataset} dataset")
             ks_stat, ks_pvalue, r2 = None, None, None
         
         # Calculate metrics using the metrics calculator
@@ -110,8 +113,8 @@ class ModelEvaluation:
             # Add teacher probabilities to predictions dataframe
             predictions_df['teacher_prob'] = teacher_prob_pos
         
-        print(f"Evaluation metrics: {metrics}")
-        print(f"=== Evaluation complete ===\n")
+        logger.info(f"Evaluation metrics: {metrics}")
+        logger.debug(f"Evaluation complete for {dataset} dataset")
         
         return {'metrics': metrics, 'predictions': predictions_df}
     

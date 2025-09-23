@@ -120,7 +120,28 @@ class SurrogateModel:
 
     def predict(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         """
-        Make probability predictions with the surrogate model.
+        Make binary predictions with the surrogate model.
+
+        Args:
+            X: Input features
+
+        Returns:
+            Binary predictions (0 or 1)
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before making predictions")
+
+        # Get probability predictions
+        probabilities = self._predict_probabilities(X)
+
+        # Convert probabilities to binary predictions (threshold at 0.5)
+        binary_predictions = (probabilities > 0.5).astype(int)
+
+        return binary_predictions
+
+    def _predict_probabilities(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
+        """
+        Internal method to get probability predictions.
 
         Args:
             X: Input features
@@ -128,15 +149,12 @@ class SurrogateModel:
         Returns:
             Probability predictions
         """
-        if not self.is_fitted:
-            raise ValueError("Model must be fitted before making predictions")
-            
         # Make predictions (logits)
         logits = self.model.predict(X)
-        
+
         # Convert logits to probabilities
         probabilities = expit(logits)
-        
+
         return probabilities
     
     def predict_proba(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
@@ -152,13 +170,13 @@ class SurrogateModel:
         """
         if not self.is_fitted:
             raise ValueError("Model must be fitted before making predictions")
-            
-        # Get positive class probabilities
-        pos_probas = self.predict(X)
-        
+
+        # Get positive class probabilities using internal method
+        pos_probas = self._predict_probabilities(X)
+
         # Create array with both class probabilities
         probas = np.column_stack([1 - pos_probas, pos_probas])
-        
+
         return probas
         
     def _process_probabilities(self, probas: Union[np.ndarray, pd.DataFrame, pd.Series]) -> np.ndarray:
@@ -224,9 +242,9 @@ class SurrogateModel:
             raise ValueError("Model must be fitted before evaluation")
             
         # Get surrogate model predictions
-        surrogate_probas = self.predict(X)
-        surrogate_preds = (surrogate_probas > 0.5).astype(int)
-        
+        surrogate_preds = self.predict(X)  # Now returns binary predictions
+        surrogate_probas = self._predict_probabilities(X)  # Get probabilities for metrics
+
         # Calculate metrics using Classification metrics calculator
         metrics = self.metrics_calculator.calculate_metrics(
             y_true=y_true,

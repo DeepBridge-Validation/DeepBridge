@@ -1,0 +1,137 @@
+<!-- Performance Metrics Tab -->
+<div class="performance-section">
+    <!-- Metrics Comparison Bar Chart -->
+    <div class="chart-container">
+        <h2>📊 Original vs Best Distilled - All Metrics</h2>
+        <div id="metrics-comparison-bar" class="chart-wrapper"></div>
+    </div>
+
+    <!-- Model Rankings by Different Metrics -->
+    <div class="chart-container">
+        <h2>🏆 Top Models by Different Metrics</h2>
+        <div id="rankings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem;">
+            <!-- Accuracy Rankings -->
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px;">
+                <h3 style="color: #1f2937; margin: 0 0 1rem;">By Accuracy</h3>
+                {% if report_data.performance_comparison.model_rankings.test_accuracy %}
+                <table style="width: 100%;">
+                    {% for model in report_data.performance_comparison.model_rankings.test_accuracy[:5] %}
+                    <tr>
+                        <td style="padding: 0.25rem;">#{{ model.rank }}</td>
+                        <td style="padding: 0.25rem;">{{ model.model }}</td>
+                        <td style="padding: 0.25rem; text-align: right;">{{ "%.4f" | format(model.value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+            </div>
+
+            <!-- F1 Score Rankings -->
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px;">
+                <h3 style="color: #1f2937; margin: 0 0 1rem;">By F1 Score</h3>
+                {% if report_data.performance_comparison.model_rankings.test_f1_score %}
+                <table style="width: 100%;">
+                    {% for model in report_data.performance_comparison.model_rankings.test_f1_score[:5] %}
+                    <tr>
+                        <td style="padding: 0.25rem;">#{{ model.rank }}</td>
+                        <td style="padding: 0.25rem;">{{ model.model }}</td>
+                        <td style="padding: 0.25rem; text-align: right;">{{ "%.4f" | format(model.value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+            </div>
+
+            <!-- Complexity Rankings -->
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px;">
+                <h3 style="color: #1f2937; margin: 0 0 1rem;">Lowest Complexity</h3>
+                {% if report_data.performance_comparison.model_rankings.model_complexity %}
+                <table style="width: 100%;">
+                    {% for model in report_data.performance_comparison.model_rankings.model_complexity[:5] %}
+                    <tr>
+                        <td style="padding: 0.25rem;">#{{ model.rank }}</td>
+                        <td style="padding: 0.25rem;">{{ model.model }}</td>
+                        <td style="padding: 0.25rem; text-align: right;">{{ "%.2f" | format(model.value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Improvement Statistics -->
+    {% if report_data.performance_comparison.improvement_stats %}
+    <div class="chart-container">
+        <h2>📈 Improvement Statistics</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #10b981;">
+                    {{ report_data.performance_comparison.improvement_stats.models_improved }}
+                </div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Models Better Than Original</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">
+                    {{ "%.1f" | format(report_data.performance_comparison.improvement_stats.improvement_rate * 100) }}%
+                </div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Improvement Rate</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #ede9fe; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #8b5cf6;">
+                    {{ "%.2f" | format(report_data.performance_comparison.improvement_stats.max_improvement) }}%
+                </div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Max Improvement</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #dbeafe; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;">
+                    {{ "%.2f" | format(report_data.performance_comparison.improvement_stats.avg_improvement) }}%
+                </div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Average Improvement</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function initializePerformanceCharts() {
+    if (!window.chartData || !window.chartData.performance_metrics) return;
+
+    const data = window.chartData.performance_metrics;
+
+    // Metrics Comparison Bar Chart
+    if (document.getElementById('metrics-comparison-bar') && data.metrics_comparison) {
+        const metrics = data.metrics_comparison.map(m => m.metric);
+        const originalValues = data.metrics_comparison.map(m => m.original);
+        const bestValues = data.metrics_comparison.map(m => m.best_distilled);
+
+        const originalTrace = {
+            x: metrics,
+            y: originalValues,
+            name: 'Original Model',
+            type: 'bar',
+            marker: { color: '#3b82f6' }
+        };
+
+        const bestTrace = {
+            x: metrics,
+            y: bestValues,
+            name: 'Best Distilled',
+            type: 'bar',
+            marker: { color: '#10b981' }
+        };
+
+        const layout = {
+            title: 'Performance Metrics Comparison',
+            xaxis: { title: 'Metrics' },
+            yaxis: { title: 'Score', range: [0, 1] },
+            barmode: 'group',
+            showlegend: true,
+            height: 400
+        };
+
+        Plotly.newPlot('metrics-comparison-bar', [originalTrace, bestTrace], layout, {responsive: true});
+    }
+}
+</script>

@@ -98,6 +98,7 @@ class StaticUncertaintyTransformer:
         # Process primary model data if available
         if 'primary_model' in data and isinstance(data['primary_model'], dict):
             primary_model = data['primary_model']
+            logger.info(f"[TRANSFORMER] primary_model keys: {list(primary_model.keys())[:15]}")
 
             # Extract key metrics from primary_model if available
             if 'uncertainty_quality_score' in primary_model:
@@ -275,50 +276,68 @@ class StaticUncertaintyTransformer:
             # Extract interval widths for boxplots/violinplots
             if 'interval_widths' in primary_model:
                 logger.info("[TRANSFORM_DEBUG] Found interval_widths in primary_model")
-                
+
                 # Log details based on type
                 if isinstance(primary_model['interval_widths'], dict):
                     logger.info(f"[TRANSFORM_DEBUG] interval_widths is a dictionary with keys: {list(primary_model['interval_widths'].keys())}")
-                    
+
                     # Check values
                     for model, widths in primary_model['interval_widths'].items():
                         if isinstance(widths, list):
                             logger.info(f"[TRANSFORM_DEBUG] Model '{model}' has {len(widths)} width values")
                         else:
                             logger.info(f"[TRANSFORM_DEBUG] Model '{model}' has non-list data: {type(widths)}")
-                            
+
                 elif isinstance(primary_model['interval_widths'], list):
                     logger.info(f"[TRANSFORM_DEBUG] interval_widths is a list with {len(primary_model['interval_widths'])} elements")
-                    
+
                     # Check first element
                     if primary_model['interval_widths']:
                         first_item = primary_model['interval_widths'][0]
                         logger.info(f"[TRANSFORM_DEBUG] First element type: {type(first_item)}")
-                        
+
                         if isinstance(first_item, dict):
                             logger.info(f"[TRANSFORM_DEBUG] First element keys: {list(first_item.keys())}")
                         elif isinstance(first_item, list):
                             logger.info(f"[TRANSFORM_DEBUG] First element is a list with {len(first_item)} values")
                 else:
                     logger.info(f"[TRANSFORM_DEBUG] interval_widths has unexpected type: {type(primary_model['interval_widths'])}")
-                
+
                 # Copy the data to output
                 output['interval_widths'] = primary_model['interval_widths']
                 logger.info("[TRANSFORM_DEBUG] Copied interval_widths to output")
 
+            # Extract test predictions and labels for reliability charts
+            if 'test_predictions' in primary_model:
+                logger.info(f"[TRANSFORM_DEBUG] Found test_predictions in primary_model with shape: {primary_model['test_predictions'].shape if hasattr(primary_model['test_predictions'], 'shape') else 'N/A'}")
+                output['test_predictions'] = primary_model['test_predictions']
+
+            if 'test_labels' in primary_model:
+                logger.info(f"[TRANSFORM_DEBUG] Found test_labels in primary_model with shape: {primary_model['test_labels'].shape if hasattr(primary_model['test_labels'], 'shape') else 'N/A'}")
+                output['test_labels'] = primary_model['test_labels']
+
         # If feature_importance not in plot_data, try getting from top level
         if 'feature_importance' not in output and 'feature_importance' in data:
             output['feature_importance'] = data['feature_importance']
-            
+
         # Check for enhanced data at top level
         if 'reliability_analysis' not in output and 'reliability_analysis' in data:
             output['reliability_analysis'] = data['reliability_analysis']
-            
+
         if 'marginal_bandwidth' not in output and 'marginal_bandwidth' in data:
             output['marginal_bandwidth'] = data['marginal_bandwidth']
-            
+
         if 'interval_widths' not in output and 'interval_widths' in data:
             output['interval_widths'] = data['interval_widths']
+
+        # Check for test predictions and labels at top level (from uncertainty suite)
+        if 'test_predictions' not in output and 'test_predictions' in data:
+            output['test_predictions'] = data['test_predictions']
+            logger.info(f"[TRANSFORM_DEBUG] Found test_predictions at top level with shape: {data['test_predictions'].shape if hasattr(data['test_predictions'], 'shape') else 'N/A'}")
+
+        if 'test_labels' not in output and 'test_labels' in data:
+            output['test_labels'] = data['test_labels']
+            logger.info(f"[TRANSFORM_DEBUG] Found test_labels at top level with shape: {data['test_labels'].shape if hasattr(data['test_labels'], 'shape') else 'N/A'}")
             
         # Additional metrics from top level
         if 'mse' in data:

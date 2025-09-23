@@ -241,17 +241,20 @@ class AutoDistiller:
             self._initialize_analysis_components()
             
             # Visualization and report generation have been removed
-        
+
+            # Add best_model method to the DataFrame
+            self.results_df.best_model = lambda metric='test_ks_statistic', minimize=False: self.best_model(metric, minimize)
+
         finally:
             if not verbose_output:
                 # Restore stdout
                 sys.stdout.close()
                 sys.stdout = original_stdout
-                
+
                 # Print minimal completion message
                 if original_verbose:
                     print(f"Completed distillation experiments. Tested {self.config.get_total_configurations()} configurations.")
-        
+
         return self.results_df
     
     def _initialize_analysis_components(self):
@@ -341,7 +344,72 @@ class AutoDistiller:
             distillation_method=method
         )
     
-    def save_best_model(self, metric: str = 'test_accuracy', minimize: bool = False, 
+    def best_model(self, metric: str = 'test_ks_statistic', minimize: bool = False):
+        """
+        Get the best trained model based on a specific metric.
+
+        Args:
+            metric: Metric to use for finding the best model. Available metrics:
+                   - test_accuracy, test_precision, test_recall, test_f1_score
+                   - test_auc_roc, test_auc_pr, test_kl_divergence
+                   - test_ks_statistic (default), test_ks_pvalue, test_r2_score
+                   Also available with 'train_' prefix for training metrics.
+            minimize: Whether the metric should be minimized (default: False).
+                     Set to True for metrics like kl_divergence, log_loss.
+
+        Returns:
+            Trained distillation model ready for predictions
+
+        Example:
+            >>> distiller = AutoDistiller(dataset)
+            >>> results = distiller.run()
+            >>> model = distiller.best_model(metric='test_ks_statistic')
+            >>> predictions = model.predict(X_new)
+        """
+        if self.results_df is None:
+            raise ValueError("No results available. Run the distillation process first with distiller.run()")
+
+        # Validate metric name
+        valid_metrics = [
+            'accuracy', 'precision', 'recall', 'f1_score',
+            'auc_roc', 'auc_pr', 'kl_divergence',
+            'ks_statistic', 'ks_pvalue', 'r2_score', 'log_loss'
+        ]
+
+        # Add test_ or train_ prefix if not present
+        if not metric.startswith(('test_', 'train_')):
+            metric = f'test_{metric}'
+
+        # Check if metric exists in results
+        if metric not in self.results_df.columns:
+            available_metrics = [col for col in self.results_df.columns
+                               if col.startswith(('test_', 'train_')) and
+                               any(vm in col for vm in valid_metrics)]
+            raise ValueError(f"Metric '{metric}' not found in results. "
+                           f"Available metrics: {', '.join(available_metrics)}")
+
+        # Find the best configuration based on the metric
+        best_config = self.find_best_model(metric=metric, minimize=minimize)
+
+        # Get and return the trained model with the best configuration
+        best_model = self.get_trained_model(
+            model_type=best_config['model_type'],
+            temperature=best_config['temperature'],
+            alpha=best_config['alpha']
+        )
+
+        # Print information about the selected model if verbose
+        if self.config.verbose:
+            print(f"\n=== Best Model Selected ===")
+            print(f"Metric: {metric} = {best_config.get(metric, 'N/A'):.4f}")
+            print(f"Model Type: {best_config['model_type']}")
+            print(f"Temperature: {best_config['temperature']}")
+            print(f"Alpha: {best_config['alpha']}")
+            print("===========================\n")
+
+        return best_model
+
+    def save_best_model(self, metric: str = 'test_accuracy', minimize: bool = False,
                         file_path: str = 'best_distilled_model.pkl') -> str:
         """
         Find the best model and save it as a pickle file using joblib.
@@ -379,14 +447,90 @@ class AutoDistiller:
         
         return str(output_file)
     
-    def generate_report(self) -> str:
+    def generate_report(self, output_path: Optional[str] = None, report_type: str = 'interactive') -> str:
         """
-        This method has been deprecated as reporting functionality has been removed.
-        
+        Generate HTML report for distillation results.
+
+        Args:
+            output_path: Path to save the report (default: output_dir/distillation_report.html)
+            report_type: Type of report to generate ('interactive' or 'static')
+
+        Returns:
+            Path to the generated report file
+
         Raises:
-            NotImplementedError: Always raises this exception
+            ValueError: If no results are available
         """
-        raise NotImplementedError("Reporting functionality has been removed from this version.")
+        if self.results_df is None:
+            raise ValueError("No results available. Run the distillation process first.")
+
+        # Set default output path if not provided
+        if output_path is None:
+            output_path = os.path.join(
+                self.config.output_dir,
+                f'distillation_report_{report_type}.html'
+            )
+
+        # Prepare data for the report
+        try:
+            best_model = self.find_best_model()
+            # find_best_model returns a dict, not a DataFrame
+            best_model_dict = best_model if best_model else {}
+        except Exception:
+            best_model_dict = {}
+
+        report_data = {
+            'results': self.results_df,
+            'original_metrics': self.original_metrics(),
+            'best_model': best_model_dict,
+            'config': {
+                'model_types': [mt.name for mt in self.config.model_types],
+                'temperatures': self.config.temperatures,
+                'alphas': self.config.alphas,
+                'n_trials': self.config.n_trials,
+                'test_size': self.config.test_size,
+                'validation_split': self.config.validation_split
+            }
+        }
+
+        # Import renderers based on report type
+        # Get templates directory
+        import os
+        from pathlib import Path
+        deepbridge_dir = Path(__file__).parent.parent
+        templates_dir = os.path.join(deepbridge_dir, 'templates')
+
+        if report_type == 'interactive':
+            from deepbridge.core.experiment.report.renderers.distillation_renderer import DistillationRenderer
+            from deepbridge.core.experiment.report.template_manager import TemplateManager
+            from deepbridge.core.experiment.report.asset_manager import AssetManager
+
+            template_manager = TemplateManager(templates_dir)
+            asset_manager = AssetManager(templates_dir)
+            renderer = DistillationRenderer(template_manager, asset_manager)
+        elif report_type == 'static':
+            from deepbridge.core.experiment.report.renderers.static.static_distillation_renderer import StaticDistillationRenderer
+            from deepbridge.core.experiment.report.template_manager import TemplateManager
+            from deepbridge.core.experiment.report.asset_manager import AssetManager
+
+            template_manager = TemplateManager(templates_dir)
+            asset_manager = AssetManager(templates_dir)
+            renderer = StaticDistillationRenderer(template_manager, asset_manager)
+        else:
+            raise ValueError(f"Invalid report_type: {report_type}. Must be 'interactive' or 'static'")
+
+        # Generate the report
+        report_path = renderer.render(
+            results=report_data,
+            file_path=output_path,
+            model_name="Knowledge Distillation",
+            report_type=report_type
+        )
+
+        if self.config.verbose:
+            print(f"\n✅ Report generated successfully: {report_path}")
+
+        return report_path
     
     def generate_summary(self) -> str:
         """

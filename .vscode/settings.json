@@ -1,0 +1,32 @@
+{
+  "python.defaultInterpreterPath": "/home/guhaase/.cache/pypoetry/virtualenvs/deepbridge-3F2lzRH3-py3.12/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.experiments.enabled": false,
+  "python.locator": "native",
+  "python.analysis.logLevel": "Warning",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+  "python.linting.mypyEnabled": false,
+  "python.formatting.provider": "black",
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    ".pytest_cache": true,
+    ".mypy_cache": true
+  },
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ]
+}

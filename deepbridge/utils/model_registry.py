@@ -393,7 +393,7 @@ class ModelRegistry:
                 
             # Para LogisticRegression -> LinearRegression, remover parâmetros incompatíveis
             if model_type == ModelType.LOGISTIC_REGRESSION:
-                params_to_remove = ['C', 'max_iter', 'solver', 'multi_class']
+                params_to_remove = ['C', 'max_iter', 'solver', 'multi_class', 'random_state']
                 for param in params_to_remove:
                     if param in params:
                         del params[param]
@@ -448,7 +448,7 @@ class ModelRegistry:
                 
             # Para LogisticRegression -> LinearRegression, remover parâmetros incompatíveis
             if model_type == ModelType.LOGISTIC_REGRESSION:
-                params_to_remove = ['C', 'solver', 'max_iter', 'multi_class']
+                params_to_remove = ['C', 'solver', 'max_iter', 'multi_class', 'random_state']
                 for param in params_to_remove:
                     if param in param_space:
                         param_space.pop(param)
