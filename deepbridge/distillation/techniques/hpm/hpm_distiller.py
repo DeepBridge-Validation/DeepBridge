@@ -51,7 +51,7 @@ class HPMConfig:
 
     # Parallelization
     parallel_workers: Optional[int] = None
-    use_parallel: bool = True
+    use_parallel: bool = False  # Disabled by default to avoid pickle issues
 
     # Caching
     use_cache: bool = True
@@ -255,13 +255,16 @@ class HPMDistiller(BaseDistiller):
                 X_train, y_train, X_val, y_val, teacher_probs
             )
 
-        # Phase 4: Multi-teacher ensemble (if enabled)
-        if self.config.use_multi_teacher:
+        # Phase 4: Multi-teacher ensemble (if enabled and has successful models)
+        successful_models = [r for r in parallel_results if r.success and r.model is not None]
+        if self.config.use_multi_teacher and len(successful_models) > 0:
             ensemble_model = self._create_multi_teacher_ensemble(
                 parallel_results,
                 X_train, y_train, X_val, y_val
             )
         else:
+            if self.config.use_multi_teacher and len(successful_models) == 0:
+                logger.warning("Multi-teacher ensemble disabled: no successful models trained")
             ensemble_model = None
 
         # Select best model
@@ -495,18 +498,69 @@ class HPMDistiller(BaseDistiller):
         """
         logger.info("Running sequential training (fallback)")
 
+        from .parallel_pipeline import train_config_worker
+
         results = []
         for i, config in enumerate(configs):
-            # Train single configuration
-            # (Simplified - actual implementation would use full distillation)
-            result = WorkloadResult(
-                config_id=f"config_{i}",
-                success=True,
-                model=None,  # Would be actual trained model
-                metrics={'accuracy': 0.85},  # Would be actual metrics
-                training_time=10.0
-            )
-            results.append(result)
+            try:
+                # Create workload config
+                workload = WorkloadConfig(
+                    config_id=f"config_{i}",
+                    model_type=config['model_type'],
+                    temperature=config['temperature'],
+                    alpha=config['alpha'],
+                    hyperparams=config.get('hyperparams', {})
+                )
+
+                # Create dataset dict
+                dataset = {
+                    'X_train': X_train,
+                    'y_train': y_train,
+                    'X_val': X_val,
+                    'y_val': y_val,
+                    'teacher_probs': teacher_probs
+                }
+
+                # Train single configuration
+                # Unpack dataset for train_config_worker
+                result_model, result_metrics = train_config_worker(
+                    config_data={
+                        'config_id': workload.config_id,
+                        'model_type': workload.model_type,
+                        'temperature': workload.temperature,
+                        'alpha': workload.alpha,
+                        'hyperparams': workload.hyperparams
+                    },
+                    X_train=dataset['X_train'],
+                    y_train=dataset['y_train'],
+                    X_val=dataset['X_val'],
+                    y_val=dataset['y_val'],
+                    teacher_probs=dataset['teacher_probs']
+                )
+
+                # Create WorkloadResult
+                result = WorkloadResult(
+                    config_id=workload.config_id,
+                    success=result_model is not None,
+                    model=result_model,
+                    metrics=result_metrics,
+                    training_time=result_metrics.get('training_time', 0.0) if result_metrics else 0.0
+                )
+                results.append(result)
+
+                if result.success:
+                    logger.info(f"Successfully trained config_{i}")
+                else:
+                    logger.warning(f"Failed to train config_{i}: {result.error_message}")
+
+            except Exception as e:
+                logger.error(f"Error training config_{i}: {str(e)}")
+                result = WorkloadResult(
+                    config_id=f"config_{i}",
+                    success=False,
+                    error_message=str(e)
+                )
+                results.append(result)
 
         return results
 
@@ -683,3 +737,36 @@ class HPMDistiller(BaseDistiller):
         }
 
         return stats
+
+    @classmethod
+    def from_probabilities(
+        cls,
+        probabilities: Union[np.ndarray, pd.DataFrame],
+        student_model_type: ModelType = None,
+        student_params: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> 'HPMDistiller':
+        """
+        Create a distiller from pre-calculated probabilities.
+
+        Args:
+            probabilities: Teacher model probabilities
+            student_model_type: Type of student model to train
+            student_params: Parameters for student model
+            **kwargs: Additional parameters
+
+        Returns:
+            HPMDistiller instance
+        """
+        # Create a config with appropriate defaults
+        config = kwargs.get('config', HPMConfig())
+
+        # Create instance
+        instance = cls(config=config)
+
+        # Store probabilities for later use
+        instance.teacher_probabilities = probabilities
+        instance.student_model_type = student_model_type
+        instance.student_params = student_params or {}
+
+        return instance

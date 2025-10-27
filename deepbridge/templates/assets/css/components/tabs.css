@@ -11,13 +11,13 @@
     justify-content: center;
 }
 
-/* Tab content */
+/* Tab content - simplified to avoid conflicts */
 .tab-content {
-    display: none !important;
+    display: none;
 }
 
 .tab-content.active {
-    display: block !important;
+    display: block;
 }
 
 /* Results tabs */

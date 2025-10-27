@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import logging
 from copy import deepcopy
 
-from deepbridge.utils.model_registry import ModelType, ModelFactory
+from deepbridge.utils.model_registry import ModelType, ModelRegistry
 from deepbridge.metrics.classification import Classification
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class ProgressiveDistillationChain:
 
         # Storage for chain stages
         self.stages: List[ChainStage] = []
-        self.model_factory = ModelFactory()
+        self.model_factory = ModelRegistry()
         self.metrics_calculator = Classification()
 
         # Performance tracking
@@ -237,11 +237,13 @@ class ProgressiveDistillationChain:
             Trained chain stage
         """
         # Create model
-        model = self.model_factory.create_model(
+        from deepbridge.utils.model_registry import ModelMode
+
+        # model_type is already a ModelType enum
+        model = self.model_factory.get_model(
             model_type=model_type,
-            task_type='classification',
-            random_state=self.random_state,
-            **model_params
+            custom_params={**model_params, 'random_state': self.random_state},
+            mode=ModelMode.CLASSIFICATION
         )
 
         # Prepare soft labels
@@ -345,6 +347,10 @@ class ProgressiveDistillationChain:
         logits = np.log(probs + 1e-10)
 
         # Apply temperature
+        # Ensure we're working with numpy arrays
+        if hasattr(logits, 'values'):
+            logits = logits.values
+
         scaled_logits = logits / temperature
 
         # Convert back to probabilities

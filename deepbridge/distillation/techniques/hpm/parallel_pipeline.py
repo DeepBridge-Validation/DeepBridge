@@ -7,7 +7,7 @@ distillation configurations simultaneously.
 
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Any, Optional, Callable, Tuple
+from typing import List, Dict, Any, Optional, Callable, Tuple, Union
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count, Manager
 import asyncio

@@ -500,11 +500,22 @@ class AttentionWeightedMultiTeacher:
             Optimized weights
         """
         n_teachers = len(self.teachers)
+
+        # Return equal weights if no teachers
+        if n_teachers == 0:
+            logger.warning("No teachers available for weight optimization")
+            return np.array([])
+
         best_weights = np.ones(n_teachers) / n_teachers
         best_score = -np.inf
 
         # Get all teacher predictions
         teacher_predictions = self._get_all_predictions(X)
+
+        # Check if we have predictions
+        if not teacher_predictions:
+            logger.warning("No teacher predictions available")
+            return best_weights
 
         for _ in range(n_iterations):
             # Random weight perturbation

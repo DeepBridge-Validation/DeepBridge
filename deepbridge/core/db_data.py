@@ -35,6 +35,9 @@ class DBDataset:
         # Initialize helper classes
         self._validator = DataValidator()
         self._model_handler = ModelHandler()
+        # Initialize prediction attributes
+        self._train_predictions = None
+        self._test_predictions = None
         
         # Validate input data
         self._validator.validate_data_input(data, train_data, test_data, target_column)
@@ -103,6 +106,9 @@ class DBDataset:
                 test_predictions,
                 prob_cols
             )
+            # Store predictions as attributes for easy access
+            self._train_predictions = train_predictions
+            self._test_predictions = test_predictions
         
         self._formatter = DatasetFormatter(
             dataset_name=dataset_name,
@@ -271,6 +277,16 @@ class DBDataset:
     def model(self) -> t.Any:
         """Return the loaded model if available."""
         return self._model_handler.model
+
+    @property
+    def train_predictions(self) -> t.Optional[pd.DataFrame]:
+        """Return training predictions if available."""
+        return getattr(self, '_train_predictions', None)
+
+    @property
+    def test_predictions(self) -> t.Optional[pd.DataFrame]:
+        """Return test predictions if available."""
+        return getattr(self, '_test_predictions', None)
 
     def get_feature_data(self, dataset: str = 'train') -> pd.DataFrame:
         """Get feature columns from specified dataset."""

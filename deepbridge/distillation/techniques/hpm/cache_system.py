@@ -15,8 +15,14 @@ from collections import OrderedDict
 from functools import wraps
 import time
 import logging
-import psutil
 import gc
+
+# Try to import psutil, but make it optional
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 
 logger = logging.getLogger(__name__)
 
@@ -464,12 +470,21 @@ class IntelligentCache:
         """
         Check system memory usage and adjust cache if needed.
         """
-        memory = psutil.virtual_memory()
-        memory_usage_percent = memory.percent
+        if HAS_PSUTIL:
+            memory = psutil.virtual_memory()
+            memory_usage_percent = memory.percent
 
-        if memory_usage_percent > 90:
-            logger.warning(f"High memory usage detected ({memory_usage_percent}%)")
-            self.reduce_cache_size(0.5)
+            if memory_usage_percent > 90:
+                logger.warning(f"High memory usage detected ({memory_usage_percent}%)")
+                self.reduce_cache_size(0.5)
+        else:
+            # Without psutil, do a simple size check
+            total_size = (self.teacher_cache.size_bytes +
+                         self.feature_cache.size_bytes +
+                         self.attention_cache.size_bytes)
+            if total_size > self.max_memory_bytes * 0.9:
+                logger.warning("Cache size approaching limit")
+                self.reduce_cache_size(0.5)
 
     def reduce_cache_size(self, factor: float = 0.5):
         """
@@ -507,7 +522,7 @@ class IntelligentCache:
                 self.feature_cache.size_bytes +
                 self.attention_cache.size_bytes
             ) / (1024 * 1024),
-            'memory_usage_percent': psutil.virtual_memory().percent
+            'memory_usage_percent': psutil.virtual_memory().percent if HAS_PSUTIL else -1
         }
 
         # Calculate time saved

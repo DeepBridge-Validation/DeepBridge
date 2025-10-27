@@ -471,3 +471,43 @@ class ModelRegistry:
             param_space.pop('n_layers')
         
         return param_space
+
+
+class ModelFactory:
+    """Factory class for creating models - provides compatibility layer."""
+
+    def create_model(self, model_type, task_type='classification', **kwargs):
+        """
+        Create a model instance.
+
+        Args:
+            model_type: ModelType enum or string
+            task_type: 'classification' or 'regression'
+            **kwargs: Additional parameters for the model
+
+        Returns:
+            Instantiated model
+        """
+        # Convert string to enum if needed
+        if isinstance(model_type, str):
+            model_type = ModelType[model_type.upper()]
+
+        # Convert task_type to ModelMode
+        mode = ModelMode.CLASSIFICATION if task_type == 'classification' else ModelMode.REGRESSION
+
+        # Use ModelRegistry to get the model
+        return ModelRegistry.get_model(model_type, custom_params=kwargs, mode=mode)
+
+    def get_model(self, model_type, custom_params=None, mode=ModelMode.CLASSIFICATION):
+        """
+        Alternative method for backward compatibility.
+
+        Args:
+            model_type: ModelType enum
+            custom_params: Dictionary of custom parameters
+            mode: ModelMode enum
+
+        Returns:
+            Instantiated model
+        """
+        return ModelRegistry.get_model(model_type, custom_params=custom_params, mode=mode)

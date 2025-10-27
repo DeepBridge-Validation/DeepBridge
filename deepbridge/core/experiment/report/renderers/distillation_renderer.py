@@ -68,10 +68,20 @@ class DistillationRenderer:
         ValueError: If required data missing
         """
         logger.info(f"Generating distillation report to: {file_path}")
+        logger.info(f"Report type: {report_type}")
 
         try:
-            # Find template
-            template_paths = self.template_manager.get_template_paths("distillation")
+            # Determine which template to use based on report type
+            if report_type == "interactive":
+                # Use the interactive template - build full paths
+                template_paths = [
+                    os.path.join(self.template_manager.templates_dir, "report_types/distillation/interactive/index.html"),
+                    os.path.join(self.template_manager.templates_dir, "distillation/interactive/index.html")
+                ]
+            else:
+                # Use the static template (default)
+                template_paths = self.template_manager.get_template_paths("distillation")
+
             template_path = self.template_manager.find_template(template_paths)
 
             if not template_path:
@@ -246,20 +256,35 @@ class DistillationRenderer:
         """Load and combine JavaScript content for the distillation report."""
         js_content = ""
 
-        # Load JavaScript modules
-        js_modules = [
-            'distillation_charts.js',
-            'model_selector.js',
-            'hyperparameter_explorer.js',
-            'comparison_manager.js'
-        ]
+        # Try to load main.js if it exists
+        main_js_path = os.path.join(
+            os.path.dirname(self.template_manager.templates_dir),
+            'templates',
+            'report_types',
+            'distillation',
+            'js',
+            'main.js'
+        )
 
-        for module in js_modules:
-            js_path = self.asset_manager.get_asset_path("distillation", f"js/{module}")
-            if js_path and os.path.exists(js_path):
-                with open(js_path, 'r') as f:
-                    js_content += f"\n/* {module.upper()} */\n"
-                    js_content += f.read() + "\n"
+        if os.path.exists(main_js_path):
+            with open(main_js_path, 'r') as f:
+                js_content = f.read()
+
+        # If no main.js, try loading JavaScript modules
+        if not js_content:
+            js_modules = [
+                'distillation_charts.js',
+                'model_selector.js',
+                'hyperparameter_explorer.js',
+                'comparison_manager.js'
+            ]
+
+            for module in js_modules:
+                js_path = self.asset_manager.get_asset_path("distillation", f"js/{module}")
+                if js_path and os.path.exists(js_path):
+                    with open(js_path, 'r') as f:
+                        js_content += f"\n/* {module.upper()} */\n"
+                        js_content += f.read() + "\n"
 
         # Add default initialization if no custom JS found
         if not js_content:
@@ -541,34 +566,269 @@ class DistillationRenderer:
         """Return default JavaScript for basic functionality."""
         return """
         // Default distillation report JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Distillation report loaded');
 
-            // Tab navigation
-            const tabs = document.querySelectorAll('.tab-button');
-            const contents = document.querySelectorAll('.tab-content');
+        // Initialize Overview Charts
+        function initializeOverviewCharts() {
+            console.log('Initializing overview charts');
+            if (window.chartData && window.chartData.summary_metrics) {
+                renderSummaryCharts();
+            }
+        }
 
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const target = tab.dataset.target;
+        // Initialize Model Comparison Charts
+        function initializeComparisonCharts() {
+            console.log('Initializing comparison charts');
+            if (window.chartData && window.chartData.model_comparison) {
+                renderComparisonHeatmap();
+                renderScatterPlot();
+            }
+        }
 
-                    // Update active states
-                    tabs.forEach(t => t.classList.remove('active'));
-                    contents.forEach(c => c.classList.remove('active'));
+        // Initialize Hyperparameter Charts
+        function initializeHyperparameterCharts() {
+            console.log('Initializing hyperparameter charts');
+            if (window.chartData && window.chartData.hyperparameter_data) {
+                renderTemperatureImpact();
+                renderAlphaImpact();
+            }
+        }
 
-                    tab.classList.add('active');
-                    document.getElementById(target).classList.add('active');
+        // Initialize Performance Charts
+        function initializePerformanceCharts() {
+            console.log('Initializing performance charts');
+            if (window.chartData && window.chartData.performance_metrics) {
+                renderPerformanceMetrics();
+            }
+        }
+
+        // Initialize Tradeoff Charts
+        function initializeTradeoffCharts() {
+            console.log('Initializing tradeoff charts');
+            if (window.chartData && window.chartData.tradeoff_data) {
+                renderTradeoffAnalysis();
+            }
+        }
+
+        // Initialize KS Statistic Charts
+        function initializeKSStatisticCharts() {
+            console.log('Initializing KS statistic charts');
+            if (window.chartData && window.chartData.ks_statistic_data) {
+                renderKSStatistics();
+            }
+        }
+
+        // Initialize Frequency Distribution Charts
+        function initializeFrequencyDistributionCharts() {
+            console.log('Initializing frequency distribution charts');
+            if (window.chartData && window.chartData.frequency_distribution_data) {
+                renderFrequencyDistribution();
+            }
+        }
+
+        // Chart rendering functions
+        function renderSummaryCharts() {
+            const data = window.chartData.summary_metrics;
+
+            // Accuracy comparison bar chart
+            const accuracyDiv = document.getElementById('accuracy-comparison-chart');
+            if (accuracyDiv && data) {
+                const trace = {
+                    x: ['Original Model', 'Best Distilled Model'],
+                    y: [data.original_accuracy, data.best_accuracy],
+                    type: 'bar',
+                    marker: {
+                        color: ['#3498db', '#2ecc71']
+                    }
+                };
+
+                const layout = {
+                    title: 'Model Accuracy Comparison',
+                    yaxis: { title: 'Accuracy', range: [0, 1] },
+                    showlegend: false
+                };
+
+                Plotly.newPlot(accuracyDiv, [trace], layout, {responsive: true});
+            }
+        }
+
+        function renderComparisonHeatmap() {
+            const data = window.chartData.model_comparison;
+            const heatmapDiv = document.getElementById('comparison-heatmap');
+
+            if (heatmapDiv && data && data.heatmap) {
+                const trace = {
+                    z: data.heatmap.data,
+                    x: data.heatmap.metrics,
+                    y: data.heatmap.models,
+                    type: 'heatmap',
+                    colorscale: 'Viridis'
+                };
+
+                const layout = {
+                    title: 'Model Performance Heatmap',
+                    xaxis: { title: 'Metrics' },
+                    yaxis: { title: 'Models' }
+                };
+
+                Plotly.newPlot(heatmapDiv, [trace], layout, {responsive: true});
+            }
+        }
+
+        function renderScatterPlot() {
+            const data = window.chartData.model_comparison;
+            const scatterDiv = document.getElementById('accuracy-complexity-scatter');
+
+            if (scatterDiv && data && data.scatter_data) {
+                const trace = {
+                    x: data.scatter_data.map(d => d.complexity),
+                    y: data.scatter_data.map(d => d.accuracy),
+                    mode: 'markers',
+                    type: 'scatter',
+                    text: data.scatter_data.map(d => d.config),
+                    marker: {
+                        size: 10,
+                        color: data.scatter_data.map(d => d.f1_score),
+                        colorscale: 'Viridis',
+                        showscale: true,
+                        colorbar: {
+                            title: 'F1 Score'
+                        }
+                    }
+                };
+
+                const layout = {
+                    title: 'Accuracy vs Model Complexity',
+                    xaxis: { title: 'Model Complexity' },
+                    yaxis: { title: 'Accuracy', range: [0, 1] }
+                };
+
+                Plotly.newPlot(scatterDiv, [trace], layout, {responsive: true});
+            }
+        }
+
+        function renderTemperatureImpact() {
+            const data = window.chartData.hyperparameter_data;
+            const tempDiv = document.getElementById('temperature-impact-chart');
+
+            if (tempDiv && data && data.temperature_impact) {
+                // Create line chart for temperature impact
+                console.log('Rendering temperature impact chart');
+            }
+        }
+
+        function renderAlphaImpact() {
+            const data = window.chartData.hyperparameter_data;
+            const alphaDiv = document.getElementById('alpha-impact-chart');
+
+            if (alphaDiv && data && data.alpha_impact) {
+                // Create line chart for alpha impact
+                console.log('Rendering alpha impact chart');
+            }
+        }
+
+        function renderPerformanceMetrics() {
+            const data = window.chartData.performance_metrics;
+            const perfDiv = document.getElementById('performance-metrics-chart');
+
+            if (perfDiv && data) {
+                console.log('Rendering performance metrics');
+            }
+        }
+
+        function renderTradeoffAnalysis() {
+            const data = window.chartData.tradeoff_data;
+            const tradeoffDiv = document.getElementById('tradeoff-chart');
+
+            if (tradeoffDiv && data) {
+                console.log('Rendering tradeoff analysis');
+            }
+        }
+
+        function renderKSStatistics() {
+            const data = window.chartData.ks_statistic_data;
+            const ksDiv = document.getElementById('ks-statistic-chart');
+
+            if (ksDiv && data && data.scatter_data) {
+                const trace = {
+                    x: data.scatter_data.map(d => d.model_type),
+                    y: data.scatter_data.map(d => d.ks_statistic),
+                    type: 'box',
+                    name: 'KS Statistic'
+                };
+
+                const layout = {
+                    title: 'KS Statistic Distribution',
+                    yaxis: { title: 'KS Statistic' }
+                };
+
+                Plotly.newPlot(ksDiv, [trace], layout, {responsive: true});
+            }
+        }
+
+        function renderFrequencyDistribution() {
+            const data = window.chartData.frequency_distribution_data;
+            const freqDiv = document.getElementById('frequency-distribution-chart');
+
+            if (freqDiv && data && data.has_data) {
+                const trace1 = {
+                    x: data.bins,
+                    y: data.original.histogram,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Original Model',
+                    line: { color: '#3498db' }
+                };
+
+                const trace2 = {
+                    x: data.bins,
+                    y: data.best.histogram,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Best Distilled Model',
+                    line: { color: '#2ecc71' }
+                };
+
+                const layout = {
+                    title: 'Prediction Probability Distribution',
+                    xaxis: { title: 'Probability' },
+                    yaxis: { title: 'Density' }
+                };
+
+                Plotly.newPlot(freqDiv, [trace1, trace2], layout, {responsive: true});
+            }
+        }
+
+        // Export functionality
+        function exportTableToCSV(tableId, filename) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const csv = [];
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                const csvRow = [];
+                cols.forEach(col => {
+                    csvRow.push('"' + col.textContent.replace(/"/g, '""') + '"');
                 });
+                csv.push(csvRow.join(','));
             });
 
-            // Initialize charts if Plotly is available
-            if (typeof Plotly !== 'undefined' && window.chartData) {
-                initializeCharts(window.chartData);
-            }
-        });
+            downloadCSV(csv.join('\\n'), filename);
+        }
 
-        function initializeCharts(data) {
-            // Initialize various charts here
-            console.log('Initializing distillation charts with data:', data);
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         """
