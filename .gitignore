@@ -24,6 +24,8 @@ parts/
 sdist/
 var/
 wheels/
+scripts/
+simular_lib/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -179,3 +181,8 @@ pyrightconfig.json
 
 
 **/.claude/settings.local.json
+
+# Project specific directories
+test_distillation_output/
+test_real_output/
+tests/
