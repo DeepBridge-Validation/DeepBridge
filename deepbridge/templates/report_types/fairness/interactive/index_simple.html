@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content|safe }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Protected Attributes:</strong> {{ total_attributes }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Configuration:</strong> {{ config }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Fairness Score -->
+        <div class="section" style="text-align: center; background: #f8f9fa; padding: 30px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="color: #2c3e50; margin-bottom: 10px;">Overall Fairness Score</h2>
+            <div class="fairness-score {% if overall_fairness_score >= 0.9 %}excellent{% elif overall_fairness_score >= 0.8 %}good{% elif overall_fairness_score >= 0.6 %}moderate{% else %}critical{% endif %}">
+                {{ "%.3f"|format(overall_fairness_score) }}
+            </div>
+            <p style="font-size: 1.2em; color: #34495e; margin: 10px 0;">{{ assessment }}</p>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Overall Score</span>
+                <span class="metric-card__value">{{ "%.3f"|format(overall_fairness_score) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Protected Attributes</span>
+                <span class="metric-card__value">{{ total_attributes }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Warnings</span>
+                <span class="metric-card__value" style="color: #f39c12;">{{ total_warnings }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Critical Issues</span>
+                <span class="metric-card__value" style="color: #e74c3c;">{{ total_critical }}</span>
+            </div>
+        </div>
+
+        <!-- Issues Section (if any) -->
+        {% if total_critical > 0 or total_warnings > 0 %}
+        <div class="section" style="margin: 30px 0;">
+            <h2 class="section__title">Issues Found</h2>
+
+            {% if critical_issues %}
+            <div style="margin: 20px 0;">
+                <h3 style="color: #e74c3c;">Critical Issues ({{ total_critical }})</h3>
+                <ul class="issue-list">
+                    {% for issue in critical_issues %}
+                    <li class="issue-item critical">{{ issue }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if warnings %}
+            <div style="margin: 20px 0;">
+                <h3 style="color: #f39c12;">Warnings ({{ total_warnings }})</h3>
+                <ul class="issue-list">
+                    {% for warning in warnings %}
+                    <li class="issue-item warning">{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="metrics">Metrics</button>
+            <button class="tab-button" data-tab="attributes">By Attribute</button>
+            {% if has_threshold_analysis %}
+            <button class="tab-button" data-tab="threshold">Threshold</button>
+            {% endif %}
+            {% if has_confusion_matrix %}
+            <button class="tab-button" data-tab="confusion">Confusion Matrices</button>
+            {% endif %}
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Fairness Overview</h2>
+                <p>This report analyzes model fairness across protected attributes, measuring bias and discrimination in predictions.</p>
+
+                <div class="chart-container">
+                    <div id="chart-metrics-comparison"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Fairness Radar</h2>
+                <p>Multi-dimensional fairness view across key metrics. Values closer to 1.0 indicate better fairness.</p>
+                <div class="chart-container">
+                    <div id="chart-fairness-radar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Fairness Metrics Explained</h2>
+
+                <div class="metric-card">
+                    <div class="metric-name">Statistical Parity</div>
+                    <p>Measures if different groups receive positive predictions at equal rates. Value close to 0 indicates fairness.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Disparate Impact</div>
+                    <p>Ratio of positive prediction rates between groups. EEOC requires ≥ 0.80 (80% rule) for compliance.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equal Opportunity</div>
+                    <p>Measures if True Positive Rates are equal across groups. Ensures equal benefit for qualified individuals.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equalized Odds</div>
+                    <p>Requires equal TPR and FPR across groups. Ensures both errors and successes are distributed fairly.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Treatment Equality</div>
+                    <p>Ratio of FN to FP should be similar across groups. Ensures error types are balanced.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="attributes" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Metrics by Protected Attribute</h2>
+
+                {% for attr in protected_attributes %}
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">{{ attr.name|capitalize }}</h3>
+
+                    {% if attr.pretrain_metrics %}
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Pre-Training Metrics (Model-Independent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            {% for metric in attr.pretrain_metrics %}
+                            <div class="metric-card status-{{ metric.status }}">
+                                <div class="metric-name">{{ metric.name }}</div>
+                                <div class="metric-value">{{ "%.4f"|format(metric.value) }}</div>
+                                <div class="metric-interpretation">{{ metric.interpretation }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if attr.posttrain_metrics %}
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Post-Training Metrics (Model-Dependent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            {% for metric in attr.posttrain_metrics %}
+                            <div class="metric-card status-{{ metric.status }}">
+                                <div class="metric-name">{{ metric.name }}</div>
+                                <div class="metric-value">{{ "%.4f"|format(metric.value) }}</div>
+                                <div class="metric-interpretation">{{ metric.interpretation }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if has_threshold_analysis %}
+        <div id="threshold" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Threshold Analysis</h2>
+                <p>How classification threshold affects fairness metrics and model performance.</p>
+                <div class="chart-container">
+                    <div id="chart-threshold-analysis"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_confusion_matrix %}
+        <div id="confusion" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Confusion Matrices by Group</h2>
+                <p>Detailed breakdown of prediction outcomes for each demographic group.</p>
+                <div class="chart-container">
+                    <div id="chart-confusion-matrices"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated by DeepBridge Fairness Suite</p>
+            <p>Report follows EEOC and ECOA fairness standards</p>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript -->
+    <script>
+        {{ js_content|safe }}
+
+        // Parse report data
+        const reportData = {{ report_data_json|safe }};
+        console.log('Report data loaded:', reportData);
+
+        // Render charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Metrics Comparison Chart
+            if (reportData.charts && reportData.charts.metrics_comparison) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.metrics_comparison);
+                    Plotly.newPlot('chart-metrics-comparison', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering metrics comparison chart:', e);
+                }
+            }
+
+            // Fairness Radar Chart
+            if (reportData.charts && reportData.charts.fairness_radar) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.fairness_radar);
+                    Plotly.newPlot('chart-fairness-radar', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering radar chart:', e);
+                }
+            }
+
+            // Threshold Analysis Chart
+            if (reportData.charts && reportData.charts.threshold_analysis) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.threshold_analysis);
+                    Plotly.newPlot('chart-threshold-analysis', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering threshold chart:', e);
+                }
+            }
+
+            // Confusion Matrices Chart
+            if (reportData.charts && reportData.charts.confusion_matrices) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.confusion_matrices);
+                    Plotly.newPlot('chart-confusion-matrices', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering confusion matrices:', e);
+                }
+            }
+        });
+
+        // Tab functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show selected tab content
+                document.getElementById(tabName).classList.add('active');
+
+                // Add active class to clicked button
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

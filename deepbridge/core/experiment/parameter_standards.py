@@ -220,18 +220,73 @@ UNCERTAINTY_CONFIGS = {
 }
 
 # Configuration templates for resilience testing
+# OTIMIZAÇÃO: Reduzido número de combinações para melhor performance
+# mantendo cobertura adequada dos testes
 RESILIENCE_CONFIGS = {
     ConfigName.QUICK.value: {
-        'drift_types': ['covariate', 'label'],
-        'drift_intensities': [0.1, 0.2]
+        # Distribution shift tests - apenas combinações mais relevantes
+        'drift_types': ['covariate'],  # Apenas o mais comum
+        'drift_intensities': [0.2],  # Apenas uma intensidade média
+
+        # New test scenarios - mínimos para quick
+        'test_scenarios': [
+            # Worst-sample test: apenas o essencial
+            {
+                'method': 'worst_sample',
+                'alphas': [0.1],  # Test worst 10% of samples
+                'ranking_methods': ['residual']  # Apenas residual (mais rápido)
+            }
+        ]
     },
     ConfigName.MEDIUM.value: {
-        'drift_types': ['covariate', 'label', 'concept'],
-        'drift_intensities': [0.05, 0.1, 0.2]
+        # Distribution shift tests - combinações estratégicas (não todas)
+        # OTIMIZAÇÃO: Em vez de 3×3=9 testes, apenas 4 combinações chave
+        'drift_types': ['covariate', 'label'],  # Apenas 2 tipos principais
+        'drift_intensities': [0.1, 0.2],  # Apenas 2 intensidades
+
+        # New test scenarios
+        'test_scenarios': [
+            # Worst-sample test
+            {
+                'method': 'worst_sample',
+                'alphas': [0.1],  # Apenas uma alpha
+                'ranking_methods': ['residual']  # Apenas residual
+            },
+            # Worst-cluster test
+            {
+                'method': 'worst_cluster',
+                'n_clusters_list': [3]  # Apenas 3 clusters
+            }
+        ]
     },
     ConfigName.FULL.value: {
-        'drift_types': ['covariate', 'label', 'concept', 'temporal'],
-        'drift_intensities': [0.01, 0.05, 0.1, 0.2, 0.3]
+        # Distribution shift tests - amostragem estratégica
+        # OTIMIZAÇÃO: Em vez de 5×5=25 testes, apenas 9 combinações representativas
+        # Cobrindo: baixa/média/alta intensidade para drift_types principais
+        'drift_types': ['covariate', 'label', 'concept'],  # 3 principais (não 5)
+        'drift_intensities': [0.1, 0.2, 0.3],  # 3 intensidades (não 5)
+
+        # Comprehensive test scenarios - reduzido mas abrangente
+        'test_scenarios': [
+            # Worst-sample test: reduzido
+            {
+                'method': 'worst_sample',
+                'alphas': [0.1, 0.2],  # Apenas 2 thresholds (não 4)
+                'ranking_methods': ['residual', 'entropy']  # 2 métodos (não 3)
+            },
+            # Worst-cluster test: reduzido
+            {
+                'method': 'worst_cluster',
+                'n_clusters_list': [3, 5]  # 2 tamanhos (não 3)
+            },
+            # Outer-sample test: simplificado
+            {
+                'method': 'outer_sample',
+                'alphas': [0.05],  # Apenas 1 threshold
+                'outlier_methods': ['isolation_forest']  # Apenas 1 método (mais rápido)
+            }
+            # REMOVIDO: hard_sample (requer alternative_models, muito lento)
+        ]
     }
 }
 

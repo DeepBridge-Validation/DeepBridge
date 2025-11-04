@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fairness Analysis Report - Test Model (quick)</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">Fairness Analysis Report</h1>
+            <p class="report-header__subtitle">Model Bias and Fairness Assessment</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> Test Model (quick) (Classification Model)
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Protected Attributes:</strong> 2
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Configuration:</strong> {&#39;name&#39;: &#39;quick&#39;, &#39;metrics_tested&#39;: [&#39;statistical_parity&#39;, &#39;disparate_impact&#39;], &#39;include_pretrain&#39;: False, &#39;include_confusion_matrix&#39;: False, &#39;include_threshold_analysis&#39;: False}
+                </span>
+            </div>
+        </div>
+
+        <!-- Fairness Score -->
+        <div class="section" style="text-align: center; background: #f8f9fa; padding: 30px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="color: #2c3e50; margin-bottom: 10px;">Overall Fairness Score</h2>
+            <div class="fairness-score moderate">
+                0.755
+            </div>
+            <p style="font-size: 1.2em; color: #34495e; margin: 10px 0;">MODERADO - Requer melhorias antes de produção</p>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Overall Score</span>
+                <span class="metric-card__value">0.755</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Protected Attributes</span>
+                <span class="metric-card__value">2</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Warnings</span>
+                <span class="metric-card__value" style="color: #f39c12;">2</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Critical Issues</span>
+                <span class="metric-card__value" style="color: #e74c3c;">1</span>
+            </div>
+        </div>
+
+        <!-- Issues Section (if any) -->
+        <div class="section" style="margin: 30px 0;">
+            <h2 class="section__title">Issues Found</h2>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #e74c3c;">Critical Issues (1)</h3>
+                <ul class="issue-list">
+                    <li class="issue-item critical">gender: Disparate Impact CRÍTICO (ratio=0.698 &lt; 0.8) - RISCO LEGAL</li>
+                </ul>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #f39c12;">Warnings (2)</h3>
+                <ul class="issue-list">
+                    <li class="issue-item warning">gender [statistical_parity]: MODERADO: Alguma disparidade presente - requer investigação</li>
+                    <li class="issue-item warning">gender [disparate_impact]: MODERADO: Abaixo do threshold 0.8 - atenção necessária</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="metrics">Metrics</button>
+            <button class="tab-button" data-tab="attributes">By Attribute</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Fairness Overview</h2>
+                <p>This report analyzes model fairness across protected attributes, measuring bias and discrimination in predictions.</p>
+
+                <div class="chart-container">
+                    <div id="chart-metrics-comparison"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Fairness Radar</h2>
+                <p>Multi-dimensional fairness view across key metrics. Values closer to 1.0 indicate better fairness.</p>
+                <div class="chart-container">
+                    <div id="chart-fairness-radar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Fairness Metrics Explained</h2>
+
+                <div class="metric-card">
+                    <div class="metric-name">Statistical Parity</div>
+                    <p>Measures if different groups receive positive predictions at equal rates. Value close to 0 indicates fairness.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Disparate Impact</div>
+                    <p>Ratio of positive prediction rates between groups. EEOC requires ≥ 0.80 (80% rule) for compliance.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equal Opportunity</div>
+                    <p>Measures if True Positive Rates are equal across groups. Ensures equal benefit for qualified individuals.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equalized Odds</div>
+                    <p>Requires equal TPR and FPR across groups. Ensures both errors and successes are distributed fairly.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Treatment Equality</div>
+                    <p>Ratio of FN to FP should be similar across groups. Ensures error types are balanced.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="attributes" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Metrics by Protected Attribute</h2>
+
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">Gender</h3>
+
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Post-Training Metrics (Model-Dependent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Statistical Parity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">MODERADO: Alguma disparidade presente - requer investigação</div>
+                            </div>
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Disparate Impact</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">MODERADO: Abaixo do threshold 0.8 - atenção necessária</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">Race</h3>
+
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Post-Training Metrics (Model-Dependent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Statistical Parity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">BOM: Passa na regra dos 80% da EEOC (compliant com regulações)</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Disparate Impact</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">BOM: Passa no threshold 0.8 da EEOC (compliant com regulações)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated by DeepBridge Fairness Suite</p>
+            <p>Report follows EEOC and ECOA fairness standards</p>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript -->
+    <script>
+        
+// Tab navigation
+function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    tablinks = document.getElementsByClassName("tab-link");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+
+// Initialize first tab
+document.addEventListener('DOMContentLoaded', function() {
+    var firstTab = document.querySelector('.tab-link');
+    if (firstTab) {
+        firstTab.click();
+    }
+});
+
+
+        // Parse report data
+        const reportData = {"model_name": "Test Model (quick)", "model_type": "Classification Model", "summary": {"overall_fairness_score": 0.7552968624822682, "total_warnings": 2, "total_critical": 1, "total_attributes": 2, "config": {"name": "quick", "metrics_tested": ["statistical_parity", "disparate_impact"], "include_pretrain": false, "include_confusion_matrix": false, "include_threshold_analysis": false}, "assessment": "MODERADO - Requer melhorias antes de produção"}, "protected_attributes": [{"name": "gender", "pretrain_metrics": [], "posttrain_metrics": [{"name": "Statistical Parity", "value": 0.0, "interpretation": "MODERADO: Alguma disparidade presente - requer investigação", "status": "warning"}, {"name": "Disparate Impact", "value": 0.0, "interpretation": "MODERADO: Abaixo do threshold 0.8 - atenção necessária", "status": "warning"}]}, {"name": "race", "pretrain_metrics": [], "posttrain_metrics": [{"name": "Statistical Parity", "value": 0.0, "interpretation": "BOM: Passa na regra dos 80% da EEOC (compliant com regulações)", "status": "ok"}, {"name": "Disparate Impact", "value": 0.0, "interpretation": "BOM: Passa no threshold 0.8 da EEOC (compliant com regulações)", "status": "ok"}]}], "issues": {"warnings": ["gender [statistical_parity]: MODERADO: Alguma disparidade presente - requer investigação", "gender [disparate_impact]: MODERADO: Abaixo do threshold 0.8 - atenção necessária"], "critical": ["gender: Disparate Impact CRÍTICO (ratio=0.698 < 0.8) - RISCO LEGAL"], "total": 3}, "charts": {"metrics_comparison": "{}", "fairness_radar": "{\"data\":[{\"fill\":\"toself\",\"name\":\"Gender\",\"r\":[1,0,1],\"theta\":[\"Statistical Parity\",\"Disparate Impact\",\"Statistical Parity\"],\"type\":\"scatterpolar\"},{\"fill\":\"toself\",\"name\":\"Race\",\"r\":[1,0,1],\"theta\":[\"Statistical Parity\",\"Disparate Impact\",\"Statistical Parity\"],\"type\":\"scatterpolar\"}],\"layout\":{\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"polar\":{\"radialaxis\":{\"visible\":true,\"range\":[0,1]}},\"showlegend\":true,\"title\":{\"text\":\"Fairness Radar Chart (1.0 = Perfect Fairness)\"},\"height\":500}}"}, "metadata": {"total_attributes": 2, "total_pretrain_metrics": 0, "total_posttrain_metrics": 4, "has_threshold_analysis": false, "has_confusion_matrix": false}};
+        console.log('Report data loaded:', reportData);
+
+        // Render charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Metrics Comparison Chart
+            if (reportData.charts && reportData.charts.metrics_comparison) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.metrics_comparison);
+                    Plotly.newPlot('chart-metrics-comparison', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering metrics comparison chart:', e);
+                }
+            }
+
+            // Fairness Radar Chart
+            if (reportData.charts && reportData.charts.fairness_radar) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.fairness_radar);
+                    Plotly.newPlot('chart-fairness-radar', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering radar chart:', e);
+                }
+            }
+
+            // Threshold Analysis Chart
+            if (reportData.charts && reportData.charts.threshold_analysis) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.threshold_analysis);
+                    Plotly.newPlot('chart-threshold-analysis', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering threshold chart:', e);
+                }
+            }
+
+            // Confusion Matrices Chart
+            if (reportData.charts && reportData.charts.confusion_matrices) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.confusion_matrices);
+                    Plotly.newPlot('chart-confusion-matrices', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering confusion matrices:', e);
+                }
+            }
+        });
+
+        // Tab functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show selected tab content
+                document.getElementById(tabName).classList.add('active');
+
+                // Add active class to clicked button
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

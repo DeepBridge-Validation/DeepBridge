@@ -75,13 +75,13 @@ class AssetManager:
                 logger.warning(f"{name} directory not found: {path}")
     
     # File discovery methods
-    def find_css_path(self, test_type: str) -> str:
+    def find_css_path(self, test_type: str, report_type: str = None) -> str:
         """Find CSS directory for the specified test type."""
-        return self.file_manager.find_css_path(test_type)
-    
-    def find_js_path(self, test_type: str) -> str:
+        return self.file_manager.find_css_path(test_type, report_type)
+
+    def find_js_path(self, test_type: str, report_type: str = None) -> str:
         """Find JavaScript directory for the specified test type."""
-        return self.file_manager.find_js_path(test_type)
+        return self.file_manager.find_js_path(test_type, report_type)
     
     def get_asset_path(self, report_type: str, asset_path: str) -> str:
         """

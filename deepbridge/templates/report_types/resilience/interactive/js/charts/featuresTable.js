@@ -6,18 +6,22 @@ window.FeatureImportanceTableManager = {
      */
     extractFeatureData: function() {
         let featureData = [];
-        
+
         try {
-            // Try both reportData and reportConfig sources (reportConfig is preferred)
+            // Try to get data from reportConfig first, then fall back to reportData
+            // But check if the data actually exists, not just if the object exists
             let featureImportance = {};
             let modelFeatureImportance = {};
             let featureSubset = [];
-            
-            if (window.reportConfig) {
-                featureImportance = window.reportConfig.feature_importance || {};
+
+            // Check reportConfig first (if it has actual data)
+            if (window.reportConfig && window.reportConfig.feature_importance && Object.keys(window.reportConfig.feature_importance).length > 0) {
+                featureImportance = window.reportConfig.feature_importance;
                 modelFeatureImportance = window.reportConfig.model_feature_importance || {};
                 featureSubset = window.reportConfig.feature_subset || [];
-            } else if (window.reportData) {
+            }
+            // Fall back to reportData if reportConfig doesn't have feature data
+            else if (window.reportData) {
                 featureImportance = window.reportData.feature_importance || {};
                 modelFeatureImportance = window.reportData.model_feature_importance || {};
                 featureSubset = window.reportData.feature_subset || [];

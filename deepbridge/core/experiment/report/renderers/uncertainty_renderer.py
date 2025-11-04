@@ -97,19 +97,9 @@ class UncertaintyRenderer:
 
             logger.info(f"Using template: {template_path}")
 
-            # Find CSS and JS paths
-            css_dir = self.asset_manager.find_css_path("uncertainty")
-            js_dir = self.asset_manager.find_js_path("uncertainty")
-
-            if not css_dir:
-                raise FileNotFoundError("CSS directory not found for uncertainty report")
-
-            if not js_dir:
-                raise FileNotFoundError("JavaScript directory not found for uncertainty report")
-
-            # Get CSS and JS content
-            css_content = self.asset_manager.get_css_content(css_dir)
-            js_content = self.asset_manager.get_js_content(js_dir)
+            # Get CSS and JS content using combined methods
+            css_content = self._load_css_content()
+            js_content = self._load_js_content()
 
             # Load the template
             template = self.template_manager.load_template(template_path)
@@ -118,11 +108,12 @@ class UncertaintyRenderer:
             report_data = self.data_transformer.transform(results, model_name)
 
             # Create template context
-            context = self.base_renderer._create_context(report_data, "uncertainty", css_content, js_content)
+            context = self.base_renderer._create_context(report_data, "uncertainty", css_content, js_content, report_type)
 
             # Add uncertainty-specific context directly from report_data
             context.update({
-                'test_type': 'uncertainty'  # Explicit test type
+                'test_type': 'uncertainty',  # Explicit test type
+                'report_type': 'uncertainty'  # Required for template includes
             })
 
             # Add available metrics and data from report_data without defaults
@@ -171,3 +162,273 @@ class UncertaintyRenderer:
         except Exception as e:
             logger.error(f"Error generating uncertainty report: {str(e)}")
             raise ValueError(f"Failed to generate uncertainty report: {str(e)}")
+
+    def _load_css_content(self) -> str:
+        """
+        Load and combine CSS files for the uncertainty report.
+
+        Returns:
+        --------
+        str : Combined CSS content
+        """
+        try:
+            # Use the asset manager's combined CSS content method
+            css_content = self.asset_manager.get_combined_css_content("uncertainty")
+
+            # Add default styles to ensure report functionality even if external CSS is missing
+            default_css = """
+            /* Base variables and reset */
+            :root {
+                --primary-color: #1b78de;
+                --secondary-color: #2c3e50;
+                --success-color: #28a745;
+                --danger-color: #dc3545;
+                --warning-color: #f39c12;
+                --info-color: #17a2b8;
+                --light-color: #f8f9fa;
+                --dark-color: #343a40;
+                --text-color: #333;
+                --text-muted: #6c757d;
+                --border-color: #ddd;
+                --background-color: #f8f9fa;
+                --card-bg: #fff;
+                --header-bg: #ffffff;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            html, body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-size: 16px;
+                line-height: 1.5;
+                color: var(--text-color);
+                background-color: var(--background-color);
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                line-height: 1.2;
+            }
+
+            p {
+                margin-bottom: 1rem;
+            }
+
+            /* Layout */
+            .report-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #fff;
+            }
+
+            .report-content {
+                padding: 20px 0;
+            }
+
+            /* Tab navigation */
+            .main-tabs {
+                display: flex;
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 1.5rem;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .tab-btn {
+                padding: 0.75rem 1.5rem;
+                border: none;
+                background: none;
+                cursor: pointer;
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--text-color);
+                border-bottom: 2px solid transparent;
+                white-space: nowrap;
+            }
+
+            .tab-btn:hover {
+                color: var(--primary-color);
+            }
+
+            .tab-btn.active {
+                color: var(--primary-color);
+                border-bottom: 2px solid var(--primary-color);
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+
+            /* Chart containers */
+            .chart-container {
+                margin: 1.5rem 0;
+                min-height: 300px;
+            }
+
+            .chart-plot {
+                min-height: 300px;
+                background-color: #fff;
+                border-radius: 8px;
+                border: 1px solid var(--border-color, #ddd);
+                margin-bottom: 1.5rem;
+            }
+
+            /* Loading indicators */
+            .chart-loading-message {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 30px;
+                text-align: center;
+            }
+
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #3498db;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                animation: spin 1s linear infinite;
+                margin-bottom: 10px;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            /* Table styles */
+            .table-container {
+                margin-top: 1.5rem;
+                overflow-x: auto;
+            }
+
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 1.5rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.75rem;
+                text-align: left;
+                border: 1px solid var(--border-color);
+            }
+
+            .data-table th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+            }
+
+            /* Boxplot specific styles */
+            .boxplot-table .text-danger {
+                color: #d32f2f;
+            }
+
+            .boxplot-table .text-warning {
+                color: #f0ad4e;
+            }
+
+            .boxplot-table .text-success {
+                color: #5cb85c;
+            }
+
+            .loading-info {
+                text-align: center;
+                padding: 20px;
+            }
+
+            .loading-info .loading-icon {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            /* Section styles */
+            .section {
+                margin-bottom: 2rem;
+            }
+
+            .section-title {
+                border-left: 4px solid var(--primary-color);
+                padding-left: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            """
+
+            # Combine default CSS with loaded CSS
+            combined_css = default_css + "\n\n" + css_content
+            return combined_css
+        except Exception as e:
+            logger.error(f"Error loading CSS: {str(e)}")
+            return ""
+
+    def _load_js_content(self) -> str:
+        """
+        Load and combine JavaScript files for the uncertainty report.
+
+        Returns:
+        --------
+        str : Combined JavaScript content
+        """
+        try:
+            # Get combined JS content (generic + test-specific)
+            js_content = self.asset_manager.get_combined_js_content("uncertainty")
+
+            # Add initialization code to ensure proper tab navigation and chart loading
+            init_js = """
+            /**
+             * Uncertainty Report Initialization
+             */
+            (function() {
+                console.log("Uncertainty report JavaScript loaded");
+
+                // Setup tab navigation when DOM is ready
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log("DOM loaded, initializing uncertainty report");
+
+                    // Initialize tab navigation
+                    const tabButtons = document.querySelectorAll('.tab-btn');
+                    tabButtons.forEach(button => {
+                        button.addEventListener('click', function() {
+                            // Remove active class from all buttons and content
+                            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                            // Add active class to clicked button
+                            this.classList.add('active');
+
+                            // Show corresponding content
+                            const targetTab = this.getAttribute('data-tab');
+                            const targetElement = document.getElementById(targetTab);
+                            if (targetElement) {
+                                targetElement.classList.add('active');
+                            }
+                        });
+                    });
+
+                    // Activate first tab by default
+                    if (tabButtons.length > 0 && !document.querySelector('.tab-btn.active')) {
+                        tabButtons[0].click();
+                    }
+                });
+            })();
+            """
+
+            # Combine all JS
+            combined_js = init_js + "\n\n" + js_content
+            return combined_js
+        except Exception as e:
+            logger.error(f"Error loading JavaScript: {str(e)}")
+            return ""

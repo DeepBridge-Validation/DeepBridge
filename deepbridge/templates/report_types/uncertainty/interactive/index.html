@@ -38,23 +38,23 @@
 
         <!-- Conteúdo das abas -->
         <div id="overview" class="tab-content active">
-            {% include 'report_types/' + report_type + '/partials/overview.html' %}
+            {% include 'partials/overview.html' %}
         </div>
-        
+
         <div id="details" class="tab-content">
-            {% include 'report_types/' + report_type + '/partials/details.html' %}
+            {% include 'partials/details.html' %}
         </div>
-        
+
         <div id="boxplot" class="tab-content">
-            {% include 'report_types/' + report_type + '/partials/boxplot.html' %}
+            {% include 'partials/boxplot.html' %}
         </div>
-        
+
         <div id="feature_impact" class="tab-content">
-            {% include 'report_types/' + report_type + '/partials/features.html' %}
+            {% include 'partials/features.html' %}
         </div>
-        
+
         <div id="model_features" class="tab-content">
-            {% include 'report_types/' + report_type + '/partials/model_features.html' %}
+            {% include 'partials/model_features.html' %}
         </div>
         
         <!-- Footer comum -->

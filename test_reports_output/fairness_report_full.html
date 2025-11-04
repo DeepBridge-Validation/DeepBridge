@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fairness Analysis Report - Test Model (full)</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">Fairness Analysis Report</h1>
+            <p class="report-header__subtitle">Model Bias and Fairness Assessment</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> Test Model (full) (Classification Model)
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Protected Attributes:</strong> 2
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Configuration:</strong> {&#39;name&#39;: &#39;full&#39;, &#39;metrics_tested&#39;: [&#39;statistical_parity&#39;, &#39;equal_opportunity&#39;, &#39;equalized_odds&#39;, &#39;disparate_impact&#39;, &#39;false_negative_rate_difference&#39;, &#39;conditional_acceptance&#39;, &#39;conditional_rejection&#39;, &#39;precision_difference&#39;, &#39;accuracy_difference&#39;, &#39;treatment_equality&#39;, &#39;entropy_index&#39;], &#39;include_pretrain&#39;: True, &#39;include_confusion_matrix&#39;: True, &#39;include_threshold_analysis&#39;: True}
+                </span>
+            </div>
+        </div>
+
+        <!-- Fairness Score -->
+        <div class="section" style="text-align: center; background: #f8f9fa; padding: 30px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="color: #2c3e50; margin-bottom: 10px;">Overall Fairness Score</h2>
+            <div class="fairness-score good">
+                0.851
+            </div>
+            <p style="font-size: 1.2em; color: #34495e; margin: 10px 0;">BOM - Fairness adequada para produção</p>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Overall Score</span>
+                <span class="metric-card__value">0.851</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Protected Attributes</span>
+                <span class="metric-card__value">2</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Warnings</span>
+                <span class="metric-card__value" style="color: #f39c12;">4</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Critical Issues</span>
+                <span class="metric-card__value" style="color: #e74c3c;">5</span>
+            </div>
+        </div>
+
+        <!-- Issues Section (if any) -->
+        <div class="section" style="margin: 30px 0;">
+            <h2 class="section__title">Issues Found</h2>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #e74c3c;">Critical Issues (5)</h3>
+                <ul class="issue-list">
+                    <li class="issue-item critical">gender [class_balance]: ✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo</li>
+                    <li class="issue-item critical">gender [concept_balance]: ✗ Vermelho: Desbalanceamento crítico do conceito - possível viés estrutural</li>
+                    <li class="issue-item critical">race [class_balance]: ✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo</li>
+                    <li class="issue-item critical">gender: Disparate Impact CRÍTICO (ratio=0.698 &lt; 0.8) - RISCO LEGAL</li>
+                    <li class="issue-item critical">gender [conditional_rejection]: ✗ Vermelho: Viés crítico na rejeição - diferentes padrões de NPV</li>
+                </ul>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #f39c12;">Warnings (4)</h3>
+                <ul class="issue-list">
+                    <li class="issue-item warning">gender [statistical_parity]: MODERADO: Alguma disparidade presente - requer investigação</li>
+                    <li class="issue-item warning">gender [disparate_impact]: MODERADO: Abaixo do threshold 0.8 - atenção necessária</li>
+                    <li class="issue-item warning">gender [accuracy_difference]: ⚠ Amarelo: Diferença moderada em acurácia</li>
+                    <li class="issue-item warning">race [treatment_equality]: ⚠ Amarelo: Desequilíbrio moderado entre tipos de erro</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="metrics">Metrics</button>
+            <button class="tab-button" data-tab="attributes">By Attribute</button>
+            <button class="tab-button" data-tab="threshold">Threshold</button>
+            <button class="tab-button" data-tab="confusion">Confusion Matrices</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Fairness Overview</h2>
+                <p>This report analyzes model fairness across protected attributes, measuring bias and discrimination in predictions.</p>
+
+                <div class="chart-container">
+                    <div id="chart-metrics-comparison"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Fairness Radar</h2>
+                <p>Multi-dimensional fairness view across key metrics. Values closer to 1.0 indicate better fairness.</p>
+                <div class="chart-container">
+                    <div id="chart-fairness-radar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Fairness Metrics Explained</h2>
+
+                <div class="metric-card">
+                    <div class="metric-name">Statistical Parity</div>
+                    <p>Measures if different groups receive positive predictions at equal rates. Value close to 0 indicates fairness.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Disparate Impact</div>
+                    <p>Ratio of positive prediction rates between groups. EEOC requires ≥ 0.80 (80% rule) for compliance.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equal Opportunity</div>
+                    <p>Measures if True Positive Rates are equal across groups. Ensures equal benefit for qualified individuals.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Equalized Odds</div>
+                    <p>Requires equal TPR and FPR across groups. Ensures both errors and successes are distributed fairly.</p>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-name">Treatment Equality</div>
+                    <p>Ratio of FN to FP should be similar across groups. Ensures error types are balanced.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="attributes" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Metrics by Protected Attribute</h2>
+
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">Gender</h3>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Pre-Training Metrics (Model-Independent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-critical">
+                                <div class="metric-name">Class Balance</div>
+                                <div class="metric-value">0.4150</div>
+                                <div class="metric-interpretation">✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo</div>
+                            </div>
+                            <div class="metric-card status-critical">
+                                <div class="metric-name">Concept Balance</div>
+                                <div class="metric-value">0.1668</div>
+                                <div class="metric-interpretation">✗ Vermelho: Desbalanceamento crítico do conceito - possível viés estrutural</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Kl Divergence</div>
+                                <div class="metric-value">0.0575</div>
+                                <div class="metric-interpretation">✓ Verde: Distribuições muito similares</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Js Divergence</div>
+                                <div class="metric-value">0.0141</div>
+                                <div class="metric-interpretation">✓ Verde: Distribuições muito similares</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Post-Training Metrics (Model-Dependent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Statistical Parity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">MODERADO: Alguma disparidade presente - requer investigação</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Equal Opportunity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">EXCELENTE: True Positive Rate equilibrado entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Equalized Odds</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">EXCELENTE: TPR e FPR equilibrados entre todos os grupos</div>
+                            </div>
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Disparate Impact</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">MODERADO: Abaixo do threshold 0.8 - atenção necessária</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">False Negative Rate Difference</div>
+                                <div class="metric-value">0.0078</div>
+                                <div class="metric-interpretation">✓ Verde: Taxa de FN balanceada entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Conditional Acceptance</div>
+                                <div class="metric-value">0.0038</div>
+                                <div class="metric-interpretation">✓ Verde: Aceitação condicional adequada</div>
+                            </div>
+                            <div class="metric-card status-critical">
+                                <div class="metric-name">Conditional Rejection</div>
+                                <div class="metric-value">0.1527</div>
+                                <div class="metric-interpretation">✗ Vermelho: Viés crítico na rejeição - diferentes padrões de NPV</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Precision Difference</div>
+                                <div class="metric-value">0.0038</div>
+                                <div class="metric-interpretation">✓ Verde: Precisão balanceada entre grupos</div>
+                            </div>
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Accuracy Difference</div>
+                                <div class="metric-value">0.0942</div>
+                                <div class="metric-interpretation">⚠ Amarelo: Diferença moderada em acurácia</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Treatment Equality</div>
+                                <div class="metric-value">0.3102</div>
+                                <div class="metric-interpretation">✓ Verde: Tratamento equilibrado entre FN e FP</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Entropy Index</div>
+                                <div class="metric-value">0.0610</div>
+                                <div class="metric-interpretation">✓ Verde: Baixa desigualdade individual</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">Race</h3>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Pre-Training Metrics (Model-Independent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-critical">
+                                <div class="metric-name">Class Balance</div>
+                                <div class="metric-value">0.3787</div>
+                                <div class="metric-interpretation">✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Concept Balance</div>
+                                <div class="metric-value">0.0163</div>
+                                <div class="metric-interpretation">✓ Verde: Conceito balanceado entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Kl Divergence</div>
+                                <div class="metric-value">0.0005</div>
+                                <div class="metric-interpretation">✓ Verde: Distribuições muito similares</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Js Divergence</div>
+                                <div class="metric-value">0.0001</div>
+                                <div class="metric-interpretation">✓ Verde: Distribuições muito similares</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #34495e;">Post-Training Metrics (Model-Dependent)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;">
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Statistical Parity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">BOM: Passa na regra dos 80% da EEOC (compliant com regulações)</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Equal Opportunity</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">EXCELENTE: True Positive Rate equilibrado entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Equalized Odds</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">EXCELENTE: TPR e FPR equilibrados entre todos os grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Disparate Impact</div>
+                                <div class="metric-value">0.0000</div>
+                                <div class="metric-interpretation">BOM: Passa no threshold 0.8 da EEOC (compliant com regulações)</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">False Negative Rate Difference</div>
+                                <div class="metric-value">0.0282</div>
+                                <div class="metric-interpretation">✓ Verde: Taxa de FN balanceada entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Conditional Acceptance</div>
+                                <div class="metric-value">0.0142</div>
+                                <div class="metric-interpretation">✓ Verde: Aceitação condicional adequada</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Conditional Rejection</div>
+                                <div class="metric-value">0.0057</div>
+                                <div class="metric-interpretation">✓ Verde: Rejeição condicional adequada</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Precision Difference</div>
+                                <div class="metric-value">0.0142</div>
+                                <div class="metric-interpretation">✓ Verde: Precisão balanceada entre grupos</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Accuracy Difference</div>
+                                <div class="metric-value">0.0021</div>
+                                <div class="metric-interpretation">✓ Verde: Acurácia balanceada entre grupos</div>
+                            </div>
+                            <div class="metric-card status-warning">
+                                <div class="metric-name">Treatment Equality</div>
+                                <div class="metric-value">1.3896</div>
+                                <div class="metric-interpretation">⚠ Amarelo: Desequilíbrio moderado entre tipos de erro</div>
+                            </div>
+                            <div class="metric-card status-ok">
+                                <div class="metric-name">Entropy Index</div>
+                                <div class="metric-value">0.0610</div>
+                                <div class="metric-interpretation">✓ Verde: Baixa desigualdade individual</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="threshold" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Threshold Analysis</h2>
+                <p>How classification threshold affects fairness metrics and model performance.</p>
+                <div class="chart-container">
+                    <div id="chart-threshold-analysis"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="confusion" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Confusion Matrices by Group</h2>
+                <p>Detailed breakdown of prediction outcomes for each demographic group.</p>
+                <div class="chart-container">
+                    <div id="chart-confusion-matrices"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated by DeepBridge Fairness Suite</p>
+            <p>Report follows EEOC and ECOA fairness standards</p>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript -->
+    <script>
+        
+// Tab navigation
+function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    tablinks = document.getElementsByClassName("tab-link");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+
+// Initialize first tab
+document.addEventListener('DOMContentLoaded', function() {
+    var firstTab = document.querySelector('.tab-link');
+    if (firstTab) {
+        firstTab.click();
+    }
+});
+
+
+        // Parse report data
+        const reportData = {"model_name": "Test Model (full)", "model_type": "Classification Model", "summary": {"overall_fairness_score": 0.850570501912428, "total_warnings": 4, "total_critical": 5, "total_attributes": 2, "config": {"name": "full", "metrics_tested": ["statistical_parity", "equal_opportunity", "equalized_odds", "disparate_impact", "false_negative_rate_difference", "conditional_acceptance", "conditional_rejection", "precision_difference", "accuracy_difference", "treatment_equality", "entropy_index"], "include_pretrain": true, "include_confusion_matrix": true, "include_threshold_analysis": true}, "assessment": "BOM - Fairness adequada para produção"}, "protected_attributes": [{"name": "gender", "pretrain_metrics": [{"name": "Class Balance", "value": 0.415, "interpretation": "✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo", "status": "critical"}, {"name": "Concept Balance", "value": 0.1667874724411827, "interpretation": "✗ Vermelho: Desbalanceamento crítico do conceito - possível viés estrutural", "status": "critical"}, {"name": "Kl Divergence", "value": 0.05753916825735461, "interpretation": "✓ Verde: Distribuições muito similares", "status": "ok"}, {"name": "Js Divergence", "value": 0.01413914114696923, "interpretation": "✓ Verde: Distribuições muito similares", "status": "ok"}], "posttrain_metrics": [{"name": "Statistical Parity", "value": 0.0, "interpretation": "MODERADO: Alguma disparidade presente - requer investigação", "status": "warning"}, {"name": "Equal Opportunity", "value": 0.0, "interpretation": "EXCELENTE: True Positive Rate equilibrado entre grupos", "status": "ok"}, {"name": "Equalized Odds", "value": 0.0, "interpretation": "EXCELENTE: TPR e FPR equilibrados entre todos os grupos", "status": "ok"}, {"name": "Disparate Impact", "value": 0.0, "interpretation": "MODERADO: Abaixo do threshold 0.8 - atenção necessária", "status": "warning"}, {"name": "False Negative Rate Difference", "value": 0.007843137254901988, "interpretation": "✓ Verde: Taxa de FN balanceada entre grupos", "status": "ok"}, {"name": "Conditional Acceptance", "value": 0.0037631214101802035, "interpretation": "✓ Verde: Aceitação condicional adequada", "status": "ok"}, {"name": "Conditional Rejection", "value": 0.15272647317502197, "interpretation": "✗ Vermelho: Viés crítico na rejeição - diferentes padrões de NPV", "status": "critical"}, {"name": "Precision Difference", "value": 0.0037631214101802035, "interpretation": "✓ Verde: Precisão balanceada entre grupos", "status": "ok"}, {"name": "Accuracy Difference", "value": 0.09419830267886808, "interpretation": "⚠ Amarelo: Diferença moderada em acurácia", "status": "warning"}, {"name": "Treatment Equality", "value": 0.3101851851851851, "interpretation": "✓ Verde: Tratamento equilibrado entre FN e FP", "status": "ok"}, {"name": "Entropy Index", "value": 0.06098253640356499, "interpretation": "✓ Verde: Baixa desigualdade individual", "status": "ok"}]}, {"name": "race", "pretrain_metrics": [{"name": "Class Balance", "value": 0.37875, "interpretation": "✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo", "status": "critical"}, {"name": "Concept Balance", "value": 0.016308126456995586, "interpretation": "✓ Verde: Conceito balanceado entre grupos", "status": "ok"}, {"name": "Kl Divergence", "value": 0.0005321488330366185, "interpretation": "✓ Verde: Distribuições muito similares", "status": "ok"}, {"name": "Js Divergence", "value": 0.00013301061027684493, "interpretation": "✓ Verde: Distribuições muito similares", "status": "ok"}], "posttrain_metrics": [{"name": "Statistical Parity", "value": 0.0, "interpretation": "BOM: Passa na regra dos 80% da EEOC (compliant com regulações)", "status": "ok"}, {"name": "Equal Opportunity", "value": 0.0, "interpretation": "EXCELENTE: True Positive Rate equilibrado entre grupos", "status": "ok"}, {"name": "Equalized Odds", "value": 0.0, "interpretation": "EXCELENTE: TPR e FPR equilibrados entre todos os grupos", "status": "ok"}, {"name": "Disparate Impact", "value": 0.0, "interpretation": "BOM: Passa no threshold 0.8 da EEOC (compliant com regulações)", "status": "ok"}, {"name": "False Negative Rate Difference", "value": 0.028210526315789464, "interpretation": "✓ Verde: Taxa de FN balanceada entre grupos", "status": "ok"}, {"name": "Conditional Acceptance", "value": 0.014240506329113889, "interpretation": "✓ Verde: Aceitação condicional adequada", "status": "ok"}, {"name": "Conditional Rejection", "value": 0.005739421868454109, "interpretation": "✓ Verde: Rejeição condicional adequada", "status": "ok"}, {"name": "Precision Difference", "value": 0.014240506329113889, "interpretation": "✓ Verde: Precisão balanceada entre grupos", "status": "ok"}, {"name": "Accuracy Difference", "value": 0.0021369269150546266, "interpretation": "✓ Verde: Acurácia balanceada entre grupos", "status": "ok"}, {"name": "Treatment Equality", "value": 1.3896103896103895, "interpretation": "⚠ Amarelo: Desequilíbrio moderado entre tipos de erro", "status": "warning"}, {"name": "Entropy Index", "value": 0.06098253640356499, "interpretation": "✓ Verde: Baixa desigualdade individual", "status": "ok"}]}], "issues": {"warnings": ["gender [statistical_parity]: MODERADO: Alguma disparidade presente - requer investigação", "gender [disparate_impact]: MODERADO: Abaixo do threshold 0.8 - atenção necessária", "gender [accuracy_difference]: ⚠ Amarelo: Diferença moderada em acurácia", "race [treatment_equality]: ⚠ Amarelo: Desequilíbrio moderado entre tipos de erro"], "critical": ["gender [class_balance]: ✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo", "gender [concept_balance]: ✗ Vermelho: Desbalanceamento crítico do conceito - possível viés estrutural", "race [class_balance]: ✗ Vermelho: Desbalanceamento crítico - risco de viés no modelo", "gender: Disparate Impact CRÍTICO (ratio=0.698 < 0.8) - RISCO LEGAL", "gender [conditional_rejection]: ✗ Vermelho: Viés crítico na rejeição - diferentes padrões de NPV"], "total": 9}, "charts": {"metrics_comparison": "{\"data\":[{\"hovertemplate\":\"status=ok\\u003cbr\\u003eattribute=gender\\u003cbr\\u003eMetric Value (Absolute)=%{x}\\u003cbr\\u003eFairness Metric=%{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"ok\",\"marker\":{\"color\":\"#2ecc71\",\"pattern\":{\"shape\":\"\"}},\"name\":\"ok\",\"orientation\":\"h\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"IBAQEBAQgD8AO2ds1tNuPwA7Z2zW024\\u002foL2E9hLa0z9g\\u002fPVeGjmvPw==\"},\"xaxis\":\"x\",\"y\":[\"False Negative Rate Difference\",\"Conditional Acceptance\",\"Precision Difference\",\"Treatment Equality\",\"Entropy Index\"],\"yaxis\":\"y\",\"type\":\"bar\"},{\"hovertemplate\":\"status=ok\\u003cbr\\u003eattribute=race\\u003cbr\\u003eMetric Value (Absolute)=%{x}\\u003cbr\\u003eFairness Metric=%{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"ok\",\"marker\":{\"color\":\"#2ecc71\",\"pattern\":{\"shape\":\"\"}},\"name\":\"ok\",\"orientation\":\"h\",\"showlegend\":false,\"textposition\":\"auto\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"wJC3XzjjnD9AOrJnICqNPwA8kVM4gnc\\u002fQDqyZyAqjT8A7NnmdYFhP2D89V4aOa8\\u002f\"},\"xaxis\":\"x2\",\"y\":[\"False Negative Rate Difference\",\"Conditional Acceptance\",\"Conditional Rejection\",\"Precision Difference\",\"Accuracy Difference\",\"Entropy Index\"],\"yaxis\":\"y2\",\"type\":\"bar\"},{\"hovertemplate\":\"status=critical\\u003cbr\\u003eattribute=gender\\u003cbr\\u003eMetric Value (Absolute)=%{x}\\u003cbr\\u003eFairness Metric=%{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"critical\",\"marker\":{\"color\":\"#e74c3c\",\"pattern\":{\"shape\":\"\"}},\"name\":\"critical\",\"orientation\":\"h\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"+JPCg4qMwz8=\"},\"xaxis\":\"x\",\"y\":[\"Conditional Rejection\"],\"yaxis\":\"y\",\"type\":\"bar\"},{\"hovertemplate\":\"status=warning\\u003cbr\\u003eattribute=gender\\u003cbr\\u003eMetric Value (Absolute)=%{x}\\u003cbr\\u003eFairness Metric=%{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"warning\",\"marker\":{\"color\":\"#f39c12\",\"pattern\":{\"shape\":\"\"}},\"name\":\"warning\",\"orientation\":\"h\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"uC1YRWEduD8=\"},\"xaxis\":\"x\",\"y\":[\"Accuracy Difference\"],\"yaxis\":\"y\",\"type\":\"bar\"},{\"hovertemplate\":\"status=warning\\u003cbr\\u003eattribute=race\\u003cbr\\u003eMetric Value (Absolute)=%{x}\\u003cbr\\u003eFairness Metric=%{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"warning\",\"marker\":{\"color\":\"#f39c12\",\"pattern\":{\"shape\":\"\"}},\"name\":\"warning\",\"orientation\":\"h\",\"showlegend\":false,\"textposition\":\"auto\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"YO+YGtg79j8=\"},\"xaxis\":\"x2\",\"y\":[\"Treatment Equality\"],\"yaxis\":\"y2\",\"type\":\"bar\"}],\"layout\":{\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,0.49],\"title\":{\"text\":\"Metric Value (Absolute)\"}},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Fairness Metric\"}},\"xaxis2\":{\"anchor\":\"y2\",\"domain\":[0.51,1.0],\"matches\":\"x\",\"title\":{\"text\":\"Metric Value (Absolute)\"}},\"yaxis2\":{\"anchor\":\"x2\",\"domain\":[0.0,1.0],\"matches\":\"y\",\"showticklabels\":false},\"annotations\":[{\"showarrow\":false,\"text\":\"attribute=gender\",\"x\":0.245,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":1.0,\"yanchor\":\"bottom\",\"yref\":\"paper\"},{\"showarrow\":false,\"text\":\"attribute=race\",\"x\":0.755,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":1.0,\"yanchor\":\"bottom\",\"yref\":\"paper\"}],\"legend\":{\"title\":{\"text\":\"Status\"},\"tracegroupgap\":0},\"title\":{\"text\":\"Fairness Metrics Comparison by Protected Attribute\"},\"barmode\":\"relative\",\"font\":{\"size\":11},\"height\":500,\"showlegend\":true,\"shapes\":[{\"line\":{\"color\":\"gray\",\"dash\":\"dash\"},\"opacity\":0.5,\"type\":\"line\",\"x0\":0,\"x1\":1,\"xref\":\"x domain\",\"y0\":0.1,\"y1\":0.1,\"yref\":\"y\"},{\"line\":{\"color\":\"gray\",\"dash\":\"dash\"},\"opacity\":0.5,\"type\":\"line\",\"x0\":0,\"x1\":1,\"xref\":\"x2 domain\",\"y0\":0.1,\"y1\":0.1,\"yref\":\"y2\"}]}}", "fairness_radar": "{\"data\":[{\"fill\":\"toself\",\"name\":\"Gender\",\"r\":[1,0,1,1,0.9962368785898198,1],\"theta\":[\"Statistical Parity\",\"Disparate Impact\",\"Equal Opportunity\",\"Equalized Odds\",\"Precision Difference\",\"Statistical Parity\"],\"type\":\"scatterpolar\"},{\"fill\":\"toself\",\"name\":\"Race\",\"r\":[1,0,1,1,0.9857594936708861,1],\"theta\":[\"Statistical Parity\",\"Disparate Impact\",\"Equal Opportunity\",\"Equalized Odds\",\"Precision Difference\",\"Statistical Parity\"],\"type\":\"scatterpolar\"}],\"layout\":{\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"polar\":{\"radialaxis\":{\"visible\":true,\"range\":[0,1]}},\"showlegend\":true,\"title\":{\"text\":\"Fairness Radar Chart (1.0 = Perfect Fairness)\"},\"height\":500}}", "confusion_matrices": "{\"data\":[{\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false,\"text\":[[141,8],[39,46]],\"textfont\":{\"size\":12},\"texttemplate\":\"%{text}\",\"x\":[\"Pred Neg\",\"Pred Pos\"],\"y\":[\"Act Neg\",\"Act Pos\"],\"z\":[[141,8],[39,46]],\"type\":\"heatmap\",\"xaxis\":\"x\",\"yaxis\":\"y\"},{\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false,\"text\":[[239,27],[140,160]],\"textfont\":{\"size\":12},\"texttemplate\":\"%{text}\",\"x\":[\"Pred Neg\",\"Pred Pos\"],\"y\":[\"Act Neg\",\"Act Pos\"],\"z\":[[239,27],[140,160]],\"type\":\"heatmap\",\"xaxis\":\"x2\",\"yaxis\":\"y2\"},{\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false,\"text\":[[94,7],[46,49]],\"textfont\":{\"size\":12},\"texttemplate\":\"%{text}\",\"x\":[\"Pred Neg\",\"Pred Pos\"],\"y\":[\"Act Neg\",\"Act Pos\"],\"z\":[[94,7],[46,49]],\"type\":\"heatmap\",\"xaxis\":\"x3\",\"yaxis\":\"y3\"},{\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false,\"text\":[[59,6],[19,21]],\"textfont\":{\"size\":12},\"texttemplate\":\"%{text}\",\"x\":[\"Pred Neg\",\"Pred Pos\"],\"y\":[\"Act Neg\",\"Act Pos\"],\"z\":[[59,6],[19,21]],\"type\":\"heatmap\",\"xaxis\":\"x4\",\"yaxis\":\"y4\"},{\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false,\"text\":[[227,22],[114,136]],\"textfont\":{\"size\":12},\"texttemplate\":\"%{text}\",\"x\":[\"Pred Neg\",\"Pred Pos\"],\"y\":[\"Act Neg\",\"Act Pos\"],\"z\":[[227,22],[114,136]],\"type\":\"heatmap\",\"xaxis\":\"x5\",\"yaxis\":\"y5\"}],\"layout\":{\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,0.2888888888888889]},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.625,1.0]},\"xaxis2\":{\"anchor\":\"y2\",\"domain\":[0.35555555555555557,0.6444444444444445]},\"yaxis2\":{\"anchor\":\"x2\",\"domain\":[0.625,1.0]},\"xaxis3\":{\"anchor\":\"y3\",\"domain\":[0.7111111111111111,1.0]},\"yaxis3\":{\"anchor\":\"x3\",\"domain\":[0.625,1.0]},\"xaxis4\":{\"anchor\":\"y4\",\"domain\":[0.0,0.2888888888888889]},\"yaxis4\":{\"anchor\":\"x4\",\"domain\":[0.0,0.375]},\"xaxis5\":{\"anchor\":\"y5\",\"domain\":[0.35555555555555557,0.6444444444444445]},\"yaxis5\":{\"anchor\":\"x5\",\"domain\":[0.0,0.375]},\"xaxis6\":{\"anchor\":\"y6\",\"domain\":[0.7111111111111111,1.0]},\"yaxis6\":{\"anchor\":\"x6\",\"domain\":[0.0,0.375]},\"annotations\":[{\"font\":{\"size\":16},\"showarrow\":false,\"text\":\"gender: F\",\"x\":0.14444444444444446,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":1.0,\"yanchor\":\"bottom\",\"yref\":\"paper\"},{\"font\":{\"size\":16},\"showarrow\":false,\"text\":\"gender: M\",\"x\":0.5,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":1.0,\"yanchor\":\"bottom\",\"yref\":\"paper\"},{\"font\":{\"size\":16},\"showarrow\":false,\"text\":\"race: Black\",\"x\":0.8555555555555556,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":1.0,\"yanchor\":\"bottom\",\"yref\":\"paper\"},{\"font\":{\"size\":16},\"showarrow\":false,\"text\":\"race: Hispanic\",\"x\":0.14444444444444446,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":0.375,\"yanchor\":\"bottom\",\"yref\":\"paper\"},{\"font\":{\"size\":16},\"showarrow\":false,\"text\":\"race: White\",\"x\":0.5,\"xanchor\":\"center\",\"xref\":\"paper\",\"y\":0.375,\"yanchor\":\"bottom\",\"yref\":\"paper\"}],\"height\":500,\"title\":{\"text\":\"Confusion Matrices by Group\"},\"showlegend\":false}}", "threshold_analysis": "{\"data\":[{\"line\":{\"color\":\"blue\",\"width\":2},\"mode\":\"lines\",\"name\":\"Disparate Impact\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"exSuR+F6hD97FK5H4XqUP7gehetRuJ4\\u002fexSuR+F6pD+amZmZmZmpP7kehetRuK4\\u002f61G4HoXrsT97FK5H4Xq0PwrXo3A9Crc\\u002fmZmZmZmZuT8pXI\\u002fC9Si8P7gehetRuL4\\u002fpHA9CtejwD\\u002fsUbgehevBPzQzMzMzM8M\\u002fexSuR+F6xD\\u002fD9Shcj8LFPwvXo3A9Csc\\u002fUrgehetRyD+amZmZmZnJP+J6FK5H4co\\u002fKVyPwvUozD9xPQrXo3DNP7kehetRuM4\\u002fAAAAAAAA0D+kcD0K16PQP0jhehSuR9E\\u002f7FG4HoXr0T+QwvUoXI\\u002fSPzMzMzMzM9M\\u002f16NwPQrX0z97FK5H4XrUPx+F61G4HtU\\u002fw\\u002fUoXI\\u002fC1T9nZmZmZmbWPwvXo3A9Ctc\\u002frkfhehSu1z9SuB6F61HYP\\u002fYoXI\\u002fC9dg\\u002fmpmZmZmZ2T8+CtejcD3aP+J6FK5H4do\\u002fhetRuB6F2z8pXI\\u002fC9SjcP83MzMzMzNw\\u002fcT0K16Nw3T8VrkfhehTeP7kehetRuN4\\u002fXI\\u002fC9Shc3z8AAAAAAADgP1K4HoXrUeA\\u002fpHA9Ctej4D\\u002f2KFyPwvXgP0jhehSuR+E\\u002fmpmZmZmZ4T\\u002fsUbgehevhPz4K16NwPeI\\u002fkML1KFyP4j\\u002fhehSuR+HiPzMzMzMzM+M\\u002fhetRuB6F4z\\u002fXo3A9CtfjPylcj8L1KOQ\\u002fexSuR+F65D\\u002fNzMzMzMzkPx+F61G4HuU\\u002fcT0K16Nw5T\\u002fD9Shcj8LlPxWuR+F6FOY\\u002fZ2ZmZmZm5j+5HoXrUbjmPwrXo3A9Cuc\\u002fXI\\u002fC9Shc5z+uR+F6FK7nPwAAAAAAAOg\\u002fUrgehetR6D+kcD0K16PoP\\u002fYoXI\\u002fC9eg\\u002fSOF6FK5H6T+amZmZmZnpP+xRuB6F6+k\\u002fPgrXo3A96j+QwvUoXI\\u002fqP+J6FK5H4eo\\u002fMzMzMzMz6z+F61G4HoXrP9ejcD0K1+s\\u002fKVyPwvUo7D97FK5H4XrsP83MzMzMzOw\\u002fH4XrUbge7T9xPQrXo3DtP8P1KFyPwu0\\u002fFa5H4XoU7j9nZmZmZmbuP7kehetRuO4\\u002fCtejcD0K7z9cj8L1KFzvP65H4XoUru8\\u002f\"},\"y\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002fAAAAAAAA8D9+WYm96vnvP9V7Vv1C5e8\\u002fAA3f\\u002fwzf7z\\u002fnmz\\u002fvurvvP34Oy6HL2O8\\u002fYKaL+2fn7z+FGu5N5cPvP9GHVEqCve8\\u002fwvzZRSbM7z9NRpx4E7fvP5eu3wfCxe8\\u002fG1lWNX7U7z+oOpHkI+HvP7arIv9D9u8\\u002f7CX4Unnt7z+LY8t5Xs\\u002fvP0v\\u002fVXB3zO8\\u002fkhg7pW7l7z8nE08tOaTvP6b47SFLeu8\\u002fXOPv5hGq7z8jdSRkq0TvP2gA4qtQruw\\u002f1dNXaWSr6j9LuqRLuqTrP3a4Tz77Zeg\\u002f6Ss6vTQF5z9ukeWE7lnmP\\u002fOqnqiB+eM\\u002fLvO3wbwc5D\\u002fcJsOH0W3iP4NzDnz2zNw\\u002fOIVTOIVT2D9MdPdGkUnaPxKljKxXM9k\\u002f1mEd1mEd1j9UYXYfnwPQP2xcYJ+Pk9I\\u002fkpdK7wsc1T\\u002fQnHck8szZP2mQBmmQBt0\\u002fVLsXo6fc4T+HcziHczjnP2mQBmmQBu0\\u002f12Ed1mEd1j\\u002fXYR3WYR3WPwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"type\":\"scatter\"},{\"line\":{\"color\":\"purple\",\"width\":2},\"mode\":\"lines\",\"name\":\"F1 Score\",\"x\":{\"dtype\":\"f8\",\"bdata\":\"exSuR+F6hD97FK5H4XqUP7gehetRuJ4\\u002fexSuR+F6pD+amZmZmZmpP7kehetRuK4\\u002f61G4HoXrsT97FK5H4Xq0PwrXo3A9Crc\\u002fmZmZmZmZuT8pXI\\u002fC9Si8P7gehetRuL4\\u002fpHA9CtejwD\\u002fsUbgehevBPzQzMzMzM8M\\u002fexSuR+F6xD\\u002fD9Shcj8LFPwvXo3A9Csc\\u002fUrgehetRyD+amZmZmZnJP+J6FK5H4co\\u002fKVyPwvUozD9xPQrXo3DNP7kehetRuM4\\u002fAAAAAAAA0D+kcD0K16PQP0jhehSuR9E\\u002f7FG4HoXr0T+QwvUoXI\\u002fSPzMzMzMzM9M\\u002f16NwPQrX0z97FK5H4XrUPx+F61G4HtU\\u002fw\\u002fUoXI\\u002fC1T9nZmZmZmbWPwvXo3A9Ctc\\u002frkfhehSu1z9SuB6F61HYP\\u002fYoXI\\u002fC9dg\\u002fmpmZmZmZ2T8+CtejcD3aP+J6FK5H4do\\u002fhetRuB6F2z8pXI\\u002fC9SjcP83MzMzMzNw\\u002fcT0K16Nw3T8VrkfhehTeP7kehetRuN4\\u002fXI\\u002fC9Shc3z8AAAAAAADgP1K4HoXrUeA\\u002fpHA9Ctej4D\\u002f2KFyPwvXgP0jhehSuR+E\\u002fmpmZmZmZ4T\\u002fsUbgehevhPz4K16NwPeI\\u002fkML1KFyP4j\\u002fhehSuR+HiPzMzMzMzM+M\\u002fhetRuB6F4z\\u002fXo3A9CtfjPylcj8L1KOQ\\u002fexSuR+F65D\\u002fNzMzMzMzkPx+F61G4HuU\\u002fcT0K16Nw5T\\u002fD9Shcj8LlPxWuR+F6FOY\\u002fZ2ZmZmZm5j+5HoXrUbjmPwrXo3A9Cuc\\u002fXI\\u002fC9Shc5z+uR+F6FK7nPwAAAAAAAOg\\u002fUrgehetR6D+kcD0K16PoP\\u002fYoXI\\u002fC9eg\\u002fSOF6FK5H6T+amZmZmZnpP+xRuB6F6+k\\u002fPgrXo3A96j+QwvUoXI\\u002fqP+J6FK5H4eo\\u002fMzMzMzMz6z+F61G4HoXrP9ejcD0K1+s\\u002fKVyPwvUo7D97FK5H4XrsP83MzMzMzOw\\u002fH4XrUbge7T9xPQrXo3DtP8P1KFyPwu0\\u002fFa5H4XoU7j9nZmZmZmbuP7kehetRuO4\\u002fCtejcD0K7z9cj8L1KFzvP65H4XoUru8\\u002f\"},\"y\":{\"dtype\":\"f8\",\"bdata\":\"6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D\\u002fr\\u002fuRcEsvkP+v+5FwSy+Q\\u002f6\\u002f7kXBLL5D85cyoCldjkP\\u002fzy2Iqg4eQ\\u002fURofmUDv5D89z\\u002fM8z\\u002fPkPzAT\\u002fHry\\u002fOQ\\u002fI+DJF4cB5T9vLdy0HQblP3+L05rtE+U\\u002fiREjRowY5T8TjLeyzyHlP6QzqXZ0JuU\\u002fZY9\\u002fRRsr5T8CEXUifELlP3xDQ5DkS+U\\u002fmNPHfM5e5T+uEMsRUGjlPy0pB0SGe+U\\u002fFUvXVuCY5T8akCmKg8DlP9wB2FvJFuY\\u002ff0eCI0Ss5j95TLv5TBHnP\\u002fJ6ORQar+c\\u002fF1Z6amGl5z+UVi9cBPvnP8n3sZo9yec\\u002fK6pE\\u002fAJk5j8JnUA5ig\\u002flPzMzMzMzM+M\\u002fMxQ1rytD4T+9gak5hFLeP9BDqZKvftk\\u002fLmarxMVs1T8WpqIcsnfRP\\u002frN1qHfbM0\\u002fGBgYGBgYyD8iyHo4JKXDPw0ndV8eW8E\\u002fOB+D8zE4vz9huacRlnu6P9piZfhGFLg\\u002fZmBZNM5ttD9USQEJP7mwPxzHcRzHcaw\\u002fTCzcvkPYpD9MLNy+Q9ikP5IkSZIkSaI\\u002f6PJLFFdtnz\\u002fFxBHhIg+VPyB0VOCLq48\\u002f6w\\u002f0SAk5dT\\u002frD\\u002fRICTl1P+sP9EgJOXU\\u002f6w\\u002f0SAk5dT\\u002frD\\u002fRICTl1PwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"type\":\"scatter\"}],\"layout\":{\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"shapes\":[{\"line\":{\"color\":\"red\",\"dash\":\"dash\"},\"type\":\"line\",\"x0\":0.44,\"x1\":0.44,\"xref\":\"x\",\"y0\":0,\"y1\":1,\"yref\":\"y domain\"},{\"line\":{\"color\":\"orange\",\"dash\":\"dot\"},\"type\":\"line\",\"x0\":0,\"x1\":1,\"xref\":\"x domain\",\"y0\":0.8,\"y1\":0.8,\"yref\":\"y\"}],\"annotations\":[{\"showarrow\":false,\"text\":\"Optimal: 0.440\",\"x\":0.44,\"xanchor\":\"left\",\"xref\":\"x\",\"y\":1,\"yanchor\":\"top\",\"yref\":\"y domain\"},{\"showarrow\":false,\"text\":\"EEOC 80%\",\"x\":1,\"xanchor\":\"right\",\"xref\":\"x domain\",\"y\":0.8,\"yanchor\":\"bottom\",\"yref\":\"y\"}],\"title\":{\"text\":\"Threshold Impact on Fairness Metrics\"},\"xaxis\":{\"title\":{\"text\":\"Classification Threshold\"}},\"yaxis\":{\"title\":{\"text\":\"Metric Value\"}},\"height\":500,\"showlegend\":true,\"hovermode\":\"x unified\"}}"}, "metadata": {"total_attributes": 2, "total_pretrain_metrics": 8, "total_posttrain_metrics": 22, "has_threshold_analysis": true, "has_confusion_matrix": true}};
+        console.log('Report data loaded:', reportData);
+
+        // Render charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Metrics Comparison Chart
+            if (reportData.charts && reportData.charts.metrics_comparison) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.metrics_comparison);
+                    Plotly.newPlot('chart-metrics-comparison', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering metrics comparison chart:', e);
+                }
+            }
+
+            // Fairness Radar Chart
+            if (reportData.charts && reportData.charts.fairness_radar) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.fairness_radar);
+                    Plotly.newPlot('chart-fairness-radar', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering radar chart:', e);
+                }
+            }
+
+            // Threshold Analysis Chart
+            if (reportData.charts && reportData.charts.threshold_analysis) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.threshold_analysis);
+                    Plotly.newPlot('chart-threshold-analysis', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering threshold chart:', e);
+                }
+            }
+
+            // Confusion Matrices Chart
+            if (reportData.charts && reportData.charts.confusion_matrices) {
+                try {
+                    const chartData = JSON.parse(reportData.charts.confusion_matrices);
+                    Plotly.newPlot('chart-confusion-matrices', chartData.data, chartData.layout, {responsive: true});
+                } catch (e) {
+                    console.error('Error rendering confusion matrices:', e);
+                }
+            }
+        });
+
+        // Tab functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show selected tab content
+                document.getElementById(tabName).classList.add('active');
+
+                // Add active class to clicked button
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

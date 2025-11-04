@@ -36,7 +36,7 @@ class ReportManager:
         # Set up templates directory
         if templates_dir is None:
             # Use default templates directory
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             self.templates_dir = os.path.join(base_dir, 'templates')
         else:
             self.templates_dir = templates_dir
@@ -55,8 +55,14 @@ class ReportManager:
             RobustnessRenderer,
             UncertaintyRenderer,
             ResilienceRenderer,
-            HyperparameterRenderer
+            HyperparameterRenderer,
+            FairnessRendererSimple
         )
+
+        # Import new simple renderers
+        from .renderers.resilience_renderer_simple import ResilienceRendererSimple
+        from .renderers.uncertainty_renderer_simple import UncertaintyRendererSimple
+        from .renderers.robustness_renderer_simple import RobustnessRendererSimple
 
         # Import static renderers
         try:
@@ -68,11 +74,12 @@ class ReportManager:
 
         # Set up renderers for different report types
         self.renderers = {
-            'robustness': RobustnessRenderer(self.template_manager, self.asset_manager),
-            'uncertainty': UncertaintyRenderer(self.template_manager, self.asset_manager),
-            'resilience': ResilienceRenderer(self.template_manager, self.asset_manager),
+            'robustness': RobustnessRendererSimple(self.template_manager, self.asset_manager),  # Using simple renderer (supports advanced tests)
+            'uncertainty': UncertaintyRendererSimple(self.template_manager, self.asset_manager),  # Using NEW simple renderer
+            'resilience': ResilienceRendererSimple(self.template_manager, self.asset_manager),  # Using NEW simple renderer
             'hyperparameter': HyperparameterRenderer(self.template_manager, self.asset_manager),
-            'hyperparameters': HyperparameterRenderer(self.template_manager, self.asset_manager)
+            'hyperparameters': HyperparameterRenderer(self.template_manager, self.asset_manager),
+            'fairness': FairnessRendererSimple(self.template_manager, self.asset_manager)
         }
 
         # Set up static renderers if available

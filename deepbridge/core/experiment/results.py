@@ -155,9 +155,68 @@ class ResilienceResult(BaseTestResult):
 
 class HyperparameterResult(BaseTestResult):
     """Result object for hyperparameter tests"""
-    
+
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Hyperparameter", results, metadata)
+
+
+class FairnessResult(BaseTestResult):
+    """Result object for fairness tests"""
+
+    def __init__(self, results: dict, metadata: t.Optional[dict] = None):
+        super().__init__("Fairness", results, metadata)
+
+    @property
+    def overall_fairness_score(self) -> float:
+        """Get overall fairness score (0-1, higher is better)"""
+        return self._results.get('overall_fairness_score', 0.0)
+
+    @property
+    def critical_issues(self) -> list:
+        """Get list of critical fairness issues"""
+        return self._results.get('critical_issues', [])
+
+    @property
+    def warnings(self) -> list:
+        """Get list of fairness warnings"""
+        return self._results.get('warnings', [])
+
+    @property
+    def protected_attributes(self) -> list:
+        """Get list of protected attributes tested"""
+        return self._results.get('protected_attributes', [])
+
+    def save_html(self, file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+        """
+        Generate and save an HTML report for fairness analysis.
+
+        Args:
+            file_path: Path where the HTML report will be saved
+            model_name: Name of the model for display in the report
+            report_type: Type of report to generate ('interactive' or 'static')
+
+        Returns:
+            Path to the generated report file
+
+        Example:
+            >>> fairness_result = experiment.run_fairness_tests(config='full')
+            >>> fairness_result.save_html('fairness_report.html', model_name='Credit Model')
+        """
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+
+        # Create report manager
+        report_manager = ReportManager()
+
+        # Generate HTML report
+        report_path = report_manager.generate_report(
+            test_type='fairness',
+            results=self._results,
+            file_path=file_path,
+            model_name=model_name,
+            report_type=report_type
+        )
+
+        return report_path
 
 
 class ExperimentResult:
@@ -239,9 +298,19 @@ class ExperimentResult:
             if 'primary_model' in test_result:
                 # Direct structure - use as is
                 report_data = copy.deepcopy(test_result)
+                # Ensure advanced tests are copied
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
             elif 'results' in test_result and 'primary_model' in test_result['results']:
                 # Nested structure - extract and use the primary_model data
                 report_data = copy.deepcopy(test_result['results'])
+                # Ensure advanced tests are copied from parent level if available
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
             else:
                 # Create standard structure with minimal data
                 report_data = {
@@ -262,6 +331,12 @@ class ExperimentResult:
                 # Add feature subset if available
                 if 'feature_subset' in test_result:
                     report_data['feature_subset'] = test_result['feature_subset']
+
+                # Add advanced robustness tests if available (WeakSpot and Overfitting)
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
         else:
             # For other test types, use the standard approach
             if hasattr(result, 'to_dict'):
@@ -272,8 +347,16 @@ class ExperimentResult:
                 report_data = result  # If result is already a dict
 
         # Add initial_results if available
+        # This is stored in self.results during experiment execution
         if 'initial_results' in self.results:
-            report_data['initial_results'] = self.results['initial_results']
+            initial_results = self.results['initial_results']
+            report_data['initial_results'] = initial_results
+
+            # Add initial_model_evaluation from initial_results
+            # This is critical for resilience/robustness reports to have feature_importance data
+            if isinstance(initial_results, dict):
+                # Structure from Experiment: initial_results has 'models', 'config', 'test_configs'
+                report_data['initial_model_evaluation'] = initial_results
 
         # Add experiment config if not present
         if 'config' not in report_data:

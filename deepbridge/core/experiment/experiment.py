@@ -25,8 +25,70 @@ class Experiment(IExperiment):
     """
     # Initialize logger for this class
     logger = get_logger("deepbridge.experiment")
-    
+
     VALID_TYPES = ["binary_classification", "regression", "forecasting"]
+
+    # Common sensitive attribute keywords for auto-detection
+    SENSITIVE_ATTRIBUTE_KEYWORDS = {
+        'gender', 'sex', 'sexo', 'genero',
+        'race', 'raca', 'ethnicity', 'etnia',
+        'age', 'idade', 'age_group', 'faixa_etaria',
+        'religion', 'religiao',
+        'disability', 'deficiencia',
+        'marital_status', 'estado_civil',
+        'nationality', 'nacionalidade',
+        'sexual_orientation', 'orientacao_sexual'
+    }
+
+    @staticmethod
+    def detect_sensitive_attributes(dataset: 'DBDataset', threshold: float = 0.7) -> t.List[str]:
+        """
+        Automatically detect potential sensitive/protected attributes in the dataset.
+
+        Uses fuzzy string matching against common sensitive attribute names.
+
+        Args:
+            dataset: DBDataset to analyze
+            threshold: Similarity threshold for fuzzy matching (0-1)
+
+        Returns:
+            List of detected sensitive attribute names
+
+        Example:
+            >>> detected = Experiment.detect_sensitive_attributes(dataset)
+            >>> print(f"Found sensitive attributes: {detected}")
+        """
+        from difflib import SequenceMatcher
+
+        detected = []
+
+        # Get all column names from dataset
+        if hasattr(dataset, '_data') and isinstance(dataset._data, pd.DataFrame):
+            columns = dataset._data.columns.tolist()
+        elif hasattr(dataset, 'data') and isinstance(dataset.data, pd.DataFrame):
+            columns = dataset.data.columns.tolist()
+        elif hasattr(dataset, 'features') and isinstance(dataset.features, pd.DataFrame):
+            columns = dataset.features.columns.tolist()
+        else:
+            return detected
+
+        # Check each column against sensitive keywords
+        for col in columns:
+            col_lower = col.lower().strip()
+
+            # Exact match
+            if col_lower in Experiment.SENSITIVE_ATTRIBUTE_KEYWORDS:
+                detected.append(col)
+                continue
+
+            # Fuzzy match
+            for keyword in Experiment.SENSITIVE_ATTRIBUTE_KEYWORDS:
+                similarity = SequenceMatcher(None, col_lower, keyword).ratio()
+                if similarity >= threshold:
+                    detected.append(col)
+                    break
+
+        return detected
     
     def _initialize_components(self, dataset, test_size, random_state):
         """
@@ -48,8 +110,13 @@ class Experiment(IExperiment):
         self.y_train, self.y_test = self.data_manager.y_train, self.data_manager.y_test
         self.prob_train, self.prob_test = self.data_manager.prob_train, self.data_manager.prob_test
         
-        # Initialize alternative models
-        self.alternative_models = self.model_manager.create_alternative_models(self.X_train, self.y_train)
+        # OTIMIZAÇÃO: Lazy loading de alternative_models
+        # Apenas cria se houver testes que realmente precisam (hard_sample resilience)
+        # Economiza 30-50s de overhead desnecessário
+        self.alternative_models = self.model_manager.create_alternative_models(
+            self.X_train, self.y_train,
+            lazy=True  # Lazy loading: não treinar até ser necessário
+        )
     
     def _initialize_test_runner(self):
         """Initialize the test runner component"""
@@ -106,7 +173,8 @@ class Experiment(IExperiment):
         config: t.Optional[dict] = None,
         auto_fit: t.Optional[bool] = None,
         tests: t.Optional[t.List[str]] = None,
-        feature_subset: t.Optional[t.List[str]] = None
+        feature_subset: t.Optional[t.List[str]] = None,
+        protected_attributes: t.Optional[t.List[str]] = None
         ):
         """
         Initialize the experiment with configuration and data.
@@ -119,13 +187,15 @@ class Experiment(IExperiment):
             config: Optional configuration dictionary
             auto_fit: Whether to automatically fit a model. If None, will be set to True only if
                       dataset has probabilities but no model.
-            tests: List of tests to prepare for the model. Available tests: ["robustness", "uncertainty", 
-                   "resilience", "hyperparameters"]. Tests will only be executed when run_tests() is called.
+            tests: List of tests to prepare for the model. Available tests: ["robustness", "uncertainty",
+                   "resilience", "hyperparameters", "fairness"]. Tests will only be executed when run_tests() is called.
             feature_subset: List of feature names to specifically test in the experiments.
                            In robustness tests, only these features will be perturbed while
                            all others remain unchanged. For other tests, only these features
                            will be analyzed in detail.
-                           
+            protected_attributes: List of protected attributes for fairness testing (e.g., ['gender', 'race', 'age']).
+                                 Required if 'fairness' is in tests list.
+
         Note:
             Initialization does NOT run any tests - it only calculates basic metrics for the models.
             To run tests, explicitly call experiment.run_tests("quick") after initialization.
@@ -145,7 +215,28 @@ class Experiment(IExperiment):
         self.logger.set_verbose(self.verbose)
         self.tests = tests or []
         self.feature_subset = feature_subset
-        
+
+        # Auto-detect protected attributes if fairness testing requested but none provided
+        if 'fairness' in self.tests and not protected_attributes:
+            self.logger.info("Auto-detecting sensitive attributes for fairness testing...")
+            detected = self.detect_sensitive_attributes(dataset)
+
+            if detected:
+                self.protected_attributes = detected
+                self.logger.info(f"Auto-detected sensitive attributes: {detected}")
+                self.logger.warning(
+                    "Using auto-detected sensitive attributes. "
+                    "For production use, explicitly specify protected_attributes."
+                )
+            else:
+                raise ValueError(
+                    "Cannot auto-detect sensitive attributes for fairness testing.\n"
+                    "Please explicitly provide protected_attributes=['attr1', 'attr2', ...]\n"
+                    "Example: protected_attributes=['gender', 'race', 'age']"
+                )
+        else:
+            self.protected_attributes = protected_attributes
+
         self.logger.debug(f"Initializing experiment with type: {experiment_type}, tests: {tests}")
         
         # Automatically determine auto_fit value based on model presence
@@ -672,9 +763,77 @@ class Experiment(IExperiment):
             Dictionary containing all test results
         """
         return self._test_results
-    
+
+    def run_fairness_tests(self, config: str = 'full') -> 'FairnessResult':
+        """
+        Run fairness tests on the model.
+
+        This method requires protected_attributes to be provided during
+        Experiment initialization.
+
+        Parameters:
+        -----------
+        config : str, default='full'
+            Configuration level: 'quick', 'medium', or 'full'
+
+        Returns:
+        --------
+        FairnessResult : Object with fairness test results
+
+        Raises:
+        -------
+        ValueError
+            If protected_attributes were not provided during initialization
+
+        Example:
+        --------
+        >>> experiment = Experiment(
+        ...     dataset=dataset,
+        ...     experiment_type="binary_classification",
+        ...     tests=["robustness", "fairness"],
+        ...     protected_attributes=['gender', 'race']
+        ... )
+        >>> fairness_results = experiment.run_fairness_tests(config='full')
+        >>> print(f"Fairness Score: {fairness_results.overall_fairness_score:.3f}")
+        >>> print(f"Critical Issues: {len(fairness_results.critical_issues)}")
+        """
+        # Validate that protected_attributes were provided
+        if not self.protected_attributes:
+            raise ValueError(
+                "Cannot run fairness tests: no protected_attributes provided.\n"
+                "Initialize Experiment with protected_attributes=['attr1', 'attr2', ...] "
+                "to enable fairness testing."
+            )
+
+        # Import FairnessSuite
+        from deepbridge.validation.wrappers.fairness_suite import FairnessSuite
+
+        # Initialize fairness suite
+        fairness_suite = FairnessSuite(
+            dataset=self.dataset,
+            protected_attributes=self.protected_attributes,
+            verbose=self.verbose
+        )
+
+        # Run fairness tests
+        results = fairness_suite.config(config).run()
+
+        # Wrap results in FairnessResult
+        from deepbridge.core.experiment.results import FairnessResult
+        fairness_result = FairnessResult(results)
+
+        # Store in test results
+        self._test_results['fairness'] = results
+
+        self.logger.info(f"Fairness tests completed with config '{config}'")
+        self.logger.info(f"Fairness Score: {fairness_result.overall_fairness_score:.3f}")
+        if fairness_result.critical_issues:
+            self.logger.warning(f"Found {len(fairness_result.critical_issues)} critical fairness issues")
+
+        return fairness_result
+
     # Backward compatibility properties removed in this refactoring
-        
+
     @property
     def experiment_info(self):
         """

@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>{{ css_content|safe }}</style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Total Scenarios:</strong> {{ total_scenarios }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Features:</strong> {{ total_features }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Resilience Score</span>
+                <span class="metric-card__value" id="metric-resilience-score">{{ resilience_score|round(4) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Total Scenarios</span>
+                <span class="metric-card__value" id="metric-total-scenarios">{{ total_scenarios }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Valid Scenarios</span>
+                <span class="metric-card__value" id="metric-valid-scenarios">{{ valid_scenarios }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Total Features</span>
+                <span class="metric-card__value" id="metric-total-features">{{ total_features }}</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="tab-overview">Overview</button>
+            <button class="tab-button" data-tab="tab-distribution-shift">Dist. Shift</button>
+            <button class="tab-button" data-tab="tab-worst-sample">W. Sample</button>
+            <button class="tab-button" data-tab="tab-worst-cluster">W. Cluster</button>
+            <button class="tab-button" data-tab="tab-outer-sample">O. Sample</button>
+            <button class="tab-button" data-tab="tab-hard-sample">H. Sample</button>
+            <button class="tab-button" data-tab="tab-comparison">Compare</button>
+            <button class="tab-button" data-tab="tab-features">Features</button>
+        </div>
+
+        <!-- Tab Content: Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Resilience Summary</h2>
+
+                <!-- Test Type Comparison -->
+                <h3>Resilience Score by Test Type</h3>
+                <div class="chart-container" id="chart-test-comparison"></div>
+
+                <!-- Overall Boxplot -->
+                <h3>Overall Performance Gap Distribution</h3>
+                <div class="chart-container" id="chart-boxplot"></div>
+
+                <!-- Test Counts Summary -->
+                <div id="test-counts-summary"></div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Distribution Shift -->
+        <div id="tab-distribution-shift" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Distribution Shift Tests</h2>
+                <p class="section__description">
+                    Tests model performance under different distribution shift scenarios using various distance metrics.
+                </p>
+
+                <!-- Distribution Shift Overview Chart -->
+                <h3>Performance Gap by Alpha</h3>
+                <div class="chart-container" id="chart-overview"></div>
+
+                <!-- Scenarios Charts -->
+                <h3>Performance by Alpha</h3>
+                <div class="chart-container" id="chart-scenarios-by-alpha"></div>
+
+                <h3>Performance by Distance Metric</h3>
+                <div class="chart-container" id="chart-scenarios-by-metric"></div>
+
+                <!-- Scenarios Table -->
+                <h3>All Distribution Shift Scenarios</h3>
+                <div class="data-table-container">
+                    <div id="scenarios-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data... If this message persists, check browser console for errors (F12).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Worst Sample -->
+        <div id="tab-worst-sample" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Worst-Sample Tests</h2>
+                <p class="section__description">
+                    Identifies and evaluates model performance on the worst-performing samples using different ranking methods (residual, entropy, margin).
+                </p>
+
+                <!-- Worst Sample Chart -->
+                <h3>Performance Gap by Alpha and Ranking Method</h3>
+                <div class="chart-container" id="chart-worst-sample"></div>
+
+                <!-- Worst Sample Table -->
+                <h3>All Worst-Sample Test Results</h3>
+                <div class="data-table-container">
+                    <div id="worst-sample-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data... If this message persists, check browser console for errors (F12).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Worst Cluster -->
+        <div id="tab-worst-cluster" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Worst-Cluster Tests</h2>
+                <p class="section__description">
+                    Identifies worst-performing clusters using K-means clustering and analyzes which feature patterns lead to poor performance.
+                </p>
+
+                <!-- Worst Cluster Chart -->
+                <h3>Performance Gap by Number of Clusters</h3>
+                <div class="chart-container" id="chart-worst-cluster"></div>
+
+                <!-- Worst Cluster Table -->
+                <h3>All Worst-Cluster Test Results</h3>
+                <div class="data-table-container">
+                    <div id="worst-cluster-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Outer Sample -->
+        <div id="tab-outer-sample" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Outer-Sample Tests</h2>
+                <p class="section__description">
+                    Evaluates model performance on outlier samples detected using Isolation Forest or Local Outlier Factor methods.
+                </p>
+
+                <!-- Outer Sample Chart -->
+                <h3>Performance Gap by Alpha and Outlier Method</h3>
+                <div class="chart-container" id="chart-outer-sample"></div>
+
+                <!-- Outer Sample Table -->
+                <h3>All Outer-Sample Test Results</h3>
+                <div class="data-table-container">
+                    <div id="outer-sample-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Hard Sample -->
+        <div id="tab-hard-sample" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Hard-Sample Tests</h2>
+                <p class="section__description">
+                    Identifies intrinsically hard samples based on model disagreement across multiple models.
+                </p>
+
+                <!-- Hard Sample Chart -->
+                <h3>Performance Gap by Disagreement Threshold</h3>
+                <div class="chart-container" id="chart-hard-sample"></div>
+
+                <!-- Hard Sample Table -->
+                <h3>All Hard-Sample Test Results</h3>
+                <div class="data-table-container">
+                    <div id="hard-sample-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Comparison -->
+        <div id="tab-comparison" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Comparative Analysis</h2>
+                <p class="section__description">
+                    Comparative view of all test types and their respective resilience scores.
+                </p>
+
+                <!-- Test Type Comparison -->
+                <h3>Resilience Score by Test Type</h3>
+                <div class="chart-container" id="chart-test-comparison-detailed"></div>
+
+                <!-- Summary Statistics -->
+                <h3>Summary Statistics by Test Type</h3>
+                <div id="comparison-summary-table"></div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Features -->
+        <div id="tab-features" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Feature Importance Analysis</h2>
+
+                <!-- Feature Importance Chart -->
+                <h3>Top 10 Most Important Features</h3>
+                <div class="chart-container" id="chart-feature-importance"></div>
+
+                <!-- Features Table -->
+                <h3>All Features</h3>
+                <div class="data-table-container">
+                    <div id="features-table-container">
+                        <p style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid #ffc107;">
+                            ⏳ Loading table data...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data: Centralized in window.reportData -->
+    <script>
+        window.reportData = {{ report_data_json|safe }};
+        console.log("Report data loaded:", window.reportData);
+    </script>
+
+    <!-- Tab Navigation JS -->
+    <script>{{ js_content|safe }}</script>
+
+    <!-- Main Initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing report...");
+
+            // Wait for Plotly to be ready
+            setTimeout(function() {
+                if (typeof Plotly === 'undefined') {
+                    console.error("Plotly not loaded!");
+                    return;
+                }
+
+                if (!window.reportData) {
+                    console.error("Report data not available!");
+                    return;
+                }
+
+                console.log("Initializing tabs...");
+                initTabs();
+
+                console.log("Rendering all sections...");
+
+                try {
+                    renderOverview();
+                    console.log("✓ renderOverview complete");
+                } catch (error) {
+                    console.error("✗ renderOverview failed:", error);
+                }
+
+                try {
+                    renderDistributionShift();
+                    console.log("✓ renderDistributionShift complete");
+                } catch (error) {
+                    console.error("✗ renderDistributionShift failed:", error);
+                }
+
+                try {
+                    renderWorstSample();
+                    console.log("✓ renderWorstSample complete");
+                } catch (error) {
+                    console.error("✗ renderWorstSample failed:", error);
+                }
+
+                try {
+                    renderWorstCluster();
+                    console.log("✓ renderWorstCluster complete");
+                } catch (error) {
+                    console.error("✗ renderWorstCluster failed:", error);
+                }
+
+                try {
+                    renderOuterSample();
+                    console.log("✓ renderOuterSample complete");
+                } catch (error) {
+                    console.error("✗ renderOuterSample failed:", error);
+                }
+
+                try {
+                    renderHardSample();
+                    console.log("✓ renderHardSample complete");
+                } catch (error) {
+                    console.error("✗ renderHardSample failed:", error);
+                }
+
+                try {
+                    renderComparison();
+                    console.log("✓ renderComparison complete");
+                } catch (error) {
+                    console.error("✗ renderComparison failed:", error);
+                }
+
+                try {
+                    renderFeatures();
+                    console.log("✓ renderFeatures complete");
+                } catch (error) {
+                    console.error("✗ renderFeatures failed:", error);
+                }
+
+                console.log("Report initialized successfully!");
+            }, 200);
+        });
+
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+
+                    // Remove active class from all buttons and contents
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+
+                    console.log('Switched to tab:', targetTab);
+                });
+            });
+        }
+
+        function renderOverview() {
+            const data = window.reportData;
+
+            // Render test type comparison chart
+            if (data.charts && data.charts.test_type_comparison) {
+                try {
+                    Plotly.newPlot('chart-test-comparison',
+                        data.charts.test_type_comparison.data,
+                        data.charts.test_type_comparison.layout,
+                        {responsive: true}
+                    );
+                } catch (error) {
+                    console.error('[renderOverview] Error rendering test_type_comparison:', error);
+                }
+            }
+
+            // Render overall boxplot
+            if (data.charts && data.charts.boxplot) {
+                try {
+                    Plotly.newPlot('chart-boxplot',
+                        data.charts.boxplot.data,
+                        data.charts.boxplot.layout,
+                        {responsive: true}
+                    );
+                } catch (error) {
+                    console.error('[renderOverview] Error rendering boxplot:', error);
+                }
+            }
+
+            // Render test counts summary
+            if (data.summary && data.summary.test_counts) {
+                let summaryHtml = '<h3>Test Execution Summary</h3>';
+                summaryHtml += '<table class="data-table" style="color: #333 !important;">';
+                summaryHtml += '<thead><tr><th>Test Type</th><th>Number of Tests</th></tr></thead>';
+                summaryHtml += '<tbody style="color: #333 !important;">';
+
+                const testCounts = data.summary.test_counts;
+                for (const [testType, count] of Object.entries(testCounts)) {
+                    if (count > 0) {
+                        summaryHtml += '<tr>';
+                        summaryHtml += `<td>${testType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>`;
+                        summaryHtml += `<td>${count}</td>`;
+                        summaryHtml += '</tr>';
+                    }
+                }
+
+                summaryHtml += '</tbody></table>';
+                document.getElementById('test-counts-summary').innerHTML = summaryHtml;
+            }
+        }
+
+        function renderDistributionShift() {
+            const data = window.reportData;
+            console.log('[renderDistributionShift] Called');
+            console.log('[renderDistributionShift] data.distribution_shift:', data.distribution_shift ? data.distribution_shift.length + ' items' : 'not found');
+
+            // Render distribution shift overview chart
+            if (data.charts && data.charts.overview) {
+                try {
+                    Plotly.newPlot('chart-overview',
+                        data.charts.overview.data,
+                        data.charts.overview.layout,
+                        {responsive: true}
+                    );
+                    console.log('[renderDistributionShift] Overview chart rendered');
+                } catch (error) {
+                    console.error('[renderDistributionShift] Error rendering overview chart:', error);
+                }
+            }
+
+            // Render distribution shift scenarios table
+            if (data.distribution_shift && data.distribution_shift.length > 0) {
+                console.log('[renderDistributionShift] Creating table with ' + data.distribution_shift.length + ' scenarios');
+                let tableHtml = '<table class="data-table" style="color: #333 !important;">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>ID</th>';
+                tableHtml += '<th>Name</th>';
+                tableHtml += '<th>Alpha</th>';
+                tableHtml += '<th>Distance Metric</th>';
+                tableHtml += '<th>Performance Gap</th>';
+                tableHtml += '<th>Baseline</th>';
+                tableHtml += '<th>Target</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody style="color: #333 !important;">';
+
+                data.distribution_shift.forEach(scenario => {
+                    tableHtml += '<tr style="color: #333 !important;">';
+                    tableHtml += `<td style="color: #333 !important;">${scenario.id}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.name}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.alpha.toFixed(2)}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.distance_metric}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.performance_gap !== null ? scenario.performance_gap.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.baseline_performance !== null ? scenario.baseline_performance.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td style="color: #333 !important;">${scenario.target_performance !== null ? scenario.target_performance.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+
+                const container = document.getElementById('scenarios-table-container');
+                console.log('[renderDistributionShift] Container element:', container);
+                if (container) {
+                    container.innerHTML = tableHtml;
+                    console.log('[renderDistributionShift] Table inserted successfully');
+                } else {
+                    console.error('[renderDistributionShift] Container not found!');
+                }
+            } else {
+                console.log('[renderDistributionShift] No distribution_shift data or empty array');
+            }
+
+            // Render distribution shift charts
+            if (data.charts && data.charts.scenarios_by_alpha) {
+                try {
+                    Plotly.newPlot('chart-scenarios-by-alpha',
+                        data.charts.scenarios_by_alpha.data,
+                        data.charts.scenarios_by_alpha.layout,
+                        {responsive: true}
+                    );
+                } catch (error) {
+                    console.error('[renderDistributionShift] Error rendering scenarios_by_alpha chart:', error);
+                }
+            }
+
+            if (data.charts && data.charts.scenarios_by_metric) {
+                try {
+                    Plotly.newPlot('chart-scenarios-by-metric',
+                        data.charts.scenarios_by_metric.data,
+                        data.charts.scenarios_by_metric.layout,
+                        {responsive: true}
+                    );
+                } catch (error) {
+                    console.error('[renderDistributionShift] Error rendering scenarios_by_metric chart:', error);
+                }
+            }
+        }
+
+        function renderWorstSample() {
+            const data = window.reportData;
+            console.log('[renderWorstSample] Called');
+            console.log('[renderWorstSample] data.worst_sample:', data.worst_sample ? 'exists' : 'not found');
+
+            // Render worst-sample chart
+            if (data.charts && data.charts.worst_sample) {
+                Plotly.newPlot('chart-worst-sample',
+                    data.charts.worst_sample.data,
+                    data.charts.worst_sample.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render worst-sample table
+            if (data.worst_sample && data.worst_sample.all_results && data.worst_sample.all_results.length > 0) {
+                console.log('[renderWorstSample] Creating table with ' + data.worst_sample.all_results.length + ' results');
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>ID</th>';
+                tableHtml += '<th>Alpha</th>';
+                tableHtml += '<th>Ranking Method</th>';
+                tableHtml += '<th>Metric</th>';
+                tableHtml += '<th>Performance Gap</th>';
+                tableHtml += '<th>Worst Samples Metric</th>';
+                tableHtml += '<th>Remaining Metric</th>';
+                tableHtml += '<th>Sample Sizes</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                data.worst_sample.all_results.forEach(result => {
+                    tableHtml += '<tr>';
+                    tableHtml += `<td>${result.id}</td>`;
+                    tableHtml += `<td>${result.alpha.toFixed(2)}</td>`;
+                    tableHtml += `<td>${result.ranking_method}</td>`;
+                    tableHtml += `<td>${result.metric}</td>`;
+                    tableHtml += `<td>${result.performance_gap !== null ? result.performance_gap.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.worst_metric !== null ? result.worst_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.remaining_metric !== null ? result.remaining_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.n_worst_samples} / ${result.n_remaining_samples}</td>`;
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+
+                const container = document.getElementById('worst-sample-table-container');
+                console.log('[renderWorstSample] Container element:', container);
+                if (container) {
+                    container.innerHTML = tableHtml;
+                    console.log('[renderWorstSample] Table inserted successfully');
+                } else {
+                    console.error('[renderWorstSample] Container not found!');
+                }
+            } else {
+                console.log('[renderWorstSample] No worst_sample data or empty array');
+                const container = document.getElementById('worst-sample-table-container');
+                if (container) {
+                    container.innerHTML = '<p>No worst-sample test results available.</p>';
+                }
+            }
+        }
+
+        function renderWorstCluster() {
+            const data = window.reportData;
+
+            // Render worst-cluster chart
+            if (data.charts && data.charts.worst_cluster) {
+                Plotly.newPlot('chart-worst-cluster',
+                    data.charts.worst_cluster.data,
+                    data.charts.worst_cluster.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render worst-cluster table
+            if (data.worst_cluster && data.worst_cluster.all_results && data.worst_cluster.all_results.length > 0) {
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>ID</th>';
+                tableHtml += '<th>K Clusters</th>';
+                tableHtml += '<th>Worst Cluster</th>';
+                tableHtml += '<th>Metric</th>';
+                tableHtml += '<th>Performance Gap</th>';
+                tableHtml += '<th>Worst Metric</th>';
+                tableHtml += '<th>Remaining Metric</th>';
+                tableHtml += '<th>Cluster Sizes</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                data.worst_cluster.all_results.forEach(result => {
+                    tableHtml += '<tr>';
+                    tableHtml += `<td>${result.id}</td>`;
+                    tableHtml += `<td>${result.n_clusters}</td>`;
+                    tableHtml += `<td>${result.worst_cluster_id}</td>`;
+                    tableHtml += `<td>${result.metric}</td>`;
+                    tableHtml += `<td>${result.performance_gap !== null ? result.performance_gap.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.worst_cluster_metric !== null ? result.worst_cluster_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.remaining_metric !== null ? result.remaining_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.worst_cluster_size} / ${result.remaining_size}</td>`;
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                document.getElementById('worst-cluster-table-container').innerHTML = tableHtml;
+            } else {
+                document.getElementById('worst-cluster-table-container').innerHTML = '<p>No worst-cluster test results available.</p>';
+            }
+        }
+
+        function renderOuterSample() {
+            const data = window.reportData;
+
+            // Render outer-sample chart
+            if (data.charts && data.charts.outer_sample) {
+                Plotly.newPlot('chart-outer-sample',
+                    data.charts.outer_sample.data,
+                    data.charts.outer_sample.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render outer-sample table
+            if (data.outer_sample && data.outer_sample.all_results && data.outer_sample.all_results.length > 0) {
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>ID</th>';
+                tableHtml += '<th>Alpha</th>';
+                tableHtml += '<th>Outlier Method</th>';
+                tableHtml += '<th>Metric</th>';
+                tableHtml += '<th>Performance Gap</th>';
+                tableHtml += '<th>Outer Metric</th>';
+                tableHtml += '<th>Inner Metric</th>';
+                tableHtml += '<th>Sample Sizes</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                data.outer_sample.all_results.forEach(result => {
+                    tableHtml += '<tr>';
+                    tableHtml += `<td>${result.id}</td>`;
+                    tableHtml += `<td>${result.alpha.toFixed(2)}</td>`;
+                    tableHtml += `<td>${result.outlier_method}</td>`;
+                    tableHtml += `<td>${result.metric}</td>`;
+                    tableHtml += `<td>${result.performance_gap !== null ? result.performance_gap.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.outer_metric !== null ? result.outer_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.inner_metric !== null ? result.inner_metric.toFixed(4) : 'N/A'}</td>`;
+                    tableHtml += `<td>${result.n_outer_samples} / ${result.n_inner_samples}</td>`;
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                document.getElementById('outer-sample-table-container').innerHTML = tableHtml;
+            } else {
+                document.getElementById('outer-sample-table-container').innerHTML = '<p>No outer-sample test results available.</p>';
+            }
+        }
+
+        function renderHardSample() {
+            const data = window.reportData;
+
+            // Render hard-sample chart
+            if (data.charts && data.charts.hard_sample) {
+                Plotly.newPlot('chart-hard-sample',
+                    data.charts.hard_sample.data,
+                    data.charts.hard_sample.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render hard-sample table
+            if (data.hard_sample && data.hard_sample.all_results && data.hard_sample.all_results.length > 0) {
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>ID</th>';
+                tableHtml += '<th>Status</th>';
+                tableHtml += '<th>Threshold</th>';
+                tableHtml += '<th>Metric</th>';
+                tableHtml += '<th>Performance Gap</th>';
+                tableHtml += '<th>Hard Metric</th>';
+                tableHtml += '<th>Easy Metric</th>';
+                tableHtml += '<th>Sample Sizes</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                data.hard_sample.all_results.forEach(result => {
+                    tableHtml += '<tr>';
+                    tableHtml += `<td>${result.id}</td>`;
+
+                    if (result.skipped) {
+                        tableHtml += `<td colspan="7">${result.reason}</td>`;
+                    } else {
+                        tableHtml += '<td>Completed</td>';
+                        tableHtml += `<td>${result.disagreement_threshold !== undefined ? result.disagreement_threshold.toFixed(2) : 'N/A'}</td>`;
+                        tableHtml += `<td>${result.metric || 'N/A'}</td>`;
+                        tableHtml += `<td>${result.performance_gap !== null ? result.performance_gap.toFixed(4) : 'N/A'}</td>`;
+                        tableHtml += `<td>${result.hard_metric !== null ? result.hard_metric.toFixed(4) : 'N/A'}</td>`;
+                        tableHtml += `<td>${result.easy_metric !== null ? result.easy_metric.toFixed(4) : 'N/A'}</td>`;
+                        tableHtml += `<td>${result.n_hard_samples} / ${result.n_easy_samples}</td>`;
+                    }
+
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                document.getElementById('hard-sample-table-container').innerHTML = tableHtml;
+            } else {
+                document.getElementById('hard-sample-table-container').innerHTML = '<p>No hard-sample test results available.</p>';
+            }
+        }
+
+        function renderComparison() {
+            const data = window.reportData;
+
+            // Render detailed comparison chart
+            if (data.charts && data.charts.test_type_comparison) {
+                Plotly.newPlot('chart-test-comparison-detailed',
+                    data.charts.test_type_comparison.data,
+                    data.charts.test_type_comparison.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render comparison summary table
+            if (data.test_scores) {
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>Test Type</th>';
+                tableHtml += '<th>Resilience Score</th>';
+                tableHtml += '<th>Number of Tests</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                const testCounts = data.summary.test_counts || {};
+
+                for (const [testType, score] of Object.entries(data.test_scores)) {
+                    if (score !== null && !isNaN(score)) {
+                        tableHtml += '<tr>';
+                        tableHtml += `<td>${testType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>`;
+                        tableHtml += `<td>${score.toFixed(4)}</td>`;
+                        tableHtml += `<td>${testCounts[testType] || 0}</td>`;
+                        tableHtml += '</tr>';
+                    }
+                }
+
+                tableHtml += '</tbody></table>';
+                document.getElementById('comparison-summary-table').innerHTML = tableHtml;
+            }
+        }
+
+        function renderFeatures() {
+            const data = window.reportData;
+
+            // Render feature importance chart
+            if (data.charts && data.charts.feature_importance) {
+                Plotly.newPlot('chart-feature-importance',
+                    data.charts.feature_importance.data,
+                    data.charts.feature_importance.layout,
+                    {responsive: true}
+                );
+            }
+
+            // Render features table
+            if (data.features && data.features.feature_list && data.features.feature_list.length > 0) {
+                let tableHtml = '<table class="data-table">';
+                tableHtml += '<thead><tr>';
+                tableHtml += '<th>Rank</th>';
+                tableHtml += '<th>Feature Name</th>';
+                tableHtml += '<th>Importance</th>';
+                tableHtml += '<th>Absolute Importance</th>';
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+
+                data.features.feature_list.forEach((feature, index) => {
+                    tableHtml += '<tr>';
+                    tableHtml += `<td>${index + 1}</td>`;
+                    tableHtml += `<td>${feature.name}</td>`;
+                    tableHtml += `<td>${feature.importance.toFixed(6)}</td>`;
+                    tableHtml += `<td>${feature.importance_abs.toFixed(6)}</td>`;
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                document.getElementById('features-table-container').innerHTML = tableHtml;
+
+                console.log(`Rendered ${data.features.feature_list.length} features`);
+            } else {
+                console.warn("No features available to render");
+            }
+        }
+    </script>
+</body>
+</html>

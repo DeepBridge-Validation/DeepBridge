@@ -13,6 +13,9 @@ logger = logging.getLogger("deepbridge.reports")
 # Import JSON formatter
 from ..utils.json_formatter import JsonFormatter
 
+# Import CSS Manager
+from ..css_manager import CSSManager
+
 class RobustnessRenderer:
     """
     Renderer for robustness test reports.
@@ -21,7 +24,7 @@ class RobustnessRenderer:
     def __init__(self, template_manager, asset_manager):
         """
         Initialize the renderer.
-        
+
         Parameters:
         -----------
         template_manager : TemplateManager
@@ -33,14 +36,17 @@ class RobustnessRenderer:
         self.base_renderer = BaseRenderer(template_manager, asset_manager)
         self.template_manager = template_manager
         self.asset_manager = asset_manager
-        
+
+        # Initialize CSS Manager
+        self.css_manager = CSSManager()
+
         # Import data transformers
         from ..transformers.robustness import RobustnessDataTransformer
         from ..transformers.initial_results import InitialResultsTransformer
         self.data_transformer = RobustnessDataTransformer()
         self.initial_results_transformer = InitialResultsTransformer()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
         """
         Render robustness report from results data.
 
@@ -127,10 +133,24 @@ class RobustnessRenderer:
             # Add initial_results directly to the report_data for client-side access
             if initial_results:
                 report_data['initial_results'] = initial_results
-                
+
                 # Explicitly log for debugging
                 logger.info(f"Added initial_results to report_data with {len(initial_results.get('models', {}))} models")
-            
+
+            # Add advanced robustness tests (WeakSpot and Overfitting) if available
+            weakspot_analysis = None
+            overfitting_analysis = None
+
+            if 'weakspot_analysis' in results:
+                weakspot_analysis = results['weakspot_analysis']
+                report_data['weakspot_analysis'] = weakspot_analysis
+                logger.info(f"Added weakspot_analysis with {weakspot_analysis.get('summary', {}).get('total_weakspots', 0)} weakspots")
+
+            if 'overfitting_analysis' in results:
+                overfitting_analysis = results['overfitting_analysis']
+                report_data['overfitting_analysis'] = overfitting_analysis
+                logger.info(f"Added overfitting_analysis with data")
+
             # Add robustness-specific context with default values for all variables
             robustness_score = report_data.get('robustness_score', 0)
             
@@ -173,29 +193,37 @@ class RobustnessRenderer:
                 'resilience_score': robustness_score,  # Backward compatibility
                 'raw_impact': report_data.get('raw_impact', 0),
                 'quantile_impact': report_data.get('quantile_impact', 0),
-                
+
                 # Feature importance data
                 'feature_importance': report_data.get('feature_importance', {}),
                 'model_feature_importance': report_data.get('model_feature_importance', {}),
                 'has_feature_importance': bool(report_data.get('feature_importance', {})),
                 'has_model_feature_importance': bool(report_data.get('model_feature_importance', {})),
-                
+
                 # Test metadata
                 'iterations': report_data.get('n_iterations', 100),
                 'chart_data_json': self._sanitize_json(chart_data),  # Use new sanitizer
                 'test_type': 'robustness',  # Explicit test type
                 'report_type': 'robustness',  # Required for template includes
-                
+
                 # Initial results data (if available)
                 'has_initial_results': bool(initial_results),
                 'initial_results': initial_results,
-                
+
+                # Advanced robustness tests (WeakSpot and Overfitting Analysis)
+                'has_weakspot_analysis': bool(weakspot_analysis),
+                'weakspot_analysis': weakspot_analysis or {},
+                'weakspot_analysis_json': self._sanitize_json(weakspot_analysis) if weakspot_analysis else '{}',
+                'has_overfitting_analysis': bool(overfitting_analysis),
+                'overfitting_analysis': overfitting_analysis or {},
+                'overfitting_analysis_json': self._sanitize_json(overfitting_analysis) if overfitting_analysis else '{}',
+
                 # Additional context to ensure backward compatibility
                 'features': features,
                 'metrics': metrics,
                 'metrics_details': report_data.get('metrics_details', {}),
                 'feature_subset': report_data.get('feature_subset', []),
-                
+
                 # Summary section metadata
                 'feature_count': feature_count,
                 'test_sample_count': test_sample_count,
@@ -286,214 +314,28 @@ class RobustnessRenderer:
     
     def _load_css_content(self) -> str:
         """
-        Load and combine CSS files for the robustness report.
+        Load and combine CSS files for the robustness report using CSSManager.
 
         Returns:
         --------
-        str : Combined CSS content
+        str : Combined CSS content (base + components + custom)
         """
         try:
-            # Use the asset manager's combined CSS content method
-            css_content = self.asset_manager.get_combined_css_content("robustness")
-
-            # Add default styles to ensure report functionality even if external CSS is missing
-            default_css = """
-            /* Base variables and reset */
-            :root {
-                --primary-color: #1b78de;
-                --secondary-color: #2c3e50;
-                --success-color: #28a745;
-                --danger-color: #dc3545;
-                --warning-color: #f39c12;
-                --info-color: #17a2b8;
-                --light-color: #f8f9fa;
-                --dark-color: #343a40;
-                --text-color: #333;
-                --text-muted: #6c757d;
-                --border-color: #ddd;
-                --background-color: #f8f9fa;
-                --card-bg: #fff;
-                --header-bg: #ffffff;
-            }
-
-            * {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-            }
-
-            html, body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                font-size: 16px;
-                line-height: 1.5;
-                color: var(--text-color);
-                background-color: var(--background-color);
-            }
-
-            h1, h2, h3, h4, h5, h6 {
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-                line-height: 1.2;
-            }
-
-            p {
-                margin-bottom: 1rem;
-            }
-
-            /* Layout */
-            .report-container {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-                background-color: #fff;
-            }
-
-            .report-content {
-                padding: 20px 0;
-            }
-
-            /* Tab navigation */
-            .main-tabs {
-                display: flex;
-                border-bottom: 1px solid var(--border-color);
-                margin-bottom: 1.5rem;
-                overflow-x: auto;
-                flex-wrap: nowrap;
-            }
-
-            .tab-btn {
-                padding: 0.75rem 1.5rem;
-                border: none;
-                background: none;
-                cursor: pointer;
-                font-size: 1rem;
-                font-weight: 500;
-                color: var(--text-color);
-                border-bottom: 2px solid transparent;
-                white-space: nowrap;
-            }
-
-            .tab-btn:hover {
-                color: var(--primary-color);
-            }
-
-            .tab-btn.active {
-                color: var(--primary-color);
-                border-bottom: 2px solid var(--primary-color);
-            }
-
-            .tab-content {
-                display: none;
-            }
-
-            .tab-content.active {
-                display: block;
-            }
-
-            /* Chart containers */
-            .chart-container {
-                margin: 1.5rem 0;
-                min-height: 300px;
-            }
-
-            .chart-plot {
-                min-height: 300px;
-                background-color: #fff;
-                border-radius: 8px;
-                border: 1px solid var(--border-color, #ddd);
-                margin-bottom: 1.5rem;
-            }
-
-            /* Loading indicators */
-            .chart-loading-message {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 30px;
-                text-align: center;
-            }
-
-            .spinner {
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #3498db;
-                border-radius: 50%;
-                width: 30px;
-                height: 30px;
-                animation: spin 1s linear infinite;
-                margin-bottom: 10px;
-            }
-
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-
-            /* Table styles */
-            .table-container {
-                margin-top: 1.5rem;
-                overflow-x: auto;
-            }
-
-            .data-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 1.5rem;
-            }
-
-            .data-table th,
-            .data-table td {
-                padding: 0.75rem;
-                text-align: left;
-                border: 1px solid var(--border-color);
-            }
-
-            .data-table th {
-                background-color: #f8f9fa;
-                font-weight: 600;
-            }
-
-            /* Boxplot specific styles */
-            .boxplot-table .text-danger {
-                color: #d32f2f;
-            }
-
-            .boxplot-table .text-warning {
-                color: #f0ad4e;
-            }
-
-            .boxplot-table .text-success {
-                color: #5cb85c;
-            }
-
-            .loading-info {
-                text-align: center;
-                padding: 20px;
-            }
-
-            .loading-info .loading-icon {
-                font-size: 24px;
-                margin-bottom: 10px;
-            }
-
-            /* Section styles */
-            .section {
-                margin-bottom: 2rem;
-            }
-
-            .section-title {
-                border-left: 4px solid var(--primary-color);
-                padding-left: 0.75rem;
-                margin-bottom: 1rem;
-            }
-            """
-
-            # Combine default CSS with loaded CSS
-            combined_css = default_css + "\n\n" + css_content
-            return combined_css
+            # Use CSSManager to compile CSS (base + components + custom)
+            compiled_css = self.css_manager.get_compiled_css('robustness')
+            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
+            return compiled_css
         except Exception as e:
-            logger.error(f"Error loading CSS: {str(e)}")
-            return ""
+            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
+
+            # Fallback: try to load CSS from asset manager if CSSManager fails
+            try:
+                logger.warning("Falling back to asset_manager for CSS loading")
+                css_content = self.asset_manager.get_combined_css_content("robustness")
+                return css_content
+            except Exception as fallback_error:
+                logger.error(f"Fallback CSS loading also failed: {str(fallback_error)}")
+                return ""
     
     def _load_js_content(self) -> str:
         """
