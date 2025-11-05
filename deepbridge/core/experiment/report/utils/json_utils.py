@@ -315,3 +315,36 @@ if __name__ == '__main__':
     print("\n" + "=" * 80)
     print("Test Complete")
     print("=" * 80)
+
+
+# ==================================================================================
+# Data Preparation for Templates (Phase 2 Sprint 5-6)
+# ==================================================================================
+
+def prepare_data_for_template(data: Dict, test_type: str) -> Dict:
+    """
+    Prepare data for template rendering.
+
+    Combines raw data with JSON-safe serialization, replacing
+    DataIntegrationManager (Phase 2 simplification).
+
+    Args:
+        data: Raw report data dictionary
+        test_type: Type of test ('uncertainty', 'robustness', etc.)
+
+    Returns:
+        Dictionary ready for template rendering with:
+        - 'data': Original data
+        - 'data_json': JSON-safe string for JavaScript
+        - 'test_type': Test type identifier
+
+    Example:
+        >>> report_data = {'model_name': 'MyModel', 'metrics': {...}}
+        >>> template_data = prepare_data_for_template(report_data, 'uncertainty')
+        >>> # Use in template: {{ data_json }} for JS access
+    """
+    return {
+        'data': data,
+        'data_json': format_for_javascript(data),
+        'test_type': test_type
+    }
