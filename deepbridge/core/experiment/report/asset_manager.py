@@ -1,11 +1,14 @@
 """
 Asset management module for report generation.
 Core functionality for handling assets.
+
+**Phase 3 Sprint 9:** Added performance caching for CSS/JS operations.
 """
 
 import os
 import logging
 from typing import Dict, Any, Optional
+from functools import lru_cache
 
 # Import submodules
 from .file_discovery import FileDiscoveryManager
@@ -139,8 +142,14 @@ class AssetManager:
         """Combine generic CSS files from assets/css directory."""
         return self.asset_processor.get_generic_css_content()
     
+    @lru_cache(maxsize=32)
     def get_combined_css_content(self, test_type: str) -> str:
-        """Combine generic CSS files with test-specific CSS files."""
+        """
+        Combine generic CSS files with test-specific CSS files.
+
+        **Phase 3 Sprint 9:** Cached to avoid recompiling CSS for same test_type.
+        Cache size: 32 (supports multiple report types simultaneously).
+        """
         return self.asset_processor.get_combined_css_content(test_type)
     
     def get_js_content(self, js_dir: str, files: Optional[Dict[str, str]] = None) -> str:
@@ -151,8 +160,14 @@ class AssetManager:
         """Combine generic JavaScript files from assets/js directory."""
         return self.asset_processor.get_generic_js_content()
     
+    @lru_cache(maxsize=32)
     def get_combined_js_content(self, test_type: str) -> str:
-        """Combine generic JavaScript files with test-specific JavaScript files."""
+        """
+        Combine generic JavaScript files with test-specific JavaScript files.
+
+        **Phase 3 Sprint 9:** Cached to avoid re-reading/combining JS files.
+        Cache size: 32 (supports multiple report types simultaneously).
+        """
         return self.asset_processor.get_combined_js_content(test_type)
     
     def get_base64_image(self, image_path: str) -> str:

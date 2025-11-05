@@ -1,10 +1,13 @@
 """
 Template management module for report generation.
+
+**Phase 3 Sprint 9:** Added performance caching for template path resolution.
 """
 
 import os
 import logging
 from typing import Optional, List
+from functools import lru_cache
 
 # Try to import markupsafe for safe rendering
 try:
@@ -114,6 +117,23 @@ class TemplateManager:
 
         env.filters['format_number'] = format_number
 
+    @lru_cache(maxsize=64)
+    def _find_template_cached(self, template_paths: tuple) -> str:
+        """
+        Internal cached template finder (uses tuple for hashability).
+
+        **Phase 3 Sprint 9:** Cached to avoid repeated os.path.exists() calls.
+        """
+        # Try each path in order until we find an existing template
+        for path in template_paths:
+            if os.path.exists(path):
+                logger.info(f"Found template at: {path}")
+                return path
+
+        # If no template is found, raise an error with all paths that were checked
+        paths_str = '\n  - '.join(template_paths)
+        raise FileNotFoundError(f"Template not found at any of the specified paths:\n  - {paths_str}")
+
     def find_template(self, template_paths: List[str]) -> str:
         """
         Find the template from the list of possible paths.
@@ -131,24 +151,20 @@ class TemplateManager:
         -------
         FileNotFoundError: If the template is not found
         """
-        # Try each path in order until we find an existing template
-        for path in template_paths:
-            if os.path.exists(path):
-                logger.info(f"Found template at: {path}")
-                return path
-
-        # If no template is found, raise an error with all paths that were checked
-        paths_str = '\n  - '.join(template_paths)
-        raise FileNotFoundError(f"Template not found at any of the specified paths:\n  - {paths_str}")
+        # Convert list to tuple for caching, then call cached version
+        return self._find_template_cached(tuple(template_paths))
     
+    @lru_cache(maxsize=64)
     def get_template_paths(self, test_type: str, report_type: str = "interactive") -> List[str]:
         """
         Get potential template paths for the specified test type and report type.
 
+        **Phase 3 Sprint 9:** Cached to avoid rebuilding paths for same test_type/report_type.
+
         Parameters:
         -----------
         test_type : str
-            Type of test ('robustness', 'uncertainty', etc.)
+            Type of test ('robustness', 'uncertainty', etc.')
         report_type : str, optional
             Type of report ('interactive' or 'static')
 
