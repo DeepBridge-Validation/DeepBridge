@@ -23,11 +23,16 @@ lib64/
 parts/
 sdist/
 var/
+data/
+academic/
 wheels/
 scripts/
 simular_lib/
 papers/
 academic/
+planejamento_doc/
+planejamento_report/
+planejamento_fairness/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
