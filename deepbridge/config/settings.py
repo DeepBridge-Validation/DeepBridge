@@ -6,11 +6,11 @@ from deepbridge.utils.model_registry import ModelType
 class DistillationConfig:
     """
     Configuration manager for knowledge distillation parameters.
-    
+
     Manages model types, temperatures, alphas, and general configuration
     for automated distillation experiments.
     """
-    
+
     def __init__(
         self,
         output_dir: str = "distillation_results",
@@ -19,11 +19,20 @@ class DistillationConfig:
         n_trials: int = 10,
         validation_split: float = 0.2,
         verbose: bool = True,
-        distillation_method: str = "surrogate"
+        distillation_method: str = "surrogate",
+        # HPM-specific parameters
+        use_hpm: bool = False,
+        max_configs: int = 16,
+        parallel_workers: Optional[int] = None,
+        use_cache: bool = True,
+        use_progressive: bool = True,
+        use_multi_teacher: bool = True,
+        use_adaptive_temperature: bool = True,
+        cache_memory_gb: float = 2.0
     ):
         """
         Initialize distillation configuration.
-        
+
         Args:
             output_dir: Directory to save results and visualizations
             test_size: Fraction of data to use for testing
@@ -31,7 +40,15 @@ class DistillationConfig:
             n_trials: Number of Optuna trials for hyperparameter optimization
             validation_split: Fraction of data to use for validation during optimization
             verbose: Whether to show progress messages
-            distillation_method: Method to use for distillation ('surrogate' or 'knowledge_distillation')
+            distillation_method: Method to use for distillation ('surrogate', 'knowledge_distillation', 'hpm')
+            use_hpm: Whether to use HPM-KD optimizations
+            max_configs: Maximum number of configurations for HPM
+            parallel_workers: Number of parallel workers (None for auto)
+            use_cache: Enable intelligent caching
+            use_progressive: Enable progressive distillation chain
+            use_multi_teacher: Enable multi-teacher ensemble
+            use_adaptive_temperature: Enable adaptive temperature scheduling
+            cache_memory_gb: Maximum memory for cache in GB
         """
         self.output_dir = output_dir
         self.test_size = test_size
@@ -40,13 +57,23 @@ class DistillationConfig:
         self.validation_split = validation_split
         self.verbose = verbose
         self.distillation_method = distillation_method
-        
+
+        # HPM-specific parameters
+        self.use_hpm = use_hpm
+        self.max_configs = max_configs
+        self.parallel_workers = parallel_workers
+        self.use_cache = use_cache
+        self.use_progressive = use_progressive
+        self.use_multi_teacher = use_multi_teacher
+        self.use_adaptive_temperature = use_adaptive_temperature
+        self.cache_memory_gb = cache_memory_gb
+
         # Set default configuration
         self._set_default_config()
-        
+
         # Configure logging
         self._configure_logging()
-        
+
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
     

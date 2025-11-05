@@ -51,12 +51,21 @@ class StaticUncertaintyRenderer:
         # Import Seaborn chart utilities
         from ...utils.seaborn_utils import SeabornChartGenerator
         self.chart_generator = SeabornChartGenerator()
+
+        # Import UncertaintyChartGenerator for specific uncertainty charts
+        try:
+            from deepbridge.templates.report_types.uncertainty.static.charts import UncertaintyChartGenerator
+            self.uncertainty_chart_generator = UncertaintyChartGenerator()
+            logger.info("Successfully loaded UncertaintyChartGenerator")
+        except ImportError as e:
+            logger.warning(f"Could not load UncertaintyChartGenerator: {e}")
+            self.uncertainty_chart_generator = None
     
     def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
-              report_type: str = "static", save_chart: bool = True) -> str:
+              report_type: str = "static", save_chart: bool = False) -> str:
         """
-        If save_chart is True, charts will be saved as separate files and referenced with relative URLs.
-        If False, charts will be embedded as base64 data directly in the HTML.
+        If save_chart is False (default), charts will be embedded as base64 data directly in the HTML.
+        If True, charts will be saved as separate files and referenced with relative URLs.
         """
         """
         Render static uncertainty report from results data.
@@ -216,19 +225,19 @@ class StaticUncertaintyRenderer:
                 'marginal_bandwidth': 'interval_widths_comparison',  # Maps to interval_widths_comparison in template
                 'interval_widths_boxplot': 'interval_widths_comparison',
                 'model_metrics_comparison': 'model_comparison',  # Maps to model_comparison in template
-                
+
                 # Bidirectional mappings for reliability charts
                 'feature_reliability': 'reliability_distribution',
                 'reliability_analysis': 'feature_reliability',
-                
+
                 # Bidirectional mappings for bandwidth charts
                 'interval_widths_comparison': 'marginal_bandwidth',
                 'width_distribution': 'interval_widths_comparison',
-                
+
                 # Bidirectional mappings for model comparison
                 'model_comparison_chart': 'model_comparison',
                 'model_metrics': 'model_comparison',
-                
+
                 # Special handling for template-specific chart names
                 'residual_distribution': 'residual_distribution',
                 'feature_residual_correlation': 'feature_residual_correlation',
@@ -238,7 +247,11 @@ class StaticUncertaintyRenderer:
                 'coverage_vs_expected': 'coverage_vs_expected',
                 'width_vs_coverage': 'width_vs_coverage',
                 'uncertainty_metrics': 'uncertainty_metrics',
-                'feature_importance': 'feature_importance'
+                'feature_importance': 'feature_importance',
+
+                # New reliability charts
+                'reliability_bandwidth': 'reliability_bandwidth',
+                'reliability_performance': 'reliability_performance'
             }
             
             # Add aliases for chart names to match template expectations
@@ -268,19 +281,22 @@ class StaticUncertaintyRenderer:
                 # Ensure all template-expected chart names are included if we have them
                 template_expected_charts = [
                     # Core charts that should always be present
-                    'model_comparison', 'coverage_vs_expected', 'width_vs_coverage', 
+                    'model_comparison', 'coverage_vs_expected', 'width_vs_coverage',
                     'performance_gap_by_alpha', 'uncertainty_metrics', 'feature_importance',
-                    
+
                     # Reliability and bandwidth charts (with all possible names)
                     'feature_reliability', 'reliability_distribution', 'reliability_analysis',
                     'interval_widths_comparison', 'marginal_bandwidth', 'width_distribution',
-                    
+
+                    # New reliability charts from PiML
+                    'reliability_bandwidth', 'reliability_performance',
+
                     # Model comparison charts (with all possible names)
                     'model_comparison_chart', 'model_metrics', 'model_metrics_comparison',
-                    
+
                     # Additional charts for special use cases
-                    'residual_distribution', 'feature_residual_correlation', 
-                    'distance_metrics_comparison', 'feature_distance_heatmap', 
+                    'residual_distribution', 'feature_residual_correlation',
+                    'distance_metrics_comparison', 'feature_distance_heatmap',
                     'model_resilience_scores', 'interval_widths_boxplot'
                 ]
                 
@@ -674,14 +690,14 @@ class StaticUncertaintyRenderer:
                             if coverage_chart:
                                 charts['coverage_vs_expected'] = coverage_chart
                                 logger.info("Generated coverage vs expected coverage chart")
+
+                                # Save chart to PNG if requested
+                                if save_chart and charts_dir:
+                                    charts['coverage_vs_expected'] = self._save_base64_to_file(coverage_chart, 'coverage_vs_expected', charts_dir, charts_subdir)
                         else:
                             logger.warning("Missing required data for coverage vs expected chart")
                     except Exception as e:
                         logger.error(f"Error in coverage chart generation: {str(e)}", exc_info=True)
-
-                        # Save chart to PNG if requested
-                        if save_chart and charts_dir:
-                            charts['coverage_vs_expected'] = self._save_base64_to_file(coverage_chart, 'coverage_vs_expected', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating coverage vs expected chart: {str(e)}")
 
@@ -732,14 +748,14 @@ class StaticUncertaintyRenderer:
                             if width_chart:
                                 charts['width_vs_coverage'] = width_chart
                                 logger.info("Generated width vs coverage chart")
+
+                                # Save chart to PNG if requested
+                                if save_chart and charts_dir:
+                                    charts['width_vs_coverage'] = self._save_base64_to_file(width_chart, 'width_vs_coverage', charts_dir, charts_subdir)
                         else:
                             logger.warning("Missing required data for width vs coverage chart")
                     except Exception as e:
                         logger.error(f"Error in width vs coverage chart generation: {str(e)}", exc_info=True)
-
-                        # Save chart to PNG if requested
-                        if save_chart and charts_dir:
-                            charts['width_vs_coverage'] = self._save_base64_to_file(width_chart, 'width_vs_coverage', charts_dir, charts_subdir)
                 except Exception as e:
                     logger.error(f"Error generating width vs coverage chart: {str(e)}")
 
@@ -769,7 +785,15 @@ class StaticUncertaintyRenderer:
                     else:
                         logger.error("  - ERRO: metrics não está disponível nos dados")
 
-                    metrics_chart = chart_generator.generate_uncertainty_metrics(report_data)
+                    # Use UncertaintyChartGenerator if available, otherwise skip
+                    if self.uncertainty_chart_generator:
+                        metrics_chart = self.uncertainty_chart_generator.generate_uncertainty_metrics(
+                            report_data,
+                            title="Uncertainty Metrics"
+                        )
+                    else:
+                        logger.warning("UncertaintyChartGenerator not available, skipping uncertainty_metrics chart")
+                        metrics_chart = None
                     if metrics_chart:
                         charts['uncertainty_metrics'] = metrics_chart
                         logger.info("Generated uncertainty metrics chart")
@@ -797,7 +821,14 @@ class StaticUncertaintyRenderer:
                         logger.error(f"  - ERRO: feature_importance não é um dicionário: {type(report_data['feature_importance'])}")
 
                     try:
-                        importance_chart = chart_generator.generate_feature_importance(report_data)
+                        # Use UncertaintyChartGenerator if available, otherwise use SeabornChartGenerator
+                        if self.uncertainty_chart_generator:
+                            importance_chart = self.uncertainty_chart_generator.generate_feature_importance(
+                                report_data.get('feature_importance', {}),
+                                title="Feature Importance"
+                            )
+                        else:
+                            importance_chart = chart_generator.generate_feature_importance(report_data)
                         if importance_chart:
                             charts['feature_importance'] = importance_chart
                             logger.info("Generated feature importance chart")
@@ -809,6 +840,154 @@ class StaticUncertaintyRenderer:
                         logger.error(f"Error generating feature importance chart: {str(e)}")
                 else:
                     logger.error("  - ERRO: feature_importance não está disponível nos dados")
+
+                # Generate reliability bandwidth (calibration) chart
+                try:
+                    logger.info("DADOS PARA RELIABILITY BANDWIDTH CHART:")
+                    # Prepare data for reliability bandwidth
+                    reliability_data = {}
+
+                    # Try to extract prediction data from the results
+                    # Check multiple possible locations for the data
+                    y_true = None
+                    y_prob = None
+
+                    # First try to get predictions from the primary_model if available
+                    try:
+                        # Check if we have primary_model data in report_data
+                        if 'primary_model' in report_data and isinstance(report_data['primary_model'], dict):
+                            primary = report_data['primary_model']
+                            # Check for test_predictions and test_labels
+                            if 'test_predictions' in primary:
+                                y_prob = primary['test_predictions']
+                                logger.info(f"  - Found test_predictions in primary_model")
+                            if 'test_labels' in primary:
+                                y_true = primary['test_labels']
+                                logger.info(f"  - Found test_labels in primary_model")
+                            # Also check for predictions and labels
+                            if y_prob is None and 'predictions' in primary:
+                                y_prob = primary['predictions']
+                                logger.info(f"  - Found predictions in primary_model")
+                            if y_true is None and 'labels' in primary:
+                                y_true = primary['labels']
+                                logger.info(f"  - Found labels in primary_model")
+                    except Exception as e:
+                        logger.warning(f"  - Could not get data from primary_model: {e}")
+
+                    # Try to get predictions from the model directly if available
+                    try:
+                        # Check if we have model and test data in report_data
+                        if y_prob is None and 'model' in report_data and 'X_test' in report_data:
+                            model = report_data['model']
+                            X_test = report_data['X_test']
+                            # Get probability predictions
+                            if hasattr(model, 'predict_proba'):
+                                y_prob = model.predict_proba(X_test)
+                                logger.info(f"  - Generated predictions from model.predict_proba")
+                            elif hasattr(model, 'predict'):
+                                y_prob = model.predict(X_test)
+                                logger.info(f"  - Generated predictions from model.predict")
+                    except Exception as e:
+                        logger.warning(f"  - Could not generate predictions from model: {e}")
+
+                    # Check in report_data directly (these may come from results transformation)
+                    if y_prob is None and 'test_predictions' in report_data:
+                        y_prob = report_data.get('test_predictions')
+                        logger.info(f"  - Found test_predictions in report_data")
+                    elif y_prob is None and 'predictions' in report_data:
+                        y_prob = report_data.get('predictions')
+                        logger.info(f"  - Found predictions in report_data")
+
+                    if 'test_labels' in report_data:
+                        y_true = report_data.get('test_labels')
+                        logger.info(f"  - Found test_labels in report_data")
+                    elif 'ground_truth' in report_data:
+                        y_true = report_data.get('ground_truth')
+                        logger.info(f"  - Found ground_truth in report_data")
+                    elif 'y_test' in report_data:
+                        y_true = report_data.get('y_test')
+                        logger.info(f"  - Found y_test in report_data")
+
+                    # If not found, check for other naming conventions in report_data
+                    if y_true is None and 'y_true' in report_data:
+                        y_true = report_data['y_true']
+                        logger.info(f"  - Found y_true in report_data")
+                    if y_prob is None and 'y_prob' in report_data:
+                        y_prob = report_data['y_prob']
+                        logger.info(f"  - Found y_prob in report_data")
+
+                    # If we have the data, prepare it for the chart
+                    if y_true is not None and y_prob is not None:
+                        # Ensure arrays
+                        import numpy as np
+                        y_true = np.array(y_true)
+                        y_prob = np.array(y_prob)
+
+                        # If y_prob is 2D (probability for each class), take the positive class
+                        if len(y_prob.shape) > 1 and y_prob.shape[1] > 1:
+                            y_prob = y_prob[:, 1]
+
+                        reliability_data["Primary Model"] = {
+                            "y_true": y_true,
+                            "y_prob": y_prob
+                        }
+                        logger.info(f"  - Primary model data prepared: y_true shape {y_true.shape}, y_prob shape {y_prob.shape}")
+                    else:
+                        logger.warning(f"  - Missing data: y_true is None: {y_true is None}, y_prob is None: {y_prob is None}")
+
+                    # Add alternative models if available
+                    if 'alternative_models' in report_data and isinstance(report_data['alternative_models'], dict):
+                        for model_name, model_data in report_data['alternative_models'].items():
+                            if 'y_true' in model_data and 'y_prob' in model_data:
+                                reliability_data[model_name] = {
+                                    "y_true": model_data['y_true'],
+                                    "y_prob": model_data['y_prob']
+                                }
+                                logger.info(f"  - Alternative model {model_name} has reliability data")
+
+                    if reliability_data:
+                        reliability_bandwidth_chart = chart_generator.generate_reliability_bandwidth(
+                            reliability_data, n_bins=10, confidence=0.95,
+                            show_confidence_bands=True, show_histogram=True
+                        )
+                        if reliability_bandwidth_chart:
+                            charts['reliability_bandwidth'] = reliability_bandwidth_chart
+                            logger.info("Generated reliability bandwidth chart")
+
+                            # Save chart to PNG if requested
+                            if save_chart and charts_dir:
+                                charts['reliability_bandwidth'] = self._save_base64_to_file(
+                                    reliability_bandwidth_chart, 'reliability_bandwidth', charts_dir, charts_subdir
+                                )
+                    else:
+                        logger.warning("No data available for reliability bandwidth chart")
+
+                except Exception as e:
+                    logger.error(f"Error generating reliability bandwidth chart: {str(e)}")
+
+                # Generate reliability performance chart
+                try:
+                    logger.info("DADOS PARA RELIABILITY PERFORMANCE CHART:")
+                    # Use the same reliability_data from above
+                    if 'reliability_data' in locals() and reliability_data:
+                        reliability_perf_chart = chart_generator.generate_reliability_performance(
+                            reliability_data, n_bins=10, metric='accuracy',
+                            show_sample_sizes=True, show_confidence_bars=True
+                        )
+                        if reliability_perf_chart:
+                            charts['reliability_performance'] = reliability_perf_chart
+                            logger.info("Generated reliability performance chart")
+
+                            # Save chart to PNG if requested
+                            if save_chart and charts_dir:
+                                charts['reliability_performance'] = self._save_base64_to_file(
+                                    reliability_perf_chart, 'reliability_performance', charts_dir, charts_subdir
+                                )
+                    else:
+                        logger.warning("No data available for reliability performance chart")
+
+                except Exception as e:
+                    logger.error(f"Error generating reliability performance chart: {str(e)}")
 
                 # Generate model comparison chart
                 try:

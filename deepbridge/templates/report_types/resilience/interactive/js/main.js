@@ -1,22 +1,49 @@
 // Report initialization
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Iniciando carregamento do relatório");
-    
+
     // Initialize main controller
     MainController.init();
-    
-    // Criar um pequeno atraso para garantir que o DOM esteja completamente carregado
+
+    // Aumentar o atraso para garantir que TODOS os scripts estejam carregados
+    // Especialmente importante para ResilienceDataManager e ResilienceOverviewChartManager
     setTimeout(() => {
+        console.log("Verificando disponibilidade dos componentes...");
+
+        // Verificar se os componentes necessários estão disponíveis
+        const componentsReady = {
+            ResilienceDataManager: typeof ResilienceDataManager !== 'undefined',
+            ResilienceOverviewChartManager: typeof ResilienceOverviewChartManager !== 'undefined',
+            OverviewController: typeof OverviewController !== 'undefined',
+            DetailsController: typeof DetailsController !== 'undefined',
+            BoxplotController: typeof BoxplotController !== 'undefined',
+            FeatureImportanceController: typeof FeatureImportanceController !== 'undefined'
+        };
+
+        console.log("Componentes disponíveis:", componentsReady);
+
         // Initialize section controllers
         console.log("Inicializando controladores de seção");
-        OverviewController.init();
-        DetailsController.init();
-        BoxplotController.init();
-        
+        if (componentsReady.OverviewController) {
+            OverviewController.init();
+        } else {
+            console.error("OverviewController não disponível");
+        }
+
+        if (componentsReady.DetailsController) {
+            DetailsController.init();
+        }
+
+        if (componentsReady.BoxplotController) {
+            BoxplotController.init();
+        }
+
         // Inicializar os controladores de features
         console.log("Inicializando controladores de features");
-        FeatureImportanceController.init();
-        
+        if (componentsReady.FeatureImportanceController) {
+            FeatureImportanceController.init();
+        }
+
         // Inicializar a tabela de features (novo componente)
         if (typeof FeatureImportanceTableController !== 'undefined') {
             console.log("Inicializando tabela de features");
@@ -24,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             console.warn("Controlador da tabela de features não encontrado");
         }
-        
+
         // Forçar resetar as abas para garantir que apenas a primeira esteja ativa
         const tabContents = document.querySelectorAll('.tab-content');
         tabContents.forEach(content => {
@@ -34,9 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 content.classList.remove('active');
             }
         });
-        
+
         console.log("Report initialized with all controllers");
-    }, 300); // Aumentar o atraso para garantir que todos os scripts estejam carregados
+    }, 500); // Aumentado de 300ms para 500ms para garantir carregamento completo
 });
 
 // Simple MainController implementation
@@ -73,33 +100,8 @@ const MainController = {
             }
         });
         
-        tabButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                console.log(`Clicou no botão: ${this.textContent}, data-tab=${this.getAttribute('data-tab')}`);
-                
-                // Remove active class from all buttons
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Hide all tab contents
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                    console.log(`Removendo classe 'active' de ${content.id}`);
-                });
-                
-                // Show target tab content
-                const targetTab = this.getAttribute('data-tab');
-                const targetElement = document.getElementById(targetTab);
-                
-                if (targetElement) {
-                    console.log(`Adicionando classe 'active' para ${targetTab}`);
-                    targetElement.classList.add('active');
-                } else {
-                    console.error(`Elemento alvo não encontrado: #${targetTab}`);
-                }
-            });
-        });
+        // Tab navigation is now handled by the generic tab-navigation.js
+        // No need to add duplicate event listeners here
+        console.log('Tab navigation handled by tab-navigation.js');
     }
 };

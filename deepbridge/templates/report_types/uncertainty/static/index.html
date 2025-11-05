@@ -872,6 +872,28 @@
             </div>
             {% endif %}
 
+            <!-- Reliability Bandwidth (Calibration) Chart -->
+            {% if charts.reliability_bandwidth %}
+            <div class="chart-container">
+                <h3>Reliability Bandwidth (Calibration)</h3>
+                <p class="chart-description">Shows how well calibrated the model's predicted probabilities are by comparing predicted probabilities with actual observed frequencies. The diagonal line represents perfect calibration. Bands show confidence intervals.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.reliability_bandwidth }}" alt="Reliability bandwidth calibration" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Reliability Performance Chart -->
+            {% if charts.reliability_performance %}
+            <div class="chart-container">
+                <h3>Reliability Performance by Confidence Level</h3>
+                <p class="chart-description">Shows how model performance varies with prediction confidence levels. This helps identify regions where the model is more or less reliable. Higher confidence should correlate with better performance.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.reliability_performance }}" alt="Reliability performance by confidence" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Interval Widths Distribution -->
             {% if charts.interval_widths_comparison %}
             <div class="chart-container">

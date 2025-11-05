@@ -43,22 +43,72 @@ class Classification:
         metrics = {}
         
         # Basic metrics
+        import warnings
+        import logging
+        logger = logging.getLogger("deepbridge.metrics")
+
+        # Check number of unique classes
+        unique_classes_true = np.unique(y_true)
+        unique_classes_pred = np.unique(y_pred)
+
+        # Accuracy can always be calculated
         metrics['accuracy'] = float(accuracy_score(y_true, y_pred))
-        metrics['precision'] = float(precision_score(y_true, y_pred))
-        metrics['recall'] = float(recall_score(y_true, y_pred))
-        metrics['f1_score'] = float(f1_score(y_true, y_pred))
+
+        # Precision, recall, and F1 may be undefined for single-class cases
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # Suppress sklearn warnings
+
+            try:
+                # Use zero_division parameter to handle edge cases gracefully
+                metrics['precision'] = float(precision_score(y_true, y_pred, zero_division=0))
+                metrics['recall'] = float(recall_score(y_true, y_pred, zero_division=0))
+                f1_value = float(f1_score(y_true, y_pred, zero_division=0))
+                metrics['f1_score'] = f1_value
+                metrics['f1-score'] = f1_value  # Also store with hyphen for compatibility
+
+                # Log if we have single-class scenario
+                if len(unique_classes_true) == 1:
+                    logger.debug(f"Single class in y_true: {unique_classes_true[0]}. Metrics may be limited.")
+                if len(unique_classes_pred) == 1:
+                    logger.debug(f"Single class in predictions: {unique_classes_pred[0]}.")
+
+            except Exception as e:
+                logger.debug(f"Error calculating precision/recall/f1: {e}")
+                metrics['precision'] = 0.0
+                metrics['recall'] = 0.0
+                metrics['f1_score'] = 0.0
+                metrics['f1-score'] = 0.0
         
         # Metrics requiring probabilities
         if y_prob is not None:
-            try:
-                metrics['roc_auc'] = float(roc_auc_score(y_true, y_prob))
-                metrics['auc_pr'] = float(average_precision_score(y_true, y_prob))
-                metrics['log_loss'] = float(log_loss(y_true, y_prob))
-            except ValueError as e:
-                print(f"Error calculating AUC/PR/log_loss: {str(e)}")
+            # Check if we have both classes in y_true
+            unique_classes = np.unique(y_true)
+            if len(unique_classes) < 2:
+                # Single class - metrics are undefined
+                import logging
+                logger = logging.getLogger("deepbridge.metrics")
+                logger.debug(f"Only {len(unique_classes)} class(es) found in y_true. Some metrics will be undefined.")
                 metrics['roc_auc'] = None
+                metrics['auc_roc'] = None
                 metrics['auc_pr'] = None
                 metrics['log_loss'] = None
+            else:
+                try:
+                    # Calculate AUC-ROC and store with both naming conventions for compatibility
+                    auc_value = float(roc_auc_score(y_true, y_prob))
+                    metrics['roc_auc'] = auc_value
+                    metrics['auc_roc'] = auc_value  # Also store with alternate name for compatibility
+                    metrics['auc_pr'] = float(average_precision_score(y_true, y_prob))
+                    metrics['log_loss'] = float(log_loss(y_true, y_prob))
+                except ValueError as e:
+                    # Log as debug instead of print to avoid cluttering output
+                    import logging
+                    logger = logging.getLogger("deepbridge.metrics")
+                    logger.debug(f"Error calculating AUC/PR/log_loss: {str(e)}")
+                    metrics['roc_auc'] = None
+                    metrics['auc_roc'] = None
+                    metrics['auc_pr'] = None
+                    metrics['log_loss'] = None
         
         # Calculate KL divergence if teacher probabilities are provided
         if teacher_prob is not None and y_prob is not None:

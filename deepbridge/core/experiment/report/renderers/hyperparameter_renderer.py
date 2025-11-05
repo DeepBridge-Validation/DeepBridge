@@ -34,7 +34,7 @@ class HyperparameterRenderer:
         from ..transformers.hyperparameter import HyperparameterDataTransformer
         self.data_transformer = HyperparameterDataTransformer()
     
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
         """
         Render hyperparameter report from results data.
 

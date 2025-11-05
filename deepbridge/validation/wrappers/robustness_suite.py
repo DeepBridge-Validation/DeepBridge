@@ -13,9 +13,10 @@ import datetime
 import os
 
 from deepbridge.validation.wrappers.robustness import (
-    DataPerturber, 
+    DataPerturber,
     RobustnessEvaluator
 )
+from deepbridge.validation.robustness import WeakspotDetector, OverfitAnalyzer
 
 class RobustnessSuite:
     """
@@ -556,17 +557,270 @@ class RobustnessSuite:
             "message": "Visualizations are available in the HTML report. Use save_report() method."
         }
         
+    def run_weakspot_detection(self,
+                               X: Optional[pd.DataFrame] = None,
+                               y: Optional[pd.Series] = None,
+                               slice_features: Optional[List[str]] = None,
+                               slice_method: str = 'quantile',
+                               n_slices: int = 10,
+                               severity_threshold: float = 0.15,
+                               metric: str = 'mae') -> Dict[str, Any]:
+        """
+        Detect weak regions (slices) where model performance degrades significantly.
+
+        This identifies localized failures in the feature space that are hidden in
+        aggregate metrics - critical for production reliability.
+
+        Parameters:
+        -----------
+        X : DataFrame, optional
+            Feature data (if None, uses test data from dataset)
+        y : Series, optional
+            True labels/values (if None, uses test target from dataset)
+        slice_features : List[str], optional
+            Features to analyze for weakspots (None = all numeric features)
+        slice_method : str, default='quantile'
+            Slicing method: 'uniform', 'quantile', 'tree-based'
+        n_slices : int, default=10
+            Number of slices per feature
+        severity_threshold : float, default=0.15
+            Relative degradation threshold (0.15 = 15% worse than global average)
+        metric : str, default='mae'
+            Metric for evaluation: 'mae', 'mse', 'residual', 'error_rate'
+
+        Returns:
+        --------
+        Dict[str, Any] : Weakspot analysis results
+            {
+                'weakspots': List[Dict],  # Sorted by severity
+                'summary': {...},
+                'slice_analysis': {...},
+                'global_mean_residual': float
+            }
+        """
+        if X is None or y is None:
+            if hasattr(self.dataset, 'test_data') and self.dataset.test_data is not None:
+                X = self.dataset.get_feature_data('test')
+                y = self.dataset.get_target_data('test')
+            else:
+                raise ValueError("No test data available. Please provide X and y.")
+
+        if self.verbose:
+            print("\n" + "="*70)
+            print("WEAKSPOT DETECTION")
+            print("="*70)
+            print(f"Analyzing {X.shape[0]} samples across {X.shape[1]} features")
+            print(f"Slicing method: {slice_method}, n_slices: {n_slices}")
+            print(f"Severity threshold: {severity_threshold:.1%}")
+
+        # Get predictions
+        model = self.dataset.model
+        y_pred = model.predict(X)
+
+        # Initialize detector
+        detector = WeakspotDetector(
+            slice_method=slice_method,
+            n_slices=n_slices,
+            min_samples_per_slice=30,
+            severity_threshold=severity_threshold
+        )
+
+        # Detect weakspots
+        weakspot_results = detector.detect_weak_regions(
+            X=X,
+            y_true=y,
+            y_pred=y_pred,
+            slice_features=slice_features,
+            metric=metric
+        )
+
+        # Print summary
+        if self.verbose:
+            detector.print_summary(weakspot_results, verbose=True)
+
+        # Store in results
+        if hasattr(self, 'results') and self.results:
+            self.results['weakspot_detection'] = weakspot_results
+
+        return weakspot_results
+
+    def run_overfitting_analysis(self,
+                                  X_train: Optional[pd.DataFrame] = None,
+                                  X_test: Optional[pd.DataFrame] = None,
+                                  y_train: Optional[pd.Series] = None,
+                                  y_test: Optional[pd.Series] = None,
+                                  slice_features: Optional[List[str]] = None,
+                                  n_slices: int = 10,
+                                  slice_method: str = 'quantile',
+                                  gap_threshold: float = 0.1,
+                                  metric_func: Optional[Any] = None) -> Dict[str, Any]:
+        """
+        Analyze localized overfitting by computing train-test performance gaps
+        across feature slices.
+
+        A model might show acceptable global train-test gap but exhibit severe
+        overfitting in specific regions - this analysis reveals those patterns.
+
+        Parameters:
+        -----------
+        X_train, X_test : DataFrame, optional
+            Training and test features (if None, uses dataset's train/test data)
+        y_train, y_test : Series, optional
+            Training and test labels (if None, uses dataset's train/test targets)
+        slice_features : List[str], optional
+            Features to analyze (None = all numeric features)
+        n_slices : int, default=10
+            Number of slices per feature
+        slice_method : str, default='quantile'
+            Slicing method: 'uniform' or 'quantile'
+        gap_threshold : float, default=0.1
+            Threshold for significant gap (0.1 = 10% performance difference)
+        metric_func : callable, optional
+            Custom metric function(y_true, y_pred) -> float
+            If None, uses appropriate default based on problem type
+
+        Returns:
+        --------
+        Dict[str, Any] : Overfitting analysis results (single feature) or
+                         multi-feature results if slice_features is a list
+        """
+        # Get data from dataset if not provided
+        if X_train is None or y_train is None:
+            if hasattr(self.dataset, 'train_data') and self.dataset.train_data is not None:
+                X_train = self.dataset.get_feature_data('train')
+                y_train = self.dataset.get_target_data('train')
+            else:
+                raise ValueError("No training data available. Please provide X_train and y_train.")
+
+        if X_test is None or y_test is None:
+            if hasattr(self.dataset, 'test_data') and self.dataset.test_data is not None:
+                X_test = self.dataset.get_feature_data('test')
+                y_test = self.dataset.get_target_data('test')
+            else:
+                raise ValueError("No test data available. Please provide X_test and y_test.")
+
+        if self.verbose:
+            print("\n" + "="*70)
+            print("SLICED OVERFITTING ANALYSIS")
+            print("="*70)
+            print(f"Train samples: {X_train.shape[0]}, Test samples: {X_test.shape[0]}")
+            print(f"Slicing method: {slice_method}, n_slices: {n_slices}")
+            print(f"Gap threshold: {gap_threshold:.1%}")
+
+        # Initialize analyzer
+        analyzer = OverfitAnalyzer(
+            n_slices=n_slices,
+            slice_method=slice_method,
+            gap_threshold=gap_threshold,
+            min_samples_per_slice=30
+        )
+
+        # Determine metric function if not provided
+        if metric_func is None:
+            # Try to infer from problem type
+            if hasattr(self.dataset, 'experiment_type'):
+                exp_type = self.dataset.experiment_type
+                if 'classification' in exp_type.lower():
+                    from sklearn.metrics import roc_auc_score
+                    metric_func = lambda y_true, y_pred: roc_auc_score(y_true, y_pred)
+                    if self.verbose:
+                        print("Using ROC AUC for classification problem")
+                else:
+                    from sklearn.metrics import r2_score
+                    metric_func = lambda y_true, y_pred: r2_score(y_true, y_pred)
+                    if self.verbose:
+                        print("Using R2 score for regression problem")
+            else:
+                # Default to R2
+                from sklearn.metrics import r2_score
+                metric_func = lambda y_true, y_pred: r2_score(y_true, y_pred)
+                if self.verbose:
+                    print("Using R2 score as default metric")
+
+        model = self.dataset.model
+
+        # Analyze based on slice_features parameter
+        if slice_features is None:
+            # Analyze all numeric features
+            slice_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+            if self.verbose:
+                print(f"No features specified, analyzing all {len(slice_features)} numeric features")
+
+        if isinstance(slice_features, list) and len(slice_features) > 1:
+            # Multiple features - use analyze_multiple_features
+            if self.verbose:
+                print(f"Analyzing overfitting across {len(slice_features)} features...")
+
+            overfit_results = analyzer.analyze_multiple_features(
+                X_train=X_train,
+                X_test=X_test,
+                y_train=y_train,
+                y_test=y_test,
+                model=model,
+                features=slice_features,
+                metric_func=metric_func
+            )
+
+            # Print summary
+            if self.verbose:
+                analyzer.print_summary(overfit_results, verbose=True)
+
+        elif isinstance(slice_features, list) and len(slice_features) == 1:
+            # Single feature
+            feature = slice_features[0]
+            if self.verbose:
+                print(f"Analyzing overfitting for feature: {feature}")
+
+            overfit_results = analyzer.compute_gap_by_slice(
+                X_train=X_train,
+                X_test=X_test,
+                y_train=y_train,
+                y_test=y_test,
+                model=model,
+                slice_feature=feature,
+                metric_func=metric_func
+            )
+
+            # Print summary
+            if self.verbose:
+                analyzer.print_summary(overfit_results, verbose=True)
+
+        else:
+            # slice_features is a string (single feature)
+            if self.verbose:
+                print(f"Analyzing overfitting for feature: {slice_features}")
+
+            overfit_results = analyzer.compute_gap_by_slice(
+                X_train=X_train,
+                X_test=X_test,
+                y_train=y_train,
+                y_test=y_test,
+                model=model,
+                slice_feature=slice_features,
+                metric_func=metric_func
+            )
+
+            # Print summary
+            if self.verbose:
+                analyzer.print_summary(overfit_results, verbose=True)
+
+        # Store in results
+        if hasattr(self, 'results') and self.results:
+            self.results['overfitting_analysis'] = overfit_results
+
+        return overfit_results
+
     def update_model_name(self, original_results: Dict, model_type: str) -> Dict:
         """
         Update model name in results dictionary, replacing 'primary_model' with the actual model type.
-        
+
         Parameters:
         -----------
         original_results : Dict
             Original results dictionary to update
         model_type : str
             Actual model type name to replace 'primary_model' with
-        
+
         Returns:
         --------
         Dict : Updated results dictionary
@@ -574,29 +828,29 @@ class RobustnessSuite:
         # Create a copy to avoid modifying the original
         import copy
         results = copy.deepcopy(original_results)
-        
+
         # Replace 'primary_model' with model_type in the top level
         if 'primary_model' in results:
             results[model_type] = results['primary_model']
             del results['primary_model']
-        
+
         # Handle nested dictionaries
         for key, value in results.items():
             if isinstance(value, dict):
                 # Update model_name in current level
                 if 'model_name' in value and value['model_name'] == 'primary_model':
                     value['model_name'] = model_type
-                
+
                 # Process alternative_models if present
                 if key == 'alternative_models' and isinstance(value, dict):
                     # Keep alternative_models as is, they should retain their original names
                     continue
-                
+
                 # Recursively process deeper nested dictionaries
                 for sub_key, sub_value in value.items():
                     if isinstance(sub_value, dict):
                         # Update model_name in nested level
                         if 'model_name' in sub_value and sub_value['model_name'] == 'primary_model':
                             sub_value['model_name'] = model_type
-        
+
         return results

@@ -56,7 +56,64 @@ class TemplateManager:
             trim_blocks=True,
             lstrip_blocks=True
         )
-    
+
+        # Add safe numeric conversion filters to the global environment
+        self._add_safe_filters(self.jinja_env)
+
+    def _add_safe_filters(self, env):
+        """Add safe filters to a Jinja2 environment."""
+        # Safe numeric conversion filters
+        def safe_float(value, default=0.0):
+            """Safely convert a value to float."""
+            if value is None:
+                return default
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                # Skip error messages
+                if 'error' in value.lower() or 'classification' in value.lower():
+                    return default
+                try:
+                    # Remove common formatting characters
+                    cleaned = value.strip().replace('%', '').replace(',', '')
+                    return float(cleaned)
+                except (ValueError, TypeError):
+                    return default
+            return default
+
+        def safe_round(value, precision=2):
+            """Safely round a numeric value."""
+            numeric_value = safe_float(value, 0.0)
+            try:
+                return round(numeric_value, precision)
+            except (ValueError, TypeError):
+                return 0.0
+
+        def safe_multiply(x, y=100):
+            """Safely multiply two values."""
+            x_val = safe_float(x, 0.0)
+            y_val = safe_float(y, 100 if y == 100 else 0.0)
+            return x_val * y_val
+
+        # Register the safe filters
+        env.filters['safe_float'] = safe_float
+        env.filters['safe_round'] = safe_round
+        env.filters['safe_multiply'] = safe_multiply
+
+        # Also add the safe_js and abs_value filters
+        env.filters['safe_js'] = lambda s: Markup(s)
+        env.filters['abs_value'] = lambda x: abs(safe_float(x)) if x is not None else 0.0
+
+        # Add format_number filter for fairness reports
+        def format_number(value):
+            """Format number with thousands separator."""
+            try:
+                return f"{int(value):,}"
+            except (ValueError, TypeError):
+                return value
+
+        env.filters['format_number'] = format_number
+
     def find_template(self, template_paths: List[str]) -> str:
         """
         Find the template from the list of possible paths.
@@ -108,7 +165,9 @@ class TemplateManager:
             ]
         else:
             return [
-                # Interactive (default) template path
+                # Interactive template path
+                os.path.join(self.templates_dir, f'report_types/{test_type}/interactive/index.html'),
+                # Fallback to default template if interactive directory not found
                 os.path.join(self.templates_dir, f'report_types/{test_type}/index.html'),
             ]
     
@@ -147,12 +206,9 @@ class TemplateManager:
             trim_blocks=True,
             lstrip_blocks=True
         )
-        
-        # Add custom filters
-        env.filters['safe_js'] = lambda s: Markup(s)
 
-        # Add a custom abs filter
-        env.filters['abs_value'] = lambda x: abs(float(x)) if x is not None else 0.0
+        # Add all safe filters to this environment
+        self._add_safe_filters(env)
         
         # Load the template
         return env.get_template(os.path.basename(template_path))

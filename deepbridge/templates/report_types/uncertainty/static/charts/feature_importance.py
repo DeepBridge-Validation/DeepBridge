@@ -86,8 +86,22 @@ class FeatureImportanceChart(BaseChartGenerator):
         try:
             # Process data based on detected structure
             processed_data = self._process_feature_importance_data(feature_importance_data, data_type)
-            
-            if not processed_data or not processed_data.get('matrix') or not processed_data.get('x_labels') or not processed_data.get('y_labels'):
+
+            # Check if processed_data is valid
+            if not processed_data:
+                logger.warning("Failed to process feature importance data - returned None")
+                return ""
+
+            # Check individual components
+            has_matrix = 'matrix' in processed_data and processed_data['matrix'] is not None
+            has_x_labels = 'x_labels' in processed_data and processed_data['x_labels']
+            has_y_labels = 'y_labels' in processed_data and processed_data['y_labels']
+
+            # For numpy arrays, check size properly
+            if has_matrix and hasattr(processed_data['matrix'], 'size'):
+                has_matrix = processed_data['matrix'].size > 0
+
+            if not (has_matrix and has_x_labels and has_y_labels):
                 logger.warning("Failed to process feature importance data")
                 return ""
             
@@ -133,8 +147,12 @@ class FeatureImportanceChart(BaseChartGenerator):
     def _detect_data_structure(self, data):
         """Detect the structure of the feature importance data."""
         # Case 1: Single model direct feature importance
-        if all(isinstance(v, (int, float)) for v in data.values()):
-            return "single_model_direct"
+        # Check if all values are numeric (including numpy types)
+        try:
+            if all(isinstance(v, (int, float)) or (hasattr(v, 'item') and callable(v.item)) for v in data.values()):
+                return "single_model_direct"
+        except:
+            pass
             
         # Case 2: Multiple models with feature importance
         if all(isinstance(v, dict) for v in data.values()):
@@ -155,8 +173,16 @@ class FeatureImportanceChart(BaseChartGenerator):
     def _process_feature_importance_data(self, data, data_type):
         """Process the feature importance data based on detected structure."""
         if data_type == "single_model_direct":
+            # Convert numpy types to float if necessary
+            converted_data = {}
+            for k, v in data.items():
+                if hasattr(v, 'item'):
+                    converted_data[k] = float(v.item())
+                else:
+                    converted_data[k] = float(v)
+
             # Sort features by importance
-            sorted_features = sorted(data.items(), key=lambda x: x[1], reverse=True)
+            sorted_features = sorted(converted_data.items(), key=lambda x: x[1], reverse=True)
             features = [f[0] for f in sorted_features]
             values = [f[1] for f in sorted_features]
             

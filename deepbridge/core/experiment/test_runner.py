@@ -451,13 +451,27 @@ class TestRunner:
                 self._standardize_metrics(primary_results['metrics'])
         
         # Store primary model results
-        test_results['primary_model'] = primary_results
-        
+        # Check if primary_results already has the structure with primary_model
+        if 'primary_model' in primary_results:
+            # Use the primary_model from the results directly
+            test_results['primary_model'] = primary_results['primary_model']
+            # Add other top-level keys that might be important
+            for key in primary_results:
+                if key not in ['primary_model', 'alternative_models']:
+                    test_results[key] = primary_results[key]
+        else:
+            # If no nested structure, use as is
+            test_results['primary_model'] = primary_results
+
         # Add model_type to primary model results
         if hasattr(self.dataset, 'model'):
             test_results['primary_model']['model_type'] = type(self.dataset.model).__name__
         
-        # Test alternative models
+        # Handle alternative_models if they exist in primary_results
+        if 'alternative_models' in primary_results:
+            test_results['alternative_models'] = primary_results['alternative_models']
+
+        # Test additional alternative models
         if self.alternative_models:
             for model_name, model in self.alternative_models.items():
                 self.logger.info(f"Testing {test_type} of alternative model: {model_name}")
@@ -614,7 +628,48 @@ class TestRunner:
                 print(f"🎉 All {len(completed_tests)} tests completed successfully!")
         
         return results
-        
+
+    def run_test(self, test_type: str, config_name: str = 'quick', **kwargs):
+        """
+        Run a single specific test with the given configuration.
+
+        Parameters:
+        -----------
+        test_type : str
+            Type of test to run (robustness, uncertainty, resilience, hyperparameters, fairness)
+        config_name : str
+            Name of the configuration to use: 'quick', 'medium', or 'full'
+        **kwargs : dict
+            Additional parameters for the test
+
+        Returns:
+        --------
+        TestResult or dict : Test result object or dictionary with results
+        """
+        # Validate test type
+        valid_tests = ["robustness", "uncertainty", "resilience", "hyperparameters", "fairness"]
+        if test_type not in valid_tests:
+            raise ValueError(f"Invalid test type '{test_type}'. Valid types: {valid_tests}")
+
+        # Temporarily override the tests list to run only this test
+        original_tests = self.tests
+        self.tests = [test_type]
+
+        try:
+            # Run the single test
+            results = self.run_tests(config_name=config_name, **kwargs)
+
+            # Return the result for the specific test
+            if test_type in results:
+                return results[test_type]
+            else:
+                # Return the full results if test_type not found as key
+                return results
+
+        finally:
+            # Restore original tests list
+            self.tests = original_tests
+
     def _create_alternative_dataset(self, model):
         """
         Helper method to create a dataset with an alternative model.

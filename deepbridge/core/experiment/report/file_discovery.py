@@ -27,62 +27,94 @@ class FileDiscoveryManager:
         """
         self.asset_manager = asset_manager
     
-    def find_css_path(self, test_type: str) -> str:
+    def find_css_path(self, test_type: str, report_type: str = None) -> str:
         """
         Find CSS directory for the specified test type.
-        
+
         Parameters:
         -----------
         test_type : str
             Type of test ('robustness', 'uncertainty', etc.)
-            
+        report_type : str, optional
+            Report type ('static' or 'interactive')
+
         Returns:
         --------
         str : Path to CSS directory
-        
+
         Raises:
         -------
         FileNotFoundError: If CSS directory is not found
         """
         css_paths = [
-            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'css')
+            # Direct CSS path (e.g., robustness/css)
+            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'css'),
+            # Interactive report CSS path (e.g., uncertainty/interactive/css)
+            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'interactive', 'css'),
+            # Static report CSS path (e.g., uncertainty/static/css)
+            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'static', 'css'),
         ]
-        
+
+        # If report_type is specified, prioritize that path
+        if report_type:
+            report_type_lower = report_type.lower()
+            if report_type_lower in ['interactive', 'static']:
+                priority_path = os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, report_type_lower, 'css')
+                if os.path.exists(priority_path):
+                    logger.info(f"Using CSS path for {report_type_lower} report: {priority_path}")
+                    return priority_path
+
         for path in css_paths:
             if os.path.exists(path):
                 logger.info(f"Using CSS path: {path}")
                 return path
-        
+
         error_msg = f"CSS directory not found for {test_type}"
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
     
-    def find_js_path(self, test_type: str) -> str:
+    def find_js_path(self, test_type: str, report_type: str = None) -> str:
         """
         Find JavaScript directory for the specified test type.
-        
+
         Parameters:
         -----------
         test_type : str
             Type of test ('robustness', 'uncertainty', etc.)
-            
+        report_type : str, optional
+            Report type ('static' or 'interactive')
+
         Returns:
         --------
         str : Path to JavaScript directory
-        
+
         Raises:
         -------
         FileNotFoundError: If JavaScript directory is not found
         """
         js_paths = [
+            # Direct JS path (e.g., robustness/js)
             os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'js'),
+            # Interactive report JS path (e.g., uncertainty/interactive/js)
+            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'interactive', 'js'),
+            # Static report JS path (e.g., uncertainty/static/js)
+            os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, 'static', 'js'),
         ]
-        
+
+        # If report_type is specified, prioritize that path
+        if report_type:
+            report_type_lower = report_type.lower()
+            if report_type_lower in ['interactive', 'static']:
+                priority_path = os.path.join(self.asset_manager.templates_dir, 'report_types', test_type, report_type_lower, 'js')
+                if os.path.exists(priority_path):
+                    logger.info(f"Using JS path for {report_type_lower} report: {priority_path}")
+                    return priority_path
+
         for path in js_paths:
             if os.path.exists(path):
                 logger.info(f"Using JS path: {path}")
                 return path
-        
+
         error_msg = f"JavaScript directory not found for {test_type}"
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)

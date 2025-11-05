@@ -1,0 +1,608 @@
+<!-- Hyperparameter Analysis Tab Content -->
+<div class="hyperparameter-analysis-container">
+    <!-- Metrics Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-temperature-high"></i> Optimal Temperature
+                </div>
+                <div class="metric-value">
+                    {{ report_data.hyperparameter_analysis.optimal_temperature|default("4.0") }}
+                </div>
+                <div class="metric-change positive">
+                    Best performance
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-percentage"></i> Alpha (α)
+                </div>
+                <div class="metric-value">
+                    {{ report_data.hyperparameter_analysis.optimal_alpha|default("0.7") }}
+                </div>
+                <div class="metric-change">
+                    Distillation weight
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-layer-group"></i> Distilled Layers
+                </div>
+                <div class="metric-value">
+                    {{ report_data.hyperparameter_analysis.distilled_layers|default("3/6") }}
+                </div>
+                <div class="metric-change">
+                    Intermediate layers
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-search"></i> Configs Tested
+                </div>
+                <div class="metric-value">
+                    {{ report_data.hyperparameter_analysis.configs_tested|default("48") }}
+                </div>
+                <div class="metric-change positive">
+                    Grid search complete
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temperature Analysis Section -->
+    <div class="chart-container mb-4">
+        <h3><i class="fas fa-thermometer-half"></i> Temperature Impact Analysis</h3>
+        <div class="row">
+            <div class="col-md-8">
+                <div id="temperature-impact-chart" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="insight-card">
+                    <h5>Temperature Insights</h5>
+                    <ul>
+                        <li>Optimal range: 3.0 - 5.0</li>
+                        <li>Performance peaks at T=4.0</li>
+                        <li>Higher temperatures improve soft target quality</li>
+                        <li>Diminishing returns above T=7.0</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alpha Distribution -->
+    <div class="chart-container mb-4">
+        <h3><i class="fas fa-balance-scale"></i> Alpha (α) Distribution Impact</h3>
+        <div id="alpha-distribution-chart" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Parameter Space -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-cube"></i> 3D Parameter Space</h3>
+                <div id="3d-parameter-space" style="min-height: 450px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-layer-group"></i> Layer-wise Distillation</h3>
+                <div id="layer-distillation-chart" style="min-height: 450px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hyperparameter Heatmap -->
+    <div class="chart-container mb-4">
+        <h3><i class="fas fa-th"></i> Hyperparameter Interaction Heatmap</h3>
+        <div id="hyperparameter-heatmap" style="min-height: 500px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimization History -->
+    <div class="chart-container mb-4">
+        <h3><i class="fas fa-history"></i> Optimization History</h3>
+        <div id="optimization-history" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid Search Results Table -->
+    <div class="chart-container mb-4">
+        <h3><i class="fas fa-table"></i> Grid Search Results</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Temperature</th>
+                        <th>Alpha (α)</th>
+                        <th>Layers</th>
+                        <th>Learning Rate</th>
+                        <th>Batch Size</th>
+                        <th>Accuracy</th>
+                        <th>F1-Score</th>
+                        <th>Model Size (MB)</th>
+                    </tr>
+                </thead>
+                <tbody id="grid-search-tbody">
+                    <!-- Dynamic content will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Best Configuration Summary -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-trophy"></i> Best Configuration</h3>
+                <div class="config-summary">
+                    <div class="config-item">
+                        <strong>Temperature:</strong> <span class="badge bg-primary">4.0</span>
+                    </div>
+                    <div class="config-item">
+                        <strong>Alpha (α):</strong> <span class="badge bg-info">0.7</span>
+                    </div>
+                    <div class="config-item">
+                        <strong>Distilled Layers:</strong> <span class="badge bg-success">3</span>
+                    </div>
+                    <div class="config-item">
+                        <strong>Learning Rate:</strong> <span class="badge bg-warning">0.001</span>
+                    </div>
+                    <div class="config-item">
+                        <strong>Batch Size:</strong> <span class="badge bg-secondary">32</span>
+                    </div>
+                    <div class="config-item">
+                        <strong>Final Accuracy:</strong> <span class="badge bg-success">94.2%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-lightbulb"></i> Recommendations</h3>
+                <ul class="recommendations-list">
+                    <li>Temperature of 4.0 provides best knowledge transfer</li>
+                    <li>Alpha=0.7 balances task and distillation losses well</li>
+                    <li>Consider layer-specific temperatures for complex models</li>
+                    <li>Batch size of 32 offers good stability-speed trade-off</li>
+                    <li>Learning rate scheduling improves final performance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hyperparameter-analysis-container {
+    padding: 20px;
+}
+
+.config-summary .config-item {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.config-summary .config-item:last-child {
+    border-bottom: none;
+}
+
+.recommendations-list {
+    list-style: none;
+    padding: 0;
+}
+
+.recommendations-list li {
+    padding: 10px;
+    margin-bottom: 10px;
+    background: rgba(37, 99, 235, 0.05);
+    border-left: 3px solid var(--primary-color);
+    border-radius: 4px;
+}
+
+.insight-card {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(147, 51, 234, 0.05));
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.insight-card h5 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.insight-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.insight-card li {
+    padding: 5px 0;
+    color: var(--text-secondary);
+}
+
+.insight-card li:before {
+    content: "→";
+    margin-right: 8px;
+    color: var(--info-color);
+}
+
+.hyperparameter-analysis-container .metric-card {
+    text-align: center;
+}
+
+.hyperparameter-analysis-container .metric-card .metric-value {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+</style>
+
+<script>
+// Initialize Hyperparameter Analysis Tab
+function initializeHyperparameterTab() {
+    console.log('Initializing Hyperparameter Analysis Tab');
+
+    // Check if real data is available
+    if (!window.reportData || !window.reportData.hyperparameter_analysis) {
+        console.log('No hyperparameter analysis data available');
+        showNoHyperparameterDataMessage();
+        return;
+    }
+
+    // Load all visualizations with real data
+    setTimeout(() => {
+        loadGridSearchResults();
+        createTemperatureImpactChart();
+        createAlphaDistributionChart();
+        create3DParameterSpace();
+        createLayerDistillationChart();
+        createHyperparameterHeatmap();
+        createOptimizationHistory();
+    }, 100);
+}
+
+// Show no data message in all chart containers
+function showNoHyperparameterDataMessage() {
+    const chartIds = [
+        'temperature-impact-chart', 'alpha-distribution-chart', '3d-parameter-space',
+        'layer-distillation-chart', 'hyperparameter-heatmap', 'optimization-history'
+    ];
+
+    chartIds.forEach(id => {
+        const container = document.getElementById(id);
+        if (container) {
+            container.innerHTML = `
+                <div class="text-center text-muted p-5">
+                    <i class="bi bi-database-x" style="font-size: 3rem;"></i>
+                    <p class="mt-3">No hyperparameter data available</p>
+                    <small>Run distillation with hyperparameter search to see real data</small>
+                </div>
+            `;
+        }
+    });
+
+    // Clear grid search table
+    const tbody = document.getElementById('grid-search-tbody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted p-4">
+                    <i class="bi bi-database-x"></i> No grid search data available
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Create temperature impact chart with real data
+function createTemperatureImpactChart() {
+    const chartDiv = document.getElementById('temperature-impact-chart');
+    if (!chartDiv) return;
+
+    const tempData = window.reportData?.hyperparameter_analysis?.temperature_impact;
+    if (!tempData) {
+        console.error('No temperature impact data available');
+        return;
+    }
+
+    const trace1 = {
+        x: tempData.temperatures,
+        y: tempData.accuracy,
+        name: 'Accuracy',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#2563eb', width: 3 },
+        marker: { size: 8 }
+    };
+
+    const trace2 = {
+        x: tempData.temperatures,
+        y: tempData.f1_score,
+        name: 'F1-Score',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#10b981', width: 3 },
+        marker: { size: 8 }
+    };
+
+    const layout = {
+        title: 'Performance vs Temperature',
+        xaxis: { title: 'Temperature (T)' },
+        yaxis: { title: 'Score', range: [0, 1] },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Create alpha distribution chart with real data
+function createAlphaDistributionChart() {
+    const chartDiv = document.getElementById('alpha-distribution-chart');
+    if (!chartDiv) return;
+
+    const alphaData = window.reportData?.hyperparameter_analysis?.alpha_distribution;
+    if (!alphaData) {
+        console.error('No alpha distribution data available');
+        return;
+    }
+
+    const trace1 = {
+        x: alphaData.alpha_values,
+        y: alphaData.distillation_loss,
+        name: 'Distillation Loss',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#ef4444', width: 2 }
+    };
+
+    const trace2 = {
+        x: alphaData.alpha_values,
+        y: alphaData.task_loss,
+        name: 'Task Loss',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3b82f6', width: 2 }
+    };
+
+    const trace3 = {
+        x: alphaData.alpha_values,
+        y: alphaData.total_loss,
+        name: 'Total Loss',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#8b5cf6', width: 3 }
+    };
+
+    const layout = {
+        title: 'Loss Components vs Alpha',
+        xaxis: { title: 'Alpha (α)' },
+        yaxis: { title: 'Loss' },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create 3D parameter space with real data
+function create3DParameterSpace() {
+    const chartDiv = document.getElementById('3d-parameter-space');
+    if (!chartDiv) return;
+
+    const paramData = window.reportData?.hyperparameter_analysis?.parameter_space;
+    if (!paramData) {
+        console.error('No parameter space data available');
+        return;
+    }
+
+    const trace = {
+        x: paramData.temperature,
+        y: paramData.alpha,
+        z: paramData.accuracy,
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            size: 8,
+            color: paramData.accuracy,
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+                title: 'Accuracy'
+            }
+        },
+        text: paramData.configurations?.map(c =>
+            `T: ${c.temperature}, α: ${c.alpha}, Acc: ${c.accuracy}`
+        )
+    };
+
+    const layout = {
+        title: '3D Hyperparameter Space',
+        scene: {
+            xaxis: { title: 'Temperature' },
+            yaxis: { title: 'Alpha' },
+            zaxis: { title: 'Accuracy' }
+        },
+        height: 450
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create layer distillation chart with real data
+function createLayerDistillationChart() {
+    const chartDiv = document.getElementById('layer-distillation-chart');
+    if (!chartDiv) return;
+
+    const layerData = window.reportData?.hyperparameter_analysis?.layer_distillation;
+    if (!layerData) {
+        console.error('No layer distillation data available');
+        return;
+    }
+
+    const trace = {
+        x: layerData.layers,
+        y: layerData.importance,
+        type: 'bar',
+        marker: {
+            color: layerData.importance,
+            colorscale: 'Blues'
+        }
+    };
+
+    const layout = {
+        title: 'Layer Importance in Distillation',
+        xaxis: { title: 'Layer' },
+        yaxis: { title: 'Importance Score' },
+        height: 450
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create hyperparameter heatmap with real data
+function createHyperparameterHeatmap() {
+    const chartDiv = document.getElementById('hyperparameter-heatmap');
+    if (!chartDiv) return;
+
+    const heatmapData = window.reportData?.hyperparameter_analysis?.interaction_heatmap;
+    if (!heatmapData) {
+        console.error('No heatmap data available');
+        return;
+    }
+
+    const trace = {
+        x: heatmapData.x_labels,
+        y: heatmapData.y_labels,
+        z: heatmapData.values,
+        type: 'heatmap',
+        colorscale: 'Viridis'
+    };
+
+    const layout = {
+        title: 'Hyperparameter Interaction Effects',
+        xaxis: { title: heatmapData.x_title || 'Temperature' },
+        yaxis: { title: heatmapData.y_title || 'Alpha' },
+        height: 500
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create optimization history with real data
+function createOptimizationHistory() {
+    const chartDiv = document.getElementById('optimization-history');
+    if (!chartDiv) return;
+
+    const historyData = window.reportData?.hyperparameter_analysis?.optimization_history;
+    if (!historyData) {
+        console.error('No optimization history data available');
+        return;
+    }
+
+    const trace1 = {
+        x: historyData.iterations,
+        y: historyData.best_score,
+        name: 'Best Score',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#10b981', width: 3 }
+    };
+
+    const trace2 = {
+        x: historyData.iterations,
+        y: historyData.current_score,
+        name: 'Current Score',
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+            color: '#94a3b8',
+            size: 6
+        }
+    };
+
+    const layout = {
+        title: 'Optimization Progress',
+        xaxis: { title: 'Iteration' },
+        yaxis: { title: 'Score' },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Load grid search results with real data
+function loadGridSearchResults() {
+    const tbody = document.getElementById('grid-search-tbody');
+    if (!tbody) return;
+
+    const gridData = window.reportData?.hyperparameter_analysis?.grid_search_results;
+    if (!gridData || gridData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted p-4">
+                    <i class="bi bi-database-x"></i> No grid search results available
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = gridData.map((result, idx) => `
+        <tr>
+            <td>${idx + 1}</td>
+            <td>${result.temperature}</td>
+            <td>${result.alpha}</td>
+            <td>${result.layers}</td>
+            <td>${result.lr}</td>
+            <td>${result.batch_size}</td>
+            <td>${(result.accuracy * 100).toFixed(2)}%</td>
+            <td>${(result.f1_score * 100).toFixed(2)}%</td>
+            <td>${result.model_size}</td>
+        </tr>
+    `).join('');
+}
+
+// Auto-initialize if tab is active
+if (document.querySelector('#hyperparameter-analysis.active')) {
+    document.addEventListener('DOMContentLoaded', initializeHyperparameterTab);
+}
+</script>

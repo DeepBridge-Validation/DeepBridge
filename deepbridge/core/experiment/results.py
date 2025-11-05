@@ -155,9 +155,68 @@ class ResilienceResult(BaseTestResult):
 
 class HyperparameterResult(BaseTestResult):
     """Result object for hyperparameter tests"""
-    
+
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Hyperparameter", results, metadata)
+
+
+class FairnessResult(BaseTestResult):
+    """Result object for fairness tests"""
+
+    def __init__(self, results: dict, metadata: t.Optional[dict] = None):
+        super().__init__("Fairness", results, metadata)
+
+    @property
+    def overall_fairness_score(self) -> float:
+        """Get overall fairness score (0-1, higher is better)"""
+        return self._results.get('overall_fairness_score', 0.0)
+
+    @property
+    def critical_issues(self) -> list:
+        """Get list of critical fairness issues"""
+        return self._results.get('critical_issues', [])
+
+    @property
+    def warnings(self) -> list:
+        """Get list of fairness warnings"""
+        return self._results.get('warnings', [])
+
+    @property
+    def protected_attributes(self) -> list:
+        """Get list of protected attributes tested"""
+        return self._results.get('protected_attributes', [])
+
+    def save_html(self, file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+        """
+        Generate and save an HTML report for fairness analysis.
+
+        Args:
+            file_path: Path where the HTML report will be saved
+            model_name: Name of the model for display in the report
+            report_type: Type of report to generate ('interactive' or 'static')
+
+        Returns:
+            Path to the generated report file
+
+        Example:
+            >>> fairness_result = experiment.run_fairness_tests(config='full')
+            >>> fairness_result.save_html('fairness_report.html', model_name='Credit Model')
+        """
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+
+        # Create report manager
+        report_manager = ReportManager()
+
+        # Generate HTML report
+        report_path = report_manager.generate_report(
+            test_type='fairness',
+            results=self._results,
+            file_path=file_path,
+            model_name=model_name,
+            report_type=report_type
+        )
+
+        return report_path
 
 
 class ExperimentResult:
@@ -239,9 +298,19 @@ class ExperimentResult:
             if 'primary_model' in test_result:
                 # Direct structure - use as is
                 report_data = copy.deepcopy(test_result)
+                # Ensure advanced tests are copied
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
             elif 'results' in test_result and 'primary_model' in test_result['results']:
                 # Nested structure - extract and use the primary_model data
                 report_data = copy.deepcopy(test_result['results'])
+                # Ensure advanced tests are copied from parent level if available
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
             else:
                 # Create standard structure with minimal data
                 report_data = {
@@ -262,6 +331,12 @@ class ExperimentResult:
                 # Add feature subset if available
                 if 'feature_subset' in test_result:
                     report_data['feature_subset'] = test_result['feature_subset']
+
+                # Add advanced robustness tests if available (WeakSpot and Overfitting)
+                if 'weakspot_analysis' in test_result:
+                    report_data['weakspot_analysis'] = test_result['weakspot_analysis']
+                if 'overfitting_analysis' in test_result:
+                    report_data['overfitting_analysis'] = test_result['overfitting_analysis']
         else:
             # For other test types, use the standard approach
             if hasattr(result, 'to_dict'):
@@ -272,8 +347,16 @@ class ExperimentResult:
                 report_data = result  # If result is already a dict
 
         # Add initial_results if available
+        # This is stored in self.results during experiment execution
         if 'initial_results' in self.results:
-            report_data['initial_results'] = self.results['initial_results']
+            initial_results = self.results['initial_results']
+            report_data['initial_results'] = initial_results
+
+            # Add initial_model_evaluation from initial_results
+            # This is critical for resilience/robustness reports to have feature_importance data
+            if isinstance(initial_results, dict):
+                # Structure from Experiment: initial_results has 'models', 'config', 'test_configs'
+                report_data['initial_model_evaluation'] = initial_results
 
         # Add experiment config if not present
         if 'config' not in report_data:
@@ -305,7 +388,188 @@ class ExperimentResult:
             raise ReportGenerationError(f"HTML report generation for {test_type} tests is not implemented: {str(e)}")
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate HTML report: {str(e)}")
-    
+
+    def save_json(self, test_type: str, file_path: str, include_summary: bool = True) -> str:
+        """
+        Save test results to a JSON file for AI analysis.
+
+        Args:
+            test_type: Type of test results to save ('robustness', 'uncertainty', etc.)
+            file_path: Path where to save the JSON file
+            include_summary: Whether to include a summary section with key findings (default: True)
+
+        Returns:
+            Path to the saved JSON file
+
+        Raises:
+            TestResultNotFoundError: If test results not found
+        """
+        import numpy as np
+
+        # Convert test_type to lowercase for consistency
+        test_type = test_type.lower()
+
+        # Check if we have results for this test type
+        lookup_key = test_type
+        if test_type == "hyperparameters":
+            lookup_key = "hyperparameter"
+
+        result = self.results.get(lookup_key)
+        if not result:
+            raise TestResultNotFoundError(f"No {test_type} test results found. Run the test first.")
+
+        # Get the results dictionary
+        if hasattr(result, 'clean_results_dict'):
+            test_data = result.clean_results_dict()
+        elif hasattr(result, 'results'):
+            test_data = result.results
+        else:
+            test_data = result
+
+        # Create the JSON structure
+        json_data = {
+            "experiment_info": {
+                "test_type": test_type,
+                "experiment_type": self.experiment_type,
+                "generation_time": self.generation_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "config": self.config
+            },
+            "test_results": test_data
+        }
+
+        # Add initial model evaluation if available
+        if 'initial_results' in self.results:
+            json_data["initial_model_evaluation"] = self.results['initial_results']
+
+        # Add summary for robustness tests
+        if include_summary and test_type == 'robustness':
+            summary = self._generate_robustness_summary(test_data)
+            json_data["summary"] = summary
+
+        # Function to convert numpy types to Python types
+        def convert_numpy_types(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(v) for v in obj]
+            return obj
+
+        # Convert all numpy types before serialization
+        json_data = convert_numpy_types(json_data)
+
+        # Ensure file_path is absolute
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Save to JSON file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+        return file_path
+
+    def _generate_robustness_summary(self, test_data: dict) -> dict:
+        """
+        Generate a summary of key findings from robustness test results.
+
+        Args:
+            test_data: Dictionary containing robustness test results
+
+        Returns:
+            Summary dictionary with key findings
+        """
+        summary = {
+            "key_findings": [],
+            "model_performance": {},
+            "feature_impacts": {},
+            "recommendations": []
+        }
+
+        # Analyze primary model if available
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+
+            # Model robustness score
+            robustness_score = primary.get('robustness_score', 1.0 - primary.get('avg_overall_impact', 0))
+            summary["model_performance"]["robustness_score"] = round(robustness_score, 4)
+
+            # Key metrics
+            if 'metrics' in primary:
+                summary["model_performance"]["metrics"] = primary['metrics']
+
+            # Average impacts
+            summary["model_performance"]["average_impacts"] = {
+                "raw_perturbation": round(primary.get('avg_raw_impact', 0), 4),
+                "quantile_perturbation": round(primary.get('avg_quantile_impact', 0), 4),
+                "overall": round(primary.get('avg_overall_impact', 0), 4)
+            }
+
+            # Top impacted features
+            if 'feature_importance' in primary:
+                features = primary['feature_importance']
+                sorted_features = sorted(features.items(), key=lambda x: x[1], reverse=True)
+                summary["feature_impacts"]["most_sensitive_features"] = [
+                    {"feature": name, "impact": round(impact, 4)}
+                    for name, impact in sorted_features[:10]
+                ]
+                summary["feature_impacts"]["least_sensitive_features"] = [
+                    {"feature": name, "impact": round(impact, 4)}
+                    for name, impact in sorted_features[-5:]
+                ]
+
+            # Generate key findings
+            if robustness_score >= 0.9:
+                summary["key_findings"].append("Model shows excellent robustness (score >= 0.9)")
+            elif robustness_score >= 0.8:
+                summary["key_findings"].append("Model shows good robustness (score >= 0.8)")
+            elif robustness_score >= 0.7:
+                summary["key_findings"].append("Model shows moderate robustness (score >= 0.7)")
+            else:
+                summary["key_findings"].append(f"Model shows low robustness (score: {robustness_score:.4f})")
+
+            # Add findings about feature sensitivity
+            if 'feature_importance' in primary and len(features) > 0:
+                high_impact_features = [k for k, v in features.items() if v > 0.1]
+                if high_impact_features:
+                    summary["key_findings"].append(f"Found {len(high_impact_features)} highly sensitive features (impact > 0.1)")
+
+            # Recommendations based on results
+            if robustness_score < 0.8:
+                summary["recommendations"].append("Consider model regularization to improve robustness")
+
+            if len(summary["feature_impacts"].get("most_sensitive_features", [])) > 0:
+                top_feature = summary["feature_impacts"]["most_sensitive_features"][0]
+                if top_feature["impact"] > 0.2:
+                    summary["recommendations"].append(f"Feature '{top_feature['feature']}' is highly sensitive - consider feature engineering or validation")
+
+        # Analyze alternative models if available
+        if 'alternative_models' in test_data:
+            alt_models = {}
+            for model_name, model_data in test_data['alternative_models'].items():
+                if 'metrics' in model_data:
+                    alt_models[model_name] = {
+                        "metrics": model_data['metrics'],
+                        "robustness_score": round(1.0 - model_data.get('avg_overall_impact', 0), 4)
+                    }
+
+            if alt_models:
+                summary["alternative_models_comparison"] = alt_models
+
+                # Find best alternative model
+                best_alt = max(alt_models.items(), key=lambda x: x[1].get('robustness_score', 0))
+                if best_alt[1]['robustness_score'] > summary["model_performance"]["robustness_score"]:
+                    summary["key_findings"].append(f"Alternative model '{best_alt[0]}' shows better robustness")
+
+        return summary
+
     def to_dict(self) -> dict:
         """
         Convert all results to a dictionary for serialization.

@@ -30,6 +30,12 @@ pip install -e .
   - Uncertainty quantification using conformal prediction
   - Resilience testing under distribution shifts
   - Hyperparameter importance analysis
+  - **Fairness testing and bias detection** (NEW!)
+    - 15 fairness metrics (pre-training and post-training)
+    - Auto-detection of sensitive attributes
+    - EEOC compliance verification (80% rule)
+    - Threshold analysis for fairness optimization
+    - Interactive HTML reports with visualizations
 
 - **Model Validation**
   - Experiment tracking and management
@@ -107,6 +113,38 @@ distiller = AutoDistiller(
 results = distiller.run(use_probabilities=True)
 ```
 
+### Fairness Testing
+```python
+from deepbridge.core.experiment import Experiment
+from deepbridge.db_data import DBDataset
+
+# Create dataset (model already trained)
+dataset = DBDataset(
+    data=df,
+    target_column='approved',
+    model=trained_model
+)
+
+# Create experiment with protected attributes
+experiment = Experiment(
+    dataset=dataset,
+    experiment_type="binary_classification",
+    tests=["fairness"],
+    protected_attributes=['gender', 'race', 'age_group']
+)
+
+# Run fairness tests
+fairness_result = experiment.run_fairness_tests(config='full')
+
+# Check results
+print(f"Overall Fairness Score: {fairness_result.overall_fairness_score:.3f}")
+print(f"Critical Issues: {len(fairness_result.critical_issues)}")
+print(f"EEOC Compliant: {fairness_result.overall_fairness_score >= 0.80}")
+
+# Generate interactive HTML report
+fairness_result.save_html('fairness_report.html', model_name='My Model')
+```
+
 ## Command-Line Interface
 ```bash
 # Run model validation
@@ -156,6 +194,13 @@ Full documentation is available at: [DeepBridge Documentation](https://deepbridg
 - [FAQ](https://deepbridge.readthedocs.io/en/latest/resources/faq/)
 - [Troubleshooting](https://deepbridge.readthedocs.io/en/latest/resources/troubleshooting/)
 
+### Fairness Documentation
+
+- [Fairness Tutorial (Step-by-Step)](docs/FAIRNESS_TUTORIAL.md) - Complete tutorial from basics to production
+- [Best Practices Guide](docs/FAIRNESS_BEST_PRACTICES.md) - Guidelines for ethical ML and fairness
+- [FAQ](docs/FAIRNESS_FAQ.md) - Common questions and troubleshooting
+- [Complete Example](examples/fairness_complete_example.py) - End-to-end executable example
+
 ## Contributing
 
 We welcome contributions! Please see our contribution guidelines for details on how to submit pull requests, report issues, and contribute to the project.
@@ -168,6 +213,7 @@ We welcome contributions! Please see our contribution guidelines for details on 
 
 ### Recent Updates
 
+- **2025-11-03**: **NEW Fairness Module** - Complete fairness testing framework with 15 metrics, auto-detection of sensitive attributes, EEOC compliance checks, threshold analysis, and interactive HTML reports. Includes comprehensive documentation, tutorial, and examples.
 - **2025-07-02**: Added comprehensive documentation including Implementation Guide, Testing Framework, Report Generation, and complete API Reference
 - **2025-05-15**: Fixed static report chart URLs to properly use relative paths with `./` prefix for improved portability across different environments
 

@@ -35,6 +35,9 @@ class DBDataset:
         # Initialize helper classes
         self._validator = DataValidator()
         self._model_handler = ModelHandler()
+        # Initialize prediction attributes
+        self._train_predictions = None
+        self._test_predictions = None
         
         # Validate input data
         self._validator.validate_data_input(data, train_data, test_data, target_column)
@@ -47,15 +50,16 @@ class DBDataset:
                          "or model_path if you need to load it from a file. "
                          "If you don't have the model, provide the probabilities.")
         
+        # Store random_state early so it can be used in processing methods
+        self._random_state = random_state
+        self._target_column = target_column
+        self._dataset_name = dataset_name
+
         # Process and store data
         if data is not None:
             self._process_unified_data(data, target_column, features, prob_cols, test_size)
         else:
             self._process_split_data(train_data, test_data, target_column, features, prob_cols)
-        
-        self._target_column = target_column
-        self._dataset_name = dataset_name
-        self._random_state = random_state
         
         # Initialize feature manager and process features
         self._feature_manager = FeatureManager(self._data, self._features)
@@ -103,6 +107,16 @@ class DBDataset:
                 test_predictions,
                 prob_cols
             )
+            # Store predictions as attributes for easy access
+            self._train_predictions = train_predictions
+            self._test_predictions = test_predictions
+
+        # Store predictions even if prob_cols is not provided
+        # This allows direct access to predictions passed as parameters
+        if train_predictions is not None and self._train_predictions is None:
+            self._train_predictions = train_predictions
+        if test_predictions is not None and self._test_predictions is None:
+            self._test_predictions = test_predictions
         
         self._formatter = DatasetFormatter(
             dataset_name=dataset_name,
@@ -144,13 +158,38 @@ class DBDataset:
             raise ValueError(f"Target column '{target_column}' not found in data")
         
         self._features = self._validator.validate_features(features, data, target_column, prob_cols)
-        
+
         self._original_data = data.copy()
         self._data = data[self._features].copy()
-        
-        train_idx = int(len(data) * (1 - test_size))
-        self._train_data = data.iloc[:train_idx].copy()
-        self._test_data = data.iloc[train_idx:].copy()
+
+        # Use stratified split if random_state is provided and target has multiple classes
+        if self._random_state is not None and target_column in data.columns:
+            try:
+                # Check if target has multiple unique values (classification task)
+                n_unique = data[target_column].nunique()
+                if n_unique > 1:
+                    # Use train_test_split with stratify for classification
+                    self._train_data, self._test_data = train_test_split(
+                        data,
+                        test_size=test_size,
+                        random_state=self._random_state,
+                        stratify=data[target_column]
+                    )
+                else:
+                    # Single class or regression, no stratify
+                    train_idx = int(len(data) * (1 - test_size))
+                    self._train_data = data.iloc[:train_idx].copy()
+                    self._test_data = data.iloc[train_idx:].copy()
+            except (ValueError, TypeError):
+                # If stratify fails (e.g., too few samples per class), fall back to regular split
+                train_idx = int(len(data) * (1 - test_size))
+                self._train_data = data.iloc[:train_idx].copy()
+                self._test_data = data.iloc[train_idx:].copy()
+        else:
+            # No random_state provided, use simple index-based split
+            train_idx = int(len(data) * (1 - test_size))
+            self._train_data = data.iloc[:train_idx].copy()
+            self._test_data = data.iloc[train_idx:].copy()
 
     def _process_split_data(
         self,
@@ -271,6 +310,16 @@ class DBDataset:
     def model(self) -> t.Any:
         """Return the loaded model if available."""
         return self._model_handler.model
+
+    @property
+    def train_predictions(self) -> t.Optional[pd.DataFrame]:
+        """Return training predictions if available."""
+        return getattr(self, '_train_predictions', None)
+
+    @property
+    def test_predictions(self) -> t.Optional[pd.DataFrame]:
+        """Return test predictions if available."""
+        return getattr(self, '_test_predictions', None)
 
     def get_feature_data(self, dataset: str = 'train') -> pd.DataFrame:
         """Get feature columns from specified dataset."""

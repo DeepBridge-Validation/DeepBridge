@@ -1,856 +1,237 @@
-// Chart Manager for Overview Section
-const ChartManager = {
+// CRQROverviewChartManager.js - Chart Manager for Uncertainty Overview Section
+const CRQROverviewChartManager = {
     /**
-     * Initialize perturbation chart
+     * Initialize CRQR overview chart
      * @param {string} elementId - Chart container ID
      */
-    
-    initializePerturbationChart: function(elementId) {
-        console.log("Initializing perturbation chart");
+    initializeCRQRChart: function(elementId) {
+        console.log("Initializing CRQR overview chart");
         const chartElement = document.getElementById(elementId);
         if (!chartElement) {
             console.error("Chart element not found:", elementId);
             return;
         }
-        
+
         try {
-            // Extract data for chart
-            const chartData = this.extractPerturbationChartData();
-            
-            if (!chartData || chartData.levels.length === 0) {
-                this.showNoDataMessage(chartElement, "No perturbation data available");
+            // Check if CRQRDataManager is available
+            if (typeof CRQRDataManager === 'undefined') {
+                console.error("CRQRDataManager not available");
+                this.showNoDataMessage(chartElement, "Data manager not available");
                 return;
             }
-            
-            // Create a horizontal line for the base score
-            const baseScores = Array(chartData.levels.length).fill(chartData.baseScore);
-            
-            // Prepare plot data - first trace is the base score
-            const plotData = [
-                {
-                    x: chartData.levels,
-                    y: baseScores,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Base Score',
-                    line: {
-                        dash: 'dash',
-                        width: 2,
-                        color: 'rgb(136, 132, 216)'
-                    }
-                }
-            ];
-            
-            // Add all features score trace if available
-            if (chartData.perturbedScores && chartData.perturbedScores.length > 0) {
-                plotData.push({
-                    x: chartData.levels,
-                    y: chartData.perturbedScores,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'All Features Score',
-                    line: {
-                        width: 3,
-                        color: 'rgb(255, 87, 51)'
-                    },
-                    marker: {
-                        size: 8,
-                        color: 'rgb(255, 87, 51)'
-                    }
-                });
+
+            // Extract CRQR data
+            const crqrData = CRQRDataManager.extractCRQRData();
+
+            if (!crqrData || crqrData.alphas.length === 0) {
+                this.showNoDataMessage(chartElement, "No uncertainty quantification data available");
+                return;
             }
-            
-            // Add worst scores trace if available
-            if (chartData.worstScores && chartData.worstScores.length > 0) {
-                plotData.push({
-                    x: chartData.levels,
-                    y: chartData.worstScores,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Worst Score',
-                    line: {
-                        width: 2,
-                        color: 'rgb(199, 0, 57)'
-                    },
-                    marker: {
-                        size: 6,
-                        color: 'rgb(199, 0, 57)'
-                    }
-                });
-            }
-            
-            // Add feature subset scores trace if available
-            if (chartData.featureSubsetScores && chartData.featureSubsetScores.length > 0) {
-                plotData.push({
-                    x: chartData.levels,
-                    y: chartData.featureSubsetScores,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Feature Subset Score',
-                    line: {
-                        width: 2,
-                        color: 'rgb(40, 180, 99)'
-                    },
-                    marker: {
-                        size: 6,
-                        color: 'rgb(40, 180, 99)'
-                    }
-                });
-            }
-            
-            // Layout for the chart
-            const layout = {
-                title: `Model Robustness: Performance Under Perturbation (${chartData.metricName})`,
-                xaxis: {
-                    title: 'Perturbation Level',
-                    tickvals: chartData.levels,
-                    ticktext: chartData.levels.map(String)
-                },
-                yaxis: {
-                    title: `${chartData.metricName} Score`,
-                    autorange: true
-                },
-                legend: {
-                    orientation: 'h',
-                    y: -0.2
-                },
-                hovermode: 'closest',
-                margin: {
-                    l: 50,
-                    r: 20,
-                    t: 60,
-                    b: 100
-                }
-            };
-            
-            // Create the plot
-            Plotly.newPlot(chartElement, plotData, layout, {responsive: true});
-            
+
+            console.log("Creating CRQR overview visualization with data:", crqrData);
+
+            // Create visualization
+            this.renderCRQROverview(chartElement, crqrData);
+
         } catch (error) {
-            console.error("Error creating perturbation chart:", error);
-            this.showErrorMessage(chartElement, error.message);
+            console.error("Error initializing CRQR chart:", error);
+            this.showNoDataMessage(chartElement, "Error loading uncertainty data");
         }
     },
-    
+
     /**
-     * Extract data for perturbation chart from report data
+     * Render CRQR overview visualization
      */
-    extractPerturbationChartData: function() {
-        // Primeiro, verificar se temos dados pré-calculados
-        if (window.reportData && window.reportData.perturbation_chart_data) {
-            console.log("Usando dados pré-calculados do perturbation_chart_data");
-            return {
-                levels: window.reportData.perturbation_chart_data.levels,
-                perturbedScores: window.reportData.perturbation_chart_data.scores,
-                worstScores: window.reportData.perturbation_chart_data.worstScores,
-                featureSubsetScores: window.reportData.perturbation_chart_data.featureSubsetScores || [],
-                baseScore: window.reportData.perturbation_chart_data.baseScore,
-                metricName: window.reportData.perturbation_chart_data.metric
-            };
-        }
-        
-        console.log("Nenhum dado pré-calculado encontrado, extraindo dados brutos");
-        
-        // Código original de extração como fallback
-        let perturbationLevels = [];
-        let perturbedScores = [];
-        let worstScores = [];
-        let featureSubsetScores = [];
-        let baseScore = null;
-        let metricName = 'Score';
-        
-        // Extract data from report data
-        if (window.reportData) {
-            // Get base score
-            if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
-                baseScore = window.reportConfig.baseScore;
-            } else if (window.reportData.base_score !== undefined) {
-                baseScore = window.reportData.base_score;
-            }
-            
-            // Get metric name
-            if (window.reportConfig && window.reportConfig.metric) {
-                metricName = window.reportConfig.metric;
-            } else if (window.reportData.metric) {
-                metricName = window.reportData.metric;
-            }
-            
-            // Extract data from raw perturbation results
-            if (window.reportData.raw && window.reportData.raw.by_level) {
-                const rawData = window.reportData.raw.by_level;
-                
-                // Sort levels numerically
-                perturbationLevels = Object.keys(rawData)
-                    .sort((a, b) => parseFloat(a) - parseFloat(b))
-                    .map(parseFloat);
-                
-                // Get perturbed scores (all features)
-                perturbedScores = perturbationLevels.map(level => {
-                    const levelStr = level.toString();
-                    if (rawData[levelStr] && 
-                        rawData[levelStr].overall_result && 
-                        rawData[levelStr].overall_result.all_features) {
-                        return rawData[levelStr].overall_result.all_features.mean_score;
-                    }
-                    return null;
-                });
-                
-                // Get worst scores
-                worstScores = perturbationLevels.map(level => {
-                    const levelStr = level.toString();
-                    if (rawData[levelStr] && 
-                        rawData[levelStr].overall_result && 
-                        rawData[levelStr].overall_result.all_features) {
-                        return rawData[levelStr].overall_result.all_features.worst_score;
-                    }
-                    return null;
-                });
-                
-                // Get feature subset scores
-                featureSubsetScores = perturbationLevels.map(level => {
-                    const levelStr = level.toString();
-                    if (rawData[levelStr] && 
-                        rawData[levelStr].overall_result && 
-                        rawData[levelStr].overall_result.feature_subset) {
-                        return rawData[levelStr].overall_result.feature_subset.mean_score;
-                    }
-                    return null;
-                });
-            }
-        }
-        
-        return {
-            levels: perturbationLevels,
-            perturbedScores: perturbedScores,
-            worstScores: worstScores,
-            featureSubsetScores: featureSubsetScores,
-            baseScore: baseScore,
-            metricName: metricName
-        };
-    },
-    
-    /**
-     * Initialize worst score chart
-     * @param {string} elementId - Chart container ID
-     */
-    initializeWorstScoreChart: function(elementId) {
-        const chartElement = document.getElementById(elementId);
-        if (!chartElement) return;
-        
-        try {
-            // Extract data
-            const chartData = this.extractPerturbationChartData();
-            
-            if (!chartData || chartData.levels.length === 0 || !chartData.worstScores || chartData.worstScores.length === 0) {
-                this.showNoDataMessage(chartElement, "No worst score data available");
-                return;
-            }
-            
-            // Create trace for worst scores
-            const worstTrace = {
-                x: chartData.levels,
-                y: chartData.worstScores,
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Worst Score',
-                line: {
-                    width: 3,
-                    color: 'rgb(199, 0, 57)'
-                },
-                marker: {
-                    size: 8,
-                    color: 'rgb(199, 0, 57)'
-                }
-            };
-            
-            const data = [worstTrace];
-            
-            // Add base score trace if available
-            if (chartData.baseScore !== null) {
-                const baseScoreTrace = {
-                    x: chartData.levels,
-                    y: Array(chartData.levels.length).fill(chartData.baseScore),
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        dash: 'dash',
-                        width: 2,
-                        color: 'rgb(136, 132, 216)'
-                    },
-                    name: 'Base Score'
-                };
-                data.push(baseScoreTrace);
-            }
-            
-            // Layout
-            const layout = {
-                title: `Worst-Case Performance Under Perturbation (${chartData.metricName})`,
-                xaxis: {
-                    title: 'Perturbation Level',
-                    tickvals: chartData.levels,
-                    ticktext: chartData.levels.map(String)
-                },
-                yaxis: {
-                    title: `${chartData.metricName} Score`,
-                    autorange: true
-                },
-                legend: {
-                    orientation: "h",
-                    yanchor: "top",
-                    y: 1,
-                    xanchor: "right",
-                    x: 1
-                },
-                hovermode: 'closest',
-                margin: {
-                    l: 50,
-                    r: 20,
-                    t: 60,
-                    b: 100
-                }
-            };
-            
-            // Create plot
-            Plotly.newPlot(chartElement, data, layout, {responsive: true});
-            
-        } catch (error) {
-            console.error("Error creating worst score chart:", error);
-            this.showErrorMessage(chartElement, error.message);
-        }
-    },
-    
-    /**
-     * Initialize mean score chart
-     * @param {string} elementId - Chart container ID
-     */
-    initializeMeanScoreChart: function(elementId) {
-        const chartElement = document.getElementById(elementId);
-        if (!chartElement) return;
-        
-        try {
-            // Extract data
-            const chartData = this.extractPerturbationChartData();
-            
-            if (!chartData || chartData.levels.length === 0 || !chartData.perturbedScores || chartData.perturbedScores.length === 0) {
-                this.showNoDataMessage(chartElement, "No mean score data available");
-                return;
-            }
-            
-            // Create trace for mean scores
-            const meanTrace = {
-                x: chartData.levels,
-                y: chartData.perturbedScores,
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Mean Score',
-                line: {
-                    width: 3,
-                    color: 'rgb(255, 87, 51)'
-                },
-                marker: {
-                    size: 8,
-                    color: 'rgb(255, 87, 51)'
-                }
-            };
-            
-            const data = [meanTrace];
-            
-            // Add base score trace if available
-            if (chartData.baseScore !== null) {
-                const baseScoreTrace = {
-                    x: chartData.levels,
-                    y: Array(chartData.levels.length).fill(chartData.baseScore),
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        dash: 'dash',
-                        width: 2,
-                        color: 'rgb(136, 132, 216)'
-                    },
-                    name: 'Base Score'
-                };
-                data.push(baseScoreTrace);
-            }
-            
-            // Layout
-            const layout = {
-                title: `Mean Performance Under Perturbation (${chartData.metricName})`,
-                xaxis: {
-                    title: 'Perturbation Level',
-                    tickvals: chartData.levels,
-                    ticktext: chartData.levels.map(String)
-                },
-                yaxis: {
-                    title: `${chartData.metricName} Score`,
-                    autorange: true
-                },
-                legend: {
-                    orientation: 'h',
-                    y: -0.2
-                },
-                hovermode: 'closest',
-                margin: {
-                    l: 50,
-                    r: 20,
-                    t: 60,
-                    b: 100
-                }
-            };
-            
-            // Create plot
-            Plotly.newPlot(chartElement, data, layout, {responsive: true});
-            
-        } catch (error) {
-            console.error("Error creating mean score chart:", error);
-            this.showErrorMessage(chartElement, error.message);
-        }
-    },
-    
-    /**
-     * Initialize model comparison chart
-     * @param {string} elementId - Chart container ID
-     */
-    initializeModelComparisonChart: function(elementId) {
-        const chartElement = document.getElementById(elementId);
-        if (!chartElement) return;
-        
-        try {
-            // Check if we have alternative models data
-            if (!window.reportData || !window.reportConfig || !window.reportConfig.hasAlternativeModels) {
-                this.showNoDataMessage(chartElement, "No model comparison data available");
-                return;
-            }
-            
-            // Extract data for chart
-            const chartData = this.extractModelComparisonData();
-            
-            if (!chartData || chartData.models.length <= 1) {
-                this.showNoDataMessage(chartElement, "Insufficient model data for comparison");
-                return;
-            }
-            
-            // Create base score bars
-            const baseScoreTrace = {
-                x: chartData.models,
-                y: chartData.baseScores,
-                type: 'bar',
-                name: 'Base Score',
-                marker: {
-                    color: 'rgb(41, 128, 185)'
-                }
-            };
-            
-            // Create robustness score bars
-            const robustnessScoreTrace = {
-                x: chartData.models,
-                y: chartData.robustnessScores,
-                type: 'bar',
-                name: 'Robustness Score',
-                marker: {
-                    color: 'rgb(46, 204, 113)'
-                }
-            };
-            
-            // Create the plot data
-            const plotData = [baseScoreTrace, robustnessScoreTrace];
-            
-            // Layout
-            const layout = {
-                title: 'Model Comparison Overview',
-                barmode: 'group',
-                xaxis: {
-                    title: 'Models',
-                    tickangle: -45
-                },
-                yaxis: {
-                    title: 'Score',
-                    range: [0, 1.1]
-                },
-                legend: {
-                    orientation: 'h',
-                    y: -0.2
-                },
-                margin: {
-                    l: 50,
-                    r: 20,
-                    t: 60,
-                    b: 150
-                }
-            };
-            
-            // Create the plot
-            Plotly.newPlot(chartElement, plotData, layout, {responsive: true});
-            
-        } catch (error) {
-            console.error("Error creating model comparison chart:", error);
-            this.showErrorMessage(chartElement, error.message);
-        }
-    },
-    
-    /**
-     * Extract data for model comparison
-     */
-    extractModelComparisonData: function() {
-        const models = [];
-        const baseScores = [];
-        const robustnessScores = [];
-        
-        if (!window.reportData) return null;
-        
-        // Add primary model
-        let primaryModelName = 'Primary Model';
-        if (window.reportData.model_name) {
-            primaryModelName = window.reportData.model_name;
-        } else if (window.reportConfig && window.reportConfig.modelName) {
-            primaryModelName = window.reportConfig.modelName;
-        }
-        
-        let primaryBaseScore = 0;
-        if (window.reportData.base_score !== undefined) {
-            primaryBaseScore = window.reportData.base_score;
-        } else if (window.reportConfig && window.reportConfig.baseScore !== undefined) {
-            primaryBaseScore = window.reportConfig.baseScore;
-            console.log("Gráfico - Usando baseScore do reportConfig:", primaryBaseScore);
-        }
-        
-        // CORREÇÃO: Garantir que estamos usando o valor correto do robustness_score
-        let primaryRobustnessScore = 0;
-        if (typeof window.reportData.robustness_score === 'number') {
-            primaryRobustnessScore = window.reportData.robustness_score;
-            console.log("Gráfico - Usando robustness_score do modelo primário:", primaryRobustnessScore);
-        } else if (typeof window.reportData.score === 'number') {
-            // Fallback to score if robustness_score is not available
-            primaryRobustnessScore = window.reportData.score;
-            console.log("Gráfico - Usando score do modelo primário como fallback:", primaryRobustnessScore);
-        } else if (window.reportConfig && typeof window.reportConfig.robustnessScore === 'number') {
-            primaryRobustnessScore = window.reportConfig.robustnessScore;
-            console.log("Gráfico - Usando robustnessScore do reportConfig:", primaryRobustnessScore);
-        }
-        
-        models.push(primaryModelName);
-        baseScores.push(primaryBaseScore);
-        robustnessScores.push(primaryRobustnessScore);
-        
-        // Add alternative models
-        if (window.reportData.alternative_models) {
-            Object.entries(window.reportData.alternative_models).forEach(([name, data]) => {
-                models.push(name);
-                baseScores.push(data.base_score || 0);
-                
-                // CORREÇÃO: Garantir que usamos os valores corretos para modelos alternativos
-                let altScore = 0;
-                if (typeof data.robustness_score === 'number') {
-                    altScore = data.robustness_score;
-                    console.log(`Gráfico - Modelo alternativo ${name} robustness_score:`, altScore);
-                } else if (typeof data.score === 'number') {
-                    // Fallback to score if robustness_score is not available
-                    altScore = data.score;
-                    console.log(`Gráfico - Modelo alternativo ${name} score (fallback):`, altScore);
-                }
-                robustnessScores.push(altScore);
-            });
-        }
-        
-        return {
-            models,
-            baseScores,
-            robustnessScores
-        };
-    },
-    
-    /**
-     * Initialize model level details chart
-     * @param {string} elementId - Chart container ID
-     */
-    initializeModelLevelDetailsChart: function(elementId) {
-        const chartElement = document.getElementById(elementId);
-        if (!chartElement) return;
-        
-        try {
-            // Check if we have alternative models data
-            if (!window.reportData || !window.reportConfig || !window.reportConfig.hasAlternativeModels) {
-                this.showNoDataMessage(chartElement, "No model comparison data available");
-                return;
-            }
-            
-            // Extract data for model performance across perturbation levels
-            const chartData = this.extractModelLevelDetailsData();
-            
-            if (!chartData || chartData.levels.length === 0 || Object.keys(chartData.modelScores).length <= 1) {
-                this.showNoDataMessage(chartElement, "Insufficient data for model comparison by level");
-                return;
-            }
-            
-            // Create a trace for each model
-            const plotData = [];
-            const colors = ['rgb(255, 87, 51)', 'rgb(41, 128, 185)', 'rgb(142, 68, 173)', 'rgb(39, 174, 96)', 'rgb(243, 156, 18)'];
-            let colorIndex = 0;
-            
-            // Add primary model first
-            if (chartData.modelScores['primary']) {
-                plotData.push({
-                    x: chartData.levels,
-                    y: chartData.modelScores['primary'],
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: chartData.modelNames['primary'] || 'Primary Model',
-                    line: {
-                        width: 3,
-                        color: colors[colorIndex % colors.length]
-                    },
-                    marker: {
-                        size: 8,
-                        color: colors[colorIndex % colors.length]
-                    }
-                });
-                colorIndex++;
-            }
-            
-            // Add alternative models
-            for (const modelId in chartData.modelScores) {
-                if (modelId === 'primary') continue; // Skip primary model as it's already added
-                
-                plotData.push({
-                    x: chartData.levels,
-                    y: chartData.modelScores[modelId],
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: chartData.modelNames[modelId] || modelId,
-                    line: {
-                        width: 2,
-                        color: colors[colorIndex % colors.length]
-                    },
-                    marker: {
-                        size: 6,
-                        color: colors[colorIndex % colors.length]
-                    }
-                });
-                colorIndex++;
-            }
-            
-            // Layout
-            const layout = {
-                title: 'Model Comparison: Performance by Perturbation Level',
-                xaxis: {
-                    title: 'Perturbation Level',
-                    tickvals: chartData.levels,
-                    ticktext: chartData.levels.map(String)
-                },
-                yaxis: {
-                    title: `${chartData.metricName} Score`,
-                    autorange: true
-                },
-                legend: {
-                    orientation: "h",
-                    yanchor: "top",
-                    y: 1,
-                    xanchor: "right",
-                    x: 1
-                },
-                hovermode: 'closest',
-                margin: {
-                    l: 50,
-                    r: 20,
-                    t: 60,
-                    b: 100
-                }
-            };
-            
-            // Create plot
-            Plotly.newPlot(chartElement, plotData, layout, {responsive: true});
-            
-        } catch (error) {
-            console.error("Error creating model level details chart:", error);
-            this.showErrorMessage(chartElement, error.message);
-        }
-    },
-    
-    /**
-     * Extract data for model level details
-     */
-    extractModelLevelDetailsData: function() {
-        let levels = [];
-        const modelScores = {};
-        const modelNames = {};
-        let metricName = 'Score';
-        
-        if (!window.reportData) return null;
-        
-        // Get metric name
-        if (window.reportConfig && window.reportConfig.metric) {
-            metricName = window.reportConfig.metric;
-        } else if (window.reportData.metric) {
-            metricName = window.reportData.metric;
-        }
-        
-        // Usar níveis diretamente dos dados pré-processados, se disponíveis
-        if (window.reportData.perturbation_chart_data && 
-            window.reportData.perturbation_chart_data.levels && 
-            window.reportData.perturbation_chart_data.levels.length > 0) {
-            
-            levels = window.reportData.perturbation_chart_data.levels.map(l => parseFloat(l));
-            console.log("Usando níveis dos dados pré-processados para gráficos:", levels);
-            
-            // Verificar dados dos modelos alternativos
-            if (window.reportData.perturbation_chart_data.alternativeModels) {
-                const altModels = window.reportData.perturbation_chart_data.alternativeModels;
-                console.log("Modelos alternativos disponíveis:", Object.keys(altModels));
-                
-                // Verificar que cada modelo alternativo tem o mesmo número de scores
-                Object.entries(altModels).forEach(([name, data]) => {
-                    if (data.scores) {
-                        console.log(`Modelo ${name} tem ${data.scores.length} scores para ${levels.length} níveis`);
-                    }
-                });
-            }
-        } else {
-            // Fallback: coletar níveis dos dados raw
-            const allLevels = new Set();
-                
-            // Coletar níveis do modelo principal
-            if (window.reportData.raw && window.reportData.raw.by_level) {
-                Object.keys(window.reportData.raw.by_level)
-                    .forEach(level => allLevels.add(parseFloat(level)));
-            }
-            
-            // Coletar níveis dos modelos alternativos
-            if (window.reportData.alternative_models) {
-                Object.values(window.reportData.alternative_models).forEach(model => {
-                    if (model.raw && model.raw.by_level) {
-                        Object.keys(model.raw.by_level)
-                            .forEach(level => allLevels.add(parseFloat(level)));
-                    }
-                });
-            }
-            
-            // Transformar Set em array e ordenar
-            levels = Array.from(allLevels).sort((a, b) => a - b);
-            console.log("Usando níveis coletados manualmente:", levels);
-        }
-        console.log("Níveis coletados para comparação de modelos:", levels);
-        
-        // Extrair dados do modelo principal
-        if (window.reportData.raw && window.reportData.raw.by_level) {
-            const rawData = window.reportData.raw.by_level;
-            
-            // Verificar primeiro se podemos usar dados pré-processados para o modelo primário
-            let primaryScores;
-            if (window.reportData.perturbation_chart_data && 
-                window.reportData.perturbation_chart_data.scores &&
-                window.reportData.perturbation_chart_data.scores.length === levels.length) {
-                
-                console.log("Usando scores pré-processados para o modelo primário");
-                primaryScores = window.reportData.perturbation_chart_data.scores;
-            } else {
-                // Caso contrário, extrair dos dados raw
-                primaryScores = levels.map(level => {
-                    const levelStr = level.toString();
-                    if (rawData[levelStr] && 
-                        rawData[levelStr].overall_result && 
-                        rawData[levelStr].overall_result.all_features) {
-                        return rawData[levelStr].overall_result.all_features.mean_score;
-                    }
-                    return null;
-                });
-                
-                // Adicionar log para debugging dos valores nulos
-                if (primaryScores.includes(null)) {
-                    console.log("Modelo primário tem valores null:", primaryScores);
-                    console.log("Níveis correspondentes:", levels);
-                    console.log("Dados raw do modelo primário:", JSON.stringify(rawData, null, 2));
-                }
-            }
-            
-            modelScores['primary'] = primaryScores;
-            modelNames['primary'] = window.reportData.model_name || 'Primary Model';
-        }
-        
-        // Adicionar modelos alternativos
-        if (window.reportData.alternative_models) {
-            Object.entries(window.reportData.alternative_models).forEach(([name, data]) => {
-                if (data.raw && data.raw.by_level) {
-                    const rawData = data.raw.by_level;
-                    
-                    // Verificar primeiro se podemos usar dados pré-processados
-                    let scores;
-                    if (window.reportData.perturbation_chart_data && 
-                        window.reportData.perturbation_chart_data.alternativeModels && 
-                        window.reportData.perturbation_chart_data.alternativeModels[name] &&
-                        window.reportData.perturbation_chart_data.alternativeModels[name].scores &&
-                        window.reportData.perturbation_chart_data.alternativeModels[name].scores.length === levels.length) {
-                        
-                        console.log(`Usando scores pré-processados para o modelo alternativo ${name}`);
-                        scores = window.reportData.perturbation_chart_data.alternativeModels[name].scores;
-                    } else {
-                        // Caso contrário, extrair dos dados raw
-                        scores = levels.map(level => {
-                            const levelStr = level.toString();
-                            if (rawData[levelStr] && 
-                                rawData[levelStr].overall_result && 
-                                rawData[levelStr].overall_result.all_features) {
-                                return rawData[levelStr].overall_result.all_features.mean_score;
-                            }
-                            return null;
-                        });
-                        
-                        // Adicionar log para debugging dos valores nulos
-                        if (scores.includes(null)) {
-                            console.log(`Modelo ${name} tem valores null:`, scores);
-                            console.log(`Níveis correspondentes para ${name}:`, levels);
-                            console.log(`Dados raw do modelo ${name}:`, JSON.stringify(rawData, null, 2));
-                        }
-                    }
-                    
-                    modelScores[name] = scores;
-                    modelNames[name] = name;
-                }
-            });
-        }
-        
-        return {
-            levels,
-            modelScores,
-            modelNames,
-            metricName
-        };
-    },
-    
-    /**
-     * Show no data message in chart container
-     * @param {HTMLElement} element - Chart container element
-     * @param {string} message - Message to display
-     */
-    showNoDataMessage: function(element, message) {
-        element.innerHTML = `
-            <div class="data-unavailable">
-                <div class="data-message">
-                    <span class="message-icon">📊</span>
-                    <h3>No Data Available</h3>
-                    <p>${message}</p>
+    renderCRQROverview: function(container, crqrData) {
+        // Prepare chart data
+        const chartData = CRQRDataManager.prepareCoverageChartData(crqrData);
+
+        // Create HTML visualization
+        let html = `
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-bold mb-6 text-gray-800">Uncertainty Quantification Overview</h3>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div class="text-sm text-blue-600 font-medium mb-1">Model</div>
+                        <div class="text-lg font-bold text-blue-900">${crqrData.summary.model_name}</div>
+                        <div class="text-xs text-blue-600 mt-1">${crqrData.summary.model_type}</div>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <div class="text-sm text-purple-600 font-medium mb-1">Uncertainty Score</div>
+                        <div class="text-lg font-bold text-purple-900">${CRQRDataManager.formatNumber(crqrData.summary.uncertainty_score, 4)}</div>
+                        <div class="text-xs text-purple-600 mt-1">Overall assessment</div>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div class="text-sm text-green-600 font-medium mb-1">Alpha Levels Tested</div>
+                        <div class="text-lg font-bold text-green-900">${crqrData.alphas.length}</div>
+                        <div class="text-xs text-green-600 mt-1">Significance levels</div>
+                    </div>
                 </div>
-            </div>`;
+
+                <!-- Coverage Chart -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">Coverage Analysis by Alpha Level</h4>
+                    <div class="space-y-4">
+        `;
+
+        // Add bars for each alpha level
+        chartData.labels.forEach((label, i) => {
+            const expected = chartData.expected[i] * 100;
+            const actual = chartData.actual[i] * 100;
+            const diff = actual - expected;
+            const absGap = Math.abs(diff);
+
+            const borderColor = absGap < 2 ? 'border-green-500' : absGap < 5 ? 'border-yellow-500' : 'border-red-500';
+            const textColor = absGap < 2 ? 'text-green-600' : absGap < 5 ? 'text-yellow-600' : 'text-red-600';
+            const bgColor = absGap < 2 ? 'bg-green-50' : absGap < 5 ? 'bg-yellow-50' : 'bg-red-50';
+
+            html += `
+                <div class="border-l-4 ${borderColor} ${bgColor} p-4 rounded-r-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="text-base font-semibold text-gray-800">${label}</span>
+                            <span class="text-sm text-gray-500 ml-2">(Expected: ${expected.toFixed(1)}%)</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-lg font-bold ${textColor}">${actual.toFixed(2)}%</span>
+                            <span class="text-sm ${textColor} ml-2">${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                    <div class="relative h-8 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="absolute h-full bg-blue-200" style="width: ${expected}%"></div>
+                        <div class="absolute h-full bg-blue-600 opacity-75" style="width: ${actual}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                    </div>
+                    <div class="mt-4 flex items-center justify-end space-x-6 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-6 h-3 bg-blue-200 rounded mr-2"></div>
+                            <span class="text-gray-600">Expected Coverage</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-6 h-3 bg-blue-600 rounded mr-2"></div>
+                            <span class="text-gray-600">Actual Coverage</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interval Width Summary -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">Prediction Interval Width by Alpha</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-${Math.min(crqrData.alphas.length, 3)} gap-4">
+        `;
+
+        // Add width cards for each alpha
+        crqrData.alphas.forEach(alpha => {
+            const alphaKey = alpha.toString();
+            const result = crqrData.results[alphaKey];
+            if (result) {
+                html += `
+                    <div class="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+                        <div class="text-sm text-gray-500 mb-2">α = ${CRQRDataManager.formatNumber(alpha, 2)}</div>
+                        <div class="text-2xl font-bold text-gray-900 mb-1">${CRQRDataManager.formatNumber(result.mean_width, 3)}</div>
+                        <div class="text-xs text-gray-600">Mean Width</div>
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Median:</span>
+                                <span class="font-medium">${CRQRDataManager.formatNumber(result.median_width, 3)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        html += `
+                    </div>
+                </div>
+
+                <!-- Model Metrics -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">Model Performance Metrics</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        `;
+
+        // Add metrics
+        const metrics = crqrData.summary.metrics || {};
+        const metricLabels = {
+            'accuracy': 'Accuracy',
+            'roc_auc': 'ROC AUC',
+            'f1': 'F1 Score',
+            'precision': 'Precision',
+            'recall': 'Recall'
+        };
+
+        Object.keys(metricLabels).forEach(key => {
+            if (metrics[key] !== undefined) {
+                const value = metrics[key];
+                const percentage = (value * 100).toFixed(1);
+                html += `
+                    <div class="bg-gray-50 p-3 rounded-lg text-center">
+                        <div class="text-xs text-gray-500 mb-1">${metricLabels[key]}</div>
+                        <div class="text-lg font-bold text-gray-900">${percentage}%</div>
+                    </div>
+                `;
+            }
+        });
+
+        html += `
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r">
+                    <p class="text-sm text-gray-700">
+                        <strong>About CRQR:</strong> Conformal Quantile Regression provides prediction intervals with
+                        guaranteed coverage. The actual coverage should closely match the expected coverage (1 - α) for
+                        well-calibrated models.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
     },
-    
+
     /**
-     * Show error message in chart container
-     * @param {HTMLElement} element - Chart container element
-     * @param {string} errorMessage - Error message to display
+     * Show "no data" message in container
      */
-    showErrorMessage: function(element, errorMessage) {
-        element.innerHTML = `
-            <div style='padding: 20px; color: red;'>
-                Error creating chart: ${errorMessage}
-            </div>`;
-    },
-    
-    /**
-     * Format score value to a readable string
-     * @param {number} score - The score value to format
-     * @param {number} decimals - Number of decimal places
-     * @returns {string} Formatted score
-     */
-    formatScore: function(score, decimals = 4) {
-        if (score === null || score === undefined) return 'N/A';
-        return score.toFixed(decimals);
+    showNoDataMessage: function(container, message) {
+        container.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">No Data Available</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>${message}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 };
+
+// Export for use in other modules
+if (typeof window !== 'undefined') {
+    window.CRQROverviewChartManager = CRQROverviewChartManager;
+    window.ChartManager = CRQROverviewChartManager; // Alias for compatibility
+}

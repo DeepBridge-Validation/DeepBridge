@@ -1,52 +1,61 @@
 <div class="section">
-    <h2 class="section-title">Detailed Performance Analysis</h2>
-    <p>Detailed analysis of the model's performance under different perturbation types and levels.</p>
-    
-    <!-- Perturbation Results Container -->
-    <div id="perturbation-results-container" class="mt-6">
-        <!-- This container will be populated by PerturbationResultsController -->
-        <div class="loading-indicator">
-            <p>Loading perturbation details...</p>
+    <h2 class="section-title">CRQR Detailed Analysis</h2>
+    <p>Detailed analysis of prediction intervals, coverage, and calibration quality for each alpha level.</p>
+
+    <!-- Coverage Summary Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Coverage Analysis by Alpha Level</h3>
+        <div id="coverage-summary" class="grid gap-4">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading coverage analysis...</p>
+            </div>
         </div>
     </div>
-    
-    <!-- Fallback message when no data is available -->
-    <div class="no-data-message" style="display: none;">
-        <p><strong>Detailed perturbation data not available</strong></p>
-        <p>To see detailed analysis of specific perturbations, select features in your robustness test.</p>
+
+    <!-- Interval Width Analysis Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Prediction Interval Width Analysis</h3>
+        <div id="width-analysis" class="grid gap-4">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading interval width analysis...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Predictions Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Sample Predictions with Intervals</h3>
+        <div id="sample-predictions">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading sample predictions...</p>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Initialize PerturbationResultsController when the page loads
+    // Initialize CRQR Details when the page loads
     document.addEventListener('DOMContentLoaded', function() {
-        // Only initialize if the controller and data manager exist
-        if (typeof PerturbationResultsController !== 'undefined' && 
-            typeof PerturbationResultsManager !== 'undefined') {
-            
-            setTimeout(function() {
-                PerturbationResultsController.init();
-                
-                // Hide the loading indicator
-                const loadingIndicator = document.querySelector('#perturbation-results-container .loading-indicator');
-                if (loadingIndicator) {
-                    loadingIndicator.style.display = 'none';
-                }
-            }, 500); // Short delay to ensure other components are loaded
-        } else {
-            console.error('PerturbationResults components not found');
-            
-            // Show the no-data message
-            const noDataMessage = document.querySelector('.no-data-message');
-            if (noDataMessage) {
-                noDataMessage.style.display = 'block';
+        setTimeout(function() {
+            if (typeof CRQRDetailsController !== 'undefined' &&
+                typeof DetailsController !== 'undefined') {
+                console.log("Initializing CRQR Details...");
+                DetailsController.init();
+            } else {
+                console.error('CRQR Details components not found');
+
+                // Show error message
+                const containers = ['coverage-summary', 'width-analysis', 'sample-predictions'];
+                const errorMsg = '<div class="bg-red-50 border-l-4 border-red-400 p-4"><p class="text-sm text-red-700">Error: CRQR components not loaded</p></div>';
+
+                containers.forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) container.innerHTML = errorMsg;
+                });
             }
-            
-            // Hide the loading indicator
-            const loadingIndicator = document.querySelector('#perturbation-results-container .loading-indicator');
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
-        }
+        }, 300);
     });
 </script>

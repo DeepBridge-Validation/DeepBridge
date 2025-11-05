@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}: {{ model_name }}</title>
+
+    <!-- Plotly library (CDN) -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Alpha Levels:</strong> {{ total_alphas }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Features:</strong> {{ total_features }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Uncertainty Score</span>
+                <span class="metric-card__value" id="metric-uncertainty-score">{{ "%.3f"|format(uncertainty_score) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Alpha Levels</span>
+                <span class="metric-card__value" id="metric-total-alphas">{{ total_alphas }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Coverage</span>
+                <span class="metric-card__value" id="metric-avg-coverage">{{ "%.1f%%"|format(avg_coverage * 100) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Coverage Error</span>
+                <span class="metric-card__value" id="metric-avg-error">{{ "%.3f"|format(avg_coverage_error) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Interval Width</span>
+                <span class="metric-card__value" id="metric-avg-width">{{ "%.3f"|format(avg_width) }}</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="tab-overview">Overview</button>
+            <button class="tab-button" data-tab="tab-by-alpha">By Alpha</button>
+            <button class="tab-button" data-tab="tab-features">Features</button>
+        </div>
+
+        <!-- Tab: Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <h2 class="section-header" style="color: white !important;">Coverage Overview</h2>
+            <div class="chart-container" id="chart-overview"></div>
+
+            <h2 class="section-header" style="color: white !important;">Calibration Analysis</h2>
+            <div class="chart-grid">
+                <div class="chart-container" id="chart-calibration"></div>
+                <div class="chart-container" id="chart-coverage-by-alpha"></div>
+            </div>
+        </div>
+
+        <!-- Tab: By Alpha -->
+        <div id="tab-by-alpha" class="tab-content">
+            <h2 class="section-header" style="color: white !important;">Results by Alpha Level</h2>
+
+            <!-- Alpha Table -->
+            <div class="table-container">
+                <table class="data-table" id="alpha-table" style="color: #333 !important;">
+                    <thead>
+                        <tr>
+                            <th>Alpha</th>
+                            <th>Coverage</th>
+                            <th>Expected</th>
+                            <th>Error</th>
+                            <th>Mean Width</th>
+                            <th>Median Width</th>
+                            <th>MSE</th>
+                            <th>MAE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alpha-table-body" style="color: #333 !important;">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="section-header" style="color: white !important;">Interval Width Analysis</h2>
+            <div class="chart-grid">
+                <div class="chart-container" id="chart-width-analysis"></div>
+                <div class="chart-container" id="chart-boxplot-width"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Features -->
+        <div id="tab-features" class="tab-content">
+            <h2 class="section-header" style="color: white !important;">Feature Importance</h2>
+            <div class="chart-container" id="chart-feature-importance"></div>
+
+            <!-- Feature Table -->
+            <div class="table-container">
+                <table class="data-table" id="feature-table" style="color: #333 !important;">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Feature</th>
+                            <th>Importance</th>
+                            <th>Absolute Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feature-table-body" style="color: #333 !important;">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated with DeepBridge | Uncertainty Quantification Report</p>
+        </div>
+    </div>
+
+    <!-- Data: Centralized in window.reportData -->
+    <script>
+        window.reportData = {{ report_data_json|safe }};
+        console.log("Report data loaded:", window.reportData);
+    </script>
+
+    <!-- Tab Navigation JS -->
+    <script>
+        {{ js_content|safe }}
+    </script>
+
+    <!-- Populate Tables -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const data = window.reportData;
+
+            // Populate alpha table
+            if (data.alphas && data.alphas.length > 0) {
+                const tbody = document.getElementById('alpha-table-body');
+                data.alphas.forEach(alpha => {
+                    const row = document.createElement('tr');
+                    row.style.color = '#333';
+                    row.innerHTML = `
+                        <td style="color: #333 !important;">${alpha.alpha.toFixed(2)}</td>
+                        <td style="color: #333 !important;">${(alpha.coverage * 100).toFixed(1)}%</td>
+                        <td style="color: #333 !important;">${(alpha.expected_coverage * 100).toFixed(1)}%</td>
+                        <td style="color: #333 !important;">${alpha.coverage_error.toFixed(3)}</td>
+                        <td style="color: #333 !important;">${alpha.mean_width.toFixed(3)}</td>
+                        <td style="color: #333 !important;">${alpha.median_width.toFixed(3)}</td>
+                        <td style="color: #333 !important;">${alpha.mse.toFixed(4)}</td>
+                        <td style="color: #333 !important;">${alpha.mae.toFixed(4)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Populate feature table
+            if (data.features && data.features.top_10) {
+                const tbody = document.getElementById('feature-table-body');
+                data.features.top_10.forEach((feature, index) => {
+                    const row = document.createElement('tr');
+                    row.style.color = '#333';
+                    row.innerHTML = `
+                        <td style="color: #333 !important;">${index + 1}</td>
+                        <td style="color: #333 !important;">${feature.name}</td>
+                        <td style="color: #333 !important;">${feature.importance.toFixed(4)}</td>
+                        <td style="color: #333 !important;">${feature.importance_abs.toFixed(4)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

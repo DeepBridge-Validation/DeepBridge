@@ -174,12 +174,12 @@ class InitialResultsTransformer:
     def _normalize_metrics(self, metrics: Dict[str, Any]) -> Dict[str, float]:
         """
         Normalize metrics to ensure consistent format and values.
-        
+
         Parameters:
         -----------
         metrics : Dict[str, Any]
             Raw metrics data
-            
+
         Returns:
         --------
         Dict[str, float]
@@ -187,17 +187,34 @@ class InitialResultsTransformer:
         """
         # Set of standard metrics to ensure are included
         standard_metrics = {'accuracy', 'roc_auc', 'f1', 'precision', 'recall'}
-        
+
         # Initialize with defaults
         normalized = {metric: 0.0 for metric in standard_metrics}
-        
+
         # Update with actual values if available
         for metric, value in metrics.items():
+            # Skip 'error' metric if it contains an error message
+            if metric == 'error' and isinstance(value, str):
+                logger.warning(f"Skipping error metric with message: {value}")
+                continue
+
             try:
-                # Convert to float to ensure consistent type
-                normalized[metric] = float(value)
-            except (ValueError, TypeError):
-                logger.warning(f"Could not convert metric {metric} value to float: {value}")
-                normalized[metric] = 0.0
-        
+                # Handle None values
+                if value is None:
+                    normalized[metric] = 0.0
+                # Handle string representations of numbers
+                elif isinstance(value, str):
+                    # Try to parse numeric string
+                    cleaned_value = value.strip().replace('%', '')
+                    normalized[metric] = float(cleaned_value)
+                else:
+                    # Convert to float to ensure consistent type
+                    normalized[metric] = float(value)
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Could not convert metric {metric} value to float: {value} - {e}")
+                # Don't set a default for metrics that fail to convert
+                # This prevents error messages from being assigned 0.0
+                if metric in standard_metrics:
+                    normalized[metric] = 0.0
+
         return normalized
