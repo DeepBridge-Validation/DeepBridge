@@ -480,3 +480,200 @@ class BaseRenderer:
 
         logger.info(f"Report saved to: {file_path}")
         return file_path
+
+    # ==================================================================================
+    # Template Method Pattern - Phase 2 Consolidation
+    # ==================================================================================
+
+    def _load_template(self, test_type: str, report_type: str = "interactive"):
+        """
+        Load template for specific test type and report type.
+
+        Parameters:
+        -----------
+        test_type : str
+            Type of test ('uncertainty', 'robustness', 'resilience', etc.')
+        report_type : str, optional
+            Type of report ('interactive' or 'static')
+
+        Returns:
+        --------
+        Template : Loaded Jinja2 template
+
+        Raises:
+        -------
+        FileNotFoundError: If template not found
+        """
+        template_paths = self.template_manager.get_template_paths(
+            test_type, report_type
+        )
+        template_path = self.template_manager.find_template(template_paths)
+
+        if not template_path:
+            raise FileNotFoundError(
+                f"Template not found for {test_type}/{report_type}"
+            )
+
+        logger.debug(f"Loading template: {template_path}")
+        return self.template_manager.load_template(template_path)
+
+    def _get_assets(self, test_type: str) -> Dict[str, str]:
+        """
+        Get all assets for report (CSS, JS, images).
+
+        Parameters:
+        -----------
+        test_type : str
+            Type of test ('uncertainty', 'robustness', etc.')
+
+        Returns:
+        --------
+        Dict[str, str] : Dictionary with asset contents:
+            - css_content: Compiled CSS
+            - js_content: JavaScript code
+            - logo: Base64 encoded logo
+            - favicon_base64: Base64 encoded favicon
+        """
+        return {
+            'css_content': self._get_css_content(test_type),
+            'js_content': self._get_js_content(test_type),
+            'logo': self.asset_manager.get_logo_base64(),
+            'favicon_base64': self.asset_manager.get_favicon_base64()
+        }
+
+    def _get_js_content(self, test_type: str) -> str:
+        """
+        Get JavaScript content for report.
+
+        Subclasses can override this to provide custom JS.
+        Default implementation returns basic tab navigation.
+
+        Parameters:
+        -----------
+        test_type : str
+            Type of test (for future use)
+
+        Returns:
+        --------
+        str : JavaScript code
+        """
+        return """
+        // Basic tab navigation
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.dataset.tab;
+
+                    // Deactivate all
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Activate target
+                    button.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing report...');
+
+            // Initialize tabs
+            initTabs();
+
+            // Render charts if data available
+            if (window.reportData && window.reportData.charts) {
+                renderCharts(window.reportData.charts);
+            }
+        });
+
+        function renderCharts(charts) {
+            // Render all Plotly charts
+            for (const [chartName, chartData] of Object.entries(charts)) {
+                const elementId = 'chart-' + chartName.replace(/_/g, '-');
+                const element = document.getElementById(elementId);
+
+                if (element && chartData.data && chartData.data.length > 0) {
+                    // Ensure layout is responsive
+                    const layout = {...chartData.layout};
+                    layout.autosize = true;
+                    delete layout.width; // Remove fixed width
+
+                    // Render with responsive config
+                    Plotly.newPlot(element, chartData.data, layout, {
+                        responsive: true,
+                        displayModeBar: false
+                    }).then(() => {
+                        // Force resize on window resize
+                        window.addEventListener('resize', () => {
+                            Plotly.Plots.resize(element);
+                        });
+                    });
+                }
+            }
+        }
+        """
+
+    def _render_template(self, template, context: Dict[str, Any]) -> str:
+        """
+        Render Jinja2 template with context.
+
+        Parameters:
+        -----------
+        template : Template
+            Loaded Jinja2 template
+        context : Dict[str, Any]
+            Template context variables
+
+        Returns:
+        --------
+        str : Rendered HTML
+        """
+        logger.debug(f"Rendering template with context keys: {list(context.keys())}")
+        return self.template_manager.render_template(template, context)
+
+    def _create_base_context(self, report_data: Dict[str, Any],
+                             test_type: str, assets: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Create base context common to ALL reports.
+
+        This method creates the foundational context that every report needs.
+        Subclasses should call this and then add their specific context.
+
+        Parameters:
+        -----------
+        report_data : Dict[str, Any]
+            Transformed report data
+        test_type : str
+            Type of test ('uncertainty', 'robustness', etc.')
+        assets : Dict[str, str]
+            Pre-loaded assets (from _get_assets)
+
+        Returns:
+        --------
+        Dict[str, Any] : Base context with common fields
+        """
+        import datetime
+
+        return {
+            # Data
+            'report_data': report_data,
+            'report_data_json': self._safe_json_dumps(report_data),
+
+            # Assets
+            'css_content': assets['css_content'],
+            'js_content': assets['js_content'],
+            'logo': assets['logo'],
+            'favicon_base64': assets['favicon_base64'],
+
+            # Metadata
+            'model_name': report_data.get('model_name', 'Model'),
+            'model_type': report_data.get('model_type', 'Unknown'),
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'test_type': test_type,
+            'current_year': datetime.datetime.now().year
+        }

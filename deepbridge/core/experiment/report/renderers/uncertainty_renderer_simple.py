@@ -1,23 +1,23 @@
 """
 Simple renderer for uncertainty reports - Following resilience pattern.
 Uses Plotly for visualizations and single-page template approach.
+
+Refactored in Phase 2 to use BaseRenderer template methods.
 """
 
-import os
-import json
 import logging
 from typing import Dict, Any
 
 logger = logging.getLogger("deepbridge.reports")
 
-# Import CSS Manager
-from ..css_manager import CSSManager
+# Import BaseRenderer
+from .base_renderer import BaseRenderer
 
 
-class UncertaintyRendererSimple:
+class UncertaintyRendererSimple(BaseRenderer):
     """
     Simple renderer for uncertainty experiment reports.
-    Follows the resilience renderer pattern for consistency.
+    Inherits from BaseRenderer to use common template methods (Phase 2).
     """
 
     def __init__(self, template_manager, asset_manager):
@@ -31,11 +31,8 @@ class UncertaintyRendererSimple:
         asset_manager : AssetManager
             Manager for assets (CSS, JS, images)
         """
-        self.template_manager = template_manager
-        self.asset_manager = asset_manager
-
-        # Initialize CSS Manager
-        self.css_manager = CSSManager()
+        # Call parent constructor (initializes css_manager, etc.)
+        super().__init__(template_manager, asset_manager)
 
         # Import data transformer
         from ..transformers.uncertainty_simple import UncertaintyDataTransformerSimple
@@ -77,183 +74,40 @@ class UncertaintyRendererSimple:
             # Transform the data
             report_data = self.data_transformer.transform(results, model_name=model_name)
 
-            # Load template
-            template_path = self._find_template()
-            logger.info(f"Using template: {template_path}")
-            template = self.template_manager.load_template(template_path)
+            # Load template using BaseRenderer method
+            template = self._load_template('uncertainty', report_type)
+            logger.info(f"Template loaded for uncertainty/{report_type}")
 
-            # Get CSS content (inline)
-            css_content = self._get_css_content()
+            # Get all assets using BaseRenderer method
+            assets = self._get_assets('uncertainty')
 
-            # Get JS content (inline) - minimal, just tab navigation
-            js_content = self._get_js_content()
+            # Create base context using BaseRenderer method
+            context = self._create_base_context(report_data, 'uncertainty', assets)
 
-            # Prepare context for template
-            context = {
-                'model_name': report_data['model_name'],
-                'model_type': report_data['model_type'],
+            # Add uncertainty-specific context fields
+            context.update({
                 'report_title': 'Uncertainty Analysis Report',
                 'report_subtitle': 'Conformal Prediction and Calibration',
-
-                # Data as JSON for JavaScript access
-                'report_data_json': self._safe_json_dumps(report_data),
-
-                # CSS and JS inline
-                'css_content': css_content,
-                'js_content': js_content,
-
-                # Summary for display
                 'uncertainty_score': report_data['summary']['uncertainty_score'],
                 'total_alphas': report_data['summary']['total_alphas'],
                 'total_features': report_data['features']['total'],
                 'avg_coverage': report_data['summary']['avg_coverage'],
                 'avg_coverage_error': report_data['summary']['avg_coverage_error'],
                 'avg_width': report_data['summary']['avg_width']
-            }
+            })
 
-            # Render template
-            html_content = self.template_manager.render_template(template, context)
+            # Render template using BaseRenderer method
+            html_content = self._render_template(template, context)
 
-            # Ensure output directory exists
-            output_dir = os.path.dirname(file_path)
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-                logger.info(f"Output directory ensured: {output_dir}")
-
-            # Write to file
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-
-            logger.info(f"Report saved to: {file_path}")
+            # Write HTML using BaseRenderer method
             logger.info(f"Report generated and saved to: {file_path} (type: {report_type})")
-
-            return file_path
+            return self._write_html(html_content, file_path)
 
         except Exception as e:
             logger.error(f"Error generating uncertainty report: {str(e)}")
             raise ValueError(f"Failed to generate uncertainty report: {str(e)}")
 
-    def _find_template(self) -> str:
-        """Find the simple template."""
-        template_path = os.path.join(
-            self.template_manager.templates_dir,
-            'report_types',
-            'uncertainty',
-            'interactive',
-            'index_simple.html'
-        )
-
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"Template not found: {template_path}")
-
-        return template_path
-
-    def _get_css_content(self) -> str:
-        """
-        Get CSS content using CSSManager for uncertainty report.
-
-        Returns:
-        --------
-        str : Compiled CSS (base + components + custom)
-        """
-        try:
-            # Use CSSManager to compile CSS layers
-            compiled_css = self.css_manager.get_compiled_css('uncertainty')
-            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
-            return compiled_css
-        except Exception as e:
-            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
-
-            # Fallback: return minimal CSS if CSSManager fails
-            logger.warning("Using fallback minimal CSS")
-            return """
-            :root {
-                --primary-color: #1b78de;
-                --secondary-color: #2c3e50;
-            }
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                background-color: #f8f9fa;
-                margin: 0;
-                padding: 20px;
-            }
-            """
-
-    def _get_js_content(self) -> str:
-        """Get inline JS content (minimal - just tab navigation)."""
-        js = """
-        // Simple tab navigation
-        function initTabs() {
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const targetTab = button.dataset.tab;
-
-                    // Deactivate all
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-
-                    // Activate target
-                    button.classList.add('active');
-                    document.getElementById(targetTab).classList.add('active');
-                });
-            });
-        }
-
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing uncertainty report...');
-            console.log('Report data:', window.reportData);
-
-            // Initialize tabs
-            initTabs();
-
-            // Render charts if data available
-            if (window.reportData && window.reportData.charts) {
-                renderCharts(window.reportData.charts);
-            }
-        });
-
-        function renderCharts(charts) {
-            // Render all charts
-            for (const [chartName, chartData] of Object.entries(charts)) {
-                const elementId = 'chart-' + chartName.replace(/_/g, '-');
-                const element = document.getElementById(elementId);
-
-                if (element && chartData.data && chartData.data.length > 0) {
-                    // Ensure layout is responsive
-                    const layout = {...chartData.layout};
-                    layout.autosize = true;
-                    delete layout.width; // Remove fixed width if exists
-
-                    // Render with responsive config
-                    Plotly.newPlot(element, chartData.data, layout, {
-                        responsive: true,
-                        displayModeBar: false
-                    }).then(() => {
-                        // Force resize on window resize
-                        window.addEventListener('resize', () => {
-                            Plotly.Plots.resize(element);
-                        });
-                    });
-                }
-            }
-        }
-        """
-        return js
-
-    def _safe_json_dumps(self, data: Dict) -> str:
-        """Safely serialize data to JSON, handling NaN and infinity."""
-        def default_handler(obj):
-            if isinstance(obj, float):
-                if str(obj) == 'nan':
-                    return None
-                elif str(obj) == 'inf':
-                    return None
-                elif str(obj) == '-inf':
-                    return None
-            return str(obj)
-
-        return json.dumps(data, default=default_handler, ensure_ascii=False)
+    # NOTE: All helper methods (_load_template, _get_assets, _get_css_content,
+    # _get_js_content, _safe_json_dumps, _write_html, _render_template,
+    # _create_base_context) are now inherited from BaseRenderer (Phase 2 refactoring).
+    # This eliminates ~180 lines of duplicate code!
