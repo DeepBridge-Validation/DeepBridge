@@ -1,5 +1,7 @@
 """
 Base renderer for generating static HTML reports using Seaborn.
+
+**Phase 3 Sprint 9:** Enhanced with flexible template method pattern for custom charts.
 """
 
 import os
@@ -8,7 +10,7 @@ import tempfile
 import logging
 import datetime
 import io
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Callable
 from pathlib import Path
 
 # Configure logger
@@ -366,7 +368,103 @@ class BaseStaticRenderer:
         # Set labels
         ax.set_xlabel(data.get('x_label', ''))
         ax.set_ylabel(data.get('y_label', ''))
-    
+
+    def generate_custom_chart(
+        self,
+        draw_function: Callable,
+        data: Dict[str, Any],
+        title: Optional[str] = None,
+        figsize: tuple = (10, 6),
+        **kwargs
+    ) -> str:
+        """
+        Generate a custom chart using a provided drawing function (Template Method Pattern).
+
+        **Phase 3 Sprint 9:** Flexible chart generation without modifying base class.
+
+        This method encapsulates all the boilerplate for chart generation:
+        - Figure/axes creation
+        - Drawing (delegates to provided function)
+        - Title configuration
+        - Base64 encoding
+        - Memory cleanup
+
+        Parameters:
+        -----------
+        draw_function : Callable
+            Function that draws the chart. Signature: draw_function(ax, data, **kwargs)
+            The function receives:
+            - ax: matplotlib.axes.Axes to draw on
+            - data: Dict[str, Any] with chart data
+            - **kwargs: Additional parameters passed through
+        data : Dict[str, Any]
+            Data for the chart (passed to draw_function)
+        title : str, optional
+            Chart title
+        figsize : tuple, optional
+            Figure size in inches (width, height), default (10, 6)
+        **kwargs
+            Additional keyword arguments passed to draw_function
+
+        Returns:
+        --------
+        str : Base64 encoded image data URL (data:image/png;base64,...)
+
+        Example:
+        --------
+        >>> def draw_my_chart(ax, data, color='blue'):
+        ...     ax.plot(data['x'], data['y'], color=color)
+        ...     ax.set_xlabel('X Axis')
+        ...     ax.set_ylabel('Y Axis')
+        >>>
+        >>> chart = renderer.generate_custom_chart(
+        ...     draw_my_chart,
+        ...     data={'x': [1,2,3], 'y': [4,5,6]},
+        ...     title='My Custom Chart',
+        ...     color='red'
+        ... )
+
+        Benefits:
+        ---------
+        - Eliminates ~50 lines of boilerplate per custom chart
+        - Consistent error handling and memory management
+        - Subclasses can create charts without modifying base class
+        - Easy to test drawing logic in isolation
+        """
+        if not self.has_visualization_libs:
+            logger.error("Required libraries for visualization not available")
+            return ""
+
+        try:
+            # Create figure and axes
+            fig, ax = self.plt.subplots(figsize=figsize)
+
+            # Call the custom drawing function
+            draw_function(ax, data, **kwargs)
+
+            # Set title if provided
+            if title:
+                ax.set_title(title, fontsize=14, fontweight='bold')
+
+            # Save to buffer
+            buf = io.BytesIO()
+            fig.tight_layout()
+            fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            buf.seek(0)
+
+            # Encode to base64
+            img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+            # Clean up
+            self.plt.close(fig)
+
+            logger.debug(f"Successfully generated custom chart: {title or 'untitled'}")
+            return f"data:image/png;base64,{img_base64}"
+
+        except Exception as e:
+            logger.error(f"Error generating custom chart: {str(e)}", exc_info=True)
+            return ""
+
     def _create_static_context(self, report_data: Dict[str, Any], test_type: str, css_content: str) -> Dict[str, Any]:
         """
         Create template context with common data for static reports.
