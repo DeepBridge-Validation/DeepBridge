@@ -5,6 +5,7 @@ import numpy as np
 import logging
 
 from deepbridge.metrics.classification import Classification
+from deepbridge.metrics.regression import Regression
 from deepbridge.utils.model_registry import ModelType
 from deepbridge.utils.logger import get_logger
 
@@ -248,6 +249,11 @@ class Experiment(IExperiment):
         # Initialize metrics calculator based on experiment type
         if experiment_type == "binary_classification":
             self.metrics_calculator = Classification()
+        elif experiment_type == "regression":
+            self.metrics_calculator = Regression()
+        else:
+            # For forecasting or other types, default to None for now
+            self.metrics_calculator = None
             
         # Initialize results storage and models
         self._results_data = {'train': {}, 'test': {}}

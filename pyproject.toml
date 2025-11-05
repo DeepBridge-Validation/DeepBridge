@@ -61,6 +61,8 @@ pytest-cov = "^6.0.0"
 blue = "^0.9.1"
 isort = "^6.0.0"
 taskipy = "^1.14.1"
+torch = "^2.9.0"
+torchvision = "^0.24.0"
 
 
 [tool.poetry.group.doc.dependencies]
