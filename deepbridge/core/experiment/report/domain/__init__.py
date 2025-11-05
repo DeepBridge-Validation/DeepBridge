@@ -36,6 +36,22 @@ from .uncertainty import (
     AlternativeModelData,
     UncertaintyReportData
 )
+from .robustness import (
+    RobustnessMetrics,
+    PerturbationLevelData,
+    FeatureRobustnessData,
+    RobustnessReportData
+)
+from .resilience import (
+    ResilienceMetrics,
+    ScenarioData,
+    WorstSampleTestData,
+    WorstClusterTestData,
+    OuterSampleTestData,
+    HardSampleTestData,
+    TestTypeSummary,
+    ResilienceReportData
+)
 
 __all__ = [
     'ReportBaseModel',
@@ -43,4 +59,16 @@ __all__ = [
     'CalibrationResults',
     'AlternativeModelData',
     'UncertaintyReportData',
+    'RobustnessMetrics',
+    'PerturbationLevelData',
+    'FeatureRobustnessData',
+    'RobustnessReportData',
+    'ResilienceMetrics',
+    'ScenarioData',
+    'WorstSampleTestData',
+    'WorstClusterTestData',
+    'OuterSampleTestData',
+    'HardSampleTestData',
+    'TestTypeSummary',
+    'ResilienceReportData',
 ]
