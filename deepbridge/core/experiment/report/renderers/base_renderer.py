@@ -23,7 +23,7 @@ class BaseRenderer:
     def __init__(self, template_manager, asset_manager):
         """
         Initialize the renderer.
-        
+
         Parameters:
         -----------
         template_manager : TemplateManager
@@ -33,10 +33,14 @@ class BaseRenderer:
         """
         self.template_manager = template_manager
         self.asset_manager = asset_manager
-        
+
         # Import data transformers
         from ..base import DataTransformer
         self.data_transformer = DataTransformer()
+
+        # Import CSS Manager
+        from ..css_manager import CSSManager
+        self.css_manager = CSSManager()
     
     def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
         """
@@ -393,5 +397,86 @@ class BaseRenderer:
         fixed_content = fixed_content.replace("font-family: &quot;", 'font-family: "')
         fixed_content = fixed_content.replace("&quot;, ", '", ')
         fixed_content = fixed_content.replace("&quot;;", '";')
-        
+
         return fixed_content
+
+    def _get_css_content(self, report_type: str) -> str:
+        """
+        Get compiled CSS content for a specific report type using CSSManager.
+
+        Parameters:
+        -----------
+        report_type : str
+            Type of report ('uncertainty', 'robustness', 'resilience', etc.)
+
+        Returns:
+        --------
+        str : Compiled CSS (base + components + custom for report type)
+        """
+        try:
+            # Use CSSManager to compile CSS layers
+            compiled_css = self.css_manager.get_compiled_css(report_type)
+            logger.info(f"CSS compiled successfully using CSSManager for {report_type}: {len(compiled_css)} chars")
+            return compiled_css
+        except Exception as e:
+            logger.error(f"Error loading CSS with CSSManager for {report_type}: {str(e)}")
+
+            # Fallback: return minimal CSS if CSSManager fails
+            logger.warning(f"Using fallback minimal CSS for {report_type}")
+            return """
+            :root {
+                --primary-color: #1b78de;
+                --secondary-color: #2c3e50;
+                --success-color: #28a745;
+                --danger-color: #dc3545;
+                --background-color: #f8f9fa;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: var(--background-color);
+                margin: 0;
+                padding: 20px;
+            }
+            """
+
+    def _safe_json_dumps(self, data: Dict[str, Any]) -> str:
+        """
+        Safely serialize data to JSON, handling NaN, infinity, and other special values.
+
+        This method is now a wrapper around JsonFormatter for consistency,
+        but kept for backwards compatibility.
+
+        Parameters:
+        -----------
+        data : Dict[str, Any]
+            Data to serialize
+
+        Returns:
+        --------
+        str : JSON string
+        """
+        # Use JsonFormatter for proper handling
+        return JsonFormatter.format_for_javascript(data)
+
+    def _write_html(self, html: str, file_path: str) -> str:
+        """
+        Write HTML content to file.
+
+        Parameters:
+        -----------
+        html : str
+            HTML content to write
+        file_path : str
+            Path where the HTML report will be saved
+
+        Returns:
+        --------
+        str : Path to the written file
+        """
+        self._ensure_output_dir(file_path)
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+
+        logger.info(f"Report saved to: {file_path}")
+        return file_path

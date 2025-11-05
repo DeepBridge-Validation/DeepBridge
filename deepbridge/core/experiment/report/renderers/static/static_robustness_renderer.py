@@ -78,8 +78,8 @@ class StaticRobustnessRenderer:
             
             logger.info(f"Using static template: {template_path}")
             
-            # Get CSS content
-            css_content = self.base_renderer._load_static_css_content()
+            # Get CSS content using CSSManager (via base_renderer)
+            css_content = self.base_renderer._load_static_css_content('robustness')
             
             # Load the template
             template = self.template_manager.load_template(template_path)

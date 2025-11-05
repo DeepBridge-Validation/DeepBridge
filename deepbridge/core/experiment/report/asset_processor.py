@@ -8,6 +8,7 @@ import base64
 import logging
 import re
 from typing import Dict, Any, Optional
+from functools import lru_cache
 
 # Configure logger
 logger = logging.getLogger("deepbridge.reports")
@@ -576,14 +577,18 @@ class AssetProcessor:
             logger.error(f"Error encoding image {image_path}: {str(e)}")
             raise
     
+    @lru_cache(maxsize=1)
     def get_logo_base64(self) -> str:
         """
-        Get base64 encoded logo.
-        
+        Get base64 encoded logo (cached).
+
+        The logo is loaded once and cached for subsequent calls,
+        improving performance when generating multiple reports.
+
         Returns:
         --------
         str : Base64 encoded logo image
-        
+
         Raises:
         -------
         FileNotFoundError: If logo file doesn't exist
@@ -592,14 +597,18 @@ class AssetProcessor:
             raise FileNotFoundError(f"Logo file not found: {self.asset_manager.logo_path}")
         return self.get_base64_image(self.asset_manager.logo_path)
     
+    @lru_cache(maxsize=1)
     def get_favicon_base64(self) -> str:
         """
-        Get base64 encoded favicon.
-        
+        Get base64 encoded favicon (cached).
+
+        The favicon is loaded once and cached for subsequent calls,
+        improving performance when generating multiple reports.
+
         Returns:
         --------
         str : Base64 encoded favicon image
-        
+
         Raises:
         -------
         FileNotFoundError: If favicon file doesn't exist

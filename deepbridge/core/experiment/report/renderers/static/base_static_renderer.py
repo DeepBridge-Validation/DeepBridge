@@ -17,6 +17,9 @@ logger = logging.getLogger("deepbridge.reports")
 # Import JSON formatter
 from ...utils.json_formatter import JsonFormatter
 
+# Import CSS Manager
+from ...css_manager import CSSManager
+
 class BaseStaticRenderer:
     """
     Base class for static report renderers that use Seaborn for visualizations.
@@ -25,7 +28,7 @@ class BaseStaticRenderer:
     def __init__(self, template_manager, asset_manager):
         """
         Initialize the renderer.
-        
+
         Parameters:
         -----------
         template_manager : TemplateManager
@@ -35,11 +38,14 @@ class BaseStaticRenderer:
         """
         self.template_manager = template_manager
         self.asset_manager = asset_manager
-        
+
+        # Initialize CSS Manager
+        self.css_manager = CSSManager()
+
         # Import data transformer base
         from ...base import DataTransformer
         self.data_transformer = DataTransformer()
-        
+
         # Try to import required libraries
         try:
             import seaborn as sns
@@ -432,72 +438,82 @@ class BaseStaticRenderer:
         
         return context
     
-    def _load_static_css_content(self) -> str:
+    def _load_static_css_content(self, report_type: str = "static") -> str:
         """
-        Load and combine CSS files for static reports.
+        Load and combine CSS files for static reports using CSSManager.
+
+        Parameters:
+        -----------
+        report_type : str, optional
+            Type of report (e.g., 'uncertainty', 'robustness', 'resilience')
+            Defaults to 'static' for generic static styles
 
         Returns:
         --------
-        str : Combined CSS content
+        str : Combined CSS content compiled by CSSManager with static additions
         """
         try:
-            # Load main CSS but exclude interactive-specific components for static reports
-            css_dir = self.asset_manager.get_generic_css_path()
-            css_content = ""
+            # Use CSSManager to get compiled CSS for the report type
+            css_content = self.css_manager.get_compiled_css(report_type)
 
-            # Load main.css first
-            main_css_path = os.path.join(css_dir, 'main.css')
-            if os.path.exists(main_css_path):
-                with open(main_css_path, 'r', encoding='utf-8') as f:
-                    css_content = f.read() + "\n\n"
+            # Add static-specific styles and overrides
+            css_content += """
 
-            # Load component CSS but skip charts.css which has interactive-specific styles
-            components_dir = os.path.join(css_dir, 'components')
-            if os.path.exists(components_dir):
-                # List of components to include for static reports
-                static_safe_components = ['buttons', 'cards', 'tables', 'typography', 'utilities', 'messages']
+            /* ========================================================================== */
+            /* STATIC REPORT ADDITIONS */
+            /* ========================================================================== */
 
-                for component in static_safe_components:
-                    component_path = os.path.join(components_dir, f'{component}.css')
-                    if os.path.exists(component_path):
-                        with open(component_path, 'r', encoding='utf-8') as f:
-                            css_content += f"/* ----- {component} ----- */\n"
-                            css_content += f.read() + "\n\n"
+            /* Additional styles for static reports */
+            .chart-container {
+                margin: 2rem 0;
+                text-align: center;
+                display: block !important; /* Override any display:none from interactive CSS */
+            }
 
-            # If we got content, return it with static report additions
-            if css_content:
-                # Add static-specific styles and overrides
-                css_content += """
+            .chart-container img {
+                max-width: 100%;
+                height: auto;
+                border: 1px solid var(--border-color, #ddd);
+                border-radius: 4px;
+            }
 
-                /* Additional styles for static reports */
+            /* Ensure all chart containers are visible in static reports */
+            .chart-container.active,
+            .chart-container {
+                display: block !important;
+            }
+
+            /* Print styles for static reports */
+            @media print {
                 .chart-container {
-                    margin: 2rem 0;
-                    text-align: center;
-                    display: block !important; /* Override any display:none from interactive CSS */
+                    page-break-inside: avoid;
                 }
 
-                .chart-container img {
-                    max-width: 100%;
-                    height: auto;
-                    border: 1px solid var(--border-color);
-                    border-radius: 4px;
+                .section {
+                    page-break-inside: avoid;
                 }
+            }
+            """
 
-                /* Ensure all chart containers are visible in static reports */
-                .chart-container.active,
-                .chart-container {
-                    display: block !important;
-                }
-                """
-                return css_content
+            logger.info(f"CSS compiled successfully using CSSManager for static {report_type} report")
+            return css_content
 
         except Exception as e:
-            # Fall back to basic CSS if loading fails
-            pass
+            logger.warning(f"Error loading CSS with CSSManager: {str(e)}, falling back to basic CSS")
 
-        # Default basic CSS for static reports
+            # Fallback to basic CSS if CSSManager fails
+            return self._get_fallback_static_css()
+
+    def _get_fallback_static_css(self) -> str:
+        """
+        Fallback basic CSS for static reports if CSSManager fails.
+
+        Returns:
+        --------
+        str : Basic CSS content for static reports
+        """
         return """
-        /* Base styles for static reports */
+        /* Fallback base styles for static reports */
         :root {
             --primary-color: #1b78de;
             --secondary-color: #2c3e50;
@@ -514,13 +530,13 @@ class BaseStaticRenderer:
             --card-bg: #fff;
             --header-bg: #ffffff;
         }
-        
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        
+
         html, body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             font-size: 16px;
@@ -528,17 +544,17 @@ class BaseStaticRenderer:
             color: var(--text-color);
             background-color: var(--background-color);
         }
-        
+
         h1, h2, h3, h4, h5, h6 {
             margin-bottom: 1rem;
             font-weight: 500;
             line-height: 1.2;
         }
-        
+
         p {
             margin-bottom: 1rem;
         }
-        
+
         .header {
             background-color: white;
             padding: 1rem;
@@ -546,18 +562,18 @@ class BaseStaticRenderer:
             text-align: center;
             margin-bottom: 2rem;
         }
-        
+
         .header h1 {
             font-size: 1.75rem;
             color: var(--primary-color);
         }
-        
+
         .report-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 1rem;
         }
-        
+
         .section {
             background-color: white;
             border-radius: 8px;
@@ -565,26 +581,26 @@ class BaseStaticRenderer:
             padding: 1.5rem;
             margin-bottom: 2rem;
         }
-        
+
         .section-title {
             border-left: 4px solid var(--primary-color);
             padding-left: 0.75rem;
             margin-bottom: 1.5rem;
             font-size: 1.5rem;
         }
-        
+
         .chart-container {
             margin: 2rem 0;
             text-align: center;
         }
-        
+
         .chart-container img {
             max-width: 100%;
             height: auto;
             border: 1px solid var(--border-color);
             border-radius: 4px;
         }
-        
+
         .metrics-card {
             background-color: white;
             border-radius: 8px;
@@ -592,52 +608,52 @@ class BaseStaticRenderer:
             margin-bottom: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        
+
         .metrics-card h3 {
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
             color: var(--secondary-color);
         }
-        
+
         .metric-value {
             font-size: 2rem;
             font-weight: bold;
             color: var(--primary-color);
         }
-        
+
         .metric-label {
             font-size: 0.875rem;
             color: #666;
         }
-        
+
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             margin: 1.5rem 0;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 1rem 0;
         }
-        
+
         th, td {
             padding: 0.75rem;
             text-align: left;
             border: 1px solid var(--border-color);
         }
-        
+
         th {
             background-color: #f5f5f5;
             font-weight: 600;
         }
-        
+
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-        
+
         .footer {
             text-align: center;
             padding: 2rem 0;
