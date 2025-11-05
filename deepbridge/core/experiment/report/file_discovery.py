@@ -1,15 +1,31 @@
 """
 File discovery module for asset management.
 Discovers and loads files from the templates directory.
+
+**DEPRECATED (Phase 2):** This module is deprecated and will be removed in a future version.
+Use `deepbridge.core.experiment.report.utils.file_utils` instead.
+
+Migration:
+    Old: asset_manager.file_manager._discover_css_files(css_dir)
+    New: file_utils.find_css_files(css_dir)
 """
 
 import os
 import json
 import logging
+import warnings
 from typing import Dict, Any, Optional, List
 
 # Configure logger
 logger = logging.getLogger("deepbridge.reports")
+
+# Deprecation warning
+warnings.warn(
+    "FileDiscoveryManager is deprecated and will be removed in a future version. "
+    "Use deepbridge.core.experiment.report.utils.file_utils instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 class FileDiscoveryManager:
     """

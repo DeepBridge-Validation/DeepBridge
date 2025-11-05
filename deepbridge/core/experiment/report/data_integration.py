@@ -1,14 +1,30 @@
 """
 Data integration module.
 Handles integration with data transformers for report generation.
+
+**DEPRECATED (Phase 2):** This module is deprecated and will be removed in a future version.
+Use `deepbridge.core.experiment.report.utils.json_utils.prepare_data_for_template()` instead.
+
+Migration:
+    Old: data_manager.serialize_data_for_template(data)
+    New: json_utils.prepare_data_for_template(data, test_type)
 """
 
 import json
 import logging
+import warnings
 from typing import Dict, Any
 
 # Configure logger
 logger = logging.getLogger("deepbridge.reports")
+
+# Deprecation warning
+warnings.warn(
+    "DataIntegrationManager is deprecated and will be removed in a future version. "
+    "Use deepbridge.core.experiment.report.utils.json_utils.prepare_data_for_template() instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 class DataIntegrationManager:
     """
