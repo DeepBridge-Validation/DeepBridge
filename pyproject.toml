@@ -53,6 +53,7 @@ dask = {extras = ["distributed"], version = "^2025.3.0"}
 pyarrow = "^19.0.1"
 onnxruntime = "^1.22.1"
 pydantic = "^2.12.4"
+weasyprint = "^66.0"
 
 
 
@@ -64,6 +65,7 @@ isort = "^6.0.0"
 taskipy = "^1.14.1"
 torch = "^2.9.0"
 torchvision = "^0.24.0"
+pytest-asyncio = "^1.2.0"
 
 
 [tool.poetry.group.doc.dependencies]
