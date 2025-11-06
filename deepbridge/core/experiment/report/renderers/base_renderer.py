@@ -7,6 +7,7 @@ import json
 import logging
 import datetime
 import math
+import warnings
 from typing import Dict, Any, Optional
 
 # Configure logger
@@ -114,16 +115,27 @@ class BaseRenderer:
     def _create_serializable_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create a serializable copy of the data with defaults for undefined values.
-        
+
+        .. deprecated:: 2.0
+            This method is deprecated and will be removed in a future version.
+            Use JsonFormatter.format_for_javascript() directly instead.
+
         Parameters:
         -----------
         data : Dict[str, Any]
             Original data dictionary
-            
+
         Returns:
         --------
         Dict[str, Any] : Serializable data
         """
+        warnings.warn(
+            "_create_serializable_data is deprecated and will be removed in a future version. "
+            "Use JsonFormatter.format_for_javascript() directly instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         if data is None:
             return {}
         
@@ -190,16 +202,27 @@ class BaseRenderer:
     def _process_alternative_models(self, alt_models: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process alternative models data to ensure it's serializable.
-        
+
+        .. deprecated:: 2.0
+            This method is deprecated and will be removed in a future version.
+            Use JsonFormatter.format_for_javascript() directly instead.
+
         Parameters:
         -----------
         alt_models : Dict[str, Any]
             Alternative models data
-            
+
         Returns:
         --------
         Dict[str, Any] : Serializable alternative models data
         """
+        warnings.warn(
+            "_process_alternative_models is deprecated and will be removed in a future version. "
+            "Use JsonFormatter.format_for_javascript() directly instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         if not alt_models:
             return {}
             
@@ -245,6 +268,12 @@ class BaseRenderer:
         --------
         Dict[str, Any] : Template context
         """
+        warnings.warn(
+            "_create_context is deprecated. Use _create_base_context() with _get_assets() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         try:
             # Get base64 encoded favicon and logo
             favicon_base64 = self.asset_manager.get_favicon_base64()
@@ -314,6 +343,12 @@ class BaseRenderer:
         --------
         str : Path to the written file
         """
+        warnings.warn(
+            "_write_report is deprecated. Use _write_html() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         # Ensure output directory exists
         self._ensure_output_dir(file_path)
         
