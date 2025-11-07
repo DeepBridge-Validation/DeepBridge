@@ -800,7 +800,7 @@ class FairnessDataTransformerSimple:
             values=counts,
             textposition='inside',
             textinfo='label+percent',
-            hovertemplate='<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percent}<extra></extra>',
+            hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>',
             marker=dict(
                 colors=['#3498db', '#e74c3c', '#2ecc71', '#f39c12'],
                 line=dict(color='white', width=2)
@@ -983,7 +983,7 @@ class FairnessDataTransformerSimple:
             ),
             text=[f"{d:.4f}" for d in df['disparity']],
             textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Disparity: %{x:.4f}<extra></extra>'
+            hovertemplate='<b>%{y}</b><br>Disparity: %{x}<extra></extra>'
         ))
 
         # Add reference lines
@@ -1201,7 +1201,7 @@ class FairnessDataTransformerSimple:
                 y=y_values,
                 text=text_values,
                 textposition='outside',
-                hovertemplate='<b>%{x}</b><br>%{fullData.name}<br>Rate: %{y:.2%}<extra></extra>'
+                hovertemplate='<b>%{x}</b><br>%{fullData.name}<br>Rate: %{y}<extra></extra>'
             ))
 
         fig.update_layout(
@@ -1305,7 +1305,7 @@ class FairnessDataTransformerSimple:
                     text=text_data,
                     textposition='outside',
                     marker=dict(color=colors),
-                    hovertemplate='<b>%{x}</b><br>' + metric_labels[metric_name] + '<br>Value: %{y:.4f}<extra></extra>'
+                    hovertemplate='<b>%{x}</b><br>' + metric_labels[metric_name] + '<br>Value: %{y}<extra></extra>'
                 ))
 
         fig.update_layout(
@@ -1390,7 +1390,7 @@ class FairnessDataTransformerSimple:
                     ),
                     text=[f"{p:.1f}%" for p in percentages],
                     textposition='outside',
-                    hovertemplate='<b>%{x}</b><br>Count: %{y:,}<br>%{text}<extra></extra>',
+                    hovertemplate='<b>%{x}</b><br>Count: %{y}<br>%{text}<extra></extra>',
                     showlegend=False,
                     cliponaxis=False
                 ),
@@ -1601,8 +1601,8 @@ class FairnessDataTransformerSimple:
                         line=dict(color='white', width=1)
                     ),
                     hovertemplate='<b>%{text}</b><br>' +
-                                'FP Rate: %{x:.1%}<br>' +
-                                'FN Rate: %{y:.1%}<br>' +
+                                'FP Rate: %{x}<br>' +
+                                'FN Rate: %{y}<br>' +
                                 '<extra></extra>',
                     customdata=custom_data
                 )
