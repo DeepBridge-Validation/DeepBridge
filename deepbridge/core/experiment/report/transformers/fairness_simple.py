@@ -908,13 +908,13 @@ class FairnessDataTransformerSimple:
         fig.update_layout(
             title={
                 'text': 'Disparate Impact - EEOC 80% Rule Compliance ⚖️',
-                'font': {'size': 20, 'color': 'white'}
+                'font': {'size': 20, 'color': '#2c3e50'}
             },
             height=400,
             showlegend=False,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'}
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)
@@ -1000,7 +1000,7 @@ class FairnessDataTransformerSimple:
             showlegend=False,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             xaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 zerolinecolor='white',
@@ -1101,7 +1101,7 @@ class FairnessDataTransformerSimple:
             y=attr_labels,
             text=text_matrix,
             texttemplate='<b>%{text}</b>',
-            textfont={'size': 20, 'color': 'white'},
+            textfont={'size': 20, 'color': '#ffffff'},
             colorscale=[
                 [0.0, '#e74c3c'],    # Critical - Red
                 [0.5, '#f39c12'],    # Warning - Yellow
@@ -1123,7 +1123,7 @@ class FairnessDataTransformerSimple:
             ),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'}
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)
@@ -1214,7 +1214,7 @@ class FairnessDataTransformerSimple:
             legend_title_text='Group',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1318,7 +1318,7 @@ class FairnessDataTransformerSimple:
             legend_title_text='Metric',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)')
         )
@@ -1419,7 +1419,7 @@ class FairnessDataTransformerSimple:
             showlegend=False,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             margin=dict(t=100, b=80)
         )
 
@@ -1502,7 +1502,7 @@ class FairnessDataTransformerSimple:
             legend_title_text='Metric',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
@@ -1593,12 +1593,12 @@ class FairnessDataTransformerSimple:
                     name=attr,
                     text=text_labels,
                     textposition='top center',
-                    textfont=dict(color='white', size=10),
+                    textfont=dict(color='#2c3e50', size=10),
                     marker=dict(
                         size=marker_sizes,
                         color=colors[i % len(colors)],
                         opacity=0.7,
-                        line=dict(color='white', width=1)
+                        line=dict(color='#2c3e50', width=1)
                     ),
                     hovertemplate='<b>%{text}</b><br>' +
                                 'FP Rate: %{x}<br>' +
@@ -1628,7 +1628,7 @@ class FairnessDataTransformerSimple:
             showlegend=True,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'},
+            font={'color': '#2c3e50'},
             xaxis=dict(
                 title='False Positive Rate',
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1742,7 +1742,7 @@ class FairnessDataTransformerSimple:
             height=500,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'white'}
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)
