@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.53"
+version = "0.1.54"
 description = ""
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
@@ -46,7 +46,6 @@ seaborn = ">=0.12.0"
 jinja2 = ">=3.1.0"
 setuptools = ">=65.0.0"
 plotly = ">=5.14.0"
-ipywidgets = ">=7.7.0"
 statsmodels = ">=0.14.0"
 dask = {extras = ["distributed"], version = ">=2023.5.0"}
 pyarrow = ">=12.0.0"
