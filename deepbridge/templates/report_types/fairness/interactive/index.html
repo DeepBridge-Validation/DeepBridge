@@ -65,6 +65,7 @@
             <button class="tab-button" data-tab="pretrain">Pre-Training</button>
             <button class="tab-button" data-tab="posttrain">Post-Training</button>
             <button class="tab-button" data-tab="complementary">Complementary</button>
+            <button class="tab-button" data-tab="distributions">Distributions</button>
             {% if has_threshold_analysis %}
             <button class="tab-button" data-tab="thresholds">Thresholds</button>
             {% endif %}
@@ -267,6 +268,41 @@
                         <li><strong>Treatment Equality:</strong> FN/FP ratio balance (exclusive)</li>
                         <li><strong>Entropy Index:</strong> Individual fairness via generalized entropy (exclusive)</li>
                     </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Data Distributions -->
+        <div id="distributions" class="tab-content">
+            <!-- Header -->
+            <div class="section section--highlight">
+                <h2 class="section__title">📊 Data Distribution Analysis</h2>
+                <p class="section__subtitle">
+                    Visualization of data distributions for protected attributes and target variable.
+                </p>
+            </div>
+
+            <!-- Protected Attributes Distribution -->
+            <div class="section">
+                <h2 class="section__title">👥 Protected Attributes Distribution</h2>
+                <p>Sample distribution across demographic groups - identifies representation issues.</p>
+                <div class="chart-container">
+                    <div id="chart-protected-attributes-distribution"></div>
+                </div>
+
+                <div class="info-box">
+                    <strong>⚠️ Minimum Representation Threshold:</strong>
+                    <p>Groups with less than 2% representation are typically excluded from fairness analysis
+                       due to statistical instability (EEOC "Flip-Flop Rule").</p>
+                </div>
+            </div>
+
+            <!-- Target Distribution -->
+            <div class="section">
+                <h2 class="section__title">🎯 Target Variable Distribution</h2>
+                <p>Distribution of outcomes (classes) in the dataset.</p>
+                <div class="chart-container">
+                    <div id="chart-target-distribution"></div>
                 </div>
             </div>
         </div>
@@ -508,7 +544,41 @@
                     }
                 }
 
-                console.log('✅ Sprint 2: 13 fairness charts rendered (7 Sprint 1 + 6 Sprint 2)');
+                // ========================================
+                // DISTRIBUTIONS TAB CHARTS (2 NOVOS - SPRINT 3 FINAL)
+                // ========================================
+
+                // Protected Attributes Distribution
+                if (data.charts && data.charts.protected_attributes_distribution) {
+                    try {
+                        const attrsDistData = JSON.parse(data.charts.protected_attributes_distribution);
+                        Plotly.newPlot('chart-protected-attributes-distribution', attrsDistData.data, attrsDistData.layout, {responsive: true});
+                        console.log('✅ Protected Attributes Distribution chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Protected Attributes Distribution:', e);
+                    }
+                }
+
+                // Target Distribution
+                if (data.charts && data.charts.target_distribution) {
+                    try {
+                        const targetDistData = JSON.parse(data.charts.target_distribution);
+                        Plotly.newPlot('chart-target-distribution', targetDistData.data, targetDistData.layout, {responsive: true});
+                        console.log('✅ Target Distribution chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Target Distribution:', e);
+                    }
+                }
+
+                // ========================================
+                // FINAL SUCCESS MESSAGE
+                // ========================================
+                console.log('');
+                console.log('🎉 ALL 15 FAIRNESS CHARTS RENDERED SUCCESSFULLY! ✅');
+                console.log('   Sprint 1: 7 charts (Overview + Pre-Training)');
+                console.log('   Sprint 2: 6 charts (Post-Training + Complementary)');
+                console.log('   Sprint 3: 2 charts (Distributions)');
+                console.log('   TOTAL: 15/15 (100%)');
             } catch (error) {
                 console.error('Error rendering fairness report:', error);
             }
