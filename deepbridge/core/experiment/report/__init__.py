@@ -1,6 +1,8 @@
 """
 Report generation package for experiment results.
 Provides functionality for generating HTML reports from experiment results.
+
+Phase 4 includes multi-format adapters (PDF, Markdown) and async batch generation.
 """
 
 from .base import DataTransformer
@@ -17,6 +19,17 @@ from .asset_processor import AssetProcessor
 from .data_integration import DataIntegrationManager
 from .template_manager import TemplateManager
 from .js_syntax_fixer import JavaScriptSyntaxFixer
+
+# Phase 4: Async generation
+from .async_generator import (
+    AsyncReportGenerator,
+    ReportTask,
+    ProgressTracker,
+    ExecutorType,
+    TaskStatus,
+    generate_report_async,
+    generate_reports_async
+)
 
 # Factory function to get the appropriate transformer for a report type
 def get_transformer(report_type):
@@ -62,5 +75,13 @@ __all__ = [
     'DataIntegrationManager',
     'TemplateManager',
     'JavaScriptSyntaxFixer',
-    'get_transformer'
+    'get_transformer',
+    # Phase 4 async generation
+    'AsyncReportGenerator',
+    'ReportTask',
+    'ProgressTracker',
+    'ExecutorType',
+    'TaskStatus',
+    'generate_report_async',
+    'generate_reports_async',
 ]

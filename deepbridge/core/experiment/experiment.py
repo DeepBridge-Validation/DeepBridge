@@ -670,18 +670,19 @@ class Experiment(IExperiment):
             }
         }
 
-    def save_html(self, test_type: str, file_path: str, model_name: str = None) -> str:
+    def save_html(self, test_type: str, file_path: str, model_name: str = None, report_type: str = "interactive") -> str:
         """
         Generate and save an HTML report for the specified test.
-        
+
         Args:
             test_type: Type of test ('robustness', 'uncertainty', 'resilience', 'hyperparameter')
             file_path: Path where the HTML report will be saved (relative or absolute)
             model_name: Name of the model for display in the report. If None, uses dataset name if available
-            
+            report_type: Type of report to generate ('interactive' with Plotly or 'static' with Matplotlib). Default: 'interactive'
+
         Returns:
             Path to the generated report file
-            
+
         Raises:
             ValueError: If test results not found or report generation fails
         """
@@ -704,7 +705,7 @@ class Experiment(IExperiment):
         
         # If we already have an ExperimentResult object from run_tests(), use that
         if hasattr(self, '_experiment_result') and isinstance(self._experiment_result, ExperimentResult):
-            return self._experiment_result.save_html(test_type, file_path, model_name or self._get_model_name())
+            return self._experiment_result.save_html(test_type, file_path, model_name or self._get_model_name(), report_type=report_type)
         
         # Otherwise, create a new experiment result object
         combined_results = {
@@ -716,7 +717,7 @@ class Experiment(IExperiment):
         
         # Create an ExperimentResult and use its save_html method
         experiment_result = wrap_results(combined_results)
-        return experiment_result.save_html(test_type, file_path, model_name or self._get_model_name())
+        return experiment_result.save_html(test_type, file_path, model_name or self._get_model_name(), report_type=report_type)
     
     def _get_model_name(self) -> str:
         """Get a displayable model name"""

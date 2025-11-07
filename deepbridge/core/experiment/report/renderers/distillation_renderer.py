@@ -12,6 +12,9 @@ logger = logging.getLogger("deepbridge.reports")
 # Import JSON formatter
 from ..utils.json_formatter import JsonFormatter
 
+# Import CSS Manager
+from ..css_manager import CSSManager
+
 
 class DistillationRenderer:
     """
@@ -33,6 +36,9 @@ class DistillationRenderer:
         self.base_renderer = BaseRenderer(template_manager, asset_manager)
         self.template_manager = template_manager
         self.asset_manager = asset_manager
+
+        # Initialize CSS Manager
+        self.css_manager = CSSManager()
 
         # Import data transformer
         from ..transformers.distillation import DistillationDataTransformer
@@ -161,18 +167,27 @@ class DistillationRenderer:
 
     def _load_css_content(self) -> str:
         """
-        Load and combine CSS files for the distillation report.
+        Load and combine CSS files for the distillation report using CSSManager.
 
         Returns:
         --------
-        str : Combined CSS content
+        str : Combined CSS content (base + components + custom)
         """
         try:
-            # Use the asset manager's combined CSS content method (like robustness)
-            css_content = self.asset_manager.get_combined_css_content("distillation")
+            # Use CSSManager to compile CSS (base + components + custom)
+            compiled_css = self.css_manager.get_compiled_css('distillation')
+            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
+            return compiled_css
+        except Exception as e:
+            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
 
-            # Add default styles to ensure report functionality even if external CSS is missing
-            default_css = """
+            # Fallback: try to load CSS from asset manager if CSSManager fails
+            try:
+                logger.warning("Falling back to asset_manager for CSS loading")
+                css_content = self.asset_manager.get_combined_css_content("distillation")
+
+                # Add default styles to ensure report functionality even if external CSS is missing
+                default_css = """
             /* Base variables and reset */
             :root {
                 --primary-color: #1b78de;
@@ -230,27 +245,12 @@ class DistillationRenderer:
             }
             """
 
-            # Only add defaults if we don't have any content
-            if not css_content.strip():
-                css_content = default_css
-
-            return css_content
-
-        except Exception as e:
-            logger.error(f"Error loading CSS content: {e}")
-            # Return minimal CSS to ensure report displays
-            return """
-            :root {
-                --primary-color: #1b78de;
-                --text-color: #333;
-                --background-color: #f8f9fa;
-            }
-            body {
-                font-family: sans-serif;
-                color: var(--text-color);
-                background: var(--background-color);
-            }
-            """
+                # Combine default CSS with loaded CSS
+                combined_css = default_css + "\n\n" + css_content
+                return combined_css
+            except Exception as fallback_error:
+                logger.error(f"Fallback CSS loading also failed: {str(fallback_error)}")
+                return ""
 
     def _load_js_content(self) -> str:
         """Load and combine JavaScript content for the distillation report."""

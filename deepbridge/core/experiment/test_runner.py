@@ -615,7 +615,36 @@ class TestRunner:
                 metric_param='metric'
             )
             print("✅ Hyperparameter Tests Finished!")
-        
+
+        # Run fairness tests if requested
+        if "fairness" in self.tests:
+            from deepbridge.validation.wrappers.fairness_suite import FairnessSuite
+            self.logger.info("Starting fairness tests...")
+
+            # Get protected attributes from kwargs
+            protected_attributes = kwargs.get('sensitive_features', kwargs.get('protected_attributes', []))
+
+            if not protected_attributes:
+                self.logger.warning("No protected attributes provided for fairness test. Skipping.")
+            else:
+                try:
+                    # Initialize fairness suite
+                    fairness = FairnessSuite(
+                        dataset=self.dataset,
+                        protected_attributes=protected_attributes,
+                        verbose=False
+                    )
+
+                    # Run fairness test with config
+                    fairness_config = kwargs.get('config', config_name)
+                    fairness_result = fairness.config(fairness_config).run()
+
+                    results['fairness'] = fairness_result
+                    print("✅ Fairness Tests Finished!")
+                except Exception as e:
+                    self.logger.error(f"Error running fairness tests: {e}")
+                    results['fairness'] = {}
+
         # Store results in the object for future reference
         self.test_results.update(results)
         

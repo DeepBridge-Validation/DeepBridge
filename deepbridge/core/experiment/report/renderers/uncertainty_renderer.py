@@ -9,6 +9,9 @@ from typing import Dict, Any, Optional, List
 # Configure logger
 logger = logging.getLogger("deepbridge.reports")
 
+# Import CSS Manager
+from ..css_manager import CSSManager
+
 class UncertaintyRenderer:
     """
     Renderer for uncertainty test reports.
@@ -29,6 +32,9 @@ class UncertaintyRenderer:
         self.base_renderer = BaseRenderer(template_manager, asset_manager)
         self.template_manager = template_manager
         self.asset_manager = asset_manager
+
+        # Initialize CSS Manager
+        self.css_manager = CSSManager()
 
         # Import specific data transformer
         from ..transformers.uncertainty import UncertaintyDataTransformer
@@ -165,18 +171,27 @@ class UncertaintyRenderer:
 
     def _load_css_content(self) -> str:
         """
-        Load and combine CSS files for the uncertainty report.
+        Load and combine CSS files for the uncertainty report using CSSManager.
 
         Returns:
         --------
-        str : Combined CSS content
+        str : Combined CSS content (base + components + custom)
         """
         try:
-            # Use the asset manager's combined CSS content method
-            css_content = self.asset_manager.get_combined_css_content("uncertainty")
+            # Use CSSManager to compile CSS (base + components + custom)
+            compiled_css = self.css_manager.get_compiled_css('uncertainty')
+            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
+            return compiled_css
+        except Exception as e:
+            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
 
-            # Add default styles to ensure report functionality even if external CSS is missing
-            default_css = """
+            # Fallback: try to load CSS from asset manager if CSSManager fails
+            try:
+                logger.warning("Falling back to asset_manager for CSS loading")
+                css_content = self.asset_manager.get_combined_css_content("uncertainty")
+
+                # Add default styles to ensure report functionality even if external CSS is missing
+                default_css = """
             /* Base variables and reset */
             :root {
                 --primary-color: #1b78de;
@@ -367,12 +382,12 @@ class UncertaintyRenderer:
             }
             """
 
-            # Combine default CSS with loaded CSS
-            combined_css = default_css + "\n\n" + css_content
-            return combined_css
-        except Exception as e:
-            logger.error(f"Error loading CSS: {str(e)}")
-            return ""
+                # Combine default CSS with loaded CSS
+                combined_css = default_css + "\n\n" + css_content
+                return combined_css
+            except Exception as fallback_error:
+                logger.error(f"Fallback CSS loading also failed: {str(fallback_error)}")
+                return ""
 
     def _load_js_content(self) -> str:
         """

@@ -3,79 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepBridge {{ report_type|capitalize }} Report: {{ report_data.model_name }}</title>
-    
-    <!-- Favicon -->
-    {% if favicon_base64 %}
-    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
-    {% endif %}
-    
-    <!-- Plotly library -->
-    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
-    
-    <!-- CSS combinado -->
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
     <style>
-        {{ css_content }}
+        {{ css_content|safe }}
     </style>
 </head>
 <body>
-    <div class="report-container {{ report_type }}-report">
-        <!-- Header comum -->
-        {% include 'common/header.html' %}
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Method:</strong> {{ method|default('Conformal Prediction') }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Alpha Levels:</strong> {{ alpha_levels|length if alpha_levels else 0 }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Features:</strong> {{ features|length if features else 0 }}
+                </span>
+            </div>
+        </div>
 
-        <!-- Navegação em abas usando componente comum -->
-        {% with 
-            tabs=[
-                {'id': 'overview', 'title': 'Overview'},
-                {'id': 'details', 'title': 'Details'},
-                {'id': 'boxplot', 'title': 'Box Plot'},
-                {'id': 'feature_impact', 'title': 'Feature Importance'},
-                {'id': 'model_features', 'title': 'Model Features'}
-            ]
-        %}
-        {% include 'common/navigation.html' %}
-        {% endwith %}
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Base Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(base_score|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Uncertainty Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(uncertainty_score|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Coverage</span>
+                <span class="metric-card__value">{{ "%.4f"|format(avg_coverage|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Calibration Error</span>
+                <span class="metric-card__value">{{ "%.4f"|format(calibration_error|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Width</span>
+                <span class="metric-card__value">{{ "%.4f"|format(avg_width|default(0)) }}</span>
+            </div>
+        </div>
 
-        <!-- Conteúdo das abas -->
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="coverage">Coverage Analysis</button>
+            <button class="tab-button" data-tab="features">Feature Impact</button>
+            <button class="tab-button" data-tab="calibration">Calibration</button>
+        </div>
+
+        <!-- Tab Content -->
         <div id="overview" class="tab-content active">
-            {% include 'partials/overview.html' %}
+            <div class="section">
+                <h2 class="section__title">Uncertainty Quantification Overview</h2>
+                <p>This report analyzes the model's uncertainty quantification performance using prediction intervals.</p>
+                <div class="chart-container">
+                    <div id="chart-overview"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Coverage vs Width Trade-off</h2>
+                <p>Balance between prediction interval coverage and width across confidence levels.</p>
+                <div class="chart-container">
+                    <div id="chart-tradeoff"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="details" class="tab-content">
-            {% include 'partials/details.html' %}
+        <div id="coverage" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Coverage by Alpha Level</h2>
+                <p>Coverage rates across different confidence levels.</p>
+                <div class="chart-container">
+                    <div id="chart-coverage"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Detailed Coverage Statistics</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Alpha</th>
+                                <th>Target Coverage</th>
+                                <th>Actual Coverage</th>
+                                <th>Avg Width</th>
+                                <th>Calibration Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coverage-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <div id="boxplot" class="tab-content">
-            {% include 'partials/boxplot.html' %}
+        <div id="features" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Feature Impact on Uncertainty</h2>
+                <p>Features that most influence prediction interval width.</p>
+                <div class="chart-container">
+                    <div id="chart-features"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Feature Details</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Avg Width Impact</th>
+                                <th>Coverage Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="features-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <div id="feature_impact" class="tab-content">
-            {% include 'partials/features.html' %}
-        </div>
+        <div id="calibration" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Calibration Analysis</h2>
+                <p>Calibration curve showing predicted vs actual coverage.</p>
+                <div class="chart-container">
+                    <div id="chart-calibration"></div>
+                </div>
+            </div>
 
-        <div id="model_features" class="tab-content">
-            {% include 'partials/model_features.html' %}
+            <div class="section">
+                <h2 class="section__title">Interval Width Distribution</h2>
+                <p>Distribution of prediction interval widths.</p>
+                <div class="chart-container">
+                    <div id="chart-width-distribution"></div>
+                </div>
+            </div>
         </div>
-        
-        <!-- Footer comum -->
-        {% include 'common/footer.html' %}
     </div>
 
-    <!-- Inicialização de dados do relatório -->
+    <!-- Report Data -->
     <script>
-        // Disponibilizar dados do relatório para os componentes
         window.reportData = {{ report_data_json|safe }};
-        
-        // Configuração do relatório
-        window.reportConfig = {
-            reportType: '{{ report_type }}',
-            modelName: '{{ report_data.model_name }}'
-        };
+        console.log('Uncertainty report data loaded:', window.reportData);
     </script>
-    
-    <!-- Scripts combinados -->
+
+    <!-- Tab Navigation JS -->
     <script>
-        {{ js_content }}
+        {{ js_content|safe }}
+    </script>
+
+    <!-- Charts Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const data = window.reportData;
+
+                // Render Overview Chart
+                if (data.charts && data.charts.overview) {
+                    const overviewData = JSON.parse(data.charts.overview);
+                    Plotly.newPlot('chart-overview', overviewData.data, overviewData.layout, {responsive: true});
+                }
+
+                // Render Coverage Chart
+                if (data.charts && data.charts.coverage) {
+                    const coverageData = JSON.parse(data.charts.coverage);
+                    Plotly.newPlot('chart-coverage', coverageData.data, coverageData.layout, {responsive: true});
+                }
+
+                // Render Trade-off Chart
+                if (data.charts && data.charts.tradeoff) {
+                    const tradeoffData = JSON.parse(data.charts.tradeoff);
+                    Plotly.newPlot('chart-tradeoff', tradeoffData.data, tradeoffData.layout, {responsive: true});
+                }
+
+                // Render Feature Impact Chart
+                if (data.charts && data.charts.features) {
+                    const featuresData = JSON.parse(data.charts.features);
+                    Plotly.newPlot('chart-features', featuresData.data, featuresData.layout, {responsive: true});
+                }
+
+                // Render Calibration Chart
+                if (data.charts && data.charts.calibration) {
+                    const calibData = JSON.parse(data.charts.calibration);
+                    Plotly.newPlot('chart-calibration', calibData.data, calibData.layout, {responsive: true});
+                }
+
+                // Render Width Distribution
+                if (data.charts && data.charts.width_distribution) {
+                    const widthData = JSON.parse(data.charts.width_distribution);
+                    Plotly.newPlot('chart-width-distribution', widthData.data, widthData.layout, {responsive: true});
+                }
+
+                // Populate Coverage Table
+                if (data.alpha_results && data.alpha_results.length > 0) {
+                    const tbody = document.getElementById('coverage-table-body');
+                    data.alpha_results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${result.alpha.toFixed(2)}</td>
+                            <td style="color: #333 !important;">${((1 - result.alpha) * 100).toFixed(1)}%</td>
+                            <td style="color: #333 !important;">${(result.coverage * 100).toFixed(1)}%</td>
+                            <td style="color: #333 !important;">${result.avg_width.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${result.calibration_error.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Populate Features Table
+                if (data.feature_impacts && data.feature_impacts.length > 0) {
+                    const tbody = document.getElementById('features-table-body');
+                    data.feature_impacts.forEach(feature => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${feature.name}</td>
+                            <td style="color: #333 !important;">${feature.width_impact.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${feature.coverage_impact.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                console.log('All uncertainty charts and tables rendered successfully');
+            } catch (error) {
+                console.error('Error rendering uncertainty report:', error);
+            }
+        });
     </script>
 </body>
 </html>

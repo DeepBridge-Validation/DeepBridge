@@ -460,7 +460,8 @@ class FairnessDataTransformerSimple:
             height=500,
             showlegend=True,
             legend_title_text='Status',
-            font=dict(size=11)
+            font=dict(size=11, color='#2c3e50'),
+            template='plotly_white'
         )
 
         # Add reference line at 0.1
@@ -521,7 +522,9 @@ class FairnessDataTransformerSimple:
             ),
             showlegend=True,
             title='Fairness Radar Chart (1.0 = Perfect Fairness)',
-            height=500
+            height=500,
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)
@@ -771,7 +774,9 @@ class FairnessDataTransformerSimple:
             uniformtext=dict(
                 mode='hide',
                 minsize=8
-            )
+            ),
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)
@@ -810,7 +815,9 @@ class FairnessDataTransformerSimple:
         fig.update_layout(
             title='Target Variable Distribution',
             height=400,
-            showlegend=True
+            showlegend=True,
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)
@@ -914,7 +921,8 @@ class FairnessDataTransformerSimple:
             showlegend=False,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'}
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)
@@ -1001,6 +1009,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             xaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 zerolinecolor='white',
@@ -1123,7 +1132,8 @@ class FairnessDataTransformerSimple:
             ),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'}
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)
@@ -1215,6 +1225,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1319,6 +1330,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)')
         )
@@ -1420,6 +1432,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             margin=dict(t=100, b=80)
         )
 
@@ -1503,6 +1516,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
@@ -1629,6 +1643,7 @@ class FairnessDataTransformerSimple:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#2c3e50'},
+            template='plotly_white',
             xaxis=dict(
                 title='False Positive Rate',
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1742,7 +1757,8 @@ class FairnessDataTransformerSimple:
             height=500,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'}
+            font={'color': '#2c3e50'},
+            template='plotly_white'
         )
 
         return pio.to_json(fig)

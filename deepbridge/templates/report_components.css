@@ -29,11 +29,11 @@
    ============================================================================ */
 
 .report-header {
-    background: var(--primary-gradient);
+    background: var(--header-bg);
     color: white;
     padding: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
-    border-radius: 0;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
 }
 

@@ -102,10 +102,43 @@ class BaseTestResult(TestResult):
 
 class RobustnessResult(BaseTestResult):
     """Result object for robustness tests"""
-    
+
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Robustness", results, metadata)
-    
+
+    def save_html(self, file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+        """
+        Generate and save an HTML report for robustness analysis.
+
+        Args:
+            file_path: Path where the HTML report will be saved
+            model_name: Name of the model for display in the report
+            report_type: Type of report to generate ('interactive' with Plotly or 'static' with Matplotlib)
+
+        Returns:
+            Path to the generated report file
+
+        Example:
+            >>> robustness_result = experiment.run_test('robustness')
+            >>> robustness_result.save_html('robustness_interactive.html', 'My Model', report_type='interactive')
+            >>> robustness_result.save_html('robustness_static.html', 'My Model', report_type='static')
+        """
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+
+        # Create report manager
+        report_manager = ReportManager()
+
+        # Generate HTML report
+        report_path = report_manager.generate_report(
+            test_type='robustness',
+            results=self._results,
+            file_path=file_path,
+            model_name=model_name,
+            report_type=report_type
+        )
+
+        return report_path
+
     def clean_results_dict(self) -> dict:
         """Implement specific cleaning for robustness results"""
         cleaned = super().clean_results_dict()
@@ -141,16 +174,82 @@ class RobustnessResult(BaseTestResult):
 
 class UncertaintyResult(BaseTestResult):
     """Result object for uncertainty tests"""
-    
+
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Uncertainty", results, metadata)
+
+    def save_html(self, file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+        """
+        Generate and save an HTML report for uncertainty analysis.
+
+        Args:
+            file_path: Path where the HTML report will be saved
+            model_name: Name of the model for display in the report
+            report_type: Type of report to generate ('interactive' with Plotly or 'static' with Matplotlib)
+
+        Returns:
+            Path to the generated report file
+
+        Example:
+            >>> uncertainty_result = experiment.run_test('uncertainty')
+            >>> uncertainty_result.save_html('uncertainty_interactive.html', 'My Model', report_type='interactive')
+            >>> uncertainty_result.save_html('uncertainty_static.html', 'My Model', report_type='static')
+        """
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+
+        # Create report manager
+        report_manager = ReportManager()
+
+        # Generate HTML report
+        report_path = report_manager.generate_report(
+            test_type='uncertainty',
+            results=self._results,
+            file_path=file_path,
+            model_name=model_name,
+            report_type=report_type
+        )
+
+        return report_path
 
 
 class ResilienceResult(BaseTestResult):
     """Result object for resilience tests"""
-    
+
     def __init__(self, results: dict, metadata: t.Optional[dict] = None):
         super().__init__("Resilience", results, metadata)
+
+    def save_html(self, file_path: str, model_name: str = "Model", report_type: str = "interactive") -> str:
+        """
+        Generate and save an HTML report for resilience analysis.
+
+        Args:
+            file_path: Path where the HTML report will be saved
+            model_name: Name of the model for display in the report
+            report_type: Type of report to generate ('interactive' with Plotly or 'static' with Matplotlib)
+
+        Returns:
+            Path to the generated report file
+
+        Example:
+            >>> resilience_result = experiment.run_test('resilience')
+            >>> resilience_result.save_html('resilience_interactive.html', 'My Model', report_type='interactive')
+            >>> resilience_result.save_html('resilience_static.html', 'My Model', report_type='static')
+        """
+        from deepbridge.core.experiment.report.report_manager import ReportManager
+
+        # Create report manager
+        report_manager = ReportManager()
+
+        # Generate HTML report
+        report_path = report_manager.generate_report(
+            test_type='resilience',
+            results=self._results,
+            file_path=file_path,
+            model_name=model_name,
+            report_type=report_type
+        )
+
+        return report_path
 
 
 class HyperparameterResult(BaseTestResult):
