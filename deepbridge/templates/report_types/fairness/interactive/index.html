@@ -63,6 +63,8 @@
         <div class="tab-navigation">
             <button class="tab-button active" data-tab="overview">Overview</button>
             <button class="tab-button" data-tab="pretrain">Pre-Training</button>
+            <button class="tab-button" data-tab="posttrain">Post-Training</button>
+            <button class="tab-button" data-tab="complementary">Complementary</button>
             {% if has_threshold_analysis %}
             <button class="tab-button" data-tab="thresholds">Thresholds</button>
             {% endif %}
@@ -152,6 +154,119 @@
                 <p>Positive class rate comparison - detects outcome imbalance in training data.</p>
                 <div class="chart-container">
                     <div id="chart-pretrain-concept-balance"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Post-Training Detailed Analysis -->
+        <div id="posttrain" class="tab-content">
+            <!-- Header -->
+            <div class="section section--highlight">
+                <h2 class="section__title">⚖️ Post-Training Detailed Analysis</h2>
+                <p class="section__subtitle">
+                    Advanced fairness metrics after model training, including EEOC compliance monitoring.
+                </p>
+            </div>
+
+            <!-- Disparate Impact Gauge (CRÍTICO) -->
+            <div class="section">
+                <h2 class="section__title">🎯 Disparate Impact - EEOC 80% Rule</h2>
+                <p><strong>CRITICAL LEGAL METRIC:</strong> Shows compliance with EEOC 80% rule (4/5ths rule).</p>
+                <div class="chart-container">
+                    <div id="chart-posttrain-disparate-impact-gauge"></div>
+                </div>
+
+                <div class="info-box">
+                    <strong>⚖️ EEOC 80% Rule:</strong>
+                    <p>The selection rate for any protected group should be at least 80% of the rate for the highest group.
+                       Ratios below 0.8 may indicate adverse impact and potential legal issues.</p>
+                    <ul>
+                        <li>🟢 <strong>≥0.8:</strong> COMPLIANT - Passes EEOC test</li>
+                        <li>🟡 <strong>0.7-0.8:</strong> WARNING - Borderline compliance</li>
+                        <li>🔴 <strong>&lt;0.7:</strong> CRITICAL - High legal risk</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Statistical Parity Disparity Comparison -->
+            <div class="section">
+                <h2 class="section__title">📊 Statistical Parity - Disparity Analysis</h2>
+                <p>Shows how far each attribute deviates from perfect fairness (0.0 = perfect).</p>
+                <div class="chart-container">
+                    <div id="chart-posttrain-disparity-comparison"></div>
+                </div>
+            </div>
+
+            <!-- Compliance Status Matrix -->
+            <div class="section">
+                <h2 class="section__title">🚦 Compliance Status Matrix</h2>
+                <p>Executive dashboard showing compliance status across all main metrics.</p>
+                <div class="chart-container">
+                    <div id="chart-posttrain-status-matrix"></div>
+                </div>
+
+                <div class="legend-box">
+                    <strong>Legend:</strong>
+                    <span class="badge badge-success">✓ Pass</span>
+                    <span class="badge badge-warning">⚠ Warning</span>
+                    <span class="badge badge-critical">✗ Critical</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Complementary Metrics -->
+        <div id="complementary" class="tab-content">
+            <!-- Header -->
+            <div class="section section--highlight">
+                <h2 class="section__title">📐 Complementary Fairness Metrics</h2>
+                <p class="section__subtitle">
+                    Additional fairness metrics including <strong>exclusive DeepBridge metrics</strong>:
+                    Treatment Equality and Entropy Index.
+                </p>
+            </div>
+
+            <!-- Precision & Accuracy Comparison -->
+            <div class="section">
+                <h2 class="section__title">🎯 Precision & Accuracy by Group</h2>
+                <p>Performance metrics comparison across demographic groups.</p>
+                <div class="chart-container">
+                    <div id="chart-complementary-precision-accuracy"></div>
+                </div>
+            </div>
+
+            <!-- Treatment Equality Scatter -->
+            <div class="section">
+                <h2 class="section__title">⚖️ Treatment Equality Analysis</h2>
+                <p><strong>EXCLUSIVE DeepBridge metric:</strong> Shows if errors (FN vs FP) are balanced across groups.</p>
+                <div class="chart-container">
+                    <div id="chart-complementary-treatment-equality"></div>
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 What is Treatment Equality?</strong>
+                    <p>Treatment Equality measures the ratio of False Negatives to False Positives.
+                       Groups should have similar error ratios. Points on the diagonal line indicate perfect balance.</p>
+                </div>
+            </div>
+
+            <!-- Complementary Radar -->
+            <div class="section">
+                <h2 class="section__title">🎯 Complementary Metrics Radar</h2>
+                <p>Multi-dimensional view of 6 complementary fairness metrics.</p>
+                <div class="chart-container">
+                    <div id="chart-complementary-radar"></div>
+                </div>
+
+                <div class="info-box">
+                    <strong>Metrics Included:</strong>
+                    <ul>
+                        <li><strong>Conditional Acceptance:</strong> PPV (Positive Predictive Value) parity</li>
+                        <li><strong>Conditional Rejection:</strong> NPV (Negative Predictive Value) parity</li>
+                        <li><strong>Precision Difference:</strong> Precision gap between groups</li>
+                        <li><strong>Accuracy Difference:</strong> Overall accuracy gap</li>
+                        <li><strong>Treatment Equality:</strong> FN/FP ratio balance (exclusive)</li>
+                        <li><strong>Entropy Index:</strong> Individual fairness via generalized entropy (exclusive)</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -319,7 +434,81 @@
                     }
                 }
 
-                console.log('✅ Sprint 1: 7 fairness charts rendered (Overview + Pre-Training)');
+                // ========================================
+                // POST-TRAINING TAB CHARTS (3 NOVOS - SPRINT 2)
+                // ========================================
+
+                // Disparate Impact Gauge (CRÍTICO)
+                if (data.charts && data.charts.posttrain_disparate_impact_gauge) {
+                    try {
+                        const diGaugeData = JSON.parse(data.charts.posttrain_disparate_impact_gauge);
+                        Plotly.newPlot('chart-posttrain-disparate-impact-gauge', diGaugeData.data, diGaugeData.layout, {responsive: true});
+                        console.log('✅ Disparate Impact Gauge chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Disparate Impact Gauge:', e);
+                    }
+                }
+
+                // Disparity Comparison
+                if (data.charts && data.charts.posttrain_disparity_comparison) {
+                    try {
+                        const disparityData = JSON.parse(data.charts.posttrain_disparity_comparison);
+                        Plotly.newPlot('chart-posttrain-disparity-comparison', disparityData.data, disparityData.layout, {responsive: true});
+                        console.log('✅ Disparity Comparison chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Disparity Comparison:', e);
+                    }
+                }
+
+                // Status Matrix
+                if (data.charts && data.charts.posttrain_status_matrix) {
+                    try {
+                        const statusMatrixData = JSON.parse(data.charts.posttrain_status_matrix);
+                        Plotly.newPlot('chart-posttrain-status-matrix', statusMatrixData.data, statusMatrixData.layout, {responsive: true});
+                        console.log('✅ Status Matrix chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Status Matrix:', e);
+                    }
+                }
+
+                // ========================================
+                // COMPLEMENTARY TAB CHARTS (3 NOVOS - SPRINT 2)
+                // ========================================
+
+                // Precision & Accuracy
+                if (data.charts && data.charts.complementary_precision_accuracy) {
+                    try {
+                        const precAccData = JSON.parse(data.charts.complementary_precision_accuracy);
+                        Plotly.newPlot('chart-complementary-precision-accuracy', precAccData.data, precAccData.layout, {responsive: true});
+                        console.log('✅ Precision & Accuracy chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Precision & Accuracy:', e);
+                    }
+                }
+
+                // Treatment Equality
+                if (data.charts && data.charts.complementary_treatment_equality) {
+                    try {
+                        const treatmentEqData = JSON.parse(data.charts.complementary_treatment_equality);
+                        Plotly.newPlot('chart-complementary-treatment-equality', treatmentEqData.data, treatmentEqData.layout, {responsive: true});
+                        console.log('✅ Treatment Equality chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Treatment Equality:', e);
+                    }
+                }
+
+                // Complementary Radar
+                if (data.charts && data.charts.complementary_radar) {
+                    try {
+                        const compRadarData = JSON.parse(data.charts.complementary_radar);
+                        Plotly.newPlot('chart-complementary-radar', compRadarData.data, compRadarData.layout, {responsive: true});
+                        console.log('✅ Complementary Radar chart rendered');
+                    } catch (e) {
+                        console.error('❌ Error rendering Complementary Radar:', e);
+                    }
+                }
+
+                console.log('✅ Sprint 2: 13 fairness charts rendered (7 Sprint 1 + 6 Sprint 2)');
             } catch (error) {
                 console.error('Error rendering fairness report:', error);
             }

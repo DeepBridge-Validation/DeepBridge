@@ -776,3 +776,51 @@ div[style*="background: #f8f9fa"] strong {
     line-height: 1.6;
     margin-top: 12px;
 }
+
+/* ============================================================================
+   BADGES (SPRINT 2)
+   ============================================================================ */
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0 8px;
+}
+
+.badge-success {
+    background: #27ae60;
+    color: white;
+}
+
+.badge-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.badge-critical {
+    background: #e74c3c;
+    color: white;
+}
+
+/* ============================================================================
+   LEGEND BOX (SPRINT 2)
+   ============================================================================ */
+
+.legend-box {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-box strong {
+    display: block;
+    margin-bottom: 12px;
+    color: white;
+    font-weight: 600;
+}
