@@ -457,11 +457,16 @@ class FairnessDataTransformerSimple:
         )
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             height=500,
             showlegend=True,
             legend_title_text='Status',
             font=dict(size=11, color='#2c3e50'),
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7'
         )
 
         # Add reference line at 0.1
@@ -491,11 +496,18 @@ class FairnessDataTransformerSimple:
 
             for metric in key_metrics:
                 if metric in metrics and isinstance(metrics[metric], dict):
-                    value = metrics[metric].get('value', 0)
+                    # Get the appropriate value based on metric type
+                    if metric == 'disparate_impact':
+                        value = metrics[metric].get('ratio', 0)
+                    else:
+                        value = metrics[metric].get('value', 0)
+
                     # Normalize for radar (closer to 1 = better fairness)
                     if metric == 'disparate_impact':
+                        # Disparate impact: ratio closer to 1.0 = better fairness
                         normalized = min(abs(value), 1.0)
                     else:
+                        # Other metrics: smaller absolute value = better fairness
                         normalized = max(0, 1 - abs(value))
 
                     values.append(normalized)
@@ -514,6 +526,10 @@ class FairnessDataTransformerSimple:
                 ))
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             polar=dict(
                 radialaxis=dict(
                     visible=True,
@@ -524,7 +540,8 @@ class FairnessDataTransformerSimple:
             title='Fairness Radar Chart (1.0 = Perfect Fairness)',
             height=500,
             font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7'
         )
 
         return pio.to_json(fig)
@@ -593,9 +610,15 @@ class FairnessDataTransformerSimple:
                         row += 1
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             height=250 * rows,
             title='Confusion Matrices by Group',
-            showlegend=False
+            showlegend=False,
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7'
         )
 
         return pio.to_json(fig)
@@ -619,26 +642,21 @@ class FairnessDataTransformerSimple:
                 x=df['threshold'],
                 y=df['disparate_impact_ratio'],
                 mode='lines',
-                name='Disparate Impact',
-                line=dict(color='blue', width=2)
+                name='Disparate Impact Ratio',
+                line=dict(color='#2E86DE', width=3)
             ))
 
-        if 'statistical_parity' in df.columns:
-            fig.add_trace(go.Scatter(
-                x=df['threshold'],
-                y=df['statistical_parity'],
-                mode='lines',
-                name='Statistical Parity',
-                line=dict(color='green', width=2)
-            ))
+        # Note: statistical_parity_ratio is redundant with disparate_impact_ratio
+        # in threshold analysis context (both calculate min/max ratio)
+        # so we only show Disparate Impact to avoid overlapping lines
 
         if 'f1_score' in df.columns:
             fig.add_trace(go.Scatter(
                 x=df['threshold'],
                 y=df['f1_score'],
                 mode='lines',
-                name='F1 Score',
-                line=dict(color='purple', width=2)
+                name='F1 Score (Performance)',
+                line=dict(color='#9B59B6', width=3)
             ))
 
         # Mark optimal threshold
@@ -659,12 +677,25 @@ class FairnessDataTransformerSimple:
         )
 
         fig.update_layout(
-            title='Threshold Impact on Fairness Metrics',
+            template='plotly_white'
+        )
+
+        fig.update_layout(
+            title='Threshold Impact: Fairness vs Performance Trade-off',
             xaxis_title='Classification Threshold',
             yaxis_title='Metric Value',
             height=500,
             showlegend=True,
-            hovermode='x unified'
+            hovermode='x unified',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='right',
+                x=1
+            )
         )
 
         return pio.to_json(fig)
@@ -762,6 +793,10 @@ class FairnessDataTransformerSimple:
                 row += 1
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             height=350 * rows,
             title='Protected Attributes Distribution',
             showlegend=False,
@@ -776,7 +811,8 @@ class FairnessDataTransformerSimple:
                 minsize=8
             ),
             font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7'
         )
 
         return pio.to_json(fig)
@@ -813,11 +849,16 @@ class FairnessDataTransformerSimple:
         )])
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Target Variable Distribution',
             height=400,
             showlegend=True,
             font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7'
         )
 
         return pio.to_json(fig)
@@ -913,16 +954,19 @@ class FairnessDataTransformerSimple:
             )
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title={
                 'text': 'Disparate Impact - EEOC 80% Rule Compliance ⚖️',
                 'font': {'size': 20, 'color': '#2c3e50'}
             },
             height=400,
             showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)
@@ -1001,15 +1045,18 @@ class FairnessDataTransformerSimple:
         fig.add_vline(x=-0.1, line_dash="dash", line_color="#f39c12", line_width=1)
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Statistical Parity - Disparity Analysis',
             xaxis_title='Disparity (0.0 = Perfect Fairness)',
             yaxis_title='Protected Attribute',
             height=max(300, 100 * len(data)),
             showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             xaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 zerolinecolor='white',
@@ -1121,6 +1168,10 @@ class FairnessDataTransformerSimple:
         ))
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Compliance Status Matrix - Main Post-Training Metrics',
             height=max(300, 80 * len(protected_attrs)),
             xaxis=dict(
@@ -1130,10 +1181,9 @@ class FairnessDataTransformerSimple:
             yaxis=dict(
                 tickfont={'size': 12}
             ),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)
@@ -1215,6 +1265,10 @@ class FairnessDataTransformerSimple:
             ))
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Concept Balance - Positive Class Rate Comparison',
             xaxis_title='Protected Attribute',
             yaxis_title='Positive Class Rate',
@@ -1222,10 +1276,9 @@ class FairnessDataTransformerSimple:
             height=450,
             showlegend=True,
             legend_title_text='Group',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1320,6 +1373,10 @@ class FairnessDataTransformerSimple:
                 ))
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Pre-Training Metrics Overview (All 4 Metrics)',
             xaxis_title='Protected Attribute',
             yaxis_title='Metric Value (Absolute)',
@@ -1327,10 +1384,9 @@ class FairnessDataTransformerSimple:
             height=500,
             showlegend=True,
             legend_title_text='Metric',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)'),
             yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)')
         )
@@ -1426,13 +1482,16 @@ class FairnessDataTransformerSimple:
             )
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Group Size Distribution - Sample Balance',
             height=450,
             showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             margin=dict(t=100, b=80)
         )
 
@@ -1510,13 +1569,16 @@ class FairnessDataTransformerSimple:
         )
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             height=400,
             showlegend=True,
             legend_title_text='Metric',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             yaxis=dict(
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
@@ -1637,13 +1699,16 @@ class FairnessDataTransformerSimple:
         )
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             title='Treatment Equality - Error Balance Analysis',
             height=500,
             showlegend=True,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
             font={'color': '#2c3e50'},
-            template='plotly_white',
             xaxis=dict(
                 title='False Positive Rate',
                 gridcolor='rgba(255, 255, 255, 0.1)',
@@ -1745,6 +1810,10 @@ class FairnessDataTransformerSimple:
                 ))
 
         fig.update_layout(
+            template='plotly_white'
+        )
+
+        fig.update_layout(
             polar=dict(
                 radialaxis=dict(
                     visible=True,
@@ -1755,10 +1824,9 @@ class FairnessDataTransformerSimple:
             showlegend=True,
             title='Complementary Metrics Radar (1.0 = Perfect Fairness)',
             height=500,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font={'color': '#2c3e50'},
-            template='plotly_white'
+            paper_bgcolor='#F5F6F7',
+            plot_bgcolor='#F5F6F7',
+            font={'color': '#2c3e50'}
         )
 
         return pio.to_json(fig)

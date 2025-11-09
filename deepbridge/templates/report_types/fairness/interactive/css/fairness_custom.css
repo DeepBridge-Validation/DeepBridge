@@ -824,3 +824,12 @@ div[style*="background: #f8f9fa"] strong {
     color: white;
     font-weight: 600;
 }
+
+/* ============================================================================
+   ISSUES TAB - CUSTOM BACKGROUND COLOR
+   ============================================================================ */
+
+/* Override background color for Issues tab sections */
+#issues .section {
+    background: #F5F6F7 !important;
+}
