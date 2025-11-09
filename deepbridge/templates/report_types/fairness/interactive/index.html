@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ report_title }} - {{ model_name }}</title>
 
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" type="image/x-icon" href="{{ favicon_base64 }}">
+    {% endif %}
+
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 
@@ -17,21 +22,30 @@
     <div class="report-container">
         <!-- Header -->
         <div class="report-header">
-            <h1 class="report-header__title">{{ report_title }}</h1>
-            <p class="report-header__subtitle">{{ report_subtitle }}</p>
-            <div class="report-header__metadata">
-                <span class="report-header__metadata-item">
-                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
-                </span>
-                <span class="report-header__metadata-item">
-                    <strong>Assessment:</strong> {{ assessment }}
-                </span>
-                <span class="report-header__metadata-item">
-                    <strong>Protected Attributes:</strong> {{ total_attributes }}
-                </span>
-                <span class="report-header__metadata-item">
-                    <strong>Warnings:</strong> {{ total_warnings }}
-                </span>
+            <div class="report-header__container">
+                {% if logo %}
+                <div class="report-header__logo-section">
+                    <img src="{{ logo }}" alt="DeepBridge Logo" class="header-logo">
+                </div>
+                {% endif %}
+                <div class="report-header__content">
+                    <h1 class="report-header__title">{{ report_title }}</h1>
+                    <p class="report-header__subtitle">{{ report_subtitle }}</p>
+                    <div class="report-header__metadata">
+                        <span class="report-header__metadata-item">
+                            <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                        </span>
+                        <span class="report-header__metadata-item">
+                            <strong>Assessment:</strong> {{ assessment }}
+                        </span>
+                        <span class="report-header__metadata-item">
+                            <strong>Protected Attributes:</strong> {{ total_attributes }}
+                        </span>
+                        <span class="report-header__metadata-item">
+                            <strong>Warnings:</strong> {{ total_warnings }}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 

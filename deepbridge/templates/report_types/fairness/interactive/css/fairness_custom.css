@@ -50,13 +50,41 @@ body {
 
 /* Modern header with centered text */
 .report-header {
-    text-align: center;
     border-bottom: 3px solid rgba(255, 255, 255, 0.2);
     padding-bottom: var(--spacing-xl);
     margin-bottom: var(--spacing-2xl);
     border-radius: 24px 24px 0 0;
     margin: calc(var(--spacing-2xl) * -1) calc(var(--spacing-2xl) * -1) var(--spacing-2xl);
     padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-xl);
+}
+
+/* Header container - flex layout for logo and content side by side */
+.report-header__container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+}
+
+/* Logo section - left side */
+.report-header__logo-section {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.header-logo {
+    max-height: 80px;
+    max-width: 200px;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Content section - right side */
+.report-header__content {
+    flex: 1;
+    text-align: center;
 }
 
 .report-header__title {
@@ -829,7 +857,40 @@ div[style*="background: #f8f9fa"] strong {
    ISSUES TAB - CUSTOM BACKGROUND COLOR
    ============================================================================ */
 
-/* Override background color for Issues tab sections */
-#issues .section {
+/* Override background color for Issues tab tables only */
+#critical-table-body,
+#warnings-table-body {
     background: #F5F6F7 !important;
+}
+
+#critical-table-body tr,
+#warnings-table-body tr {
+    background: #F5F6F7 !important;
+}
+
+#critical-table-body td,
+#warnings-table-body td {
+    background: #F5F6F7 !important;
+}
+
+/* ============================================================================
+   METHODOLOGY TAB - TABLE BACKGROUND COLOR
+   ============================================================================ */
+
+/* Override background color for Methodology tab tables */
+#methodology .data-table tbody {
+    background: #F5F6F7 !important;
+}
+
+#methodology .data-table tbody tr {
+    background: #F5F6F7 !important;
+}
+
+#methodology .data-table tbody td {
+    background: #F5F6F7 !important;
+    color: #333 !important;
+}
+
+#methodology .data-table tbody tr:hover {
+    background: #e8e9ea !important;
 }
