@@ -77,7 +77,9 @@ class JsonFormatter:
         json_str = re.sub(r'\bundefined\b', 'null', json_str)
         
         # Fix unquoted property names (JavaScript allows this but JSON doesn't)
-        json_str = re.sub(r'([{,]\s*)([a-zA-Z0-9_$]+)(\s*:)', r'\1"\2"\3', json_str)
+        # NOTE: Disabled because it corrupts Plotly hovertemplates like %{x:.4f} → %{"x":.4f}
+        # The JSON from Python's json.dumps() and Plotly's pio.to_json() should already have quoted keys
+        # json_str = re.sub(r'([{,]\s*)([a-zA-Z0-9_$]+)(\s*:)', r'\1"\2"\3', json_str)
         
         # Ensure we don't have trailing commas in nested structures
         # This is a more complex fix for nested objects with trailing commas

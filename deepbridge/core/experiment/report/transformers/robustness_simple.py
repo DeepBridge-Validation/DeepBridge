@@ -63,7 +63,7 @@ class RobustnessDataTransformerSimple:
             # Metadata
             'metadata': {
                 'total_levels': len(self._get_levels(primary_model)),
-                'total_features': len(self._get_features(initial_eval)),
+                'total_features': self._count_features(initial_eval, primary_model),
                 'n_iterations': primary_model.get('n_iterations', 10),
                 'metric': primary_model.get('metric', 'AUC')
             }
@@ -116,12 +116,40 @@ class RobustnessDataTransformerSimple:
         features_data = []
 
         # Get feature importance from initial evaluation
+        # Try multiple possible locations for feature importance
+        feature_importance = {}
+
+        # Method 1: From initial_eval.models.primary_model.feature_importance
         models_data = initial_eval.get('models', {})
         primary_model_data = models_data.get('primary_model', {})
         feature_importance = primary_model_data.get('feature_importance', {})
 
+        # Method 2: If not found, try initial_eval directly (it might BE the models dict)
+        if not feature_importance and 'primary_model' in initial_eval:
+            feature_importance = initial_eval.get('primary_model', {}).get('feature_importance', {})
+
+        # Method 3: Try from initial_model_evaluation if passed differently
+        if not feature_importance and 'initial_model_evaluation' in initial_eval:
+            ime = initial_eval['initial_model_evaluation']
+            if 'models' in ime and 'primary_model' in ime['models']:
+                feature_importance = ime['models']['primary_model'].get('feature_importance', {})
+
+        # Method 4: FALLBACK - Use model_feature_importance directly from primary_model if available
+        # This happens when using run_test() instead of run_tests()
+        if not feature_importance and 'model_feature_importance' in primary_model:
+            feature_importance = primary_model.get('model_feature_importance', {})
+            logger.info(f"Using model_feature_importance from primary_model: {len(feature_importance)} features")
+
         # Get robustness-specific feature importance (from perturbation impact)
         robustness_importance = primary_model.get('feature_importance', {})
+
+        # If we still don't have feature importance, log a warning
+        if not feature_importance:
+            logger.warning("No feature importance data found. Features section will be empty.")
+            logger.debug(f"initial_eval keys: {list(initial_eval.keys())}")
+            logger.debug(f"primary_model keys: {list(primary_model.keys())}")
+        else:
+            logger.info(f"Found {len(feature_importance)} features for report")
 
         for feature_name, importance in sorted(feature_importance.items(),
                                                key=lambda x: x[1],
@@ -335,15 +363,39 @@ class RobustnessDataTransformerSimple:
 
     def _get_features(self, initial_eval: Dict) -> List[str]:
         """Get list of feature names."""
+        # Try multiple possible locations for feature importance
+        feature_importance = {}
+
+        # Method 1: From initial_eval.models.primary_model.feature_importance
         models_data = initial_eval.get('models', {})
         primary_model_data = models_data.get('primary_model', {})
         feature_importance = primary_model_data.get('feature_importance', {})
+
+        # Method 2: If not found, try initial_eval directly
+        if not feature_importance and 'primary_model' in initial_eval:
+            feature_importance = initial_eval.get('primary_model', {}).get('feature_importance', {})
+
+        # Method 3: Try from initial_model_evaluation
+        if not feature_importance and 'initial_model_evaluation' in initial_eval:
+            ime = initial_eval['initial_model_evaluation']
+            if 'models' in ime and 'primary_model' in ime['models']:
+                feature_importance = ime['models']['primary_model'].get('feature_importance', {})
+
+        # Note: We don't check primary_model here as it's not passed to this method
+        # The caller should ensure initial_eval has the feature importance data
+
         return list(feature_importance.keys())
 
     def _count_scenarios(self, primary_model: Dict) -> int:
         """Count total number of scenarios."""
         return len(self._get_levels(primary_model))
 
-    def _count_features(self, initial_eval: Dict) -> int:
+    def _count_features(self, initial_eval: Dict, primary_model: Dict = None) -> int:
         """Count total number of features."""
-        return len(self._get_features(initial_eval))
+        features = self._get_features(initial_eval)
+
+        # Fallback: if no features from initial_eval, try primary_model
+        if not features and primary_model and 'model_feature_importance' in primary_model:
+            features = list(primary_model['model_feature_importance'].keys())
+
+        return len(features)

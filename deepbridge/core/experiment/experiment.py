@@ -27,7 +27,7 @@ class Experiment(IExperiment):
     # Initialize logger for this class
     logger = get_logger("deepbridge.experiment")
 
-    VALID_TYPES = ["binary_classification", "regression", "forecasting"]
+    VALID_TYPES = ["binary_classification", "multiclass_classification", "regression", "forecasting"]
 
     # Common sensitive attribute keywords for auto-detection
     SENSITIVE_ATTRIBUTE_KEYWORDS = {
@@ -456,7 +456,17 @@ class Experiment(IExperiment):
                 if hasattr(model_obj, 'predict_proba'):
                     from sklearn.metrics import roc_auc_score
                     y_prob = model_obj.predict_proba(self.X_test)
-                    if y_prob.shape[1] > 1:  # For binary classification
+
+                    # Check if multiclass
+                    n_classes = y_prob.shape[1] if len(y_prob.shape) > 1 else 1
+
+                    if n_classes > 2:
+                        # Multiclass: use ovr (one-vs-rest) strategy
+                        roc_auc = float(roc_auc_score(self.y_test, y_prob, multi_class='ovr', average='macro'))
+                        metrics['roc_auc'] = roc_auc
+                        self.logger.debug(f"Calculated multiclass ROC AUC for {model_name}: {roc_auc}")
+                    elif n_classes == 2:
+                        # Binary: use second column (positive class probability)
                         roc_auc = float(roc_auc_score(self.y_test, y_prob[:, 1]))
                         metrics['roc_auc'] = roc_auc
                         self.logger.debug(f"Calculated ROC AUC for {model_name}: {roc_auc}")

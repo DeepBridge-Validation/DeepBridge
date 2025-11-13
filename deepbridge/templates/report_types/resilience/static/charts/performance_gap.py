@@ -57,16 +57,18 @@ class PerformanceGapChart(BaseChartGenerator):
         for metric in metric_keys:
             worst_key = f'worst_{metric}'
             remaining_key = f'remaining_{metric}'
-            
+
             if worst_key in performance_metrics and remaining_key in performance_metrics:
                 try:
                     worst_val = float(performance_metrics[worst_key])
                     remaining_val = float(performance_metrics[remaining_key])
+                    logger.info(f"Found metric pair: {metric} - worst={worst_val}, remaining={remaining_val}")
                     metric_names.append(metric.upper())
                     worst_values.append(worst_val)
                     remaining_values.append(remaining_val)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     # Skip if values can't be converted to float
+                    logger.warning(f"Could not convert {metric} values to float: {e}")
                     continue
         
         # If no paired metrics, look for any individual metrics to display
@@ -86,6 +88,11 @@ class PerformanceGapChart(BaseChartGenerator):
                     except (ValueError, TypeError):
                         continue
         
+        # Log the data before generating chart
+        logger.info(f"Metrics to plot: {metric_names}")
+        logger.info(f"Worst values: {worst_values}")
+        logger.info(f"Remaining values: {remaining_values}")
+
         # If using existing chart generator
         if self.chart_generator and (metric_names and worst_values):
             # If we have paired metrics

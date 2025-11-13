@@ -128,42 +128,75 @@ class UncertaintyChartGenerator:
         """Generate a chart showing the relationship between interval width and coverage."""
         import logging
         logger = logging.getLogger("deepbridge.reports")
-        
-        # Check for required data structure
+
+        # Try multiple data sources for coverage vs width data
+        formatted_data = {}
+
+        # Source 1: calibration_results (standard format)
         if 'calibration_results' in models_data and isinstance(models_data['calibration_results'], dict):
-            # Log data structure for debugging
-            if 'width_values' in models_data['calibration_results']:
-                logger.info(f"Width values for generate_width_vs_coverage: {models_data['calibration_results']['width_values']}")
-            if 'coverage_values' in models_data['calibration_results']:
-                logger.info(f"Coverage values for generate_width_vs_coverage: {models_data['calibration_results']['coverage_values']}")
-            
-            # Reformat data for the chart generator
-            formatted_data = {
-                "Primary Model": {
-                    "widths": models_data['calibration_results'].get('width_values', []),
-                    "coverages": models_data['calibration_results'].get('coverage_values', [])
+            width_values = models_data['calibration_results'].get('width_values', [])
+            coverage_values = models_data['calibration_results'].get('coverage_values', [])
+
+            if width_values and coverage_values and len(width_values) > 0 and len(coverage_values) > 0:
+                logger.info(f"Found calibration_results: {len(width_values)} width values, {len(coverage_values)} coverage values")
+                formatted_data["Primary Model"] = {
+                    "widths": width_values,
+                    "coverages": coverage_values
                 }
-            }
-            
-            # Add alternative models if available
-            if 'alternative_models' in models_data:
-                for model_name, model_data in models_data['alternative_models'].items():
-                    if 'calibration_results' in model_data:
-                        formatted_data[model_name] = {
-                            "widths": model_data['calibration_results'].get('width_values', []),
-                            "coverages": model_data['calibration_results'].get('coverage_values', [])
-                        }
-            
-            # Check if we have valid data
-            if formatted_data and any(all(key in model_data for key in ['widths', 'coverages']) 
-                                    for model_data in formatted_data.values()):
-                logger.info(f"Formatted data for width vs coverage chart: {formatted_data}")
-                return self.width_vs_coverage.generate(formatted_data, title)
             else:
-                logger.warning("No valid data found after formatting for width_vs_coverage")
-                return None
+                logger.warning(f"calibration_results exists but data is empty or invalid: width_values={len(width_values) if width_values else 0}, coverage_values={len(coverage_values) if coverage_values else 0}")
+
+        # Source 2: coverage_vs_width (from plot_data)
+        if not formatted_data and 'coverage_vs_width' in models_data:
+            cvw_data = models_data['coverage_vs_width']
+            logger.info(f"Found coverage_vs_width data: {cvw_data.keys() if isinstance(cvw_data, dict) else type(cvw_data)}")
+
+            if isinstance(cvw_data, dict):
+                # Check for both 'mean_widths' and 'widths' keys
+                widths = cvw_data.get('mean_widths', cvw_data.get('widths', []))
+                coverages = cvw_data.get('coverages', [])
+
+                if widths and coverages and len(widths) > 0 and len(coverages) > 0:
+                    logger.info(f"Using coverage_vs_width: {len(widths)} widths, {len(coverages)} coverages")
+                    formatted_data["Primary Model"] = {
+                        "widths": widths,
+                        "coverages": coverages
+                    }
+
+        # Source 3: Try plot_data structure
+        if not formatted_data and 'plot_data' in models_data:
+            plot_data = models_data['plot_data']
+            if isinstance(plot_data, dict) and 'coverage_vs_width' in plot_data:
+                cvw_data = plot_data['coverage_vs_width']
+                widths = cvw_data.get('mean_widths', cvw_data.get('widths', []))
+                coverages = cvw_data.get('coverages', [])
+
+                if widths and coverages and len(widths) > 0 and len(coverages) > 0:
+                    logger.info(f"Using plot_data.coverage_vs_width: {len(widths)} widths, {len(coverages)} coverages")
+                    formatted_data["Primary Model"] = {
+                        "widths": widths,
+                        "coverages": coverages
+                    }
+
+        # Add alternative models if available
+        if formatted_data and 'alternative_models' in models_data:
+            for model_name, model_data in models_data['alternative_models'].items():
+                if 'calibration_results' in model_data:
+                    width_values = model_data['calibration_results'].get('width_values', [])
+                    coverage_values = model_data['calibration_results'].get('coverage_values', [])
+                    if width_values and coverage_values:
+                        formatted_data[model_name] = {
+                            "widths": width_values,
+                            "coverages": coverage_values
+                        }
+
+        # Check if we have valid data
+        if formatted_data:
+            logger.info(f"Generating width_vs_coverage chart with data for models: {list(formatted_data.keys())}")
+            return self.width_vs_coverage.generate(formatted_data, title)
         else:
-            logger.warning("Missing calibration_results in models_data")
+            logger.warning("No valid data found for width_vs_coverage chart - CRQR results may be missing or empty")
+            logger.warning("Available keys in models_data: " + str(list(models_data.keys()) if isinstance(models_data, dict) else "not a dict"))
             return None
     
     def generate_uncertainty_metrics(self, models_data, title="Uncertainty Metrics Comparison"):

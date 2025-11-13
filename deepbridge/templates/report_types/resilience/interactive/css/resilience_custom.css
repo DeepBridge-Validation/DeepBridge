@@ -12,33 +12,29 @@
    MODERN DARK DESIGN - RESILIENCE
    ============================================================================ */
 
-/* Dark gradient background */
+/* Light background */
 body {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    background: #ffffff;
     min-height: 100vh;
     padding: var(--spacing-xl);
 }
 
-/* Modern dark container with rounded borders */
+/* Light container */
 .report-container {
     max-width: 1200px;
     margin: 0 auto;
-    background: linear-gradient(145deg, #2c3e50 0%, #34495e 100%);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
     padding: var(--spacing-2xl);
-    color: white;
+    color: #333;
 }
 
-/* Modern header with centered text */
+/* Modern header - mantém as cores do header original */
 .report-header {
     text-align: center;
-    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
     padding-bottom: var(--spacing-xl);
     margin-bottom: var(--spacing-2xl);
-    border-radius: 24px 24px 0 0;
-    margin: calc(var(--spacing-2xl) * -1) calc(var(--spacing-2xl) * -1) var(--spacing-2xl);
-    padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-xl);
 }
 
 .report-header__title {
@@ -46,12 +42,11 @@ body {
     font-weight: var(--font-weight-bold);
     color: white;
     margin-bottom: var(--spacing-sm);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .report-header__subtitle {
     font-size: var(--font-size-lg);
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .report-header__metadata {
@@ -59,101 +54,14 @@ body {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Enhanced metric cards with glass effect */
+/* Metric cards - tema claro */
 .metric-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-left: 4px solid #4287f5;
-    border-radius: 12px;
 }
 
-.metric-card:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-left-color: #1b78de;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
-}
-
-.metric-card__label {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.metric-card__value {
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* Tab navigation with dark theme */
-.tab-navigation {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 4px;
-}
-
-.tab-button {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.tab-button:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.tab-button.active {
-    color: white;
-    background: rgba(66, 135, 245, 0.3);
-    border-bottom-color: #4287f5;
-}
-
-/* Table styling - dark theme */
-.data-table {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.data-table th {
-    background: rgba(66, 135, 245, 0.8);
-    color: white;
-    font-weight: var(--font-weight-semibold);
-}
-
-.data-table td {
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.data-table tbody tr:hover {
-    background: rgba(66, 135, 245, 0.2);
-}
-
-/* Section headers with light accent */
-.section__title,
-.section h2 {
-    color: white;
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 2px solid rgba(66, 135, 245, 0.5);
-    margin-bottom: var(--spacing-lg);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.section h3 {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.section p {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Chart containers with glass effect */
+/* Chart containers - tema claro */
 .chart-container {
     margin: var(--spacing-xl) 0;
-    padding: var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* Responsive adjustments */

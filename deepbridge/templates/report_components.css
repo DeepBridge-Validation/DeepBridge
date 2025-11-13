@@ -140,6 +140,8 @@
     border-bottom: 2px solid var(--border-color);
     margin-bottom: var(--spacing-xl);
     overflow-x: auto;
+    overflow-y: hidden;
+    align-items: stretch;
 }
 
 .tab-button {

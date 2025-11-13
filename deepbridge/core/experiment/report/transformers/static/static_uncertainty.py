@@ -214,6 +214,9 @@ class StaticUncertaintyTransformer:
                 # Extract coverage vs width data
                 if 'coverage_vs_width' in plot_data:
                     output['coverage_vs_width'] = plot_data['coverage_vs_width']
+                    logger.debug(f"[TRANSFORM_DEBUG] Found coverage_vs_width in plot_data: {plot_data['coverage_vs_width'].keys() if isinstance(plot_data['coverage_vs_width'], dict) else type(plot_data['coverage_vs_width'])}")
+                else:
+                    logger.warning("[TRANSFORM_DEBUG] coverage_vs_width NOT found in plot_data")
 
             # Extract feature reliability if available
             if 'feature_reliability' in primary_model:

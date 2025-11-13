@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepbridge"
-version = "0.1.57"
+version = "0.1.59"
 description = "DeepBridge: Framework for ML Model Validation and Knowledge Distillation"
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"

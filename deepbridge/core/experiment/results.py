@@ -488,7 +488,7 @@ class ExperimentResult:
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate HTML report: {str(e)}")
 
-    def save_json(self, test_type: str, file_path: str, include_summary: bool = True) -> str:
+    def save_json(self, test_type: str, file_path: str, include_summary: bool = True, compact: bool = False) -> str:
         """
         Save test results to a JSON file for AI analysis.
 
@@ -496,6 +496,7 @@ class ExperimentResult:
             test_type: Type of test results to save ('robustness', 'uncertainty', etc.)
             file_path: Path where to save the JSON file
             include_summary: Whether to include a summary section with key findings (default: True)
+            compact: If True, removes large arrays and keeps only essential metrics for AI validation (default: False)
 
         Returns:
             Path to the saved JSON file
@@ -525,6 +526,16 @@ class ExperimentResult:
         else:
             test_data = result
 
+        # Apply compact mode if requested
+        if compact:
+            if test_type == 'uncertainty':
+                test_data = self._compact_uncertainty_data(test_data)
+            elif test_type == 'robustness':
+                test_data = self._compact_robustness_data(test_data)
+            elif test_type == 'resilience':
+                test_data = self._compact_resilience_data(test_data)
+            # Add more compact methods for other test types as needed
+
         # Create the JSON structure
         json_data = {
             "experiment_info": {
@@ -536,13 +547,23 @@ class ExperimentResult:
             "test_results": test_data
         }
 
-        # Add initial model evaluation if available
+        # Add initial model evaluation if available (compact version if requested)
         if 'initial_results' in self.results:
-            json_data["initial_model_evaluation"] = self.results['initial_results']
+            if compact:
+                # Only include essential model metrics
+                initial_compact = self._compact_initial_results(self.results['initial_results'])
+                json_data["initial_model_evaluation"] = initial_compact
+            else:
+                json_data["initial_model_evaluation"] = self.results['initial_results']
 
         # Add summary for robustness tests
         if include_summary and test_type == 'robustness':
             summary = self._generate_robustness_summary(test_data)
+            json_data["summary"] = summary
+
+        # Add summary for uncertainty tests
+        if include_summary and test_type == 'uncertainty':
+            summary = self._generate_uncertainty_summary(test_data)
             json_data["summary"] = summary
 
         # Function to convert numpy types to Python types
@@ -569,9 +590,14 @@ class ExperimentResult:
         # Ensure directory exists
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        # Save to JSON file
+        # Save to JSON file with appropriate formatting
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, indent=2, ensure_ascii=False)
+            if compact:
+                # Compact format: minimal whitespace, reduced indentation
+                json.dump(json_data, f, indent=None, separators=(',', ':'), ensure_ascii=False)
+            else:
+                # Standard format: readable with indentation
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
 
         return file_path
 
@@ -668,6 +694,362 @@ class ExperimentResult:
                     summary["key_findings"].append(f"Alternative model '{best_alt[0]}' shows better robustness")
 
         return summary
+
+    def _generate_uncertainty_summary(self, test_data: dict) -> dict:
+        """
+        Generate a summary of key findings from uncertainty test results.
+
+        Args:
+            test_data: Dictionary containing uncertainty test results
+
+        Returns:
+            Summary dictionary with key findings
+        """
+        summary = {
+            "key_findings": [],
+            "model_performance": {},
+            "calibration_quality": {},
+            "recommendations": []
+        }
+
+        # Analyze primary model if available
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+
+            # Get CRQR data
+            crqr = primary.get('crqr', {})
+            by_alpha = crqr.get('by_alpha', {})
+
+            # Calculate overall statistics
+            if by_alpha:
+                coverages = []
+                calibration_errors = []
+                widths = []
+
+                for alpha_key, alpha_data in by_alpha.items():
+                    overall = alpha_data.get('overall_result', {})
+                    alpha_val = float(alpha_key)
+                    target_coverage = 1 - alpha_val
+                    actual_coverage = overall.get('coverage', 0)
+                    mean_width = overall.get('mean_width', 0)
+
+                    coverages.append(actual_coverage)
+                    calibration_errors.append(abs(target_coverage - actual_coverage))
+                    widths.append(mean_width)
+
+                avg_coverage = sum(coverages) / len(coverages) if coverages else 0
+                avg_calibration_error = sum(calibration_errors) / len(calibration_errors) if calibration_errors else 0
+                avg_width = sum(widths) / len(widths) if widths else 0
+
+                # Model performance metrics
+                summary["model_performance"]["average_coverage"] = round(avg_coverage, 4)
+                summary["model_performance"]["average_calibration_error"] = round(avg_calibration_error, 4)
+                summary["model_performance"]["average_interval_width"] = round(avg_width, 4)
+                summary["model_performance"]["uncertainty_score"] = round(primary.get('uncertainty_quality_score', 0), 4)
+
+                # Base model metrics
+                if 'metrics' in primary:
+                    metrics = primary['metrics']
+                    summary["model_performance"]["base_metrics"] = {
+                        k: round(float(v), 4) for k, v in metrics.items()
+                        if isinstance(v, (int, float))
+                    }
+
+                # Calibration quality assessment
+                if avg_calibration_error < 0.05:
+                    summary["calibration_quality"]["status"] = "EXCELLENT"
+                    summary["calibration_quality"]["description"] = "Calibration error < 0.05"
+                elif avg_calibration_error < 0.10:
+                    summary["calibration_quality"]["status"] = "GOOD"
+                    summary["calibration_quality"]["description"] = "Calibration error < 0.10"
+                else:
+                    summary["calibration_quality"]["status"] = "NEEDS_IMPROVEMENT"
+                    summary["calibration_quality"]["description"] = f"Calibration error: {avg_calibration_error:.4f}"
+
+                # Interval width assessment
+                if avg_width < 0.5:
+                    summary["calibration_quality"]["interval_width"] = "NARROW"
+                    summary["calibration_quality"]["width_description"] = "High confidence predictions"
+                elif avg_width < 1.0:
+                    summary["calibration_quality"]["interval_width"] = "MODERATE"
+                    summary["calibration_quality"]["width_description"] = "Moderate uncertainty"
+                else:
+                    summary["calibration_quality"]["interval_width"] = "WIDE"
+                    summary["calibration_quality"]["width_description"] = "High uncertainty detected"
+
+                # Generate key findings
+                summary["key_findings"].append(
+                    f"Average coverage: {avg_coverage*100:.1f}% (calibration error: {avg_calibration_error:.4f})"
+                )
+
+                if avg_calibration_error >= 0.10:
+                    summary["key_findings"].append("Calibration needs improvement (error ≥ 0.10)")
+
+                if avg_width > 0.5:
+                    summary["key_findings"].append(f"High uncertainty detected (avg width: {avg_width:.4f})")
+
+                if avg_coverage < 0.90:
+                    summary["key_findings"].append("Coverage below 90% - model may be overconfident")
+
+                # Recommendations
+                if avg_calibration_error >= 0.10:
+                    summary["recommendations"].append("Apply calibration methods (Platt scaling, isotonic regression)")
+
+                if avg_width > 0.5:
+                    summary["recommendations"].append("Collect more training data to reduce prediction variance")
+                    summary["recommendations"].append("Consider ensemble methods")
+
+                if avg_coverage < 0.90:
+                    summary["recommendations"].append("Recalibrate or increase interval width")
+
+                # Per-alpha analysis
+                summary["per_alpha_analysis"] = []
+                for alpha_key in sorted(by_alpha.keys(), key=lambda x: float(x)):
+                    alpha_data = by_alpha[alpha_key]
+                    overall = alpha_data.get('overall_result', {})
+                    alpha_val = float(alpha_key)
+                    target_cov = 1 - alpha_val
+                    actual_cov = overall.get('coverage', 0)
+                    mean_w = overall.get('mean_width', 0)
+                    cal_err = abs(target_cov - actual_cov)
+
+                    summary["per_alpha_analysis"].append({
+                        "alpha": alpha_val,
+                        "target_coverage": round(target_cov, 4),
+                        "actual_coverage": round(actual_cov, 4),
+                        "calibration_error": round(cal_err, 4),
+                        "mean_width": round(mean_w, 4)
+                    })
+
+        return summary
+
+    def _compact_uncertainty_data(self, test_data: dict) -> dict:
+        """
+        Create a compact version of uncertainty test data for AI validation.
+        Removes large arrays and keeps only essential metrics.
+
+        Args:
+            test_data: Full uncertainty test data
+
+        Returns:
+            Compacted dictionary with only essential information
+        """
+        compact = {}
+
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+            compact_primary = {}
+
+            # Keep essential metrics
+            if 'metrics' in primary:
+                compact_primary['metrics'] = primary['metrics']
+
+            # Keep uncertainty quality score
+            if 'uncertainty_quality_score' in primary:
+                compact_primary['uncertainty_quality_score'] = primary['uncertainty_quality_score']
+
+            # Keep feature importance (top 10 only)
+            if 'feature_importance' in primary:
+                feat_imp = primary['feature_importance']
+                # Sort by absolute importance and keep top 10
+                sorted_features = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)[:10]
+                compact_primary['feature_importance_top10'] = dict(sorted_features)
+
+            # Keep CRQR results but only summary per alpha (not raw data)
+            if 'crqr' in primary:
+                crqr = primary['crqr']
+                compact_crqr = {}
+
+                if 'by_alpha' in crqr:
+                    compact_by_alpha = {}
+                    for alpha_key, alpha_data in crqr['by_alpha'].items():
+                        # Keep only overall_result, skip sample-level data
+                        if 'overall_result' in alpha_data:
+                            compact_by_alpha[alpha_key] = {
+                                'overall_result': alpha_data['overall_result']
+                            }
+                    compact_crqr['by_alpha'] = compact_by_alpha
+
+                # Skip by_feature as it's usually very large and buggy
+                compact_primary['crqr'] = compact_crqr
+
+            compact['primary_model'] = compact_primary
+
+        # Skip alternative_models if present (usually empty anyway)
+
+        return compact
+
+    def _compact_robustness_data(self, test_data: dict) -> dict:
+        """
+        Create a compact version of robustness test data for AI validation.
+
+        Args:
+            test_data: Full robustness test data
+
+        Returns:
+            Compacted dictionary
+        """
+        compact = {}
+
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+            compact_primary = {}
+
+            # Keep essential fields
+            for key in ['base_score', 'robustness_score', 'avg_raw_impact',
+                       'avg_quantile_impact', 'avg_overall_impact', 'metrics']:
+                if key in primary:
+                    compact_primary[key] = primary[key]
+
+            # Keep feature importance (top 10 only)
+            if 'feature_importance' in primary:
+                feat_imp = primary['feature_importance']
+                sorted_features = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)[:10]
+                compact_primary['feature_importance_top10'] = dict(sorted_features)
+
+            # Keep summary of perturbation levels, not all raw data
+            if 'raw' in primary and 'levels' in primary['raw']:
+                levels_summary = []
+                for level_data in primary['raw']['levels']:
+                    levels_summary.append({
+                        'level': level_data.get('level'),
+                        'mean_score': level_data.get('mean_score'),
+                        'worst_score': level_data.get('worst_score'),
+                        'impact': level_data.get('impact')
+                    })
+                compact_primary['raw_levels_summary'] = levels_summary
+
+            if 'quantile' in primary and 'levels' in primary['quantile']:
+                levels_summary = []
+                for level_data in primary['quantile']['levels']:
+                    levels_summary.append({
+                        'level': level_data.get('level'),
+                        'mean_score': level_data.get('mean_score'),
+                        'worst_score': level_data.get('worst_score'),
+                        'impact': level_data.get('impact')
+                    })
+                compact_primary['quantile_levels_summary'] = levels_summary
+
+            compact['primary_model'] = compact_primary
+
+        return compact
+
+    def _compact_resilience_data(self, test_data: dict) -> dict:
+        """
+        Create a compact version of resilience test data for AI validation.
+        Removes large arrays of feature distances and keeps only essential metrics.
+
+        Args:
+            test_data: Full resilience test data
+
+        Returns:
+            Compacted dictionary with only essential information
+        """
+        compact = {}
+
+        if 'primary_model' in test_data:
+            primary = test_data['primary_model']
+            compact_primary = {}
+
+            # Keep essential metrics
+            if 'metrics' in primary:
+                compact_primary['metrics'] = primary['metrics']
+
+            # Keep resilience score
+            if 'resilience_score' in primary:
+                compact_primary['resilience_score'] = primary['resilience_score']
+
+            # Keep drift detection flag
+            if 'drift_detected' in primary:
+                compact_primary['drift_detected'] = primary['drift_detected']
+
+            # Keep drift analysis summary (not raw arrays)
+            if 'drift_analysis' in primary:
+                drift = primary['drift_analysis']
+                compact_drift = {}
+
+                # Keep overall drift scores
+                if 'data_drift_score' in drift:
+                    compact_drift['data_drift_score'] = drift['data_drift_score']
+                if 'concept_drift_score' in drift:
+                    compact_drift['concept_drift_score'] = drift['concept_drift_score']
+
+                # Keep only top 10 features with highest drift
+                if 'per_feature_drift' in drift:
+                    feat_drift = drift['per_feature_drift']
+                    sorted_features = sorted(feat_drift.items(), key=lambda x: abs(x[1]), reverse=True)[:10]
+                    compact_drift['per_feature_drift_top10'] = dict(sorted_features)
+
+                compact_primary['drift_analysis'] = compact_drift
+
+            # Keep distribution_shift but only summary per alpha (not all feature distances)
+            if 'distribution_shift' in primary:
+                dist_shift = primary['distribution_shift']
+                compact_dist = {}
+
+                if 'by_alpha' in dist_shift:
+                    compact_by_alpha = {}
+                    for alpha_key, alpha_data in dist_shift['by_alpha'].items():
+                        if 'results' in alpha_data and alpha_data['results']:
+                            # Keep only summary from first result (PSI)
+                            first_result = alpha_data['results'][0]
+                            compact_result = {
+                                'method': first_result.get('method'),
+                                'alpha': first_result.get('alpha'),
+                                'metric': first_result.get('metric'),
+                                'distance_metric': first_result.get('distance_metric'),
+                                'worst_metric': first_result.get('worst_metric'),
+                                'remaining_metric': first_result.get('remaining_metric'),
+                                'performance_gap': first_result.get('performance_gap'),
+                                'worst_sample_count': first_result.get('worst_sample_count'),
+                                'remaining_sample_count': first_result.get('remaining_sample_count')
+                            }
+
+                            # Keep only top 10 features with highest distances
+                            if 'feature_distances' in first_result and 'top_features' in first_result['feature_distances']:
+                                top_features = first_result['feature_distances']['top_features']
+                                # Sort and keep top 10
+                                sorted_features = sorted(top_features.items(), key=lambda x: abs(x[1]), reverse=True)[:10]
+                                compact_result['top_features_distances'] = dict(sorted_features)
+
+                            compact_by_alpha[alpha_key] = {'summary': compact_result}
+
+                    compact_dist['by_alpha'] = compact_by_alpha
+
+                compact_primary['distribution_shift'] = compact_dist
+
+            compact['primary_model'] = compact_primary
+
+        return compact
+
+    def _compact_initial_results(self, initial_results: dict) -> dict:
+        """
+        Create a compact version of initial_results for AI validation.
+
+        Args:
+            initial_results: Full initial results
+
+        Returns:
+            Compacted dictionary with only model metrics
+        """
+        compact = {}
+
+        if 'models' in initial_results:
+            compact_models = {}
+            for model_name, model_data in initial_results['models'].items():
+                compact_models[model_name] = {
+                    'metrics': model_data.get('metrics', {}),
+                    'model_type': model_data.get('model_type', 'Unknown')
+                }
+                # Keep top 5 feature importance if available
+                if 'feature_importance' in model_data:
+                    feat_imp = model_data['feature_importance']
+                    sorted_features = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
+                    compact_models[model_name]['feature_importance_top5'] = dict(sorted_features)
+
+            compact['models'] = compact_models
+
+        return compact
 
     def to_dict(self) -> dict:
         """

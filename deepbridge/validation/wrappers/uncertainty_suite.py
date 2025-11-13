@@ -221,7 +221,7 @@ class UncertaintySuite:
     def evaluate_uncertainty(self, method: str, params: Dict, feature=None) -> Dict[str, Any]:
         """
         Evaluate model uncertainty using the specified method.
-        
+
         Parameters:
         -----------
         method : str
@@ -230,161 +230,185 @@ class UncertaintySuite:
             Parameters for the uncertainty method
         feature : str or None
             Specific feature to analyze (for feature importance)
-            
+
         Returns:
         --------
         dict : Detailed evaluation results
         """
-        # Get dataset
-        X = self.dataset.get_feature_data()
-        y = self.dataset.get_target_data()
-        
-        # Convert any numpy arrays to pandas objects if needed
-        if not isinstance(X, pd.DataFrame):
-            X = pd.DataFrame(X)
-        if not isinstance(y, pd.Series):
-            y = pd.Series(y)
-        
-        # Apply feature subset if specified
-        if self.feature_subset:
-            X = X[self.feature_subset]
-        
-        # Create and train the uncertainty estimation model
-        if method == 'crqr':
-            alpha = params.get('alpha', 0.1)
-            test_size = params.get('test_size', 0.3)
-            calib_ratio = params.get('calib_ratio', 1/3)
+        import logging
+        logger = logging.getLogger("deepbridge.uncertainty")
+        logger.info(f"[EVALUATE_UNCERTAINTY] Starting evaluation with method={method}, params={params}, feature={feature}")
 
-            # OTIMIZAÇÃO: Chave de cache baseada nos parâmetros
-            cache_key = (alpha, test_size, calib_ratio, tuple(sorted(X.columns)) if isinstance(X, pd.DataFrame) else None)
+        try:
+            # Get dataset
+            X = self.dataset.get_feature_data()
+            y = self.dataset.get_target_data()
+            logger.info(f"[EVALUATE_UNCERTAINTY] Got data: X.shape={X.shape if hasattr(X, 'shape') else 'N/A'}, y.shape={y.shape if hasattr(y, 'shape') else 'N/A'}")
 
-            # OTIMIZAÇÃO: Verificar se modelo já foi treinado (cache)
-            if cache_key in self._model_cache and feature is not None:
-                # Reutilizar modelo existente para análise de features (MUITO MAIS RÁPIDO!)
-                model = self._model_cache[cache_key]
+            # Convert any numpy arrays to pandas objects if needed
+            if not isinstance(X, pd.DataFrame):
+                X = pd.DataFrame(X)
+            if not isinstance(y, pd.Series):
+                y = pd.Series(y)
 
-                if self.verbose:
-                    print(f"    ⚡ Usando modelo cacheado (evitando retreinamento)")
+            # Apply feature subset if specified
+            if self.feature_subset:
+                X = X[self.feature_subset]
 
-                # Calcular importância da feature SEM retreinar (permutation importance)
+            # Create and train the uncertainty estimation model
+            if method == 'crqr':
+                alpha = params.get('alpha', 0.1)
+                test_size = params.get('test_size', 0.3)
+                calib_ratio = params.get('calib_ratio', 1/3)
+
+                # OTIMIZAÇÃO: Chave de cache baseada nos parâmetros
+                cache_key = (alpha, test_size, calib_ratio, tuple(sorted(X.columns)) if isinstance(X, pd.DataFrame) else None)
+
+                # OTIMIZAÇÃO: Verificar se modelo já foi treinado (cache)
+                if cache_key in self._model_cache and feature is not None:
+                    # Reutilizar modelo existente para análise de features (MUITO MAIS RÁPIDO!)
+                    model = self._model_cache[cache_key]
+
+                    if self.verbose:
+                        print(f"    ⚡ Usando modelo cacheado (evitando retreinamento)")
+
+                    # Calcular importância da feature SEM retreinar (permutation importance)
+                    feature_importance = {}
+                    if feature:
+                        importance = self._calculate_feature_importance_fast(model, X, y, feature)
+                        feature_importance[feature] = importance
+
+                    # Retornar resultados usando modelo cacheado
+                    lower_bound, upper_bound = model.predict_interval(X)
+                    scores = model.score(X, y)
+                    widths = upper_bound - lower_bound
+
+                    return {
+                        'method': 'crqr',
+                        'alpha': alpha,
+                        'coverage': scores['coverage'],
+                        'expected_coverage': 1 - alpha,
+                        'mean_width': np.mean(widths),
+                        'median_width': np.median(widths),
+                        'widths': widths,
+                        'lower_bounds': lower_bound,
+                        'upper_bounds': upper_bound,
+                        'feature_importance': feature_importance,
+                        'model_key': f"crqr_alpha_{alpha}",
+                        'test_size': test_size,
+                        'calib_ratio': calib_ratio,
+                        'split_sizes': model.get_split_sizes(),
+                        'from_cache': True  # Indicador de que veio do cache
+                    }
+
+                # Se não está em cache, criar e treinar o modelo
+                model = self._create_crqr_model(alpha, test_size, calib_ratio)
+
+                # Fit the model
+                model.fit(X, y)
+
+                # OTIMIZAÇÃO: Cachear o modelo treinado (apenas se é o modelo geral, não por feature)
+                if feature is None:
+                    self._model_cache[cache_key] = model
+                    if self.verbose:
+                        print(f"    💾 Modelo cacheado para reutilização futura")
+
+                # Get prediction intervals
+                lower_bound, upper_bound = model.predict_interval(X)
+
+                # Evaluate performance
+                scores = model.score(X, y)
+
+                # Calculate mean and median interval widths
+                widths = upper_bound - lower_bound
+                mean_width = np.mean(widths)
+                median_width = np.median(widths)
+
+                # Calculate feature importance if a specific feature is provided
                 feature_importance = {}
                 if feature:
+                    # OTIMIZAÇÃO: Usar permutation importance (muito mais rápido)
                     importance = self._calculate_feature_importance_fast(model, X, y, feature)
                     feature_importance[feature] = importance
 
-                # Retornar resultados usando modelo cacheado
-                lower_bound, upper_bound = model.predict_interval(X)
-                scores = model.score(X, y)
-                widths = upper_bound - lower_bound
+                # Store key information for results
+                model_key = f"crqr_alpha_{alpha}"
+                self.uncertainty_models[model_key] = model
 
-                return {
+                # Store predictions for calibration charts if classification
+                test_predictions = None
+                test_labels = None
+
+                # Only capture predictions for the overall model (not per-feature tests)
+                # to ensure we get predictions for the full dataset
+                if feature is None and hasattr(self.dataset, 'model'):
+                    original_model = self.dataset.model
+
+                    # Try to get test data and predictions
+                    try:
+                        # IMPORTANT: Get the FULL test data from dataset, not the subset X
+                        # because the original model was trained on all features
+                        if hasattr(self.dataset, 'get_test_features'):
+                            X_test_full = self.dataset.get_test_features()
+                            y_test_full = self.dataset.get_test_target()
+                        else:
+                            # Fall back to getting the full feature data
+                            X_test_full = self.dataset.get_feature_data()
+                            y_test_full = self.dataset.get_target_data()
+
+                        # Get probability predictions if model supports it
+                        if hasattr(original_model, 'predict_proba'):
+                            test_predictions = original_model.predict_proba(X_test_full)
+                            test_labels = np.array(y_test_full)
+                            if self.verbose:
+                                print(f"    Stored probability predictions for calibration charts")
+                    except Exception as e:
+                        if self.verbose:
+                            print(f"    Could not store probability predictions: {e}")
+
+                # Return detailed results
+                result = {
                     'method': 'crqr',
                     'alpha': alpha,
                     'coverage': scores['coverage'],
                     'expected_coverage': 1 - alpha,
-                    'mean_width': np.mean(widths),
-                    'median_width': np.median(widths),
+                    'mean_width': mean_width,
+                    'median_width': median_width,
                     'widths': widths,
                     'lower_bounds': lower_bound,
                     'upper_bounds': upper_bound,
                     'feature_importance': feature_importance,
-                    'model_key': f"crqr_alpha_{alpha}",
+                    'model_key': model_key,
                     'test_size': test_size,
                     'calib_ratio': calib_ratio,
-                    'split_sizes': model.get_split_sizes(),
-                    'from_cache': True  # Indicador de que veio do cache
+                    'split_sizes': model.get_split_sizes()
                 }
 
-            # Se não está em cache, criar e treinar o modelo
-            model = self._create_crqr_model(alpha, test_size, calib_ratio)
+                # Add predictions if available for calibration charts
+                if test_predictions is not None and test_labels is not None:
+                    result['test_predictions'] = test_predictions
+                    result['test_labels'] = test_labels
 
-            # Fit the model
-            model.fit(X, y)
-
-            # OTIMIZAÇÃO: Cachear o modelo treinado (apenas se é o modelo geral, não por feature)
-            if feature is None:
-                self._model_cache[cache_key] = model
-                if self.verbose:
-                    print(f"    💾 Modelo cacheado para reutilização futura")
-
-            # Get prediction intervals
-            lower_bound, upper_bound = model.predict_interval(X)
-
-            # Evaluate performance
-            scores = model.score(X, y)
-
-            # Calculate mean and median interval widths
-            widths = upper_bound - lower_bound
-            mean_width = np.mean(widths)
-            median_width = np.median(widths)
-
-            # Calculate feature importance if a specific feature is provided
-            feature_importance = {}
-            if feature:
-                # OTIMIZAÇÃO: Usar permutation importance (muito mais rápido)
-                importance = self._calculate_feature_importance_fast(model, X, y, feature)
-                feature_importance[feature] = importance
-            
-            # Store key information for results
-            model_key = f"crqr_alpha_{alpha}"
-            self.uncertainty_models[model_key] = model
-            
-            # Store predictions for calibration charts if classification
-            test_predictions = None
-            test_labels = None
-
-            # Only capture predictions for the overall model (not per-feature tests)
-            # to ensure we get predictions for the full dataset
-            if feature is None and hasattr(self.dataset, 'model'):
-                original_model = self.dataset.model
-
-                # Try to get test data and predictions
-                try:
-                    # IMPORTANT: Get the FULL test data from dataset, not the subset X
-                    # because the original model was trained on all features
-                    if hasattr(self.dataset, 'get_test_features'):
-                        X_test_full = self.dataset.get_test_features()
-                        y_test_full = self.dataset.get_test_target()
-                    else:
-                        # Fall back to getting the full feature data
-                        X_test_full = self.dataset.get_feature_data()
-                        y_test_full = self.dataset.get_target_data()
-
-                    # Get probability predictions if model supports it
-                    if hasattr(original_model, 'predict_proba'):
-                        test_predictions = original_model.predict_proba(X_test_full)
-                        test_labels = np.array(y_test_full)
-                        if self.verbose:
-                            print(f"    Stored probability predictions for calibration charts")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"    Could not store probability predictions: {e}")
-
-            # Return detailed results
-            result = {
-                'method': 'crqr',
-                'alpha': alpha,
-                'coverage': scores['coverage'],
-                'expected_coverage': 1 - alpha,
-                'mean_width': mean_width,
-                'median_width': median_width,
-                'widths': widths,
-                'lower_bounds': lower_bound,
-                'upper_bounds': upper_bound,
-                'feature_importance': feature_importance,
-                'model_key': model_key,
-                'test_size': test_size,
-                'calib_ratio': calib_ratio,
-                'split_sizes': model.get_split_sizes()
+                logger.info(f"[EVALUATE_UNCERTAINTY] Successfully generated result with coverage={result['coverage']:.3f}, mean_width={result['mean_width']:.3f}")
+                return result
+        except Exception as e:
+            logger.error(f"[EVALUATE_UNCERTAINTY] ERROR during evaluation: {str(e)}", exc_info=True)
+            # Return a minimal result to avoid breaking the pipeline
+            return {
+                'method': method,
+                'alpha': params.get('alpha', 0.1),
+                'coverage': 0.0,
+                'expected_coverage': 1 - params.get('alpha', 0.1),
+                'mean_width': 0.0,
+                'median_width': 0.0,
+                'widths': np.array([]),
+                'lower_bounds': np.array([]),
+                'upper_bounds': np.array([]),
+                'feature_importance': {},
+                'error': str(e)
             }
 
-            # Add predictions if available for calibration charts
-            if test_predictions is not None and test_labels is not None:
-                result['test_predictions'] = test_predictions
-                result['test_labels'] = test_labels
-
-            return result
-        else:
+        if method != 'crqr':
             raise ValueError(f"Uncertainty method '{method}' not supported")
     
     def run(self) -> Dict[str, Any]:
@@ -427,22 +451,31 @@ class UncertaintySuite:
             params = test_config.get('params', {})
             
             if method == 'crqr':
+                import logging
+                logger = logging.getLogger("deepbridge.uncertainty")
+
                 alpha = params.get('alpha', 0.1)
-                
+
                 # Track alpha
                 if alpha not in all_alphas:
                     all_alphas.append(alpha)
-                
+
                 if self.verbose:
                     print(f"Running CRQR with alpha={alpha}")
-                
+
+                logger.info(f"[RUN] About to call evaluate_uncertainty with alpha={alpha}")
+
                 # Initialize alpha results if needed
                 if alpha not in results['crqr']['by_alpha']:
                     results['crqr']['by_alpha'][alpha] = {}
-                
+
                 # Run the uncertainty estimation
                 overall_result = self.evaluate_uncertainty(method, params)
+
+                logger.info(f"[RUN] evaluate_uncertainty returned: has_error={'error' in overall_result}, coverage={overall_result.get('coverage', 'N/A')}")
+
                 results['crqr']['all_results'].append(overall_result)
+                logger.info(f"[RUN] Added to all_results. Total results now: {len(results['crqr']['all_results'])}")
                 
                 # Add to alpha-specific results
                 results['crqr']['by_alpha'][alpha]['overall_result'] = overall_result
@@ -545,7 +578,20 @@ class UncertaintySuite:
                 print(f"Stored test predictions for calibration charts")
 
         # Prepare data for plotting
+        import logging
+        logger = logging.getLogger("deepbridge.uncertainty")
+
+        logger.debug("[RUN] Calling _prepare_plot_data...")
         results['plot_data'] = self._prepare_plot_data(results)
+        logger.debug(f"[RUN] plot_data created with keys: {results['plot_data'].keys()}")
+
+        if 'coverage_vs_width' in results['plot_data']:
+            cvw = results['plot_data']['coverage_vs_width']
+            logger.debug(f"[RUN] plot_data['coverage_vs_width'] keys: {cvw.keys()}")
+            logger.debug(f"[RUN] plot_data['coverage_vs_width']['coverages']: {len(cvw.get('coverages', []))} values")
+            logger.debug(f"[RUN] plot_data['coverage_vs_width']['mean_widths']: {len(cvw.get('mean_widths', []))} values")
+        else:
+            logger.warning("[RUN] coverage_vs_width NOT found in plot_data!")
 
         # Add execution time
         if self.verbose:
@@ -553,12 +599,13 @@ class UncertaintySuite:
             # Não armazenamos mais o tempo de execução nos resultados
             print(f"Test suite completed in {elapsed_time:.2f} seconds")
             print(f"Overall uncertainty quality score: {results['uncertainty_quality_score']:.3f}")
-        
+
         # Store results
         test_id = f"test_{int(time.time())}"
         self.results[test_id] = results
 
         # Create primary_model structure with test predictions if available
+        logger.debug("[RUN] Creating primary_model structure...")
         primary_model = {
             'crqr': results.get('crqr', {}),
             'alphas': results.get('alphas', []),
@@ -570,6 +617,8 @@ class UncertaintySuite:
             'reliability_analysis': results.get('reliability_analysis', {}),
             'reliability_charts': results.get('reliability_charts', {})
         }
+
+        logger.debug(f"[RUN] primary_model created with plot_data keys: {primary_model['plot_data'].keys() if 'plot_data' in primary_model else 'N/A'}")
 
         # Add test predictions if available
         if 'test_predictions' in results:
@@ -810,34 +859,57 @@ class UncertaintySuite:
     
     def _prepare_plot_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare formatted data for various plots."""
+        import logging
+        logger = logging.getLogger("deepbridge.uncertainty")
+
+        logger.debug("[_prepare_plot_data] Starting plot data preparation")
+        logger.debug(f"[_prepare_plot_data] Input results keys: {results.keys()}")
+
         plot_data = {
             'alpha_comparison': {},
             'width_distribution': [],
             'feature_importance': [],
             'coverage_vs_width': {}
         }
-        
+
         # 1. Alpha comparison data
         alphas = []
         coverages = []
         expected_coverages = []
         mean_widths = []
-        
+
+        logger.debug(f"[_prepare_plot_data] Processing by_alpha data...")
+        logger.debug(f"[_prepare_plot_data] by_alpha keys: {results['crqr']['by_alpha'].keys() if 'crqr' in results and 'by_alpha' in results['crqr'] else 'N/A'}")
+
         # Collect data for each alpha level
         for alpha, alpha_data in sorted(results['crqr']['by_alpha'].items()):
             overall = alpha_data.get('overall_result', {})
+            logger.debug(f"[_prepare_plot_data] Alpha {alpha}: has_overall={bool(overall)}, overall_keys={overall.keys() if overall else 'N/A'}")
+
             if overall:
+                coverage = overall.get('coverage', 0)
+                mean_width = overall.get('mean_width', 0)
+
                 alphas.append(alpha)
-                coverages.append(overall.get('coverage', 0))
+                coverages.append(coverage)
                 expected_coverages.append(overall.get('expected_coverage', 0))
-                mean_widths.append(overall.get('mean_width', 0))
-        
+                mean_widths.append(mean_width)
+
+                logger.debug(f"[_prepare_plot_data] Alpha {alpha}: coverage={coverage}, mean_width={mean_width}")
+
+        logger.debug(f"[_prepare_plot_data] Collected {len(alphas)} alpha levels")
+        logger.debug(f"[_prepare_plot_data] Alphas: {alphas}")
+        logger.debug(f"[_prepare_plot_data] Coverages: {coverages}")
+        logger.debug(f"[_prepare_plot_data] Mean widths: {mean_widths}")
+
         plot_data['alpha_comparison'] = {
             'alphas': alphas,
             'coverages': coverages,
             'expected_coverages': expected_coverages,
             'mean_widths': mean_widths
         }
+
+        logger.debug(f"[_prepare_plot_data] alpha_comparison created with {len(alphas)} entries")
         
         # 2. Width distribution data
         for alpha, alpha_data in sorted(results['crqr']['by_alpha'].items()):
@@ -857,12 +929,19 @@ class UncertaintySuite:
             })
         
         # 4. Coverage vs width data
+        logger.debug("[_prepare_plot_data] Creating coverage_vs_width data...")
+        logger.debug(f"[_prepare_plot_data] coverage_vs_width will have {len(coverages)} coverage values")
+        logger.debug(f"[_prepare_plot_data] coverage_vs_width will have {len(mean_widths)} width values")
+
         plot_data['coverage_vs_width'] = {
             'coverages': coverages,
             'mean_widths': mean_widths,
             'alphas': alphas  # Include alphas as reference
         }
-        
+
+        logger.debug(f"[_prepare_plot_data] coverage_vs_width created: {plot_data['coverage_vs_width']}")
+        logger.debug(f"[_prepare_plot_data] Returning plot_data with keys: {plot_data.keys()}")
+
         return plot_data
     
     def predict_interval(self, X, alpha=0.1):

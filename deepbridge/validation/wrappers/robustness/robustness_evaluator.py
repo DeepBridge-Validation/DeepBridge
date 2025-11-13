@@ -144,18 +144,34 @@ class RobustnessEvaluator:
             # For classification, use predict_proba if available
             if hasattr(model, 'predict_proba'):
                 y_pred_proba = model.predict_proba(X)
-                # Ensure y_pred_proba has correct shape
-                if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] > 1:
-                    # Use second column for binary classification
-                    y_pred_proba = y_pred_proba[:, 1]
-                
+
                 # Use appropriate metric
                 if self.metric.upper() in ['AUC', 'ROC_AUC']:
                     from sklearn.metrics import roc_auc_score
-                    score = roc_auc_score(y, y_pred_proba)
+
+                    # Check if multiclass
+                    n_classes = y_pred_proba.shape[1] if len(y_pred_proba.shape) > 1 else 1
+
+                    if n_classes > 2:
+                        # Multiclass: use ovr (one-vs-rest) strategy
+                        score = roc_auc_score(y, y_pred_proba, multi_class='ovr', average='macro')
+                    elif n_classes == 2:
+                        # Binary: use second column (positive class probability)
+                        score = roc_auc_score(y, y_pred_proba[:, 1])
+                    else:
+                        # Single class (unusual case)
+                        score = 0.0
                 else:
                     # For other metrics, convert probabilities to class labels
-                    y_pred = (y_pred_proba > 0.5).astype(int)
+                    if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] > 2:
+                        # Multiclass: use argmax
+                        y_pred = np.argmax(y_pred_proba, axis=1)
+                    elif len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] == 2:
+                        # Binary: threshold at 0.5
+                        y_pred = (y_pred_proba[:, 1] > 0.5).astype(int)
+                    else:
+                        # Single column
+                        y_pred = (y_pred_proba > 0.5).astype(int)
                     score = self._get_metric_score(y, y_pred)
             else:
                 # Fall back to predict for models without predict_proba
@@ -352,18 +368,34 @@ class RobustnessEvaluator:
             # For classification, use predict_proba if available
             if hasattr(model, 'predict_proba'):
                 y_pred_proba = model.predict_proba(X_perturbed)
-                # Ensure y_pred_proba has correct shape
-                if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] > 1:
-                    # Use second column for binary classification
-                    y_pred_proba = y_pred_proba[:, 1]
-                
+
                 # Use appropriate metric
                 if self.metric.upper() in ['AUC', 'ROC_AUC']:
                     from sklearn.metrics import roc_auc_score
-                    score = roc_auc_score(y, y_pred_proba)
+
+                    # Check if multiclass
+                    n_classes = y_pred_proba.shape[1] if len(y_pred_proba.shape) > 1 else 1
+
+                    if n_classes > 2:
+                        # Multiclass: use ovr (one-vs-rest) strategy
+                        score = roc_auc_score(y, y_pred_proba, multi_class='ovr', average='macro')
+                    elif n_classes == 2:
+                        # Binary: use second column (positive class probability)
+                        score = roc_auc_score(y, y_pred_proba[:, 1])
+                    else:
+                        # Single class (unusual case)
+                        score = 0.0
                 else:
                     # For other metrics, convert probabilities to class labels
-                    y_pred = (y_pred_proba > 0.5).astype(int)
+                    if len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] > 2:
+                        # Multiclass: use argmax
+                        y_pred = np.argmax(y_pred_proba, axis=1)
+                    elif len(y_pred_proba.shape) > 1 and y_pred_proba.shape[1] == 2:
+                        # Binary: threshold at 0.5
+                        y_pred = (y_pred_proba[:, 1] > 0.5).astype(int)
+                    else:
+                        # Single column
+                        y_pred = (y_pred_proba > 0.5).astype(int)
                     score = self._get_metric_score(y, y_pred)
             else:
                 # Fall back to predict for models without predict_proba

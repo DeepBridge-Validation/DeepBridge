@@ -12,50 +12,28 @@
    MODERN DARK DESIGN - FAIRNESS
    ============================================================================ */
 
-/* Override CSS variables for dark theme */
-:root {
-    --primary-color: white !important;
-    --secondary-color: rgba(255, 255, 255, 0.9) !important;
-    --text-color: rgba(255, 255, 255, 0.8) !important;
-    --text-muted: rgba(255, 255, 255, 0.7) !important;
-    --accent-color: #4287f5 !important;
-}
-
-/* Force override ALL text elements to white/light colors */
-.report-container * {
-    color: inherit;
-}
-
-.report-container {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Dark gradient background (same as robustness/uncertainty/resilience) */
+/* Light background */
 body {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    background: #ffffff;
     min-height: 100vh;
     padding: var(--spacing-xl);
 }
 
-/* Modern dark container with rounded borders */
+/* Light container */
 .report-container {
     max-width: 1200px;
     margin: 0 auto;
-    background: linear-gradient(145deg, #2c3e50 0%, #34495e 100%);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
     padding: var(--spacing-2xl);
-    color: white;
+    color: #333;
 }
 
-/* Modern header with centered text */
+/* Modern header - mantém as cores do header original */
 .report-header {
-    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
     padding-bottom: var(--spacing-xl);
     margin-bottom: var(--spacing-2xl);
-    border-radius: 24px 24px 0 0;
-    margin: calc(var(--spacing-2xl) * -1) calc(var(--spacing-2xl) * -1) var(--spacing-2xl);
-    padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-xl);
 }
 
 /* Header container - flex layout for logo and content side by side */
@@ -92,12 +70,11 @@ body {
     font-weight: var(--font-weight-bold);
     color: white;
     margin-bottom: var(--spacing-sm);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .report-header__subtitle {
     font-size: var(--font-size-lg);
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .report-header__metadata {
@@ -105,71 +82,9 @@ body {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Enhanced metric cards with glass effect */
+/* Metric cards - tema claro */
 .metric-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-left: 4px solid #4287f5;
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-left-color: #1b78de;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
-}
-
-.metric-card__label {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-size: 0.9em;
-    font-weight: 500;
-    display: block;
-    margin-bottom: 8px;
-}
-
-.metric-card__value {
-    color: white !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-size: 1.8em;
-    font-weight: bold;
-    display: block;
-}
-
-/* Metric card internal elements (metric-name, metric-value, metric-interpretation) */
-.metric-card .metric-name,
-.metric-name {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-weight: 600;
-    font-size: 0.95em;
-    margin-bottom: 8px;
-    display: block;
-}
-
-.metric-card .metric-value,
-.metric-value {
-    color: white !important;
-    font-size: 1.8em;
-    font-weight: bold;
-    margin: 8px 0;
-    display: block;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.metric-card .metric-interpretation,
-.metric-interpretation {
-    color: rgba(255, 255, 255, 0.75) !important;
-    font-size: 0.85em;
-    margin-top: 8px;
-    display: block;
-    line-height: 1.4;
-}
-
-.metric-card p {
-    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* Status-specific border colors */
@@ -185,117 +100,23 @@ body {
     border-left-color: #e74c3c;
 }
 
-/* Tab navigation with dark theme */
-.tab-navigation {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 4px;
-}
-
-.tab-button {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.tab-button:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.tab-button.active {
-    color: white;
-    background: rgba(66, 135, 245, 0.3);
-    border-bottom-color: #4287f5;
-}
-
-/* Tab content styling */
-.tab-content {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.tab-content h2 {
-    color: white !important;
-}
-
-.tab-content h3 {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.tab-content p {
-    color: rgba(255, 255, 255, 0.8) !important;
-}
-
-.tab-content li {
-    color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Table styling - dark theme */
-.data-table {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.data-table th {
-    background: rgba(66, 135, 245, 0.8);
-    color: white;
-    font-weight: var(--font-weight-semibold);
-}
-
-.data-table td {
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.data-table tbody tr:hover {
-    background: rgba(66, 135, 245, 0.2);
-}
-
-/* Section headers with light accent */
-.section__title,
-.section h2 {
-    color: white !important;
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 2px solid rgba(66, 135, 245, 0.5);
-    margin-bottom: var(--spacing-lg);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.section h3 {
-    color: rgba(255, 255, 255, 0.9) !important;
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-sm);
-}
-
-.section p {
-    color: rgba(255, 255, 255, 0.8) !important;
-    line-height: 1.6;
-}
-
-/* Sections with dark glass effect */
-.section {
-    margin: var(--spacing-lg) 0;
-    padding: var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-/* Chart containers with light background for Plotly visibility */
+/* Chart containers - tema claro */
 .chart-container {
     margin: var(--spacing-xl) 0;
-    padding: var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: #FFFFFF !important;
 }
 
-/* Chart container text should be dark for readability on light background */
-.chart-container,
-.chart-container * {
-    color: #2c3e50 !important;
+/* Force white background for Plotly charts */
+.chart-container .plotly,
+.chart-container .js-plotly-plot,
+.chart-container .plot-container,
+.chart-container .svg-container {
+    background: #FFFFFF !important;
+}
+
+/* Override any inline background styles */
+.chart-container [style*="background"] {
+    background: #FFFFFF !important;
 }
 
 /* Fairness Score Display */
@@ -304,41 +125,23 @@ body {
     font-weight: bold;
     text-align: center;
     margin: 20px 0;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Dynamic colors based on score */
 .fairness-score.excellent {
-    color: #52be80 !important;  /* Verde escuro */
+    color: #52be80;
 }
 
 .fairness-score.good {
-    color: #82e0aa !important;  /* Verde claro */
+    color: #27ae60;
 }
 
 .fairness-score.moderate {
-    color: #f39c12 !important;  /* Amarelo/Laranja */
+    color: #f39c12;
 }
 
 .fairness-score.critical {
-    color: #e74c3c !important;  /* Vermelho */
-}
-
-/* Fairness Score Section - Keep white text */
-.fairness-score-section {
-    background: rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-.fairness-score-title {
-    color: white !important;
-    font-size: 1.8em !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.fairness-score-assessment {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: #e74c3c;
 }
 
 /* Issues Section */
@@ -351,77 +154,19 @@ body {
     padding: 12px 16px;
     margin: 8px 0;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(5px);
-    border-left: 4px solid rgba(255, 255, 255, 0.3);
-    color: #2c3e50 !important;
+    border-left: 4px solid #ddd;
 }
 
 .issue-item.warning {
-    background: rgba(255, 243, 205, 0.95) !important;
+    background: #fff3cd;
     border-left-color: #f39c12;
-    color: #856404 !important;
+    color: #856404;
 }
 
 .issue-item.critical {
-    background: rgba(248, 215, 218, 0.95) !important;
+    background: #f8d7da;
     border-left-color: #e74c3c;
-    color: #721c24 !important;
-}
-
-/* Make sure issues section container uses dark background */
-div[style*="margin: 30px 0"],
-div[style*="margin: 20px 0"]:has(h3) {
-    background: transparent !important;
-}
-
-/* Protected Attributes Section */
-.attribute-section {
-    margin: 30px 0;
-    padding: 24px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(8px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.attribute-section h3 {
-    color: #4287f5 !important;
-    margin-bottom: var(--spacing-md) !important;
-    font-weight: 600;
-}
-
-.attribute-section h4 {
-    color: rgba(255, 255, 255, 0.9) !important;
-    margin-top: var(--spacing-sm) !important;
-    margin-bottom: var(--spacing-xs) !important;
-}
-
-.attribute-section p,
-.attribute-section li,
-.attribute-section span {
-    color: rgba(255, 255, 255, 0.8) !important;
-}
-
-.attribute-section div {
-    color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Override inline styles in attribute-section - FORCE WHITE TEXT */
-.attribute-section h3[style],
-.attribute-section h3[style*="color"],
-.attribute-section h3 {
-    color: #4287f5 !important;
-    margin-bottom: var(--spacing-md) !important;
-}
-
-.attribute-section h4[style],
-.attribute-section h4[style*="color"],
-.attribute-section h4 {
-    color: rgba(255, 255, 255, 0.95) !important;
-    margin-top: var(--spacing-sm) !important;
-    margin-bottom: var(--spacing-xs) !important;
-    font-weight: 600 !important;
+    color: #721c24;
 }
 
 /* Metrics Grid with fairness colors */
@@ -432,279 +177,7 @@ div[style*="margin: 20px 0"]:has(h3) {
     margin: var(--spacing-xl) 0;
 }
 
-/* Override inline styles that set light backgrounds - FORCE DARK THEME */
-.section[style*="background: #f8f9fa"],
-.section[style*="background: rgb(248, 249, 250)"],
-.section[style*="background:#f8f9fa"],
-.section[style*="background:rgb(248, 249, 250)"],
-div[style*="background: #f8f9fa"],
-div[style*="background: rgb(248, 249, 250)"] {
-    background: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
 
-/* Text in these sections should remain white/light */
-.section[style*="background"] h2,
-.section[style*="background"] h3,
-div[style*="background: #f8f9fa"] h2,
-div[style*="background: rgb(248, 249, 250)"] h2 {
-    color: white !important;
-}
-
-.section[style*="background"] p,
-div[style*="background: #f8f9fa"] p,
-div[style*="background: rgb(248, 249, 250)"] p {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* FORCE override ALL inline styles with dark colors */
-h3[style*="color: #2c3e50"],
-h3[style*="color: #34495e"],
-h4[style*="color: #2c3e50"],
-h4[style*="color: #34495e"] {
-    color: rgba(255, 255, 255, 0.95) !important;
-}
-
-/* Exception: keep dark colors only in light backgrounds */
-[style*="background: #f8f9fa"] h2[style*="color: #2c3e50"],
-[style*="background: #f8f9fa"] h3[style*="color: #2c3e50"],
-[style*="background: #f8f9fa"] h4[style*="color: #34495e"] {
-    color: #2c3e50 !important;
-}
-
-/* ============================================================================
-   NUCLEAR OPTION - FORCE ALL TEXT TO BE LIGHT/WHITE
-   NO INHERIT - ONLY DIRECT VALUES
-   ============================================================================ */
-
-/* Override EVERY possible selector with DIRECT values (NO inherit) */
-h1, h2, h3, h4, h5, h6 {
-    color: white !important;
-}
-
-p, span, li, a, label {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-div {
-    color: rgba(255, 255, 255, 0.8) !important;
-}
-
-button, input, textarea {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Section elements */
-.section,
-.section h1,
-.section h2,
-.section h3,
-.section h4,
-.section h5,
-.section h6 {
-    color: white !important;
-}
-
-.section p,
-.section span,
-.section li,
-.section div {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* Tab content elements */
-.tab-content,
-.tab-content h1,
-.tab-content h2,
-.tab-content h3,
-.tab-content h4,
-.tab-content h5,
-.tab-content h6 {
-    color: white !important;
-}
-
-.tab-content p,
-.tab-content span,
-.tab-content li,
-.tab-content div {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* Metric cards */
-.metric-card h1,
-.metric-card h2,
-.metric-card h3,
-.metric-card h4,
-.metric-card h5,
-.metric-card h6 {
-    color: white !important;
-}
-
-.metric-card p,
-.metric-card span,
-.metric-card div {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* Report header */
-.report-header,
-.report-header h1,
-.report-header h2,
-.report-header h3,
-.report-header h4,
-.report-header h5,
-.report-header h6 {
-    color: white !important;
-}
-
-.report-header p,
-.report-header span,
-.report-header div {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Specific class overrides */
-.section__title {
-    color: white !important;
-}
-
-.section__subtitle {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.section__body,
-.section__body * {
-    color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* Tab buttons */
-.tab-button {
-    color: rgba(255, 255, 255, 0.75) !important;
-}
-
-.tab-button.active,
-.tab-button:hover {
-    color: white !important;
-}
-
-/* Report container */
-.report-container {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* ============================================================================
-   EXCEPTION: WHITE CARDS WITH DARK TEXT IN OVERVIEW TAB
-   These cards need dark text on white background for readability
-   ULTRA-SPECIFIC SELECTORS TO OVERRIDE NUCLEAR OPTION
-   ============================================================================ */
-
-/* Override white text for cards with white backgrounds */
-div[style*="background: #ffffff"],
-div[style*="background:#ffffff"],
-div[style*="background: white"] {
-    background: #ffffff !important;
-}
-
-/* Most specific selectors to override .section and .tab-content rules */
-.tab-content div[style*="background: #ffffff"] h1,
-.tab-content div[style*="background: #ffffff"] h2,
-.tab-content div[style*="background: #ffffff"] h3,
-.tab-content div[style*="background: #ffffff"] h4,
-.tab-content div[style*="background: #ffffff"] h5,
-.tab-content div[style*="background: #ffffff"] h6,
-.section div[style*="background: #ffffff"] h1,
-.section div[style*="background: #ffffff"] h2,
-.section div[style*="background: #ffffff"] h3,
-.section div[style*="background: #ffffff"] h4,
-.section div[style*="background: #ffffff"] h5,
-.section div[style*="background: #ffffff"] h6,
-div[style*="background: #ffffff"] h1,
-div[style*="background: #ffffff"] h2,
-div[style*="background: #ffffff"] h3,
-div[style*="background: #ffffff"] h4,
-div[style*="background: #ffffff"] h5,
-div[style*="background: #ffffff"] h6,
-div[style*="background:#ffffff"] h1,
-div[style*="background:#ffffff"] h2,
-div[style*="background:#ffffff"] h3,
-div[style*="background:#ffffff"] h4,
-div[style*="background:#ffffff"] h5,
-div[style*="background:#ffffff"] h6 {
-    color: #2c3e50 !important;
-}
-
-.tab-content div[style*="background: #ffffff"] p,
-.tab-content div[style*="background: #ffffff"] span,
-.tab-content div[style*="background: #ffffff"] li,
-.tab-content div[style*="background: #ffffff"] div,
-.section div[style*="background: #ffffff"] p,
-.section div[style*="background: #ffffff"] span,
-.section div[style*="background: #ffffff"] li,
-.section div[style*="background: #ffffff"] div,
-div[style*="background: #ffffff"] p,
-div[style*="background: #ffffff"] span,
-div[style*="background: #ffffff"] li,
-div[style*="background: #ffffff"] div,
-div[style*="background:#ffffff"] p,
-div[style*="background:#ffffff"] span,
-div[style*="background:#ffffff"] li,
-div[style*="background:#ffffff"] div {
-    color: #2c3e50 !important;
-}
-
-.tab-content div[style*="background: #ffffff"] strong,
-.section div[style*="background: #ffffff"] strong,
-div[style*="background: #ffffff"] strong,
-div[style*="background:#ffffff"] strong {
-    color: #2c3e50 !important;
-}
-
-/* Preserve specific inline colors within white cards */
-div[style*="background: #ffffff"] [style*="color: #34495e"],
-div[style*="background: #ffffff"] [style*="color: #7f8c8d"],
-div[style*="background: #ffffff"] [style*="color: #95a5a6"],
-div[style*="background:#ffffff"] [style*="color: #34495e"],
-div[style*="background:#ffffff"] [style*="color: #7f8c8d"],
-div[style*="background:#ffffff"] [style*="color: #95a5a6"] {
-    color: inherit !important;
-}
-
-/* Colored badges and highlights should keep their colors */
-div[style*="background: #ffffff"] [style*="background: #3498db"],
-div[style*="background: #ffffff"] [style*="background: #e74c3c"],
-div[style*="background: #ffffff"] [style*="background: #27ae60"],
-div[style*="background:#ffffff"] [style*="background: #3498db"],
-div[style*="background:#ffffff"] [style*="background: #e74c3c"],
-div[style*="background:#ffffff"] [style*="background: #27ae60"] {
-    color: #ffffff !important;
-}
-
-/* Specific colored text should remain colored */
-div[style*="background: #ffffff"] [style*="color: #3498db"],
-div[style*="background: #ffffff"] [style*="color: #27ae60"],
-div[style*="background: #ffffff"] [style*="color: #e67e22"],
-div[style*="background:#ffffff"] [style*="color: #3498db"],
-div[style*="background:#ffffff"] [style*="color: #27ae60"],
-div[style*="background:#ffffff"] [style*="color: #e67e22"] {
-    color: inherit !important;
-}
-
-/* Light gray backgrounds also need dark text */
-div[style*="background: #f8f9fa"] h1,
-div[style*="background: #f8f9fa"] h2,
-div[style*="background: #f8f9fa"] h3,
-div[style*="background: #f8f9fa"] h4,
-div[style*="background: #f8f9fa"] p,
-div[style*="background: #f8f9fa"] span,
-div[style*="background: #f8f9fa"] div,
-div[style*="background: #f8f9fa"] li {
-    color: #2c3e50 !important;
-}
-
-div[style*="background: #f8f9fa"] strong {
-    color: #2c3e50 !important;
-}
 
 /* Chart divs should occupy full width */
 [id^="chart-"] {
@@ -721,15 +194,52 @@ div[style*="background: #f8f9fa"] strong {
     width: 100% !important;
 }
 
+.js-plotly-plot .plotly {
+    width: 100% !important;
+}
+
+.js-plotly-plot .plot-container {
+    width: 100% !important;
+}
+
+.js-plotly-plot .svg-container {
+    width: 100% !important;
+}
+
 /* Chart container should have no max-width */
 .chart-container {
     max-width: none !important;
     width: 100% !important;
 }
 
+.chart-container > div {
+    width: 100% !important;
+}
+
 /* Increase report container max-width for better chart display */
 .report-container {
     max-width: 1400px !important;
+}
+
+/* Force all chart-related divs to be 100% width */
+#pretrain-metrics-overview,
+#posttrain-metrics-overview,
+#complementary-metrics,
+#distributions-charts {
+    width: 100% !important;
+}
+
+#pretrain-metrics-overview .chart-container,
+#posttrain-metrics-overview .chart-container,
+#complementary-metrics .chart-container,
+#distributions-charts .chart-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Force Plotly responsive mode */
+.chart-container .modebar {
+    right: 0 !important;
 }
 
 /* Responsive adjustments */
@@ -753,7 +263,7 @@ div[style*="background: #f8f9fa"] strong {
 }
 
 /* ============================================================================
-   INFO BOXES & CALLOUTS (SPRINT 1)
+   INFO BOXES & CALLOUTS
    ============================================================================ */
 
 .info-box {
@@ -778,31 +288,12 @@ div[style*="background: #f8f9fa"] strong {
 
 .info-box li {
     margin: 8px 0;
-    color: rgba(255, 255, 255, 0.85) !important;
     line-height: 1.6;
 }
 
 .info-box p {
     margin: 8px 0;
-    color: rgba(255, 255, 255, 0.85) !important;
     line-height: 1.6;
-}
-
-/* ============================================================================
-   ENHANCED SECTIONS (SPRINT 1)
-   ============================================================================ */
-
-.section--highlight {
-    background: linear-gradient(135deg, rgba(27, 120, 222, 0.05), rgba(52, 152, 219, 0.05));
-    border: 2px solid #4287f5 !important;
-    border-radius: 12px;
-}
-
-.section__subtitle {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.85) !important;
-    line-height: 1.6;
-    margin-top: 12px;
 }
 
 /* ============================================================================
@@ -853,44 +344,3 @@ div[style*="background: #f8f9fa"] strong {
     font-weight: 600;
 }
 
-/* ============================================================================
-   ISSUES TAB - CUSTOM BACKGROUND COLOR
-   ============================================================================ */
-
-/* Override background color for Issues tab tables only */
-#critical-table-body,
-#warnings-table-body {
-    background: #F5F6F7 !important;
-}
-
-#critical-table-body tr,
-#warnings-table-body tr {
-    background: #F5F6F7 !important;
-}
-
-#critical-table-body td,
-#warnings-table-body td {
-    background: #F5F6F7 !important;
-}
-
-/* ============================================================================
-   METHODOLOGY TAB - TABLE BACKGROUND COLOR
-   ============================================================================ */
-
-/* Override background color for Methodology tab tables */
-#methodology .data-table tbody {
-    background: #F5F6F7 !important;
-}
-
-#methodology .data-table tbody tr {
-    background: #F5F6F7 !important;
-}
-
-#methodology .data-table tbody td {
-    background: #F5F6F7 !important;
-    color: #333 !important;
-}
-
-#methodology .data-table tbody tr:hover {
-    background: #e8e9ea !important;
-}

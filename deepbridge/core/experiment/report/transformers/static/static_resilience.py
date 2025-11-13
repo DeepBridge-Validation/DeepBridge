@@ -557,17 +557,25 @@ class StaticResilienceTransformer:
 
             if performance_metrics and isinstance(performance_metrics, dict):
                 logger.info(f"Performance metrics keys: {list(performance_metrics.keys())}")
+                logger.info(f"Performance metrics values: {performance_metrics}")
 
                 # Check for paired metrics (worst_ and remaining_)
+                # Exclude sample_count from being treated as a performance metric
                 paired_metrics = []
                 for key in performance_metrics.keys():
                     if key.startswith('worst_'):
                         base_metric = key[6:]  # Remove 'worst_' prefix
+
+                        # Skip count metrics as they're not performance metrics
+                        if base_metric.endswith('_count') or base_metric == 'sample_count':
+                            continue
+
                         remaining_key = f'remaining_{base_metric}'
                         if remaining_key in performance_metrics:
                             paired_metrics.append((key, remaining_key, base_metric))
 
                 logger.info(f"Found {len(paired_metrics)} paired metrics: {[m[2] for m in paired_metrics]}")
+                logger.info(f"Paired metrics details: {paired_metrics}")
 
                 if paired_metrics:
                     # Determine task type

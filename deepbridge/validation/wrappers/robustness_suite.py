@@ -392,11 +392,15 @@ class RobustnessSuite:
         results['avg_raw_impact'] = np.mean(all_raw_impacts) if all_raw_impacts else 0
         results['avg_quantile_impact'] = np.mean(all_quantile_impacts) if all_quantile_impacts else 0
         results['avg_overall_impact'] = np.mean(all_impacts) if all_impacts else 0
-        
+
+        # Calculate robustness score: 1.0 - avg_overall_impact
+        # Higher score means more robust (less impact from perturbations)
+        results['robustness_score'] = 1.0 - results['avg_overall_impact']
+
         # No longer storing visualizations in the results dictionary
         if self.verbose:
             print("\nVisualizations available through the VisualizationManager")
-        
+
         # Calculando tempo apenas para impressão, sem armazenar no dicionário
         if self.verbose:
             execution_time = time.time() - start_time
@@ -404,6 +408,7 @@ class RobustnessSuite:
             print(f"Average raw impact: {results['avg_raw_impact']:.3f}")
             print(f"Average quantile impact: {results['avg_quantile_impact']:.3f}")
             print(f"Overall average impact: {results['avg_overall_impact']:.3f}")
+            print(f"Robustness score: {results['robustness_score']:.3f}")
         
         # Store results
         self.results = results

@@ -182,37 +182,38 @@
 
                 // Render Overview Chart
                 if (data.charts && data.charts.overview) {
-                    const overviewData = JSON.parse(data.charts.overview);
+                    const overviewData = data.charts.overview;
                     Plotly.newPlot('chart-overview', overviewData.data, overviewData.layout, {responsive: true});
                 }
 
                 // Render By Level Chart
                 if (data.charts && data.charts.by_level) {
-                    const byLevelData = JSON.parse(data.charts.by_level);
+                    const byLevelData = data.charts.by_level;
                     Plotly.newPlot('chart-by-level', byLevelData.data, byLevelData.layout, {responsive: true});
                 }
 
                 // Render Feature Impact Chart
                 if (data.charts && data.charts.features) {
-                    const featuresData = JSON.parse(data.charts.features);
+                    const featuresData = data.charts.features;
                     Plotly.newPlot('chart-features', featuresData.data, featuresData.layout, {responsive: true});
                 }
 
                 // Render Score Distribution
                 if (data.charts && data.charts.score_distribution) {
-                    const distData = JSON.parse(data.charts.score_distribution);
+                    const distData = data.charts.score_distribution;
+                    console.log('Score distribution data:', distData);
                     Plotly.newPlot('chart-distribution', distData.data, distData.layout, {responsive: true});
                 }
 
                 // Render Missing Patterns
                 if (data.charts && data.charts.patterns) {
-                    const patternsData = JSON.parse(data.charts.patterns);
+                    const patternsData = data.charts.patterns;
                     Plotly.newPlot('chart-patterns', patternsData.data, patternsData.layout, {responsive: true});
                 }
 
                 // Render Imputation Strategies
                 if (data.charts && data.charts.strategies) {
-                    const strategiesData = JSON.parse(data.charts.strategies);
+                    const strategiesData = data.charts.strategies;
                     Plotly.newPlot('chart-strategies', strategiesData.data, strategiesData.layout, {responsive: true});
                 }
 
@@ -234,9 +235,12 @@
                 }
 
                 // Populate Features Table
-                if (data.features && data.features.length > 0) {
+                // Use features_table if available (new format), otherwise try features array (old format)
+                const featuresArray = data.features_table || (Array.isArray(data.features) ? data.features : []);
+
+                if (featuresArray && featuresArray.length > 0) {
                     const tbody = document.getElementById('features-table-body');
-                    data.features.forEach(feature => {
+                    featuresArray.forEach(feature => {
                         const row = document.createElement('tr');
                         row.style.color = '#333';
                         row.innerHTML = `
@@ -246,6 +250,9 @@
                         `;
                         tbody.appendChild(row);
                     });
+                    console.log(`Populated features table with ${featuresArray.length} features`);
+                } else {
+                    console.warn('No features data available for table');
                 }
 
                 console.log('All resilience charts and tables rendered successfully');
