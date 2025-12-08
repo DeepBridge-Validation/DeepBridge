@@ -64,6 +64,8 @@ taskipy = "^1.14.1"
 torch = "^2.9.0"
 torchvision = "^0.24.0"
 pytest-asyncio = "^1.2.0"
+aif360 = "^0.6.1"
+fairlearn = "^0.13.0"
 
 
 [tool.poetry.group.doc.dependencies]
