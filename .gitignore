@@ -36,6 +36,7 @@ planejamento_testes/
 planejamento_doc/
 planejamento_report/
 planejamento_fairness/
+planejamento_IA/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
