@@ -102,7 +102,15 @@ class TestHPMIntegration(unittest.TestCase):
         self.assertIsNotNone(distiller.progressive_chain)
         self.assertIsNotNone(distiller.multi_teacher)
         self.assertIsNotNone(distiller.temp_scheduler)
-        self.assertIsNotNone(distiller.pipeline)
+        # Pipeline is None by default since use_parallel=False
+        self.assertIsNone(distiller.pipeline)
+
+        # Test with parallel enabled
+        config_parallel = HPMConfig(
+            max_configs=8, n_trials=2, verbose=False, use_parallel=True
+        )
+        distiller_parallel = HPMDistiller(config=config_parallel)
+        self.assertIsNotNone(distiller_parallel.pipeline)
 
     def test_auto_distiller_hpm_method(self):
         """Test AutoDistiller with HPM method."""
