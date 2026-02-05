@@ -5,15 +5,16 @@ This module implements a shared memory system for hyperparameter optimization
 that reduces the number of trials needed by reusing knowledge from similar configurations.
 """
 
-import pickle
 import hashlib
-import numpy as np
-import optuna
-from collections import deque, defaultdict
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, asdict
 import json
 import logging
+import pickle
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import optuna
 
 from deepbridge.utils.model_registry import ModelType
 
@@ -25,6 +26,7 @@ class OptimizationResult:
     """
     Stores the result of a hyperparameter optimization trial.
     """
+
     model_type: ModelType
     temperature: float
     alpha: float
@@ -47,7 +49,7 @@ class SharedOptimizationMemory:
         self,
         cache_size: int = 100,
         similarity_threshold: float = 0.8,
-        min_reuse_score: float = 0.5
+        min_reuse_score: float = 0.5,
     ):
         """
         Initialize the shared optimization memory.
@@ -68,18 +70,14 @@ class SharedOptimizationMemory:
         self.model_type_index = defaultdict(list)
 
         # Performance statistics
-        self.stats = {
-            'cache_hits': 0,
-            'cache_misses': 0,
-            'trials_saved': 0
-        }
+        self.stats = {'cache_hits': 0, 'cache_misses': 0, 'trials_saved': 0}
 
     def get_similar_configs(
         self,
         model_type: ModelType,
         temperature: float,
         alpha: float,
-        dataset_characteristics: Optional[Dict[str, float]] = None
+        dataset_characteristics: Optional[Dict[str, float]] = None,
     ) -> List[OptimizationResult]:
         """
         Find similar configurations in the cache.
@@ -107,7 +105,7 @@ class SharedOptimizationMemory:
                 model_type,
                 temperature,
                 alpha,
-                dataset_characteristics
+                dataset_characteristics,
             )
 
             if similarity >= self.similarity_threshold:
@@ -119,12 +117,14 @@ class SharedOptimizationMemory:
             key=lambda x: self._calculate_similarity(
                 x, model_type, temperature, alpha, dataset_characteristics
             ),
-            reverse=True
+            reverse=True,
         )
 
         if similar_configs:
             self.stats['cache_hits'] += 1
-            logger.info(f"Found {len(similar_configs)} similar configurations in cache")
+            logger.info(
+                f'Found {len(similar_configs)} similar configurations in cache'
+            )
         else:
             self.stats['cache_misses'] += 1
 
@@ -137,7 +137,7 @@ class SharedOptimizationMemory:
         alpha: float,
         similar_configs: List[OptimizationResult],
         n_trials: int = 10,
-        validation_split: float = 0.2
+        validation_split: float = 0.2,
     ) -> optuna.Study:
         """
         Create an Optuna study with warm start from similar configurations.
@@ -157,9 +157,8 @@ class SharedOptimizationMemory:
         study = optuna.create_study(
             direction='maximize',
             sampler=optuna.samplers.TPESampler(
-                n_startup_trials=max(1, n_trials // 4),
-                n_ei_candidates=24
-            )
+                n_startup_trials=max(1, n_trials // 4), n_ei_candidates=24
+            ),
         )
 
         # Add similar configs as initial trials
@@ -169,14 +168,18 @@ class SharedOptimizationMemory:
 
             # Also add slight variations
             for _ in range(2):
-                varied_params = self._create_variation(config.best_params, model_type)
+                varied_params = self._create_variation(
+                    config.best_params, model_type
+                )
                 if varied_params:
                     study.enqueue_trial(varied_params)
 
         trials_saved = min(len(similar_configs) * 3, n_trials // 2)
         self.stats['trials_saved'] += trials_saved
 
-        logger.info(f"Warm-started study with {trials_saved} trials from cache")
+        logger.info(
+            f'Warm-started study with {trials_saved} trials from cache'
+        )
 
         return study
 
@@ -188,7 +191,7 @@ class SharedOptimizationMemory:
         best_params: Dict[str, Any],
         best_score: float,
         n_trials: int,
-        dataset_characteristics: Optional[Dict[str, float]] = None
+        dataset_characteristics: Optional[Dict[str, float]] = None,
     ):
         """
         Add a new optimization result to the cache.
@@ -204,10 +207,7 @@ class SharedOptimizationMemory:
         """
         # Create context hash
         context_hash = self._create_context_hash(
-            model_type,
-            temperature,
-            alpha,
-            dataset_characteristics
+            model_type, temperature, alpha, dataset_characteristics
         )
 
         # Create result object
@@ -219,7 +219,7 @@ class SharedOptimizationMemory:
             best_score=best_score,
             n_trials=n_trials,
             context_hash=context_hash,
-            dataset_characteristics=dataset_characteristics or {}
+            dataset_characteristics=dataset_characteristics or {},
         )
 
         # Add to cache
@@ -228,7 +228,9 @@ class SharedOptimizationMemory:
         # Update index
         self._rebuild_index()
 
-        logger.info(f"Added optimization result to cache (score: {best_score:.4f})")
+        logger.info(
+            f'Added optimization result to cache (score: {best_score:.4f})'
+        )
 
     def _calculate_similarity(
         self,
@@ -236,7 +238,7 @@ class SharedOptimizationMemory:
         model_type: ModelType,
         temperature: float,
         alpha: float,
-        dataset_characteristics: Optional[Dict[str, float]] = None
+        dataset_characteristics: Optional[Dict[str, float]] = None,
     ) -> float:
         """
         Calculate similarity between cached result and current configuration.
@@ -272,8 +274,7 @@ class SharedOptimizationMemory:
         # Dataset similarity (if available)
         if dataset_characteristics and cached.dataset_characteristics:
             dataset_sim = self._dataset_similarity(
-                cached.dataset_characteristics,
-                dataset_characteristics
+                cached.dataset_characteristics, dataset_characteristics
             )
             similarity += 0.3 * dataset_sim
         else:
@@ -285,7 +286,7 @@ class SharedOptimizationMemory:
     def _dataset_similarity(
         self,
         cached_features: Dict[str, float],
-        current_features: Dict[str, float]
+        current_features: Dict[str, float],
     ) -> float:
         """
         Calculate similarity between dataset characteristics.
@@ -303,7 +304,9 @@ class SharedOptimizationMemory:
         similarity_scores = []
 
         # Compare common features
-        common_features = set(cached_features.keys()) & set(current_features.keys())
+        common_features = set(cached_features.keys()) & set(
+            current_features.keys()
+        )
 
         for feature in common_features:
             cached_val = cached_features[feature]
@@ -311,7 +314,9 @@ class SharedOptimizationMemory:
 
             if feature == 'n_samples':
                 # Log scale for sample size
-                ratio = min(cached_val, current_val) / max(cached_val, current_val)
+                ratio = min(cached_val, current_val) / max(
+                    cached_val, current_val
+                )
                 similarity_scores.append(ratio)
 
             elif feature == 'n_features':
@@ -330,9 +335,7 @@ class SharedOptimizationMemory:
         return 0.5
 
     def _create_variation(
-        self,
-        params: Dict[str, Any],
-        model_type: ModelType
+        self, params: Dict[str, Any], model_type: ModelType
     ) -> Optional[Dict[str, Any]]:
         """
         Create a slight variation of hyperparameters for exploration.
@@ -352,7 +355,9 @@ class SharedOptimizationMemory:
         # Model-specific variations
         if model_type in [ModelType.XGB, ModelType.GBM]:
             if 'max_depth' in varied:
-                varied['max_depth'] = max(1, varied['max_depth'] + np.random.choice([-1, 1]))
+                varied['max_depth'] = max(
+                    1, varied['max_depth'] + np.random.choice([-1, 1])
+                )
 
             if 'n_estimators' in varied:
                 factor = np.random.uniform(0.8, 1.2)
@@ -364,13 +369,17 @@ class SharedOptimizationMemory:
 
         elif model_type == ModelType.RANDOM_FOREST:
             if 'n_estimators' in varied:
-                varied['n_estimators'] = max(10, varied['n_estimators'] + np.random.randint(-20, 20))
+                varied['n_estimators'] = max(
+                    10, varied['n_estimators'] + np.random.randint(-20, 20)
+                )
 
-            if 'max_features' in varied and isinstance(varied['max_features'], float):
+            if 'max_features' in varied and isinstance(
+                varied['max_features'], float
+            ):
                 varied['max_features'] = np.clip(
                     varied['max_features'] + np.random.uniform(-0.1, 0.1),
                     0.1,
-                    1.0
+                    1.0,
                 )
 
         elif model_type == ModelType.LOGISTIC_REGRESSION:
@@ -385,7 +394,7 @@ class SharedOptimizationMemory:
         model_type: ModelType,
         temperature: float,
         alpha: float,
-        dataset_characteristics: Optional[Dict[str, float]] = None
+        dataset_characteristics: Optional[Dict[str, float]] = None,
     ) -> str:
         """
         Create a hash representing the optimization context.
@@ -402,7 +411,7 @@ class SharedOptimizationMemory:
         context = {
             'model': model_type.name,
             'temp': round(temperature, 2),
-            'alpha': round(alpha, 2)
+            'alpha': round(alpha, 2),
         }
 
         if dataset_characteristics:
@@ -433,9 +442,8 @@ class SharedOptimizationMemory:
         """
         stats = self.stats.copy()
         stats['cache_size'] = len(self.param_cache)
-        stats['hit_rate'] = (
-            self.stats['cache_hits'] /
-            max(1, self.stats['cache_hits'] + self.stats['cache_misses'])
+        stats['hit_rate'] = self.stats['cache_hits'] / max(
+            1, self.stats['cache_hits'] + self.stats['cache_misses']
         )
         return stats
 
@@ -447,12 +455,11 @@ class SharedOptimizationMemory:
             filepath: Path to save the cache
         """
         with open(filepath, 'wb') as f:
-            pickle.dump({
-                'cache': list(self.param_cache),
-                'stats': self.stats
-            }, f)
+            pickle.dump(
+                {'cache': list(self.param_cache), 'stats': self.stats}, f
+            )
 
-        logger.info(f"Saved cache to {filepath}")
+        logger.info(f'Saved cache to {filepath}')
 
     def load_from_disk(self, filepath: str):
         """
@@ -468,11 +475,11 @@ class SharedOptimizationMemory:
                 self.stats = data['stats']
                 self._rebuild_index()
 
-            logger.info(f"Loaded cache from {filepath}")
+            logger.info(f'Loaded cache from {filepath}')
         except FileNotFoundError:
-            logger.warning(f"Cache file not found: {filepath}")
+            logger.warning(f'Cache file not found: {filepath}')
         except Exception as e:
-            logger.error(f"Error loading cache: {e}")
+            logger.error(f'Error loading cache: {e}')
 
     def clear(self):
         """
@@ -480,9 +487,5 @@ class SharedOptimizationMemory:
         """
         self.param_cache.clear()
         self.model_type_index.clear()
-        self.stats = {
-            'cache_hits': 0,
-            'cache_misses': 0,
-            'trials_saved': 0
-        }
-        logger.info("Cache cleared")
+        self.stats = {'cache_hits': 0, 'cache_misses': 0, 'trials_saved': 0}
+        logger.info('Cache cleared')

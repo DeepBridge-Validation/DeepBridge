@@ -2,18 +2,18 @@
 Interactive renderer for distillation reports using Plotly visualizations.
 """
 
-import os
 import json
 import logging
-from typing import Dict, Any, Optional
+import os
+from typing import Any, Dict, Optional
 
-logger = logging.getLogger("deepbridge.reports")
-
-# Import JSON formatter
-from ..utils.json_formatter import JsonFormatter
+logger = logging.getLogger('deepbridge.reports')
 
 # Import CSS Manager
 from ..css_manager import CSSManager
+
+# Import JSON formatter
+from ..utils.json_formatter import JsonFormatter
 
 
 class DistillationRenderer:
@@ -33,6 +33,7 @@ class DistillationRenderer:
             Manager for assets (CSS, JS, images)
         """
         from .base_renderer import BaseRenderer
+
         self.base_renderer = BaseRenderer(template_manager, asset_manager)
         self.template_manager = template_manager
         self.asset_manager = asset_manager
@@ -42,10 +43,16 @@ class DistillationRenderer:
 
         # Import data transformer
         from ..transformers.distillation import DistillationDataTransformer
+
         self.data_transformer = DistillationDataTransformer()
 
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Distillation",
-               report_type: str = "interactive") -> str:
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Distillation',
+        report_type: str = 'interactive',
+    ) -> str:
         """
         Render distillation report from results data.
 
@@ -73,27 +80,37 @@ class DistillationRenderer:
         FileNotFoundError: If template not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating distillation report to: {file_path}")
-        logger.info(f"Report type: {report_type}")
+        logger.info(f'Generating distillation report to: {file_path}')
+        logger.info(f'Report type: {report_type}')
 
         try:
             # Determine which template to use based on report type
-            if report_type == "interactive":
+            if report_type == 'interactive':
                 # Use the interactive template - build full paths
                 template_paths = [
-                    os.path.join(self.template_manager.templates_dir, "report_types/distillation/interactive/index.html"),
-                    os.path.join(self.template_manager.templates_dir, "distillation/interactive/index.html")
+                    os.path.join(
+                        self.template_manager.templates_dir,
+                        'report_types/distillation/interactive/index.html',
+                    ),
+                    os.path.join(
+                        self.template_manager.templates_dir,
+                        'distillation/interactive/index.html',
+                    ),
                 ]
             else:
                 # Use the static template (default)
-                template_paths = self.template_manager.get_template_paths("distillation")
+                template_paths = self.template_manager.get_template_paths(
+                    'distillation'
+                )
 
             template_path = self.template_manager.find_template(template_paths)
 
             if not template_path:
-                raise FileNotFoundError(f"No template found for distillation report in: {template_paths}")
+                raise FileNotFoundError(
+                    f'No template found for distillation report in: {template_paths}'
+                )
 
-            logger.info(f"Using template: {template_path}")
+            logger.info(f'Using template: {template_path}')
 
             # Get CSS and JS content
             css_content = self._load_css_content()
@@ -110,59 +127,82 @@ class DistillationRenderer:
 
             # Create template context
             context = self.base_renderer._create_context(
-                report_data, "distillation", css_content, js_content, report_type
+                report_data,
+                'distillation',
+                css_content,
+                js_content,
+                report_type,
             )
 
             # Add distillation-specific context
-            context.update({
-                # Summary metrics
-                'total_models': report_data['experiment_summary']['total_models_tested'],
-                'best_accuracy': self._get_best_accuracy(report_data),
-                'compression_rate': self._calculate_compression_rate(report_data),
-                'total_time': report_data['experiment_summary']['total_training_time'],
-
-                # Original model info
-                'original_model': report_data['original_model'],
-                'has_original': report_data['original_model']['has_metrics'],
-
-                # Best model info
-                'best_model': report_data['best_model'],
-
-                # All models for the table
-                'all_models': report_data['all_models'],
-
-                # Charts data
-                'chart_data': chart_data,  # Add raw chart data for template access
-                'chart_data_json': JsonFormatter.format_for_javascript(chart_data),
-
-                # Recommendations
-                'recommendations': report_data['recommendations'],
-
-                # Metadata for header
-                'report_title': 'Knowledge Distillation Report',
-                'report_subtitle': 'Model Compression and Knowledge Transfer Analysis',
-                'report_type': 'distillation',
-                'test_type': 'distillation',
-                'model_name': model_name,
-                'model_type': 'Distillation Experiment',
-
-                # Feature flags
-                'has_hyperparameter_data': bool(report_data['hyperparameter_analysis']['temperature_impact']),
-                'has_tradeoff_data': bool(report_data['tradeoff_analysis']['accuracy_vs_complexity']),
-                'has_recommendations': bool(report_data['recommendations'])
-            })
+            context.update(
+                {
+                    # Summary metrics
+                    'total_models': report_data['experiment_summary'][
+                        'total_models_tested'
+                    ],
+                    'best_accuracy': self._get_best_accuracy(report_data),
+                    'compression_rate': self._calculate_compression_rate(
+                        report_data
+                    ),
+                    'total_time': report_data['experiment_summary'][
+                        'total_training_time'
+                    ],
+                    # Original model info
+                    'original_model': report_data['original_model'],
+                    'has_original': report_data['original_model'][
+                        'has_metrics'
+                    ],
+                    # Best model info
+                    'best_model': report_data['best_model'],
+                    # All models for the table
+                    'all_models': report_data['all_models'],
+                    # Charts data
+                    'chart_data': chart_data,  # Add raw chart data for template access
+                    'chart_data_json': JsonFormatter.format_for_javascript(
+                        chart_data
+                    ),
+                    # Recommendations
+                    'recommendations': report_data['recommendations'],
+                    # Metadata for header
+                    'report_title': 'Knowledge Distillation Report',
+                    'report_subtitle': 'Model Compression and Knowledge Transfer Analysis',
+                    'report_type': 'distillation',
+                    'test_type': 'distillation',
+                    'model_name': model_name,
+                    'model_type': 'Distillation Experiment',
+                    # Feature flags
+                    'has_hyperparameter_data': bool(
+                        report_data['hyperparameter_analysis'][
+                            'temperature_impact'
+                        ]
+                    ),
+                    'has_tradeoff_data': bool(
+                        report_data['tradeoff_analysis'][
+                            'accuracy_vs_complexity'
+                        ]
+                    ),
+                    'has_recommendations': bool(
+                        report_data['recommendations']
+                    ),
+                }
+            )
 
             # Add report data JSON for client-side access
-            context['report_data_json'] = JsonFormatter.format_for_javascript(report_data)
+            context['report_data_json'] = JsonFormatter.format_for_javascript(
+                report_data
+            )
 
             # Render the template
-            rendered_html = self.template_manager.render_template(template, context)
+            rendered_html = self.template_manager.render_template(
+                template, context
+            )
 
             # Write the report to the file
             return self.base_renderer._write_report(rendered_html, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating distillation report: {str(e)}")
+            logger.error(f'Error generating distillation report: {str(e)}')
             raise
 
     def _load_css_content(self) -> str:
@@ -176,15 +216,19 @@ class DistillationRenderer:
         try:
             # Use CSSManager to compile CSS (base + components + custom)
             compiled_css = self.css_manager.get_compiled_css('distillation')
-            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
+            logger.info(
+                f'CSS compiled successfully using CSSManager: {len(compiled_css)} chars'
+            )
             return compiled_css
         except Exception as e:
-            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
+            logger.error(f'Error loading CSS with CSSManager: {str(e)}')
 
             # Fallback: try to load CSS from asset manager if CSSManager fails
             try:
-                logger.warning("Falling back to asset_manager for CSS loading")
-                css_content = self.asset_manager.get_combined_css_content("distillation")
+                logger.warning('Falling back to asset_manager for CSS loading')
+                css_content = self.asset_manager.get_combined_css_content(
+                    'distillation'
+                )
 
                 # Add default styles to ensure report functionality even if external CSS is missing
                 default_css = """
@@ -246,15 +290,17 @@ class DistillationRenderer:
             """
 
                 # Combine default CSS with loaded CSS
-                combined_css = default_css + "\n\n" + css_content
+                combined_css = default_css + '\n\n' + css_content
                 return combined_css
             except Exception as fallback_error:
-                logger.error(f"Fallback CSS loading also failed: {str(fallback_error)}")
-                return ""
+                logger.error(
+                    f'Fallback CSS loading also failed: {str(fallback_error)}'
+                )
+                return ''
 
     def _load_js_content(self) -> str:
         """Load and combine JavaScript content for the distillation report."""
-        js_content = ""
+        js_content = ''
 
         # Try to load main.js if it exists
         main_js_path = os.path.join(
@@ -263,7 +309,7 @@ class DistillationRenderer:
             'report_types',
             'distillation',
             'js',
-            'main.js'
+            'main.js',
         )
 
         if os.path.exists(main_js_path):
@@ -276,15 +322,17 @@ class DistillationRenderer:
                 'distillation_charts.js',
                 'model_selector.js',
                 'hyperparameter_explorer.js',
-                'comparison_manager.js'
+                'comparison_manager.js',
             ]
 
             for module in js_modules:
-                js_path = self.asset_manager.get_asset_path("distillation", f"js/{module}")
+                js_path = self.asset_manager.get_asset_path(
+                    'distillation', f'js/{module}'
+                )
                 if js_path and os.path.exists(js_path):
                     with open(js_path, 'r') as f:
-                        js_content += f"\n/* {module.upper()} */\n"
-                        js_content += f.read() + "\n"
+                        js_content += f'\n/* {module.upper()} */\n'
+                        js_content += f.read() + '\n'
 
         # Add default initialization if no custom JS found
         if not js_content:
@@ -292,7 +340,9 @@ class DistillationRenderer:
 
         return js_content
 
-    def _prepare_chart_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_chart_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Prepare data for interactive Plotly charts.
 
@@ -308,34 +358,50 @@ class DistillationRenderer:
         chart_data = {
             'summary_metrics': self._prepare_summary_metrics(report_data),
             'model_comparison': self._prepare_model_comparison(report_data),
-            'hyperparameter_data': self._prepare_hyperparameter_data(report_data),
-            'performance_metrics': self._prepare_performance_metrics(report_data),
+            'hyperparameter_data': self._prepare_hyperparameter_data(
+                report_data
+            ),
+            'performance_metrics': self._prepare_performance_metrics(
+                report_data
+            ),
             'tradeoff_data': self._prepare_tradeoff_data(report_data),
-            'recommendations_data': self._prepare_recommendations_data(report_data),
+            'recommendations_data': self._prepare_recommendations_data(
+                report_data
+            ),
             'ks_statistic_data': self._prepare_ks_statistic_data(report_data),
-            'frequency_distribution_data': self._prepare_frequency_distribution_data(report_data)
+            'frequency_distribution_data': self._prepare_frequency_distribution_data(
+                report_data
+            ),
         }
 
         return chart_data
 
-    def _prepare_summary_metrics(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_summary_metrics(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare summary metrics for dashboard cards."""
         best_model = report_data['best_model']
         original = report_data['original_model']['test_metrics']
 
         return {
-            'total_models': report_data['experiment_summary']['total_models_tested'],
+            'total_models': report_data['experiment_summary'][
+                'total_models_tested'
+            ],
             'best_accuracy': best_model['metrics'].get('test_accuracy', 0),
             'original_accuracy': original.get('accuracy', 0),
             'improvement': self._calculate_improvement(best_model, original),
             'compression_rate': self._calculate_compression_rate(report_data),
-            'total_training_time': report_data['experiment_summary']['total_training_time'],
+            'total_training_time': report_data['experiment_summary'][
+                'total_training_time'
+            ],
             'best_model_type': best_model['model_type'],
             'optimal_temperature': best_model['temperature'],
-            'optimal_alpha': best_model['alpha']
+            'optimal_alpha': best_model['alpha'],
         }
 
-    def _prepare_model_comparison(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_model_comparison(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for model comparison visualizations."""
         all_models = report_data['all_models']
         original_metrics = report_data['original_model']['test_metrics']
@@ -357,7 +423,7 @@ class DistillationRenderer:
             'heatmap': {
                 'data': heatmap_data,
                 'models': model_labels,
-                'metrics': metrics
+                'metrics': metrics,
             },
             'scatter_data': [
                 {
@@ -366,14 +432,16 @@ class DistillationRenderer:
                     'accuracy': model['metrics'].get('test_accuracy', 0),
                     'complexity': model['model_complexity'],
                     'training_time': model['training_time'],
-                    'f1_score': model['metrics'].get('test_f1_score', 0)
+                    'f1_score': model['metrics'].get('test_f1_score', 0),
                 }
                 for model in all_models
             ],
-            'original_performance': original_metrics
+            'original_performance': original_metrics,
         }
 
-    def _prepare_hyperparameter_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_hyperparameter_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for hyperparameter analysis visualizations."""
         analysis = report_data['hyperparameter_analysis']
 
@@ -381,20 +449,24 @@ class DistillationRenderer:
             'temperature_impact': analysis['temperature_impact'],
             'alpha_impact': analysis['alpha_impact'],
             'interaction_matrix': analysis['interaction_matrix'],
-            'optimal_ranges': analysis['optimal_ranges']
+            'optimal_ranges': analysis['optimal_ranges'],
         }
 
-    def _prepare_performance_metrics(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_performance_metrics(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for performance metrics visualizations."""
         comparison = report_data['performance_comparison']
 
         return {
             'metrics_comparison': comparison['metrics_comparison'],
             'model_rankings': comparison['model_rankings'],
-            'improvement_stats': comparison['improvement_stats']
+            'improvement_stats': comparison['improvement_stats'],
         }
 
-    def _prepare_tradeoff_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_tradeoff_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for tradeoff analysis visualizations."""
         tradeoffs = report_data['tradeoff_analysis']
 
@@ -402,17 +474,21 @@ class DistillationRenderer:
             'accuracy_vs_complexity': tradeoffs['accuracy_vs_complexity'],
             'accuracy_vs_time': tradeoffs['accuracy_vs_time'],
             'pareto_frontier': tradeoffs['pareto_frontier'],
-            'efficiency_scores': tradeoffs['efficiency_scores'][:10]  # Top 10
+            'efficiency_scores': tradeoffs['efficiency_scores'][:10],  # Top 10
         }
 
-    def _prepare_recommendations_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_recommendations_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for recommendations section."""
         return {
             'recommendations': report_data['recommendations'],
-            'count': len(report_data['recommendations'])
+            'count': len(report_data['recommendations']),
         }
 
-    def _prepare_ks_statistic_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_ks_statistic_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare KS statistic data for visualization."""
         all_models = report_data.get('all_models', [])
 
@@ -430,36 +506,44 @@ class DistillationRenderer:
         # Prepare data for box plot
         box_data = []
         for model_type, values in ks_by_model.items():
-            box_data.append({
-                'name': model_type,
-                'values': values,
-                'mean': sum(values) / len(values) if values else 0,
-                'min': min(values) if values else 0,
-                'max': max(values) if values else 0,
-                'count': len(values)
-            })
+            box_data.append(
+                {
+                    'name': model_type,
+                    'values': values,
+                    'mean': sum(values) / len(values) if values else 0,
+                    'min': min(values) if values else 0,
+                    'max': max(values) if values else 0,
+                    'count': len(values),
+                }
+            )
 
         # Prepare scatter data for detailed view
         scatter_data = []
         for model in all_models:
             ks_value = model.get('metrics', {}).get('test_ks_statistic', None)
             if ks_value is not None:
-                scatter_data.append({
-                    'model_type': model.get('model_type', 'Unknown'),
-                    'config': model.get('config_string', ''),
-                    'ks_statistic': ks_value,
-                    'accuracy': model.get('metrics', {}).get('test_accuracy', 0),
-                    'temperature': model.get('temperature', 0),
-                    'alpha': model.get('alpha', 0)
-                })
+                scatter_data.append(
+                    {
+                        'model_type': model.get('model_type', 'Unknown'),
+                        'config': model.get('config_string', ''),
+                        'ks_statistic': ks_value,
+                        'accuracy': model.get('metrics', {}).get(
+                            'test_accuracy', 0
+                        ),
+                        'temperature': model.get('temperature', 0),
+                        'alpha': model.get('alpha', 0),
+                    }
+                )
 
         return {
             'box_data': box_data,
             'scatter_data': scatter_data,
-            'has_data': len(scatter_data) > 0
+            'has_data': len(scatter_data) > 0,
         }
 
-    def _prepare_frequency_distribution_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_frequency_distribution_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare frequency distribution data for comparing best vs original model."""
         best_model = report_data.get('best_model', {})
         original_model = report_data.get('original_model', {})
@@ -467,6 +551,7 @@ class DistillationRenderer:
         # Generate synthetic prediction probabilities for demonstration
         # In a real scenario, these would come from actual model predictions
         import numpy as np
+
         np.random.seed(42)
 
         # Original model predictions (typically more confident/extreme)
@@ -478,14 +563,19 @@ class DistillationRenderer:
         # Adjust based on actual accuracy if available
         if original_model.get('test_metrics', {}).get('accuracy'):
             orig_acc = original_model['test_metrics']['accuracy']
-            original_probs = [min(1, max(0, p * (0.5 + orig_acc/2))) for p in original_probs]
+            original_probs = [
+                min(1, max(0, p * (0.5 + orig_acc / 2)))
+                for p in original_probs
+            ]
 
         if best_model.get('metrics', {}).get('test_accuracy'):
             best_acc = best_model['metrics']['test_accuracy']
-            best_probs = [min(1, max(0, p * (0.5 + best_acc/2))) for p in best_probs]
+            best_probs = [
+                min(1, max(0, p * (0.5 + best_acc / 2))) for p in best_probs
+            ]
 
         # Calculate histogram data
-        bins = [i/30 for i in range(31)]  # 30 bins from 0 to 1
+        bins = [i / 30 for i in range(31)]  # 30 bins from 0 to 1
 
         def calculate_histogram(values, bins):
             hist = [0] * (len(bins) - 1)
@@ -504,7 +594,9 @@ class DistillationRenderer:
         best_hist = calculate_histogram(best_probs, bins)
 
         # Calculate statistics
-        original_mean = sum(original_probs) / len(original_probs) if original_probs else 0
+        original_mean = (
+            sum(original_probs) / len(original_probs) if original_probs else 0
+        )
         best_mean = sum(best_probs) / len(best_probs) if best_probs else 0
 
         original_std = np.std(original_probs) if original_probs else 0
@@ -516,20 +608,26 @@ class DistillationRenderer:
                 'histogram': original_hist,
                 'mean': original_mean,
                 'std': original_std,
-                'accuracy': original_model.get('test_metrics', {}).get('accuracy', 0),
-                'model_type': 'Original'
+                'accuracy': original_model.get('test_metrics', {}).get(
+                    'accuracy', 0
+                ),
+                'model_type': 'Original',
             },
             'best': {
                 'probabilities': best_probs[:100],  # Limit for performance
                 'histogram': best_hist,
                 'mean': best_mean,
                 'std': best_std,
-                'accuracy': best_model.get('metrics', {}).get('test_accuracy', 0),
-                'model_type': best_model.get('model_type', 'Best Distilled')
+                'accuracy': best_model.get('metrics', {}).get(
+                    'test_accuracy', 0
+                ),
+                'model_type': best_model.get('model_type', 'Best Distilled'),
             },
             'bins': bins,
-            'ks_statistic': best_model.get('metrics', {}).get('test_ks_statistic', None),
-            'has_data': True
+            'ks_statistic': best_model.get('metrics', {}).get(
+                'test_ks_statistic', None
+            ),
+            'has_data': True,
         }
 
     def _get_best_accuracy(self, report_data: Dict[str, Any]) -> float:
@@ -537,7 +635,9 @@ class DistillationRenderer:
         best_model = report_data.get('best_model', {})
         return best_model.get('metrics', {}).get('test_accuracy', 0)
 
-    def _calculate_compression_rate(self, report_data: Dict[str, Any]) -> float:
+    def _calculate_compression_rate(
+        self, report_data: Dict[str, Any]
+    ) -> float:
         """Calculate compression rate between original and best distilled model."""
         best_model = report_data.get('best_model', {})
         original = report_data.get('original_model', {})
@@ -547,12 +647,18 @@ class DistillationRenderer:
         original_complexity = 100  # Assume original is more complex
 
         if best_complexity > 0:
-            compression = (original_complexity - best_complexity) / original_complexity * 100
+            compression = (
+                (original_complexity - best_complexity)
+                / original_complexity
+                * 100
+            )
             return max(0, min(100, compression))  # Clamp between 0 and 100
 
         return 0
 
-    def _calculate_improvement(self, best_model: Dict, original_metrics: Dict) -> float:
+    def _calculate_improvement(
+        self, best_model: Dict, original_metrics: Dict
+    ) -> float:
         """Calculate improvement of best model over original."""
         best_acc = best_model['metrics'].get('test_accuracy', 0)
         orig_acc = original_metrics.get('accuracy', 0)

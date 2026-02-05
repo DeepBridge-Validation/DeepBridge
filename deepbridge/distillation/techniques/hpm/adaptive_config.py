@@ -5,14 +5,15 @@ This module implements intelligent configuration selection using Bayesian optimi
 to reduce the search space from 64 to 16 most promising configurations.
 """
 
+import logging
+from itertools import product
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import optuna
-from typing import List, Dict, Tuple, Optional, Any
-from itertools import product
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
 from sklearn.preprocessing import StandardScaler
-import logging
 
 from deepbridge.utils.model_registry import ModelType
 
@@ -32,7 +33,7 @@ class AdaptiveConfigurationManager:
         max_configs: int = 16,
         initial_samples: int = 8,
         exploration_ratio: float = 0.3,
-        random_state: int = 42
+        random_state: int = 42,
     ):
         """
         Initialize the adaptive configuration manager.
@@ -51,9 +52,7 @@ class AdaptiveConfigurationManager:
         # Gaussian Process for performance prediction
         kernel = Matern(length_scale=1.0, nu=2.5)
         self.gp_model = GaussianProcessRegressor(
-            kernel=kernel,
-            n_restarts_optimizer=10,
-            random_state=random_state
+            kernel=kernel, n_restarts_optimizer=10, random_state=random_state
         )
 
         # Storage for configuration history
@@ -66,7 +65,7 @@ class AdaptiveConfigurationManager:
         model_types: List[ModelType],
         temperatures: List[float],
         alphas: List[float],
-        dataset_features: Optional[Dict[str, float]] = None
+        dataset_features: Optional[Dict[str, float]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select the most promising configurations using Bayesian optimization.
@@ -84,7 +83,7 @@ class AdaptiveConfigurationManager:
         all_configs = list(product(model_types, temperatures, alphas))
         total_configs = len(all_configs)
 
-        logger.info(f"Total possible configurations: {total_configs}")
+        logger.info(f'Total possible configurations: {total_configs}')
 
         if total_configs <= self.max_configs:
             # If we have fewer configs than max, return all
@@ -93,23 +92,29 @@ class AdaptiveConfigurationManager:
         # Phase 1: Initial stratified sampling
         initial_configs = self._stratified_sampling(
             all_configs,
-            n_samples=min(self.initial_samples, total_configs // 2)
+            n_samples=min(self.initial_samples, total_configs // 2),
         )
 
         # Phase 2: Quick evaluation on subset of data
         if dataset_features:
-            initial_scores = self._quick_evaluate(initial_configs, dataset_features)
+            initial_scores = self._quick_evaluate(
+                initial_configs, dataset_features
+            )
 
             # Update GP model with initial results
             X_init = self._configs_to_features(initial_configs)
             self.gp_model.fit(X_init, initial_scores)
 
             # Phase 3: Predict performance for remaining configs
-            remaining_configs = [c for c in all_configs if c not in initial_configs]
+            remaining_configs = [
+                c for c in all_configs if c not in initial_configs
+            ]
             X_remaining = self._configs_to_features(remaining_configs)
 
             # Get predictions with uncertainty
-            mean_pred, std_pred = self.gp_model.predict(X_remaining, return_std=True)
+            mean_pred, std_pred = self.gp_model.predict(
+                X_remaining, return_std=True
+            )
 
             # Phase 4: Select configs based on upper confidence bound
             ucb_scores = mean_pred + 2.0 * std_pred  # Exploration bonus
@@ -124,25 +129,28 @@ class AdaptiveConfigurationManager:
 
             # Select high uncertainty (exploration)
             explore_indices = np.argsort(std_pred)[-n_explore:]
-            explore_configs = [remaining_configs[i] for i in explore_indices
-                             if remaining_configs[i] not in exploit_configs]
+            explore_configs = [
+                remaining_configs[i]
+                for i in explore_indices
+                if remaining_configs[i] not in exploit_configs
+            ]
 
-            selected_configs = initial_configs + exploit_configs + explore_configs[:n_explore]
+            selected_configs = (
+                initial_configs + exploit_configs + explore_configs[:n_explore]
+            )
         else:
             # Without dataset features, use diversity-based selection
             selected_configs = self._diversity_based_selection(all_configs)
 
         # Ensure we don't exceed max_configs
-        selected_configs = selected_configs[:self.max_configs]
+        selected_configs = selected_configs[: self.max_configs]
 
-        logger.info(f"Selected {len(selected_configs)} configurations")
+        logger.info(f'Selected {len(selected_configs)} configurations')
 
         return [self._create_config_dict(c) for c in selected_configs]
 
     def _stratified_sampling(
-        self,
-        configs: List[Tuple],
-        n_samples: int
+        self, configs: List[Tuple], n_samples: int
     ) -> List[Tuple]:
         """
         Perform stratified sampling to ensure diversity in initial samples.
@@ -171,9 +179,7 @@ class AdaptiveConfigurationManager:
         for model_type, group_configs in model_groups.items():
             n_group_samples = min(samples_per_group, len(group_configs))
             group_samples = np.random.choice(
-                len(group_configs),
-                n_group_samples,
-                replace=False
+                len(group_configs), n_group_samples, replace=False
             )
             samples.extend([group_configs[i] for i in group_samples])
 
@@ -185,16 +191,14 @@ class AdaptiveConfigurationManager:
                 extra_samples = np.random.choice(
                     len(unused_configs),
                     min(remaining, len(unused_configs)),
-                    replace=False
+                    replace=False,
                 )
                 samples.extend([unused_configs[i] for i in extra_samples])
 
         return samples[:n_samples]
 
     def _quick_evaluate(
-        self,
-        configs: List[Tuple],
-        dataset_features: Dict[str, float]
+        self, configs: List[Tuple], dataset_features: Dict[str, float]
     ) -> np.ndarray:
         """
         Quickly evaluate configurations using heuristics.
@@ -264,8 +268,8 @@ class AdaptiveConfigurationManager:
                 temperature,
                 np.log(temperature),  # Log scale for temperature
                 alpha,
-                alpha ** 2,  # Non-linear alpha effect
-                temperature * alpha  # Interaction term
+                alpha**2,  # Non-linear alpha effect
+                temperature * alpha,  # Interaction term
             ]
 
             features.append(feature_vec)
@@ -295,36 +299,33 @@ class AdaptiveConfigurationManager:
             ModelType.RANDOM_FOREST: 3.0,
             ModelType.GBM: 4.0,
             ModelType.XGB: 5.0,
-            ModelType.GAM_CLASSIFIER: 2.5
+            ModelType.GAM_CLASSIFIER: 2.5,
         }
 
         # Get complexity score
         complexity = complexity_map.get(model_type, 3.0)
 
         # Binary encoding for model family
-        is_tree_based = int(model_type in [
-            ModelType.DECISION_TREE,
-            ModelType.RANDOM_FOREST,
-            ModelType.GBM,
-            ModelType.XGB
-        ])
+        is_tree_based = int(
+            model_type
+            in [
+                ModelType.DECISION_TREE,
+                ModelType.RANDOM_FOREST,
+                ModelType.GBM,
+                ModelType.XGB,
+            ]
+        )
 
-        is_linear = int(model_type in [
-            ModelType.LOGISTIC_REGRESSION
-        ])
+        is_linear = int(model_type in [ModelType.LOGISTIC_REGRESSION])
 
-        is_ensemble = int(model_type in [
-            ModelType.RANDOM_FOREST,
-            ModelType.GBM,
-            ModelType.XGB
-        ])
+        is_ensemble = int(
+            model_type
+            in [ModelType.RANDOM_FOREST, ModelType.GBM, ModelType.XGB]
+        )
 
         return [complexity, is_tree_based, is_linear, is_ensemble]
 
-    def _diversity_based_selection(
-        self,
-        configs: List[Tuple]
-    ) -> List[Tuple]:
+    def _diversity_based_selection(self, configs: List[Tuple]) -> List[Tuple]:
         """
         Select diverse configurations when no dataset features available.
 
@@ -340,7 +341,9 @@ class AdaptiveConfigurationManager:
         selected = self._stratified_sampling(configs, self.initial_samples)
 
         # Add diverse configs based on distance
-        while len(selected) < self.max_configs and len(selected) < len(configs):
+        while len(selected) < self.max_configs and len(selected) < len(
+            configs
+        ):
             # Find config most distant from selected ones
             max_min_dist = -1
             best_config = None
@@ -405,14 +408,10 @@ class AdaptiveConfigurationManager:
         return {
             'model_type': config[0],
             'temperature': config[1],
-            'alpha': config[2]
+            'alpha': config[2],
         }
 
-    def update_history(
-        self,
-        config: Dict[str, Any],
-        performance: float
-    ):
+    def update_history(self, config: Dict[str, Any], performance: float):
         """
         Update configuration history with results.
 

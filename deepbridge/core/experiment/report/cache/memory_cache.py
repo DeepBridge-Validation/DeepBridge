@@ -8,13 +8,13 @@ Provides fast in-memory caching with:
 - Thread-safe operations
 """
 
-from typing import Any, Optional, Dict
-from datetime import datetime
-from collections import OrderedDict
-import threading
 import sys
+import threading
+from collections import OrderedDict
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from .base import CacheStrategy, CacheEntry
+from .base import CacheEntry, CacheStrategy
 
 
 class MemoryCache(CacheStrategy):
@@ -36,9 +36,7 @@ class MemoryCache(CacheStrategy):
     """
 
     def __init__(
-        self,
-        max_size: int = 1000,
-        default_ttl: Optional[int] = None
+        self, max_size: int = 1000, default_ttl: Optional[int] = None
     ):
         """
         Initialize memory cache.
@@ -170,24 +168,29 @@ class MemoryCache(CacheStrategy):
         """
         with self._lock:
             total_requests = self._hits + self._misses
-            hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0.0
+            hit_rate = (
+                (self._hits / total_requests * 100)
+                if total_requests > 0
+                else 0.0
+            )
 
             # Calculate memory usage
             memory_bytes = sum(
-                entry.size_bytes or 0
-                for entry in self._cache.values()
+                entry.size_bytes or 0 for entry in self._cache.values()
             )
 
             # Collect entry info
             entries = []
             for key, entry in self._cache.items():
-                entries.append({
-                    'key': key,
-                    'age_seconds': entry.age_seconds,
-                    'hits': entry.hits,
-                    'size_bytes': entry.size_bytes,
-                    'ttl': entry.ttl,
-                })
+                entries.append(
+                    {
+                        'key': key,
+                        'age_seconds': entry.age_seconds,
+                        'hits': entry.hits,
+                        'size_bytes': entry.size_bytes,
+                        'ttl': entry.ttl,
+                    }
+                )
 
             return {
                 'size': len(self._cache),
@@ -214,8 +217,7 @@ class MemoryCache(CacheStrategy):
         """
         with self._lock:
             expired_keys = [
-                key for key, entry in self._cache.items()
-                if entry.is_expired
+                key for key, entry in self._cache.items() if entry.is_expired
             ]
 
             for key in expired_keys:

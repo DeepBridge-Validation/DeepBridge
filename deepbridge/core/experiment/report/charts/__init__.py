@@ -23,21 +23,16 @@ Example Usage:
     ...     print(f"Chart generated: {result.format}")
 """
 
-from .base import (
-    ChartResult,
-    ChartGenerator,
-    PlotlyChartGenerator,
-    StaticImageGenerator
-)
-
-from .registry import (
-    ChartRegistry,
-    register_chart
-)
-
 # Auto-register all chart generators
 from . import examples  # Phase 2 examples
 from . import report_charts  # Phase 3 complete library
+from .base import (
+    ChartGenerator,
+    ChartResult,
+    PlotlyChartGenerator,
+    StaticImageGenerator,
+)
+from .registry import ChartRegistry, register_chart
 
 __all__ = [
     # Base classes

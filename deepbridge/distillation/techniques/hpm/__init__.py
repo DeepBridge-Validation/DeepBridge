@@ -9,13 +9,13 @@ This module implements an advanced knowledge distillation technique that combine
 """
 
 from .adaptive_config import AdaptiveConfigurationManager
-from .shared_memory import SharedOptimizationMemory
 from .cache_system import IntelligentCache
-from .progressive_chain import ProgressiveDistillationChain
-from .multi_teacher import AttentionWeightedMultiTeacher
+from .hpm_distiller import HPMConfig, HPMDistiller
 from .meta_scheduler import MetaTemperatureScheduler
+from .multi_teacher import AttentionWeightedMultiTeacher
 from .parallel_pipeline import ParallelDistillationPipeline
-from .hpm_distiller import HPMDistiller, HPMConfig
+from .progressive_chain import ProgressiveDistillationChain
+from .shared_memory import SharedOptimizationMemory
 
 __all__ = [
     'AdaptiveConfigurationManager',
@@ -26,5 +26,5 @@ __all__ = [
     'MetaTemperatureScheduler',
     'ParallelDistillationPipeline',
     'HPMDistiller',
-    'HPMConfig'
+    'HPMConfig',
 ]

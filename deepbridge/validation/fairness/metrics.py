@@ -11,9 +11,10 @@ Key Concepts:
 - Disparate Impact: Adverse impact on protected groups (legal threshold: 80% rule)
 """
 
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Union, List
 
 
 class FairnessMetrics:
@@ -56,9 +57,11 @@ class FairnessMetrics:
     MIN_REPRESENTATION_PCT = 2.0
 
     @staticmethod
-    def statistical_parity(y_pred: Union[np.ndarray, pd.Series],
-                          sensitive_feature: Union[np.ndarray, pd.Series],
-                          min_representation_pct: float = None) -> Dict[str, Any]:
+    def statistical_parity(
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+        min_representation_pct: float = None,
+    ) -> Dict[str, Any]:
         """
         Statistical Parity (Demographic Parity)
 
@@ -129,12 +132,20 @@ class FairnessMetrics:
                 'rate': float(positive_rate),
                 'count': int(group_size),
                 'percentage': float(group_pct),
-                'meets_threshold': meets_threshold
+                'meets_threshold': meets_threshold,
             }
 
         # Separate testable vs excluded groups
-        testable_groups = {g: info for g, info in all_groups.items() if info['meets_threshold']}
-        excluded_groups = {g: info for g, info in all_groups.items() if not info['meets_threshold']}
+        testable_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if info['meets_threshold']
+        }
+        excluded_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if not info['meets_threshold']
+        }
 
         # Calculate metrics ONLY for testable groups
         if len(testable_groups) < 2:
@@ -147,7 +158,7 @@ class FairnessMetrics:
                 'ratio': None,
                 'passes_80_rule': None,
                 'min_representation_pct': min_representation_pct,
-                'interpretation': f"INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation for analysis"
+                'interpretation': f'INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation for analysis',
             }
 
         testable_rates = [info['rate'] for info in testable_groups.values()]
@@ -167,14 +178,16 @@ class FairnessMetrics:
             'ratio': float(ratio),
             'passes_80_rule': passes_80_rule,
             'min_representation_pct': min_representation_pct,
-            'interpretation': _interpret_statistical_parity(disparity, ratio)
+            'interpretation': _interpret_statistical_parity(disparity, ratio),
         }
 
     @staticmethod
-    def equal_opportunity(y_true: Union[np.ndarray, pd.Series],
-                         y_pred: Union[np.ndarray, pd.Series],
-                         sensitive_feature: Union[np.ndarray, pd.Series],
-                         min_representation_pct: float = None) -> Dict[str, Any]:
+    def equal_opportunity(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+        min_representation_pct: float = None,
+    ) -> Dict[str, Any]:
         """
         Equal Opportunity
 
@@ -248,15 +261,27 @@ class FairnessMetrics:
                 'tpr': float(tpr) if not np.isnan(tpr) else tpr,
                 'count': int(group_size),
                 'percentage': float(group_pct),
-                'meets_threshold': meets_threshold
+                'meets_threshold': meets_threshold,
             }
 
         # Separate testable vs excluded groups
-        testable_groups = {g: info for g, info in all_groups.items() if info['meets_threshold']}
-        excluded_groups = {g: info for g, info in all_groups.items() if not info['meets_threshold']}
+        testable_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if info['meets_threshold']
+        }
+        excluded_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if not info['meets_threshold']
+        }
 
         # Calculate metrics ONLY for testable groups with valid TPR
-        testable_tprs = {g: info['tpr'] for g, info in testable_groups.items() if not np.isnan(info['tpr'])}
+        testable_tprs = {
+            g: info['tpr']
+            for g, info in testable_groups.items()
+            if not np.isnan(info['tpr'])
+        }
 
         if len(testable_tprs) < 2:
             return {
@@ -267,7 +292,7 @@ class FairnessMetrics:
                 'disparity': None,
                 'ratio': None,
                 'min_representation_pct': min_representation_pct,
-                'interpretation': f"INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation and valid TPR"
+                'interpretation': f'INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation and valid TPR',
             }
 
         valid_tprs = list(testable_tprs.values())
@@ -284,14 +309,16 @@ class FairnessMetrics:
             'disparity': float(disparity),
             'ratio': float(ratio),
             'min_representation_pct': min_representation_pct,
-            'interpretation': _interpret_equal_opportunity(disparity)
+            'interpretation': _interpret_equal_opportunity(disparity),
         }
 
     @staticmethod
-    def equalized_odds(y_true: Union[np.ndarray, pd.Series],
-                      y_pred: Union[np.ndarray, pd.Series],
-                      sensitive_feature: Union[np.ndarray, pd.Series],
-                      min_representation_pct: float = None) -> Dict[str, Any]:
+    def equalized_odds(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+        min_representation_pct: float = None,
+    ) -> Dict[str, Any]:
         """
         Equalized Odds
 
@@ -376,16 +403,32 @@ class FairnessMetrics:
                 'fpr': float(fpr) if not np.isnan(fpr) else fpr,
                 'count': int(group_size),
                 'percentage': float(group_pct),
-                'meets_threshold': meets_threshold
+                'meets_threshold': meets_threshold,
             }
 
         # Separate testable vs excluded groups
-        testable_groups = {g: info for g, info in all_groups.items() if info['meets_threshold']}
-        excluded_groups = {g: info for g, info in all_groups.items() if not info['meets_threshold']}
+        testable_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if info['meets_threshold']
+        }
+        excluded_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if not info['meets_threshold']
+        }
 
         # Calculate disparities ONLY for testable groups
-        testable_tprs = [info['tpr'] for info in testable_groups.values() if not np.isnan(info['tpr'])]
-        testable_fprs = [info['fpr'] for info in testable_groups.values() if not np.isnan(info['fpr'])]
+        testable_tprs = [
+            info['tpr']
+            for info in testable_groups.values()
+            if not np.isnan(info['tpr'])
+        ]
+        testable_fprs = [
+            info['fpr']
+            for info in testable_groups.values()
+            if not np.isnan(info['fpr'])
+        ]
 
         if len(testable_tprs) < 2 or len(testable_fprs) < 2:
             return {
@@ -397,7 +440,7 @@ class FairnessMetrics:
                 'fpr_disparity': None,
                 'combined_disparity': None,
                 'min_representation_pct': min_representation_pct,
-                'interpretation': f"INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation and valid TPR/FPR"
+                'interpretation': f'INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation and valid TPR/FPR',
             }
 
         tpr_disparity = max(testable_tprs) - min(testable_tprs)
@@ -413,14 +456,18 @@ class FairnessMetrics:
             'fpr_disparity': float(fpr_disparity),
             'combined_disparity': float(combined_disparity),
             'min_representation_pct': min_representation_pct,
-            'interpretation': _interpret_equalized_odds(tpr_disparity, fpr_disparity)
+            'interpretation': _interpret_equalized_odds(
+                tpr_disparity, fpr_disparity
+            ),
         }
 
     @staticmethod
-    def disparate_impact(y_pred: Union[np.ndarray, pd.Series],
-                        sensitive_feature: Union[np.ndarray, pd.Series],
-                        threshold: float = 0.8,
-                        min_representation_pct: float = None) -> Dict[str, Any]:
+    def disparate_impact(
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+        threshold: float = 0.8,
+        min_representation_pct: float = None,
+    ) -> Dict[str, Any]:
         """
         Disparate Impact Ratio
 
@@ -493,12 +540,20 @@ class FairnessMetrics:
                 'rate': float(positive_rate),
                 'count': int(group_size),
                 'percentage': float(group_pct),
-                'meets_threshold': meets_threshold
+                'meets_threshold': meets_threshold,
             }
 
         # Separate testable vs excluded groups
-        testable_groups = {g: info for g, info in all_groups.items() if info['meets_threshold']}
-        excluded_groups = {g: info for g, info in all_groups.items() if not info['meets_threshold']}
+        testable_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if info['meets_threshold']
+        }
+        excluded_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if not info['meets_threshold']
+        }
 
         # Calculate metrics ONLY for testable groups
         if len(testable_groups) < 2:
@@ -513,7 +568,7 @@ class FairnessMetrics:
                 'unprivileged_rate': None,
                 'privileged_rate': None,
                 'min_representation_pct': min_representation_pct,
-                'interpretation': f"INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation for analysis"
+                'interpretation': f'INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation for analysis',
             }
 
         testable_rates = [info['rate'] for info in testable_groups.values()]
@@ -534,15 +589,17 @@ class FairnessMetrics:
             'unprivileged_rate': float(min_rate),
             'privileged_rate': float(max_rate),
             'min_representation_pct': min_representation_pct,
-            'interpretation': _interpret_disparate_impact(ratio, threshold)
+            'interpretation': _interpret_disparate_impact(ratio, threshold),
         }
 
     # ==================== PRE-TRAINING METRICS ====================
     # These metrics are model-independent and evaluate dataset bias
 
     @staticmethod
-    def class_balance(y_true: Union[np.ndarray, pd.Series],
-                     sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def class_balance(
+        y_true: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Class Balance (BCL)
 
@@ -586,7 +643,7 @@ class FairnessMetrics:
                 'group_a_size': len(sensitive_feature),
                 'group_b_size': 0,
                 'total_size': len(sensitive_feature),
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -607,12 +664,14 @@ class FairnessMetrics:
             'group_a_size': int(n_a),
             'group_b_size': int(n_b),
             'total_size': int(n_total),
-            'interpretation': _interpret_class_balance(bcl)
+            'interpretation': _interpret_class_balance(bcl),
         }
 
     @staticmethod
-    def concept_balance(y_true: Union[np.ndarray, pd.Series],
-                       sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def concept_balance(
+        y_true: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Concept Balance (BCO)
 
@@ -653,7 +712,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_positive_rate': 0.0,
                 'group_b_positive_rate': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -676,12 +735,14 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_positive_rate': float(rate_a),
             'group_b_positive_rate': float(rate_b),
-            'interpretation': _interpret_concept_balance(bco)
+            'interpretation': _interpret_concept_balance(bco),
         }
 
     @staticmethod
-    def kl_divergence(y_true: Union[np.ndarray, pd.Series],
-                     sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def kl_divergence(
+        y_true: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Kullback-Leibler Divergence (KL)
 
@@ -720,7 +781,7 @@ class FairnessMetrics:
                 'value': 0.0,
                 'group_a': str(groups[0]) if len(groups) > 0 else 'N/A',
                 'group_b': 'N/A',
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -731,8 +792,12 @@ class FairnessMetrics:
         mask_a = sensitive_feature == group_a
         mask_b = sensitive_feature == group_b
 
-        dist_a = pd.Series(y_true[mask_a]).value_counts(normalize=True).sort_index()
-        dist_b = pd.Series(y_true[mask_b]).value_counts(normalize=True).sort_index()
+        dist_a = (
+            pd.Series(y_true[mask_a]).value_counts(normalize=True).sort_index()
+        )
+        dist_b = (
+            pd.Series(y_true[mask_b]).value_counts(normalize=True).sort_index()
+        )
 
         # Ensure same categories
         all_cats = sorted(set(dist_a.index) | set(dist_b.index))
@@ -747,12 +812,14 @@ class FairnessMetrics:
             'value': float(kl),
             'group_a': str(group_a),
             'group_b': str(group_b),
-            'interpretation': _interpret_kl_divergence(kl)
+            'interpretation': _interpret_kl_divergence(kl),
         }
 
     @staticmethod
-    def js_divergence(y_true: Union[np.ndarray, pd.Series],
-                     sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def js_divergence(
+        y_true: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Jensen-Shannon Divergence (JS)
 
@@ -792,7 +859,7 @@ class FairnessMetrics:
                 'value': 0.0,
                 'group_a': str(groups[0]) if len(groups) > 0 else 'N/A',
                 'group_b': 'N/A',
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -803,8 +870,12 @@ class FairnessMetrics:
         mask_a = sensitive_feature == group_a
         mask_b = sensitive_feature == group_b
 
-        dist_a = pd.Series(y_true[mask_a]).value_counts(normalize=True).sort_index()
-        dist_b = pd.Series(y_true[mask_b]).value_counts(normalize=True).sort_index()
+        dist_a = (
+            pd.Series(y_true[mask_a]).value_counts(normalize=True).sort_index()
+        )
+        dist_b = (
+            pd.Series(y_true[mask_b]).value_counts(normalize=True).sort_index()
+        )
 
         # Ensure same categories
         all_cats = sorted(set(dist_a.index) | set(dist_b.index))
@@ -820,17 +891,19 @@ class FairnessMetrics:
             'value': float(js),
             'group_a': str(group_a),
             'group_b': str(group_b),
-            'interpretation': _interpret_js_divergence(js)
+            'interpretation': _interpret_js_divergence(js),
         }
 
     # ==================== POST-TRAINING METRICS ====================
     # These metrics evaluate model predictions for fairness
 
     @staticmethod
-    def false_negative_rate_difference(y_true: Union[np.ndarray, pd.Series],
-                                       y_pred: Union[np.ndarray, pd.Series],
-                                       sensitive_feature: Union[np.ndarray, pd.Series],
-                                       min_representation_pct: float = None) -> Dict[str, Any]:
+    def false_negative_rate_difference(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+        min_representation_pct: float = None,
+    ) -> Dict[str, Any]:
         """
         False Negative Rate Difference (TFN)
 
@@ -891,7 +964,9 @@ class FairnessMetrics:
             meets_threshold = group_pct >= min_representation_pct
 
             if group_size > 0:
-                cm = confusion_matrix(y_true[mask], y_pred[mask], labels=[0, 1])
+                cm = confusion_matrix(
+                    y_true[mask], y_pred[mask], labels=[0, 1]
+                )
                 fn = cm[1, 0]  # False Negatives
                 tp = cm[1, 1]  # True Positives
                 fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
@@ -904,12 +979,20 @@ class FairnessMetrics:
                 'tp': int(tp),
                 'count': int(group_size),
                 'percentage': float(group_pct),
-                'meets_threshold': meets_threshold
+                'meets_threshold': meets_threshold,
             }
 
         # Separate testable vs excluded groups
-        testable_groups = {g: info for g, info in all_groups.items() if info['meets_threshold']}
-        excluded_groups = {g: info for g, info in all_groups.items() if not info['meets_threshold']}
+        testable_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if info['meets_threshold']
+        }
+        excluded_groups = {
+            g: info
+            for g, info in all_groups.items()
+            if not info['meets_threshold']
+        }
 
         # Calculate metrics for top 2 testable groups
         if len(testable_groups) < 2:
@@ -924,11 +1007,13 @@ class FairnessMetrics:
                 'group_a_fnr': None,
                 'group_b_fnr': None,
                 'min_representation_pct': min_representation_pct,
-                'interpretation': f"INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation"
+                'interpretation': f'INSUFFICIENT: Less than 2 groups with ≥{min_representation_pct}% representation',
             }
 
         # Get top 2 testable groups by count
-        sorted_testable = sorted(testable_groups.items(), key=lambda x: x[1]['count'], reverse=True)
+        sorted_testable = sorted(
+            testable_groups.items(), key=lambda x: x[1]['count'], reverse=True
+        )
         group_a, info_a = sorted_testable[0]
         group_b, info_b = sorted_testable[1]
 
@@ -947,13 +1032,15 @@ class FairnessMetrics:
             'group_a_fnr': float(fnr_a),
             'group_b_fnr': float(fnr_b),
             'min_representation_pct': min_representation_pct,
-            'interpretation': _interpret_fnr_difference(tfn)
+            'interpretation': _interpret_fnr_difference(tfn),
         }
 
     @staticmethod
-    def conditional_acceptance(y_true: Union[np.ndarray, pd.Series],
-                              y_pred: Union[np.ndarray, pd.Series],
-                              sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def conditional_acceptance(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Conditional Acceptance (AC)
 
@@ -998,7 +1085,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_rate': 0.0,
                 'group_b_rate': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -1035,13 +1122,15 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_rate': float(rate_a),
             'group_b_rate': float(rate_b),
-            'interpretation': _interpret_conditional_acceptance(ac)
+            'interpretation': _interpret_conditional_acceptance(ac),
         }
 
     @staticmethod
-    def conditional_rejection(y_true: Union[np.ndarray, pd.Series],
-                             y_pred: Union[np.ndarray, pd.Series],
-                             sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def conditional_rejection(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Conditional Rejection (RC)
 
@@ -1086,7 +1175,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_rate': 0.0,
                 'group_b_rate': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -1123,13 +1212,15 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_rate': float(rate_a),
             'group_b_rate': float(rate_b),
-            'interpretation': _interpret_conditional_rejection(rc)
+            'interpretation': _interpret_conditional_rejection(rc),
         }
 
     @staticmethod
-    def precision_difference(y_true: Union[np.ndarray, pd.Series],
-                            y_pred: Union[np.ndarray, pd.Series],
-                            sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def precision_difference(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Precision Difference (DP)
 
@@ -1175,7 +1266,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_precision': 0.0,
                 'group_b_precision': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -1186,8 +1277,12 @@ class FairnessMetrics:
         mask_a = sensitive_feature == group_a
         mask_b = sensitive_feature == group_b
 
-        prec_a = precision_score(y_true[mask_a], y_pred[mask_a], zero_division=0)
-        prec_b = precision_score(y_true[mask_b], y_pred[mask_b], zero_division=0)
+        prec_a = precision_score(
+            y_true[mask_a], y_pred[mask_a], zero_division=0
+        )
+        prec_b = precision_score(
+            y_true[mask_b], y_pred[mask_b], zero_division=0
+        )
 
         dp = prec_a - prec_b
 
@@ -1198,13 +1293,15 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_precision': float(prec_a),
             'group_b_precision': float(prec_b),
-            'interpretation': _interpret_precision_difference(dp)
+            'interpretation': _interpret_precision_difference(dp),
         }
 
     @staticmethod
-    def accuracy_difference(y_true: Union[np.ndarray, pd.Series],
-                           y_pred: Union[np.ndarray, pd.Series],
-                           sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def accuracy_difference(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Accuracy Difference (DA)
 
@@ -1250,7 +1347,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_accuracy': 0.0,
                 'group_b_accuracy': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -1273,13 +1370,15 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_accuracy': float(acc_a),
             'group_b_accuracy': float(acc_b),
-            'interpretation': _interpret_accuracy_difference(da)
+            'interpretation': _interpret_accuracy_difference(da),
         }
 
     @staticmethod
-    def treatment_equality(y_true: Union[np.ndarray, pd.Series],
-                          y_pred: Union[np.ndarray, pd.Series],
-                          sensitive_feature: Union[np.ndarray, pd.Series]) -> Dict[str, Any]:
+    def treatment_equality(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        sensitive_feature: Union[np.ndarray, pd.Series],
+    ) -> Dict[str, Any]:
         """
         Treatment Equality (IT)
 
@@ -1326,7 +1425,7 @@ class FairnessMetrics:
                 'group_b': 'N/A',
                 'group_a_ratio': 0.0,
                 'group_b_ratio': 0.0,
-                'interpretation': 'Apenas um grupo presente'
+                'interpretation': 'Apenas um grupo presente',
             }
 
         # Use top 2 most frequent groups
@@ -1359,13 +1458,15 @@ class FairnessMetrics:
             'group_b': str(group_b),
             'group_a_ratio': float(ratio_a),
             'group_b_ratio': float(ratio_b),
-            'interpretation': _interpret_treatment_equality(it)
+            'interpretation': _interpret_treatment_equality(it),
         }
 
     @staticmethod
-    def entropy_index(y_true: Union[np.ndarray, pd.Series],
-                     y_pred: Union[np.ndarray, pd.Series],
-                     alpha: float = 2.0) -> Dict[str, Any]:
+    def entropy_index(
+        y_true: Union[np.ndarray, pd.Series],
+        y_pred: Union[np.ndarray, pd.Series],
+        alpha: float = 2.0,
+    ) -> Dict[str, Any]:
         """
         Entropy Index (IE) - Individual Fairness
 
@@ -1421,34 +1522,39 @@ class FairnessMetrics:
             'metric_name': 'entropy_index',
             'value': float(ie),
             'alpha': alpha,
-            'interpretation': _interpret_entropy_index(ie)
+            'interpretation': _interpret_entropy_index(ie),
         }
 
 
 # ==================== Interpretation Helpers ====================
 
+
 def _interpret_statistical_parity(disparity: float, ratio: float) -> str:
     """Generate human-readable interpretation for statistical parity"""
     if disparity < 0.01:
-        return "EXCELLENT: Near perfect statistical parity across groups"
+        return 'EXCELLENT: Near perfect statistical parity across groups'
     elif ratio >= 0.8:
-        return "GOOD: Passes EEOC 80% rule (compliant with regulations)"
+        return 'GOOD: Passes EEOC 80% rule (compliant with regulations)'
     elif ratio >= 0.6:
-        return "MODERATE: Some disparity present - requires investigation"
+        return 'MODERATE: Some disparity present - requires investigation'
     else:
-        return "CRITICAL: Significant disparity detected - high discrimination risk"
+        return 'CRITICAL: Significant disparity detected - high discrimination risk'
 
 
 def _interpret_equal_opportunity(disparity: float) -> str:
     """Generate human-readable interpretation for equal opportunity"""
     if disparity < 0.05:
-        return "EXCELLENT: True Positive Rate balanced across groups"
+        return 'EXCELLENT: True Positive Rate balanced across groups'
     elif disparity < 0.1:
-        return "GOOD: Small difference in TPR (acceptable for most cases)"
+        return 'GOOD: Small difference in TPR (acceptable for most cases)'
     elif disparity < 0.2:
-        return "MODERATE: Notable difference in TPR - some groups disadvantaged"
+        return (
+            'MODERATE: Notable difference in TPR - some groups disadvantaged'
+        )
     else:
-        return "CRITICAL: Significant difference in TPR - groups clearly harmed"
+        return (
+            'CRITICAL: Significant difference in TPR - groups clearly harmed'
+        )
 
 
 def _interpret_equalized_odds(tpr_disp: float, fpr_disp: float) -> str:
@@ -1456,145 +1562,151 @@ def _interpret_equalized_odds(tpr_disp: float, fpr_disp: float) -> str:
     max_disp = max(tpr_disp, fpr_disp)
 
     if max_disp < 0.05:
-        return "EXCELLENT: TPR and FPR balanced across all groups"
+        return 'EXCELLENT: TPR and FPR balanced across all groups'
     elif max_disp < 0.1:
-        return "GOOD: Small differences in TPR/FPR (within acceptable limits)"
+        return 'GOOD: Small differences in TPR/FPR (within acceptable limits)'
     elif max_disp < 0.2:
-        return "MODERATE: Notable differences in TPR or FPR - requires attention"
+        return (
+            'MODERATE: Notable differences in TPR or FPR - requires attention'
+        )
     else:
-        return "CRITICAL: Significant differences in TPR/FPR - equalized odds violation"
+        return 'CRITICAL: Significant differences in TPR/FPR - equalized odds violation'
 
 
 def _interpret_disparate_impact(ratio: float, threshold: float) -> str:
     """Generate human-readable interpretation for disparate impact"""
     if ratio >= 0.95:
-        return "EXCELLENT: Nearly equal impact across groups (no evidence of discrimination)"
+        return 'EXCELLENT: Nearly equal impact across groups (no evidence of discrimination)'
     elif ratio >= threshold:
-        return f"GOOD: Passes EEOC threshold {threshold} (compliant with regulations)"
+        return f'GOOD: Passes EEOC threshold {threshold} (compliant with regulations)'
     elif ratio >= 0.6:
-        return f"MODERATE: Below threshold {threshold} - attention required"
+        return f'MODERATE: Below threshold {threshold} - attention required'
     else:
-        return "CRITICAL: Significant disparate impact - HIGH LEGAL RISK of discrimination"
+        return 'CRITICAL: Significant disparate impact - HIGH LEGAL RISK of discrimination'
 
 
 # ==================== PRE-TRAINING INTERPRETATIONS ====================
+
 
 def _interpret_class_balance(bcl: float) -> str:
     """Generate human-readable interpretation for class balance"""
     abs_bcl = abs(bcl)
     if abs_bcl <= 0.1:
-        return "✓ Green: Adequate balance between groups"
+        return '✓ Green: Adequate balance between groups'
     elif abs_bcl <= 0.3:
-        return "⚠ Yellow: Moderate imbalance - consider oversampling/undersampling"
+        return '⚠ Yellow: Moderate imbalance - consider oversampling/undersampling'
     else:
-        return "✗ Red: Critical imbalance - risk of model bias"
+        return '✗ Red: Critical imbalance - risk of model bias'
 
 
 def _interpret_concept_balance(bco: float) -> str:
     """Generate human-readable interpretation for concept balance"""
     abs_bco = abs(bco)
     if abs_bco <= 0.05:
-        return "✓ Green: Concept balanced across groups"
+        return '✓ Green: Concept balanced across groups'
     elif abs_bco <= 0.15:
-        return "⚠ Yellow: Moderate concept imbalance"
+        return '⚠ Yellow: Moderate concept imbalance'
     else:
-        return "✗ Red: Critical concept imbalance - possible structural bias"
+        return '✗ Red: Critical concept imbalance - possible structural bias'
 
 
 def _interpret_kl_divergence(kl: float) -> str:
     """Generate human-readable interpretation for KL divergence"""
     if kl < 0.1:
-        return "✓ Green: Very similar distributions"
+        return '✓ Green: Very similar distributions'
     elif kl < 0.5:
-        return "⚠ Yellow: Moderately different distributions"
+        return '⚠ Yellow: Moderately different distributions'
     else:
-        return "✗ Red: Very different distributions - high bias risk"
+        return '✗ Red: Very different distributions - high bias risk'
 
 
 def _interpret_js_divergence(js: float) -> str:
     """Generate human-readable interpretation for JS divergence"""
     if js < 0.05:
-        return "✓ Green: Very similar distributions"
+        return '✓ Green: Very similar distributions'
     elif js < 0.2:
-        return "⚠ Yellow: Moderately different distributions"
+        return '⚠ Yellow: Moderately different distributions'
     else:
-        return "✗ Red: Very different distributions - high bias risk"
+        return '✗ Red: Very different distributions - high bias risk'
 
 
 # ==================== POST-TRAINING INTERPRETATIONS ====================
+
 
 def _interpret_fnr_difference(tfn: float) -> str:
     """Generate human-readable interpretation for FNR difference"""
     abs_tfn = abs(tfn)
     if abs_tfn <= 0.05:
-        return "✓ Green: FN rate balanced across groups"
+        return '✓ Green: FN rate balanced across groups'
     elif abs_tfn <= 0.15:
-        return "⚠ Yellow: Moderate difference in FN - some groups lose opportunities"
+        return '⚠ Yellow: Moderate difference in FN - some groups lose opportunities'
     else:
-        return "✗ Red: Critical difference in FN - groups significantly harmed"
+        return '✗ Red: Critical difference in FN - groups significantly harmed'
 
 
 def _interpret_conditional_acceptance(ac: float) -> str:
     """Generate human-readable interpretation for conditional acceptance"""
     abs_ac = abs(ac)
     if abs_ac <= 0.05:
-        return "✓ Green: Adequate conditional acceptance"
+        return '✓ Green: Adequate conditional acceptance'
     elif abs_ac <= 0.15:
-        return "⚠ Yellow: Possible bias in conditional acceptance"
+        return '⚠ Yellow: Possible bias in conditional acceptance'
     else:
-        return "✗ Red: Critical bias in acceptance - different precision patterns"
+        return (
+            '✗ Red: Critical bias in acceptance - different precision patterns'
+        )
 
 
 def _interpret_conditional_rejection(rc: float) -> str:
     """Generate human-readable interpretation for conditional rejection"""
     abs_rc = abs(rc)
     if abs_rc <= 0.05:
-        return "✓ Green: Adequate conditional rejection"
+        return '✓ Green: Adequate conditional rejection'
     elif abs_rc <= 0.15:
-        return "⚠ Yellow: Possible bias in conditional rejection"
+        return '⚠ Yellow: Possible bias in conditional rejection'
     else:
-        return "✗ Red: Critical bias in rejection - different NPV patterns"
+        return '✗ Red: Critical bias in rejection - different NPV patterns'
 
 
 def _interpret_precision_difference(dp: float) -> str:
     """Generate human-readable interpretation for precision difference"""
     abs_dp = abs(dp)
     if abs_dp <= 0.05:
-        return "✓ Green: Precision balanced across groups"
+        return '✓ Green: Precision balanced across groups'
     elif abs_dp <= 0.15:
-        return "⚠ Yellow: Moderate difference in precision"
+        return '⚠ Yellow: Moderate difference in precision'
     else:
-        return "✗ Red: Critical difference in precision - unequal reliability"
+        return '✗ Red: Critical difference in precision - unequal reliability'
 
 
 def _interpret_accuracy_difference(da: float) -> str:
     """Generate human-readable interpretation for accuracy difference"""
     abs_da = abs(da)
     if abs_da <= 0.05:
-        return "✓ Green: Accuracy balanced across groups"
+        return '✓ Green: Accuracy balanced across groups'
     elif abs_da <= 0.15:
-        return "⚠ Yellow: Moderate difference in accuracy"
+        return '⚠ Yellow: Moderate difference in accuracy'
     else:
-        return "✗ Red: Critical difference in accuracy - unequal performance"
+        return '✗ Red: Critical difference in accuracy - unequal performance'
 
 
 def _interpret_treatment_equality(it: float) -> str:
     """Generate human-readable interpretation for treatment equality"""
     abs_it = abs(it)
     if abs_it < 0.5:
-        return "✓ Green: Balanced treatment between FN and FP"
+        return '✓ Green: Balanced treatment between FN and FP'
     elif abs_it < 1.5:
-        return "⚠ Yellow: Moderate imbalance between error types"
+        return '⚠ Yellow: Moderate imbalance between error types'
     else:
-        return "✗ Red: Critical imbalance - one group suffers more FN or FP"
+        return '✗ Red: Critical imbalance - one group suffers more FN or FP'
 
 
 def _interpret_entropy_index(ie: float) -> str:
     """Generate human-readable interpretation for entropy index"""
     abs_ie = abs(ie)
     if abs_ie < 0.1:
-        return "✓ Green: Low individual inequality"
+        return '✓ Green: Low individual inequality'
     elif abs_ie < 0.3:
-        return "⚠ Yellow: Moderate inequality at individual level"
+        return '⚠ Yellow: Moderate inequality at individual level'
     else:
-        return "✗ Red: High individual inequality - fairness compromised"
+        return '✗ Red: High individual inequality - fairness compromised'

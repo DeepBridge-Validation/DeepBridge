@@ -1,8 +1,11 @@
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
+
+
 class Pruning(BaseEstimator, ClassifierMixin):
     def __init__(self, base_model, pruning_rate=0.5):
         """
         Construtor da classe.
-        
+
         Args:
             base_model: Modelo base a ser podado.
             pruning_rate: Fração de pesos a serem removidos (ex: 0.5 = 50%).
@@ -17,7 +20,7 @@ class Pruning(BaseEstimator, ClassifierMixin):
         # Treinar o modelo base
         self.base_model_ = clone(self.base_model)
         self.base_model_.fit(X, y)
-        
+
         # Aplicar pruning
         self._apply_pruning()
         return self
@@ -28,10 +31,10 @@ class Pruning(BaseEstimator, ClassifierMixin):
         """
         coef = self.base_model_.coef_
         abs_coef = np.abs(coef)
-        
+
         # Calcular o threshold para remover `pruning_rate`% dos pesos
         threshold = np.percentile(abs_coef, self.pruning_rate * 100)
-        
+
         # Zerar pesos abaixo do threshold
         pruned_coef = np.where(abs_coef < threshold, 0, coef)
         self.base_model_.coef_ = pruned_coef

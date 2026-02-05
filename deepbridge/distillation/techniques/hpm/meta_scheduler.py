@@ -5,13 +5,14 @@ This module implements an adaptive temperature scheduling system using meta-lear
 to optimize temperature values dynamically during training.
 """
 
-import numpy as np
-from typing import List, Dict, Optional, Tuple, Any
-from dataclasses import dataclass
 import logging
+from collections import deque
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
-from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class TrainingState:
     """
     Represents the current training state for meta-learning.
     """
+
     epoch: int
     loss: float
     kl_divergence: float
@@ -47,7 +49,7 @@ class MetaTemperatureScheduler:
         meta_learning_rate: float = 0.01,
         history_window: int = 20,
         update_frequency: int = 5,
-        use_gradient_info: bool = True
+        use_gradient_info: bool = True,
     ):
         """
         Initialize the meta temperature scheduler.
@@ -105,7 +107,7 @@ class MetaTemperatureScheduler:
             early_stopping=True,
             validation_fraction=0.1,
             random_state=42,
-            warm_start=True
+            warm_start=True,
         )
 
     def adaptive_temperature(
@@ -116,7 +118,7 @@ class MetaTemperatureScheduler:
         student_accuracy: float,
         teacher_accuracy: float,
         gradient_norm: Optional[float] = None,
-        learning_rate: Optional[float] = None
+        learning_rate: Optional[float] = None,
     ) -> float:
         """
         Compute adaptive temperature based on current training state.
@@ -142,7 +144,7 @@ class MetaTemperatureScheduler:
             teacher_accuracy=teacher_accuracy,
             temperature=self.current_temperature,
             gradient_norm=gradient_norm,
-            learning_rate=learning_rate
+            learning_rate=learning_rate,
         )
 
         # Add to history
@@ -161,7 +163,9 @@ class MetaTemperatureScheduler:
             self._update_meta_model()
 
             # Predict temperature
-            features_scaled = self.feature_scaler.transform(features.reshape(1, -1))
+            features_scaled = self.feature_scaler.transform(
+                features.reshape(1, -1)
+            )
             predicted_temp = self.meta_model.predict(features_scaled)[0]
 
             # Apply bounds and smoothing
@@ -177,7 +181,9 @@ class MetaTemperatureScheduler:
         # Update current temperature
         self.current_temperature = new_temperature
 
-        logger.debug(f"Epoch {epoch}: Temperature adjusted to {new_temperature:.3f}")
+        logger.debug(
+            f'Epoch {epoch}: Temperature adjusted to {new_temperature:.3f}'
+        )
 
         return new_temperature
 
@@ -194,15 +200,19 @@ class MetaTemperatureScheduler:
         features = []
 
         # Basic features
-        features.extend([
-            state.epoch / 100.0,  # Normalized epoch
-            state.loss,
-            state.kl_divergence,
-            state.student_accuracy,
-            state.teacher_accuracy,
-            state.teacher_accuracy - state.student_accuracy,  # Performance gap
-            state.temperature / self.max_temperature  # Normalized current temp
-        ])
+        features.extend(
+            [
+                state.epoch / 100.0,  # Normalized epoch
+                state.loss,
+                state.kl_divergence,
+                state.student_accuracy,
+                state.teacher_accuracy,
+                state.teacher_accuracy
+                - state.student_accuracy,  # Performance gap
+                state.temperature
+                / self.max_temperature,  # Normalized current temp
+            ]
+        )
 
         # Historical features (if available)
         if len(self.state_history) >= 3:
@@ -210,9 +220,7 @@ class MetaTemperatureScheduler:
 
             # Loss trend
             loss_trend = np.polyfit(
-                range(len(recent_states)),
-                [s.loss for s in recent_states],
-                1
+                range(len(recent_states)), [s.loss for s in recent_states], 1
             )[0]
             features.append(loss_trend)
 
@@ -220,7 +228,7 @@ class MetaTemperatureScheduler:
             kl_trend = np.polyfit(
                 range(len(recent_states)),
                 [s.kl_divergence for s in recent_states],
-                1
+                1,
             )[0]
             features.append(kl_trend)
 
@@ -287,10 +295,12 @@ class MetaTemperatureScheduler:
         # Adjust based on training progress
         if state.epoch > 50:
             # Later in training - gradually decrease temperature
-            temperature *= (1.0 - 0.3 * min(state.epoch / 200.0, 1.0))
+            temperature *= 1.0 - 0.3 * min(state.epoch / 200.0, 1.0)
 
         # Apply constraints
-        temperature = np.clip(temperature, self.min_temperature, self.max_temperature)
+        temperature = np.clip(
+            temperature, self.min_temperature, self.max_temperature
+        )
 
         return temperature
 
@@ -305,13 +315,17 @@ class MetaTemperatureScheduler:
             Constrained temperature
         """
         # Apply bounds
-        temperature = np.clip(temperature, self.min_temperature, self.max_temperature)
+        temperature = np.clip(
+            temperature, self.min_temperature, self.max_temperature
+        )
 
         # Apply smoothing with previous temperature
         if self.temperature_history:
             # Exponential moving average
             alpha = 0.3  # Smoothing factor
-            temperature = alpha * temperature + (1 - alpha) * self.current_temperature
+            temperature = (
+                alpha * temperature + (1 - alpha) * self.current_temperature
+            )
 
         # Prevent too rapid changes
         if self.current_temperature > 0:
@@ -319,7 +333,7 @@ class MetaTemperatureScheduler:
             temperature = np.clip(
                 temperature,
                 self.current_temperature - max_change,
-                self.current_temperature + max_change
+                self.current_temperature + max_change,
             )
 
         return temperature
@@ -341,7 +355,7 @@ class MetaTemperatureScheduler:
             # Pad with zeros if needed
             y = np.concatenate([np.zeros(len(X) - len(y)), y])
         elif len(y) > len(X):
-            y = y[-len(X):]
+            y = y[-len(X) :]
 
         # Fit scaler if needed
         if not hasattr(self.feature_scaler, 'mean_'):
@@ -367,24 +381,31 @@ class MetaTemperatureScheduler:
         rewards = []
 
         for i in range(1, len(self.state_history)):
-            prev_state = self.state_history[i-1]
+            prev_state = self.state_history[i - 1]
             curr_state = self.state_history[i]
 
             # Reward based on multiple factors
-            acc_improvement = curr_state.student_accuracy - prev_state.student_accuracy
+            acc_improvement = (
+                curr_state.student_accuracy - prev_state.student_accuracy
+            )
             loss_reduction = prev_state.loss - curr_state.loss
             kl_reduction = prev_state.kl_divergence - curr_state.kl_divergence
 
             # Weighted reward
             reward = (
-                0.5 * acc_improvement +  # Accuracy improvement
-                0.3 * loss_reduction +    # Loss reduction
-                0.2 * kl_reduction        # KL divergence reduction
+                0.5 * acc_improvement
+                + 0.3 * loss_reduction  # Accuracy improvement
+                + 0.2  # Loss reduction
+                * kl_reduction  # KL divergence reduction
             )
 
             # Bonus for closing the gap with teacher
-            gap_prev = prev_state.teacher_accuracy - prev_state.student_accuracy
-            gap_curr = curr_state.teacher_accuracy - curr_state.student_accuracy
+            gap_prev = (
+                prev_state.teacher_accuracy - prev_state.student_accuracy
+            )
+            gap_curr = (
+                curr_state.teacher_accuracy - curr_state.student_accuracy
+            )
             if gap_curr < gap_prev:
                 reward += 0.1 * (gap_prev - gap_curr)
 
@@ -392,11 +413,7 @@ class MetaTemperatureScheduler:
 
         return np.array(rewards)
 
-    def update_with_validation(
-        self,
-        val_accuracy: float,
-        val_loss: float
-    ):
+    def update_with_validation(self, val_accuracy: float, val_loss: float):
         """
         Update scheduler with validation results.
 
@@ -414,8 +431,10 @@ class MetaTemperatureScheduler:
         if val_accuracy > self.best_performance:
             self.best_performance = val_accuracy
             self.best_temperature = self.current_temperature
-            logger.info(f"New best temperature: {self.best_temperature:.3f} "
-                       f"(accuracy: {val_accuracy:.4f})")
+            logger.info(
+                f'New best temperature: {self.best_temperature:.3f} '
+                f'(accuracy: {val_accuracy:.4f})'
+            )
 
     def get_schedule(self, n_epochs: int) -> List[float]:
         """
@@ -445,7 +464,7 @@ class MetaTemperatureScheduler:
                 loss=mock_loss,
                 kl_divergence=mock_kl,
                 student_accuracy=mock_student_acc,
-                teacher_accuracy=mock_teacher_acc
+                teacher_accuracy=mock_teacher_acc,
             )
 
             schedule.append(temp)
@@ -481,12 +500,20 @@ class MetaTemperatureScheduler:
             'best_temperature': self.best_temperature,
             'best_performance': self.best_performance,
             'temperature_range': (
-                min(self.temperature_history) if self.temperature_history else self.min_temperature,
-                max(self.temperature_history) if self.temperature_history else self.max_temperature
+                min(self.temperature_history)
+                if self.temperature_history
+                else self.min_temperature,
+                max(self.temperature_history)
+                if self.temperature_history
+                else self.max_temperature,
             ),
-            'average_temperature': np.mean(self.temperature_history) if self.temperature_history else self.initial_temperature,
-            'temperature_variance': np.var(self.temperature_history) if self.temperature_history else 0.0,
-            'n_updates': len(self.temperature_history)
+            'average_temperature': np.mean(self.temperature_history)
+            if self.temperature_history
+            else self.initial_temperature,
+            'temperature_variance': np.var(self.temperature_history)
+            if self.temperature_history
+            else 0.0,
+            'n_updates': len(self.temperature_history),
         }
 
         return stats

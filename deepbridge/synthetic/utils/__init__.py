@@ -9,4 +9,4 @@ Key components:
 - Validators: Functions for validating data and parameters
 """
 
-from .transformers import NumericalTransformer, CategoricalTransformer
+from .transformers import CategoricalTransformer, NumericalTransformer

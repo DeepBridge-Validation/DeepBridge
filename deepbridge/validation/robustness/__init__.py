@@ -8,7 +8,7 @@ This package provides advanced robustness analysis tools including:
 These tools complement the main RobustnessSuite with granular diagnostics.
 """
 
-from deepbridge.validation.robustness.weakspot_detector import WeakspotDetector
 from deepbridge.validation.robustness.overfit_analyzer import OverfitAnalyzer
+from deepbridge.validation.robustness.weakspot_detector import WeakspotDetector
 
 __all__ = ['WeakspotDetector', 'OverfitAnalyzer']

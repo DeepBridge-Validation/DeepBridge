@@ -4,17 +4,18 @@ Complementary fairness charts.
 Contains visualizations for complementary fairness metrics.
 """
 
-from typing import Dict, Any, List
-import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
+from typing import Any, Dict, List
 
-from .base_chart import BaseChart
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
 from ..utils import (
-    POSTTRAIN_COMPLEMENTARY_METRICS,
     METRIC_SHORT_LABELS,
-    format_attribute_name
+    POSTTRAIN_COMPLEMENTARY_METRICS,
+    format_attribute_name,
 )
+from .base_chart import BaseChart
 
 
 class PrecisionAccuracyComparisonChart(BaseChart):
@@ -58,18 +59,22 @@ class PrecisionAccuracyComparisonChart(BaseChart):
                 accuracy = (tp + tn) / total if total > 0 else 0
                 precision = tp / (tp + fp) if (tp + fp) > 0 else 0
 
-                chart_data.append({
-                    'attribute': format_attribute_name(attr),
-                    'group': str(group),
-                    'metric': 'Accuracy',
-                    'value': accuracy
-                })
-                chart_data.append({
-                    'attribute': format_attribute_name(attr),
-                    'group': str(group),
-                    'metric': 'Precision',
-                    'value': precision
-                })
+                chart_data.append(
+                    {
+                        'attribute': format_attribute_name(attr),
+                        'group': str(group),
+                        'metric': 'Accuracy',
+                        'value': accuracy,
+                    }
+                )
+                chart_data.append(
+                    {
+                        'attribute': format_attribute_name(attr),
+                        'group': str(group),
+                        'metric': 'Precision',
+                        'value': precision,
+                    }
+                )
 
         if not chart_data:
             return '{}'
@@ -86,7 +91,10 @@ class PrecisionAccuracyComparisonChart(BaseChart):
             barmode='group',
             labels={'value': 'Score', 'group': 'Group'},
             title='Precision & Accuracy Comparison by Group',
-            color_discrete_map={'Accuracy': self.COLOR_INFO, 'Precision': '#9b59b6'}
+            color_discrete_map={
+                'Accuracy': self.COLOR_INFO,
+                'Precision': '#9b59b6',
+            },
         )
 
         self._apply_common_layout(
@@ -98,8 +106,8 @@ class PrecisionAccuracyComparisonChart(BaseChart):
                 autorange=True,
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
-                range=[0, 1]
-            )
+                range=[0, 1],
+            ),
         )
 
         fig.update_xaxes(gridcolor='rgba(255, 255, 255, 0.1)')
@@ -151,13 +159,15 @@ class TreatmentEqualityScatterChart(BaseChart):
                 # Calculate sample size for bubble size
                 sample_size = tp + tn + fp + fn
 
-                chart_data.append({
-                    'attribute': format_attribute_name(attr),
-                    'group': str(group),
-                    'fn_rate': fn_rate,
-                    'fp_rate': fp_rate,
-                    'sample_size': sample_size
-                })
+                chart_data.append(
+                    {
+                        'attribute': format_attribute_name(attr),
+                        'group': str(group),
+                        'fn_rate': fn_rate,
+                        'fp_rate': fp_rate,
+                        'sample_size': sample_size,
+                    }
+                )
 
         if not chart_data:
             return '{}'
@@ -169,7 +179,14 @@ class TreatmentEqualityScatterChart(BaseChart):
 
         # Get unique attributes for coloring
         unique_attrs = df['attribute'].unique()
-        colors = ['#636efa', '#EF553B', '#00cc96', '#ab63fa', '#FFA15A', '#19d3f3']
+        colors = [
+            '#636efa',
+            '#EF553B',
+            '#00cc96',
+            '#ab63fa',
+            '#FFA15A',
+            '#19d3f3',
+        ]
 
         for i, attr in enumerate(unique_attrs):
             attr_data = df[df['attribute'] == attr]
@@ -177,8 +194,13 @@ class TreatmentEqualityScatterChart(BaseChart):
             # Convert to Python lists to avoid binary serialization
             x_values = attr_data['fp_rate'].tolist()
             y_values = attr_data['fn_rate'].tolist()
-            text_labels = [str(row['group']) for _, row in attr_data.iterrows()]
-            marker_sizes = [max(8, min(30, s / 200)) for s in attr_data['sample_size'].tolist()]
+            text_labels = [
+                str(row['group']) for _, row in attr_data.iterrows()
+            ]
+            marker_sizes = [
+                max(8, min(30, s / 200))
+                for s in attr_data['sample_size'].tolist()
+            ]
 
             fig.add_trace(
                 go.Scatter(
@@ -193,17 +215,19 @@ class TreatmentEqualityScatterChart(BaseChart):
                         size=marker_sizes,
                         color=colors[i % len(colors)],
                         opacity=0.7,
-                        line=dict(color='#2c3e50', width=1)
+                        line=dict(color='#2c3e50', width=1),
                     ),
-                    hovertemplate='<b>%{text}</b><br>' +
-                                'FP Rate: %{x}<br>' +
-                                'FN Rate: %{y}<br>' +
-                                '<extra></extra>'
+                    hovertemplate='<b>%{text}</b><br>'
+                    + 'FP Rate: %{x}<br>'
+                    + 'FN Rate: %{y}<br>'
+                    + '<extra></extra>',
                 )
             )
 
         # Add diagonal reference line (perfect balance)
-        max_rate = max(df['fp_rate'].max(), df['fn_rate'].max()) if len(df) > 0 else 1
+        max_rate = (
+            max(df['fp_rate'].max(), df['fn_rate'].max()) if len(df) > 0 else 1
+        )
         fig.add_trace(
             go.Scatter(
                 x=[0, max_rate],
@@ -212,7 +236,7 @@ class TreatmentEqualityScatterChart(BaseChart):
                 line=dict(color='white', dash='dash', width=2),
                 name='Perfect Balance (FN=FP)',
                 showlegend=True,
-                hoverinfo='skip'
+                hoverinfo='skip',
             )
         )
 
@@ -226,15 +250,15 @@ class TreatmentEqualityScatterChart(BaseChart):
                 title='False Positive Rate',
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
-                range=[0, max_rate * 1.1] if max_rate > 0 else [0, 1]
+                range=[0, max_rate * 1.1] if max_rate > 0 else [0, 1],
             ),
             yaxis=dict(
                 autorange=True,
                 title='False Negative Rate',
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 tickformat='.0%',
-                range=[0, max_rate * 1.1] if max_rate > 0 else [0, 1]
-            )
+                range=[0, max_rate * 1.1] if max_rate > 0 else [0, 1],
+            ),
         )
 
         return self._to_json(fig)
@@ -301,25 +325,23 @@ class ComplementaryMetricsRadarChart(BaseChart):
                 values.append(values[0])
                 labels.append(labels[0])
 
-                fig.add_trace(go.Scatterpolar(
-                    r=values,
-                    theta=labels,
-                    fill='toself',
-                    name=format_attribute_name(attr)
-                ))
+                fig.add_trace(
+                    go.Scatterpolar(
+                        r=values,
+                        theta=labels,
+                        fill='toself',
+                        name=format_attribute_name(attr),
+                    )
+                )
 
         self._apply_common_layout(
             fig,
             polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[0, 1],
-                    tickformat='.0%'
-                )
+                radialaxis=dict(visible=True, range=[0, 1], tickformat='.0%')
             ),
             showlegend=True,
             title='Complementary Metrics Radar (1.0 = Perfect Fairness)',
-            height=500
+            height=500,
         )
 
         return self._to_json(fig)

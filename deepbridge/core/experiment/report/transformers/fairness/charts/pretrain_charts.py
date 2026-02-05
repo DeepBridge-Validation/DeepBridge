@@ -4,17 +4,18 @@ Pre-training fairness charts.
 Contains specialized visualizations for pre-training fairness metrics.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .base_chart import BaseChart
 from ..utils import (
-    get_status_from_interpretation,
-    PRETRAIN_METRICS,
     METRIC_LABELS,
-    format_attribute_name
+    PRETRAIN_METRICS,
+    format_attribute_name,
+    get_status_from_interpretation,
 )
+from .base_chart import BaseChart
 
 
 class PretrainMetricsOverviewChart(BaseChart):
@@ -71,15 +72,19 @@ class PretrainMetricsOverviewChart(BaseChart):
                 text_data.append(self._format_decimal(value))
 
             if x_data:
-                fig.add_trace(go.Bar(
-                    name=METRIC_LABELS[metric_name],
-                    x=x_data,
-                    y=y_data,
-                    text=text_data,
-                    textposition='outside',
-                    marker=dict(color=colors),
-                    hovertemplate='<b>%{x}</b><br>' + METRIC_LABELS[metric_name] + '<br>Value: %{y}<extra></extra>'
-                ))
+                fig.add_trace(
+                    go.Bar(
+                        name=METRIC_LABELS[metric_name],
+                        x=x_data,
+                        y=y_data,
+                        text=text_data,
+                        textposition='outside',
+                        marker=dict(color=colors),
+                        hovertemplate='<b>%{x}</b><br>'
+                        + METRIC_LABELS[metric_name]
+                        + '<br>Value: %{y}<extra></extra>',
+                    )
+                )
 
         self._apply_common_layout(
             fig,
@@ -91,7 +96,7 @@ class PretrainMetricsOverviewChart(BaseChart):
             showlegend=True,
             legend_title_text='Metric',
             xaxis=dict(autorange=True, gridcolor='rgba(255, 255, 255, 0.1)'),
-            yaxis=dict(autorange=True, gridcolor='rgba(255, 255, 255, 0.1)')
+            yaxis=dict(autorange=True, gridcolor='rgba(255, 255, 255, 0.1)'),
         )
 
         return self._to_json(fig)
@@ -114,7 +119,9 @@ class GroupSizesChart(BaseChart):
         Returns:
             Plotly JSON string
         """
-        protected_attrs_distribution = data.get('protected_attrs_distribution', {})
+        protected_attrs_distribution = data.get(
+            'protected_attrs_distribution', {}
+        )
         protected_attrs = data.get('protected_attrs', [])
 
         if not protected_attrs_distribution:
@@ -125,9 +132,11 @@ class GroupSizesChart(BaseChart):
         fig = make_subplots(
             rows=1,
             cols=n_attrs,
-            subplot_titles=[format_attribute_name(attr) for attr in protected_attrs],
+            subplot_titles=[
+                format_attribute_name(attr) for attr in protected_attrs
+            ],
             specs=[[{'type': 'bar'}] * n_attrs],
-            horizontal_spacing=0.15
+            horizontal_spacing=0.15,
         )
 
         for i, attr in enumerate(protected_attrs, start=1):
@@ -140,7 +149,9 @@ class GroupSizesChart(BaseChart):
             # Extract data
             group_names = list(distribution.keys())
             counts = [distribution[label]['count'] for label in group_names]
-            percentages = [distribution[label]['percentage'] for label in group_names]
+            percentages = [
+                distribution[label]['percentage'] for label in group_names
+            ]
 
             if not group_names:
                 continue
@@ -160,32 +171,31 @@ class GroupSizesChart(BaseChart):
                     x=group_names,
                     y=counts,
                     marker=dict(
-                        color=colors,
-                        line=dict(color='white', width=1)
+                        color=colors, line=dict(color='white', width=1)
                     ),
                     text=[self._format_percentage(p) for p in percentages],
                     textposition='outside',
                     hovertemplate='<b>%{x}</b><br>Count: %{y}<br>%{text}<extra></extra>',
                     showlegend=False,
-                    cliponaxis=False
+                    cliponaxis=False,
                 ),
                 row=1,
-                col=i
+                col=i,
             )
 
             # Update axes
             fig.update_xaxes(
-                title_text="Group",
+                title_text='Group',
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 row=1,
-                col=i
+                col=i,
             )
             fig.update_yaxes(
-                title_text="Sample Count" if i == 1 else "",
+                title_text='Sample Count' if i == 1 else '',
                 gridcolor='rgba(255, 255, 255, 0.1)',
                 range=[0, max(counts) * 1.2] if counts else [0, 100],
                 row=1,
-                col=i
+                col=i,
             )
 
         self._apply_common_layout(
@@ -193,7 +203,7 @@ class GroupSizesChart(BaseChart):
             title='Group Size Distribution - Sample Balance',
             height=450,
             showlegend=False,
-            margin=dict(t=100, b=80)
+            margin=dict(t=100, b=80),
         )
 
         return self._to_json(fig)
@@ -225,7 +235,10 @@ class ConceptBalanceChart(BaseChart):
         # Collect data from concept_balance metrics
         chart_data = []
         for attr in protected_attrs:
-            if attr not in pretrain_metrics or 'concept_balance' not in pretrain_metrics[attr]:
+            if (
+                attr not in pretrain_metrics
+                or 'concept_balance' not in pretrain_metrics[attr]
+            ):
                 continue
 
             metric = pretrain_metrics[attr]['concept_balance']
@@ -238,16 +251,20 @@ class ConceptBalanceChart(BaseChart):
             group_a_rate = metric.get('group_a_positive_rate', 0.0)
             group_b_rate = metric.get('group_b_positive_rate', 0.0)
 
-            chart_data.append({
-                'attribute': format_attribute_name(attr),
-                'group': str(group_a).strip(),
-                'rate': group_a_rate
-            })
-            chart_data.append({
-                'attribute': format_attribute_name(attr),
-                'group': str(group_b).strip(),
-                'rate': group_b_rate
-            })
+            chart_data.append(
+                {
+                    'attribute': format_attribute_name(attr),
+                    'group': str(group_a).strip(),
+                    'rate': group_a_rate,
+                }
+            )
+            chart_data.append(
+                {
+                    'attribute': format_attribute_name(attr),
+                    'group': str(group_b).strip(),
+                    'rate': group_b_rate,
+                }
+            )
 
         if not chart_data:
             return '{}'
@@ -268,14 +285,16 @@ class ConceptBalanceChart(BaseChart):
         for group, group_data in groups.items():
             text_values = [f'{r:.2%}' for r in group_data['rates']]
 
-            fig.add_trace(go.Bar(
-                name=group,
-                x=group_data['attributes'],
-                y=group_data['rates'],
-                text=text_values,
-                textposition='outside',
-                hovertemplate='<b>%{x}</b><br>%{fullData.name}<br>Rate: %{y}<extra></extra>'
-            ))
+            fig.add_trace(
+                go.Bar(
+                    name=group,
+                    x=group_data['attributes'],
+                    y=group_data['rates'],
+                    text=text_values,
+                    textposition='outside',
+                    hovertemplate='<b>%{x}</b><br>%{fullData.name}<br>Rate: %{y}<extra></extra>',
+                )
+            )
 
         self._apply_common_layout(
             fig,
@@ -290,8 +309,8 @@ class ConceptBalanceChart(BaseChart):
             yaxis=dict(
                 autorange=True,
                 gridcolor='rgba(255, 255, 255, 0.1)',
-                tickformat='.1%'
-            )
+                tickformat='.1%',
+            ),
         )
 
         return self._to_json(fig)

@@ -5,21 +5,23 @@ This module implements an intelligent caching system that eliminates redundant
 computations by storing and reusing teacher predictions, features, and attention maps.
 """
 
+import gc
 import hashlib
-import pickle
 import json
-import numpy as np
-import pandas as pd
-from typing import Any, Dict, Optional, Union, Callable, Tuple
+import logging
+import pickle
+import time
 from collections import OrderedDict
 from functools import wraps
-import time
-import logging
-import gc
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 # Try to import psutil, but make it optional
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -79,7 +81,9 @@ class LRUCache:
             del self.cache[key]
 
         # Evict items if needed
-        while self.size_bytes + size_bytes > self.max_size_bytes and self.cache:
+        while (
+            self.size_bytes + size_bytes > self.max_size_bytes and self.cache
+        ):
             evicted_key, evicted_value = self.cache.popitem(last=False)
             self.size_bytes -= evicted_value['size']
 
@@ -102,7 +106,7 @@ class LRUCache:
             'num_items': len(self.cache),
             'hits': self.hits,
             'misses': self.misses,
-            'hit_rate': self.hits / max(1, self.hits + self.misses)
+            'hit_rate': self.hits / max(1, self.hits + self.misses),
         }
 
 
@@ -122,7 +126,7 @@ class IntelligentCache:
         max_memory_gb: float = 2.0,
         teacher_ratio: float = 0.5,
         feature_ratio: float = 0.3,
-        attention_ratio: float = 0.2
+        attention_ratio: float = 0.2,
     ):
         """
         Initialize the intelligent cache system.
@@ -137,15 +141,21 @@ class IntelligentCache:
         self.max_memory_bytes = int(max_memory_gb * 1024 * 1024 * 1024)
 
         # Initialize separate caches for different data types
-        self.teacher_cache = LRUCache(int(self.max_memory_bytes * teacher_ratio))
-        self.feature_cache = LRUCache(int(self.max_memory_bytes * feature_ratio))
-        self.attention_cache = LRUCache(int(self.max_memory_bytes * attention_ratio))
+        self.teacher_cache = LRUCache(
+            int(self.max_memory_bytes * teacher_ratio)
+        )
+        self.feature_cache = LRUCache(
+            int(self.max_memory_bytes * feature_ratio)
+        )
+        self.attention_cache = LRUCache(
+            int(self.max_memory_bytes * attention_ratio)
+        )
 
         # Computation timing statistics
         self.timing_stats = {
             'cache_hits_time': 0.0,
             'cache_misses_time': 0.0,
-            'total_computations': 0
+            'total_computations': 0,
         }
 
         # Monitor memory usage
@@ -156,7 +166,7 @@ class IntelligentCache:
         key: Any,
         compute_fn: Callable,
         cache_type: str = 'teacher',
-        force_recompute: bool = False
+        force_recompute: bool = False,
     ) -> Any:
         """
         Get value from cache or compute it.
@@ -184,11 +194,13 @@ class IntelligentCache:
             if cached_value is not None:
                 elapsed = time.time() - start_time
                 self.timing_stats['cache_hits_time'] += elapsed
-                logger.debug(f"Cache hit for {cache_type} (key: {hash_key[:8]}...)")
+                logger.debug(
+                    f'Cache hit for {cache_type} (key: {hash_key[:8]}...)'
+                )
                 return cached_value
 
         # Compute value
-        logger.debug(f"Cache miss for {cache_type}, computing...")
+        logger.debug(f'Cache miss for {cache_type}, computing...')
         computed_value = compute_fn()
 
         # Estimate size and cache
@@ -205,7 +217,7 @@ class IntelligentCache:
         self,
         teacher_model: Any,
         X: Union[np.ndarray, pd.DataFrame],
-        temperature: float = 1.0
+        temperature: float = 1.0,
     ) -> np.ndarray:
         """
         Cache teacher model predictions.
@@ -223,7 +235,7 @@ class IntelligentCache:
             'model_id': id(teacher_model),
             'X_shape': X.shape,
             'X_sample': self._get_data_sample(X),
-            'temperature': temperature
+            'temperature': temperature,
         }
 
         def compute_predictions():
@@ -242,16 +254,14 @@ class IntelligentCache:
             return probs
 
         return self.get_or_compute(
-            key=cache_key,
-            compute_fn=compute_predictions,
-            cache_type='teacher'
+            key=cache_key, compute_fn=compute_predictions, cache_type='teacher'
         )
 
     def cache_features(
         self,
         model: Any,
         X: Union[np.ndarray, pd.DataFrame],
-        layer_name: Optional[str] = None
+        layer_name: Optional[str] = None,
     ) -> np.ndarray:
         """
         Cache intermediate features from a model.
@@ -268,7 +278,7 @@ class IntelligentCache:
             'model_id': id(model),
             'X_shape': X.shape,
             'X_sample': self._get_data_sample(X),
-            'layer': layer_name
+            'layer': layer_name,
         }
 
         def compute_features():
@@ -286,19 +296,19 @@ class IntelligentCache:
                 return model.predict(X)
 
             else:
-                raise ValueError(f"Cannot extract features from model type: {type(model)}")
+                raise ValueError(
+                    f'Cannot extract features from model type: {type(model)}'
+                )
 
         return self.get_or_compute(
-            key=cache_key,
-            compute_fn=compute_features,
-            cache_type='feature'
+            key=cache_key, compute_fn=compute_features, cache_type='feature'
         )
 
     def cache_attention_maps(
         self,
         model: Any,
         X: Union[np.ndarray, pd.DataFrame],
-        method: str = 'gradient'
+        method: str = 'gradient',
     ) -> np.ndarray:
         """
         Cache attention or importance maps.
@@ -315,7 +325,7 @@ class IntelligentCache:
             'model_id': id(model),
             'X_shape': X.shape,
             'X_sample': self._get_data_sample(X),
-            'method': method
+            'method': method,
         }
 
         def compute_attention():
@@ -343,9 +353,7 @@ class IntelligentCache:
                 return np.ones((X.shape[0], X.shape[1])) / X.shape[1]
 
         return self.get_or_compute(
-            key=cache_key,
-            compute_fn=compute_attention,
-            cache_type='attention'
+            key=cache_key, compute_fn=compute_attention, cache_type='attention'
         )
 
     def _generate_hash_key(self, key: Any) -> str:
@@ -364,7 +372,7 @@ class IntelligentCache:
         elif isinstance(key, (list, tuple)):
             key_str = str(key)
         elif isinstance(key, np.ndarray):
-            key_str = f"{key.shape}_{key.dtype}_{hash(key.tobytes())}"
+            key_str = f'{key.shape}_{key.dtype}_{hash(key.tobytes())}'
         else:
             key_str = str(key)
 
@@ -372,9 +380,7 @@ class IntelligentCache:
         return hashlib.md5(key_str.encode()).hexdigest()
 
     def _get_data_sample(
-        self,
-        X: Union[np.ndarray, pd.DataFrame],
-        sample_size: int = 100
+        self, X: Union[np.ndarray, pd.DataFrame], sample_size: int = 100
     ) -> str:
         """
         Get a representative sample of data for cache key.
@@ -402,7 +408,9 @@ class IntelligentCache:
 
         return str(sample.tolist())
 
-    def _apply_temperature(self, probs: np.ndarray, temperature: float) -> np.ndarray:
+    def _apply_temperature(
+        self, probs: np.ndarray, temperature: float
+    ) -> np.ndarray:
         """
         Apply temperature scaling to probabilities.
 
@@ -418,7 +426,9 @@ class IntelligentCache:
         scaled_logits = logits / temperature
 
         # Convert back to probabilities
-        exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=-1, keepdims=True))
+        exp_logits = np.exp(
+            scaled_logits - np.max(scaled_logits, axis=-1, keepdims=True)
+        )
         scaled_probs = exp_logits / np.sum(exp_logits, axis=-1, keepdims=True)
 
         return scaled_probs
@@ -464,7 +474,7 @@ class IntelligentCache:
         elif cache_type == 'attention':
             return self.attention_cache
         else:
-            raise ValueError(f"Unknown cache type: {cache_type}")
+            raise ValueError(f'Unknown cache type: {cache_type}')
 
     def _check_memory_usage(self):
         """
@@ -475,15 +485,19 @@ class IntelligentCache:
             memory_usage_percent = memory.percent
 
             if memory_usage_percent > 90:
-                logger.warning(f"High memory usage detected ({memory_usage_percent}%)")
+                logger.warning(
+                    f'High memory usage detected ({memory_usage_percent}%)'
+                )
                 self.reduce_cache_size(0.5)
         else:
             # Without psutil, do a simple size check
-            total_size = (self.teacher_cache.size_bytes +
-                         self.feature_cache.size_bytes +
-                         self.attention_cache.size_bytes)
+            total_size = (
+                self.teacher_cache.size_bytes
+                + self.feature_cache.size_bytes
+                + self.attention_cache.size_bytes
+            )
             if total_size > self.max_memory_bytes * 0.9:
-                logger.warning("Cache size approaching limit")
+                logger.warning('Cache size approaching limit')
                 self.reduce_cache_size(0.5)
 
     def reduce_cache_size(self, factor: float = 0.5):
@@ -493,10 +507,14 @@ class IntelligentCache:
         Args:
             factor: Factor to reduce by (0.5 = half size)
         """
-        logger.info(f"Reducing cache size by factor {factor}")
+        logger.info(f'Reducing cache size by factor {factor}')
 
         # Clear portions of each cache
-        for cache in [self.teacher_cache, self.feature_cache, self.attention_cache]:
+        for cache in [
+            self.teacher_cache,
+            self.feature_cache,
+            self.attention_cache,
+        ]:
             items_to_remove = int(len(cache.cache) * (1 - factor))
             for _ in range(items_to_remove):
                 if cache.cache:
@@ -518,20 +536,31 @@ class IntelligentCache:
             'attention_cache': self.attention_cache.get_stats(),
             'timing': self.timing_stats,
             'total_size_mb': (
-                self.teacher_cache.size_bytes +
-                self.feature_cache.size_bytes +
-                self.attention_cache.size_bytes
-            ) / (1024 * 1024),
-            'memory_usage_percent': psutil.virtual_memory().percent if HAS_PSUTIL else -1
+                self.teacher_cache.size_bytes
+                + self.feature_cache.size_bytes
+                + self.attention_cache.size_bytes
+            )
+            / (1024 * 1024),
+            'memory_usage_percent': psutil.virtual_memory().percent
+            if HAS_PSUTIL
+            else -1,
         }
 
         # Calculate time saved
         if self.timing_stats['total_computations'] > 0:
-            avg_computation_time = (
-                self.timing_stats['cache_misses_time'] /
-                max(1, self.teacher_cache.misses + self.feature_cache.misses + self.attention_cache.misses)
+            avg_computation_time = self.timing_stats[
+                'cache_misses_time'
+            ] / max(
+                1,
+                self.teacher_cache.misses
+                + self.feature_cache.misses
+                + self.attention_cache.misses,
             )
-            total_hits = self.teacher_cache.hits + self.feature_cache.hits + self.attention_cache.hits
+            total_hits = (
+                self.teacher_cache.hits
+                + self.feature_cache.hits
+                + self.attention_cache.hits
+            )
             stats['time_saved_seconds'] = avg_computation_time * total_hits
 
         return stats
@@ -548,13 +577,13 @@ class IntelligentCache:
         self.timing_stats = {
             'cache_hits_time': 0.0,
             'cache_misses_time': 0.0,
-            'total_computations': 0
+            'total_computations': 0,
         }
 
         # Force garbage collection
         gc.collect()
 
-        logger.info("All caches cleared")
+        logger.info('All caches cleared')
 
 
 # Decorator for automatic caching
@@ -569,6 +598,7 @@ def cached_computation(cache: IntelligentCache, cache_type: str = 'teacher'):
     Returns:
         Decorated function
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -576,14 +606,15 @@ def cached_computation(cache: IntelligentCache, cache_type: str = 'teacher'):
             cache_key = {
                 'func': func.__name__,
                 'args': str(args),
-                'kwargs': str(kwargs)
+                'kwargs': str(kwargs),
             }
 
             return cache.get_or_compute(
                 key=cache_key,
                 compute_fn=lambda: func(*args, **kwargs),
-                cache_type=cache_type
+                cache_type=cache_type,
             )
 
         return wrapper
+
     return decorator

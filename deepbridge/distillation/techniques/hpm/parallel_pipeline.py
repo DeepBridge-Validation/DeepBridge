@@ -5,18 +5,23 @@ This module implements efficient parallel processing for training multiple
 distillation configurations simultaneously.
 """
 
+import asyncio
+import logging
+import pickle
+import time
+import traceback
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+)
+from dataclasses import dataclass
+from functools import partial
+from multiprocessing import Manager, cpu_count
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Any, Optional, Callable, Tuple, Union
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import cpu_count, Manager
-import asyncio
-import time
-import logging
-from dataclasses import dataclass
-import pickle
-import traceback
-from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +31,7 @@ class WorkloadConfig:
     """
     Configuration for a single training workload.
     """
+
     config_id: str
     model_type: Any
     temperature: float
@@ -40,6 +46,7 @@ class WorkloadResult:
     """
     Result from a training workload.
     """
+
     config_id: str
     success: bool
     model: Optional[Any] = None
@@ -62,7 +69,7 @@ class ParallelDistillationPipeline:
         use_processes: bool = True,
         batch_size: int = 4,
         timeout_per_config: float = 300.0,
-        enable_caching: bool = True
+        enable_caching: bool = True,
     ):
         """
         Initialize the parallel pipeline.
@@ -82,7 +89,9 @@ class ParallelDistillationPipeline:
 
         # Executor management
         self.executor = None
-        self._executor_type = ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        self._executor_type = (
+            ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        )
 
         # Results storage
         self.results_cache = {} if enable_caching else None
@@ -97,10 +106,12 @@ class ParallelDistillationPipeline:
         self.timing_stats = {
             'total_time': 0.0,
             'average_time_per_config': 0.0,
-            'parallel_efficiency': 0.0
+            'parallel_efficiency': 0.0,
         }
 
-        logger.info(f"Initialized parallel pipeline with {self.n_workers} workers")
+        logger.info(
+            f'Initialized parallel pipeline with {self.n_workers} workers'
+        )
 
     def __enter__(self):
         """Context manager entry."""
@@ -116,7 +127,7 @@ class ParallelDistillationPipeline:
         if self.executor is None:
             self.executor = self._executor_type(max_workers=self.n_workers)
             self.start_time = time.time()
-            logger.info("Parallel pipeline started")
+            logger.info('Parallel pipeline started')
 
     def shutdown(self):
         """Shutdown the parallel pipeline."""
@@ -129,17 +140,18 @@ class ParallelDistillationPipeline:
                 self.timing_stats['total_time'] = time.time() - self.start_time
                 if self.completed_configs > 0:
                     self.timing_stats['average_time_per_config'] = (
-                        self.timing_stats['total_time'] / self.completed_configs
+                        self.timing_stats['total_time']
+                        / self.completed_configs
                     )
 
-            logger.info("Parallel pipeline shutdown")
+            logger.info('Parallel pipeline shutdown')
 
     def train_batch_parallel(
         self,
         configurations: List[WorkloadConfig],
         train_function: Callable,
         dataset: Any,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
     ) -> List[WorkloadResult]:
         """
         Train multiple configurations in parallel.
@@ -160,7 +172,9 @@ class ParallelDistillationPipeline:
         self.completed_configs = 0
         self.failed_configs = 0
 
-        logger.info(f"Starting parallel training of {self.total_configs} configurations")
+        logger.info(
+            f'Starting parallel training of {self.total_configs} configurations'
+        )
 
         # Balance workloads
         balanced_workloads = self._balance_workloads(configurations)
@@ -170,16 +184,16 @@ class ParallelDistillationPipeline:
         for workload_batch in balanced_workloads:
             for config in workload_batch:
                 # Check cache first
-                if self.enable_caching and config.config_id in self.results_cache:
-                    logger.debug(f"Using cached result for {config.config_id}")
+                if (
+                    self.enable_caching
+                    and config.config_id in self.results_cache
+                ):
+                    logger.debug(f'Using cached result for {config.config_id}')
                     continue
 
                 # Submit training task
                 future = self.executor.submit(
-                    self._train_single_config,
-                    config,
-                    train_function,
-                    dataset
+                    self._train_single_config, config, train_function, dataset
                 )
                 futures.append((future, config))
 
@@ -194,26 +208,32 @@ class ParallelDistillationPipeline:
                 # Update progress
                 self.completed_configs += 1
                 if progress_callback:
-                    progress_callback(self.completed_configs, self.total_configs)
+                    progress_callback(
+                        self.completed_configs, self.total_configs
+                    )
 
                 # Cache result
                 if self.enable_caching:
                     self.results_cache[config.config_id] = result
 
-                logger.debug(f"Completed {config.config_id} "
-                           f"({self.completed_configs}/{self.total_configs})")
+                logger.debug(
+                    f'Completed {config.config_id} '
+                    f'({self.completed_configs}/{self.total_configs})'
+                )
 
             except Exception as e:
                 # Handle failed configuration
                 self.failed_configs += 1
-                error_msg = f"Failed to train {config.config_id}: {str(e)}"
+                error_msg = f'Failed to train {config.config_id}: {str(e)}'
                 logger.error(error_msg)
 
-                results.append(WorkloadResult(
-                    config_id=config.config_id,
-                    success=False,
-                    error_message=error_msg
-                ))
+                results.append(
+                    WorkloadResult(
+                        config_id=config.config_id,
+                        success=False,
+                        error_message=error_msg,
+                    )
+                )
 
         # Calculate parallel efficiency
         self._calculate_efficiency(results)
@@ -225,7 +245,7 @@ class ParallelDistillationPipeline:
         configurations: List[WorkloadConfig],
         train_function: Callable,
         dataset: Any,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
     ) -> List[WorkloadResult]:
         """
         Train configurations asynchronously.
@@ -253,7 +273,7 @@ class ParallelDistillationPipeline:
                 self._train_single_config,
                 config,
                 train_function,
-                dataset
+                dataset,
             )
             tasks.append(task)
 
@@ -271,10 +291,7 @@ class ParallelDistillationPipeline:
         return results
 
     def _train_single_config(
-        self,
-        config: WorkloadConfig,
-        train_function: Callable,
-        dataset: Any
+        self, config: WorkloadConfig, train_function: Callable, dataset: Any
     ) -> WorkloadResult:
         """
         Train a single configuration.
@@ -296,7 +313,7 @@ class ParallelDistillationPipeline:
                 temperature=config.temperature,
                 alpha=config.alpha,
                 hyperparams=config.hyperparams,
-                dataset=dataset
+                dataset=dataset,
             )
 
             # Calculate training time
@@ -307,23 +324,24 @@ class ParallelDistillationPipeline:
                 success=True,
                 model=model,
                 metrics=metrics,
-                training_time=training_time
+                training_time=training_time,
             )
 
         except Exception as e:
             # Log full traceback for debugging
-            logger.error(f"Error training {config.config_id}: {traceback.format_exc()}")
+            logger.error(
+                f'Error training {config.config_id}: {traceback.format_exc()}'
+            )
 
             return WorkloadResult(
                 config_id=config.config_id,
                 success=False,
                 training_time=time.time() - start_time,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def _balance_workloads(
-        self,
-        configurations: List[WorkloadConfig]
+        self, configurations: List[WorkloadConfig]
     ) -> List[List[WorkloadConfig]]:
         """
         Balance workloads across workers based on estimated time.
@@ -336,8 +354,7 @@ class ParallelDistillationPipeline:
         """
         # Sort by priority and estimated time
         sorted_configs = sorted(
-            configurations,
-            key=lambda x: (-x.priority, x.estimated_time or 0)
+            configurations, key=lambda x: (-x.priority, x.estimated_time or 0)
         )
 
         # Create balanced batches
@@ -350,12 +367,14 @@ class ParallelDistillationPipeline:
             batches[min_idx].append(config)
 
             # Update estimated time
-            batch_times[min_idx] += config.estimated_time or 60.0  # Default 60s
+            batch_times[min_idx] += (
+                config.estimated_time or 60.0
+            )  # Default 60s
 
         # Filter empty batches
         batches = [b for b in batches if b]
 
-        logger.debug(f"Created {len(batches)} balanced batches")
+        logger.debug(f'Created {len(batches)} balanced batches')
 
         return batches
 
@@ -377,19 +396,18 @@ class ParallelDistillationPipeline:
 
         if parallel_time > 0:
             # Efficiency = (sequential_time) / (parallel_time * n_workers)
-            self.timing_stats['parallel_efficiency'] = (
-                sequential_time / (parallel_time * self.n_workers)
+            self.timing_stats['parallel_efficiency'] = sequential_time / (
+                parallel_time * self.n_workers
             )
 
             speedup = sequential_time / parallel_time
-            logger.info(f"Parallel efficiency: {self.timing_stats['parallel_efficiency']:.2%}")
-            logger.info(f"Speedup: {speedup:.2f}x")
+            logger.info(
+                f"Parallel efficiency: {self.timing_stats['parallel_efficiency']:.2%}"
+            )
+            logger.info(f'Speedup: {speedup:.2f}x')
 
     def map_reduce(
-        self,
-        map_func: Callable,
-        reduce_func: Callable,
-        data: List[Any]
+        self, map_func: Callable, reduce_func: Callable, data: List[Any]
     ) -> Any:
         """
         Parallel map-reduce operation.
@@ -415,7 +433,7 @@ class ParallelDistillationPipeline:
                 result = future.result(timeout=self.timeout_per_config)
                 mapped_results.append(result)
             except Exception as e:
-                logger.error(f"Map operation failed: {e}")
+                logger.error(f'Map operation failed: {e}')
 
         # Reduce phase
         if mapped_results:
@@ -427,7 +445,7 @@ class ParallelDistillationPipeline:
         models: List[Any],
         X_test: Union[np.ndarray, pd.DataFrame],
         y_test: Union[np.ndarray, pd.Series],
-        metrics_func: Callable
+        metrics_func: Callable,
     ) -> List[Dict[str, float]]:
         """
         Evaluate multiple models in parallel.
@@ -441,6 +459,7 @@ class ParallelDistillationPipeline:
         Returns:
             List of metrics for each model
         """
+
         def evaluate_single(model):
             predictions = model.predict(X_test)
             if hasattr(model, 'predict_proba'):
@@ -452,9 +471,7 @@ class ParallelDistillationPipeline:
 
         # Use map operation
         return self.map_reduce(
-            evaluate_single,
-            lambda x: x,  # Identity reduce
-            models
+            evaluate_single, lambda x: x, models  # Identity reduce
         )
 
     def get_stats(self) -> Dict[str, Any]:
@@ -473,7 +490,7 @@ class ParallelDistillationPipeline:
                 self.completed_configs / max(1, self.total_configs)
             ),
             'timing': self.timing_stats,
-            'cache_size': len(self.results_cache) if self.results_cache else 0
+            'cache_size': len(self.results_cache) if self.results_cache else 0,
         }
 
         return stats
@@ -482,7 +499,7 @@ class ParallelDistillationPipeline:
         """Clear the results cache."""
         if self.results_cache:
             self.results_cache.clear()
-            logger.info("Results cache cleared")
+            logger.info('Results cache cleared')
 
     def save_results(self, filepath: str):
         """
@@ -492,13 +509,13 @@ class ParallelDistillationPipeline:
             filepath: Path to save results
         """
         if not self.results_cache:
-            logger.warning("No cache to save")
+            logger.warning('No cache to save')
             return
 
         with open(filepath, 'wb') as f:
             pickle.dump(self.results_cache, f)
 
-        logger.info(f"Saved {len(self.results_cache)} results to {filepath}")
+        logger.info(f'Saved {len(self.results_cache)} results to {filepath}')
 
     def load_results(self, filepath: str):
         """
@@ -516,12 +533,12 @@ class ParallelDistillationPipeline:
             else:
                 self.results_cache = loaded_cache
 
-            logger.info(f"Loaded {len(loaded_cache)} results from {filepath}")
+            logger.info(f'Loaded {len(loaded_cache)} results from {filepath}')
 
         except FileNotFoundError:
-            logger.warning(f"Results file not found: {filepath}")
+            logger.warning(f'Results file not found: {filepath}')
         except Exception as e:
-            logger.error(f"Error loading results: {e}")
+            logger.error(f'Error loading results: {e}')
 
 
 # Helper function for parallel training
@@ -531,7 +548,7 @@ def train_config_worker(
     y_train: np.ndarray,
     X_val: Optional[np.ndarray],
     y_val: Optional[np.ndarray],
-    teacher_probs: Optional[np.ndarray]
+    teacher_probs: Optional[np.ndarray],
 ) -> Tuple[Any, Dict[str, float]]:
     """
     Worker function for parallel configuration training.
@@ -547,15 +564,15 @@ def train_config_worker(
     Returns:
         Tuple of (trained model, metrics)
     """
-    from deepbridge.utils.model_registry import ModelFactory
     from deepbridge.metrics.classification import Classification
+    from deepbridge.utils.model_registry import ModelFactory
 
     # Create model
     factory = ModelFactory()
     model = factory.create_model(
         model_type=config_data['model_type'],
         task_type='classification',
-        **config_data.get('hyperparams', {})
+        **config_data.get('hyperparams', {}),
     )
 
     # Train model (simplified - actual implementation would use distillation)

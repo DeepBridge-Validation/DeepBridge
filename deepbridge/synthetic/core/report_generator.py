@@ -2,29 +2,28 @@
 Module for generating reports on synthetic data quality.
 """
 
-import pandas as pd
 import typing as t
 from pathlib import Path
+
+import pandas as pd
+
 
 class SyntheticReporter:
     """
     Generates reports on synthetic data quality.
     Extracted from Synthesize class to separate reporting responsibilities.
     """
-    
-    def __init__(
-        self,
-        verbose: bool = True
-    ):
+
+    def __init__(self, verbose: bool = True):
         """
         Initialize the report generator.
-        
+
         Args:
             verbose: Whether to print progress information
         """
         self.verbose = verbose
         self.report_file = None
-    
+
     def generate_report(
         self,
         original_data: pd.DataFrame,
@@ -35,11 +34,11 @@ class SyntheticReporter:
         report_format: str = 'html',
         include_data_samples: bool = True,
         include_visualizations: bool = True,
-        **kwargs
+        **kwargs,
     ) -> t.Optional[str]:
         """
         Generate a quality report for the synthetic data.
-        
+
         Args:
             original_data: Original dataset
             synthetic_data: Synthetic dataset to evaluate
@@ -50,14 +49,16 @@ class SyntheticReporter:
             include_data_samples: Whether to include data samples in the report
             include_visualizations: Whether to include visualizations
             **kwargs: Additional parameters for report customization
-            
+
         Returns:
             Path to the generated report file or None if failed
         """
-        from deepbridge.synthetic.reports.report_generator import generate_quality_report
-        
-        self.log("Generating quality report...")
-        
+        from deepbridge.synthetic.reports.report_generator import (
+            generate_quality_report,
+        )
+
+        self.log('Generating quality report...')
+
         try:
             # Generate the report
             report_file = generate_quality_report(
@@ -69,23 +70,24 @@ class SyntheticReporter:
                 include_data_samples=include_data_samples,
                 report_format=report_format,
                 include_visualizations=include_visualizations,
-                **kwargs
+                **kwargs,
             )
-            
+
             # Store the report path
             self.report_file = report_file
-            
-            self.log(f"Quality report generated: {report_file}")
-            
+
+            self.log(f'Quality report generated: {report_file}')
+
             return report_file
-            
+
         except Exception as e:
-            self.log(f"Error generating quality report: {str(e)}")
+            self.log(f'Error generating quality report: {str(e)}')
             import traceback
+
             self.log(traceback.format_exc())
-            
+
             return None
-    
+
     def log(self, message: str) -> None:
         """Print message if verbose mode is enabled."""
         if self.verbose:

@@ -6,6 +6,7 @@ Defines the contract for converting domain models to specific output formats.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict
+
 from ..domain.general import Report
 
 
@@ -55,10 +56,10 @@ class ReportAdapter(ABC):
             ValueError: If report is missing required data
         """
         if not report.metadata:
-            raise ValueError("Report must have metadata")
+            raise ValueError('Report must have metadata')
 
         if not report.metadata.model_name:
-            raise ValueError("Report metadata must have model_name")
+            raise ValueError('Report metadata must have model_name')
 
         if not report.metadata.test_type:
-            raise ValueError("Report metadata must have test_type")
+            raise ValueError('Report metadata must have test_type')

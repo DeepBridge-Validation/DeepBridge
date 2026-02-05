@@ -5,9 +5,9 @@ Defines the contract for all cache implementations.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Dict
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -22,6 +22,7 @@ class CacheEntry:
         hits: Number of times this entry was accessed
         size_bytes: Approximate size in bytes (optional)
     """
+
     value: Any
     created_at: datetime
     ttl: Optional[int] = None

@@ -4,9 +4,9 @@ Cache manager for coordinating multiple caches (Phase 3 Sprint 17-18).
 Provides high-level API for caching in report generation.
 """
 
-from typing import Any, Optional, Dict
 import hashlib
 import json
+from typing import Any, Dict, Optional
 
 from .base import CacheStrategy
 from .memory_cache import MemoryCache
@@ -61,16 +61,13 @@ class CacheManager:
         else:
             # Use provided caches or defaults
             self.chart_cache = chart_cache or MemoryCache(
-                max_size=100,
-                default_ttl=3600  # 1 hour
+                max_size=100, default_ttl=3600  # 1 hour
             )
             self.template_cache = template_cache or MemoryCache(
-                max_size=50,
-                default_ttl=7200  # 2 hours
+                max_size=50, default_ttl=7200  # 2 hours
             )
             self.data_cache = data_cache or MemoryCache(
-                max_size=200,
-                default_ttl=1800  # 30 minutes
+                max_size=200, default_ttl=1800  # 30 minutes
             )
 
         self.enabled = enabled
@@ -95,7 +92,7 @@ class CacheManager:
             >>> # Returns: "chart:coverage:a1b2c3d4..."
         """
         data_hash = self._hash_dict(data)
-        return f"chart:{chart_type}:{data_hash}"
+        return f'chart:{chart_type}:{data_hash}'
 
     def get_chart(self, key: str) -> Optional[Any]:
         """Get cached chart."""
@@ -110,7 +107,7 @@ class CacheManager:
         chart_type: str,
         data: Dict[str, Any],
         generator,
-        ttl: Optional[int] = None
+        ttl: Optional[int] = None,
     ) -> Any:
         """
         Get cached chart or generate and cache it.
@@ -152,7 +149,7 @@ class CacheManager:
             >>> # Returns: "template:e5f6g7h8..."
         """
         path_hash = hashlib.md5(template_path.encode()).hexdigest()[:16]
-        return f"template:{path_hash}"
+        return f'template:{path_hash}'
 
     def get_template(self, key: str) -> Optional[Any]:
         """Get cached template."""
@@ -181,7 +178,7 @@ class CacheManager:
             >>> key = manager.make_data_key('metrics', 'model_123')
             >>> # Returns: "data:metrics:model_123"
         """
-        return f"data:{data_type}:{identifier}"
+        return f'data:{data_type}:{identifier}'
 
     def get_data(self, key: str) -> Optional[Any]:
         """Get cached data."""

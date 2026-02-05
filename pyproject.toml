@@ -83,6 +83,10 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 pythonpath = "."
 addopts =  "--doctest-modules"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 
 [tool.isort]
 profile = "black"
@@ -92,5 +96,5 @@ line_length = 79
 lint = "blue --check --diff . && isort --check --diff ."
 docs = "mkdocs serve"
 pre_test = "task lint"
-test = "pytest -s -x --cov=deepbridge -vv"
+test = "pytest tests/ -s -x --cov=deepbridge -vv"
 post_test = "coverage html"

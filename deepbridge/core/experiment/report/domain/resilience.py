@@ -10,8 +10,10 @@ Benefits:
 - Clear data contracts for complex multi-test resilience data
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
 from pydantic import Field
+
 from .base import ReportBaseModel
 
 
@@ -22,38 +24,31 @@ class ResilienceMetrics(ReportBaseModel):
         default=1.0,
         ge=0.0,
         le=1.0,
-        description="Overall resilience quality score (0-1)"
+        description='Overall resilience quality score (0-1)',
     )
     total_scenarios: int = Field(
         default=0,
         ge=0,
-        description="Total number of scenarios tested across all types"
+        description='Total number of scenarios tested across all types',
     )
     valid_scenarios: int = Field(
         default=0,
         ge=0,
-        description="Number of valid scenarios (non-NaN results)"
+        description='Number of valid scenarios (non-NaN results)',
     )
     avg_performance_gap: float = Field(
         default=0.0,
         ge=0.0,
-        description="Average performance gap across all scenarios"
+        description='Average performance gap across all scenarios',
     )
     max_performance_gap: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Maximum performance gap observed"
+        default=0.0, ge=0.0, description='Maximum performance gap observed'
     )
     min_performance_gap: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Minimum performance gap observed"
+        default=0.0, ge=0.0, description='Minimum performance gap observed'
     )
     base_performance: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="Baseline model performance"
+        default=0.0, ge=0.0, le=1.0, description='Baseline model performance'
     )
 
     @property
@@ -70,26 +65,26 @@ class ResilienceMetrics(ReportBaseModel):
 class ScenarioData(ReportBaseModel):
     """Data for a single distribution shift scenario."""
 
-    id: int = Field(description="Scenario ID")
-    name: str = Field(description="Scenario name")
-    alpha: float = Field(default=0.0, ge=0.0, le=1.0, description="Alpha value")
-    distance_metric: str = Field(default="unknown", description="Distance metric used")
-    metric: str = Field(default="unknown", description="Performance metric")
+    id: int = Field(description='Scenario ID')
+    name: str = Field(description='Scenario name')
+    alpha: float = Field(
+        default=0.0, ge=0.0, le=1.0, description='Alpha value'
+    )
+    distance_metric: str = Field(
+        default='unknown', description='Distance metric used'
+    )
+    metric: str = Field(default='unknown', description='Performance metric')
     performance_gap: Optional[float] = Field(
-        default=None,
-        description="Performance gap (None if invalid)"
+        default=None, description='Performance gap (None if invalid)'
     )
     baseline_performance: Optional[float] = Field(
-        default=None,
-        description="Baseline performance on worst samples"
+        default=None, description='Baseline performance on worst samples'
     )
     target_performance: Optional[float] = Field(
-        default=None,
-        description="Performance on remaining samples"
+        default=None, description='Performance on remaining samples'
     )
     is_valid: bool = Field(
-        default=False,
-        description="Whether this scenario has valid results"
+        default=False, description='Whether this scenario has valid results'
     )
 
     @property
@@ -101,10 +96,14 @@ class ScenarioData(ReportBaseModel):
 class WorstSampleTestData(ReportBaseModel):
     """Data for a single worst-sample test."""
 
-    id: int = Field(description="Test ID")
-    alpha: float = Field(default=0.0, ge=0.0, le=1.0, description="Alpha value")
-    ranking_method: str = Field(default="unknown", description="Ranking method used")
-    metric: str = Field(default="unknown", description="Performance metric")
+    id: int = Field(description='Test ID')
+    alpha: float = Field(
+        default=0.0, ge=0.0, le=1.0, description='Alpha value'
+    )
+    ranking_method: str = Field(
+        default='unknown', description='Ranking method used'
+    )
+    metric: str = Field(default='unknown', description='Performance metric')
     performance_gap: Optional[float] = Field(default=None)
     worst_metric: Optional[float] = Field(default=None)
     remaining_metric: Optional[float] = Field(default=None)
@@ -116,18 +115,17 @@ class WorstSampleTestData(ReportBaseModel):
 class WorstClusterTestData(ReportBaseModel):
     """Data for a single worst-cluster test."""
 
-    id: int = Field(description="Test ID")
+    id: int = Field(description='Test ID')
     n_clusters: int = Field(default=0, ge=0)
     worst_cluster_id: int = Field(default=-1)
-    metric: str = Field(default="unknown", description="Performance metric")
+    metric: str = Field(default='unknown', description='Performance metric')
     performance_gap: Optional[float] = Field(default=None)
     worst_cluster_metric: Optional[float] = Field(default=None)
     remaining_metric: Optional[float] = Field(default=None)
     worst_cluster_size: int = Field(default=0, ge=0)
     remaining_size: int = Field(default=0, ge=0)
     top_features: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="Top contributing features"
+        default_factory=list, description='Top contributing features'
     )
     is_valid: bool = Field(default=False)
 
@@ -135,10 +133,12 @@ class WorstClusterTestData(ReportBaseModel):
 class OuterSampleTestData(ReportBaseModel):
     """Data for a single outer-sample test."""
 
-    id: int = Field(description="Test ID")
+    id: int = Field(description='Test ID')
     alpha: float = Field(default=0.0, ge=0.0, le=1.0)
-    outlier_method: str = Field(default="unknown", description="Outlier detection method")
-    metric: str = Field(default="unknown", description="Performance metric")
+    outlier_method: str = Field(
+        default='unknown', description='Outlier detection method'
+    )
+    metric: str = Field(default='unknown', description='Performance metric')
     performance_gap: Optional[float] = Field(default=None)
     outer_metric: Optional[float] = Field(default=None)
     inner_metric: Optional[float] = Field(default=None)
@@ -150,13 +150,12 @@ class OuterSampleTestData(ReportBaseModel):
 class HardSampleTestData(ReportBaseModel):
     """Data for a single hard-sample test."""
 
-    id: int = Field(description="Test ID")
+    id: int = Field(description='Test ID')
     skipped: bool = Field(
-        default=False,
-        description="Whether test was skipped"
+        default=False, description='Whether test was skipped'
     )
     disagreement_threshold: float = Field(default=0.0, ge=0.0, le=1.0)
-    metric: str = Field(default="unknown")
+    metric: str = Field(default='unknown')
     performance_gap: Optional[float] = Field(default=None)
     hard_metric: Optional[float] = Field(default=None)
     easy_metric: Optional[float] = Field(default=None)
@@ -164,16 +163,13 @@ class HardSampleTestData(ReportBaseModel):
     n_easy_samples: int = Field(default=0, ge=0)
     model_disagreements: List[Dict[str, Any]] = Field(default_factory=list)
     is_valid: bool = Field(default=False)
-    reason: str = Field(
-        default="",
-        description="Reason if test was skipped"
-    )
+    reason: str = Field(default='', description='Reason if test was skipped')
 
 
 class TestTypeSummary(ReportBaseModel):
     """Results summary for a specific test type."""
 
-    test_type: str = Field(description="Name of test type")
+    test_type: str = Field(description='Name of test type')
     total_tests: int = Field(default=0, ge=0)
     valid_tests: int = Field(default=0, ge=0)
     avg_performance_gap: float = Field(default=0.0, ge=0.0)
@@ -183,70 +179,59 @@ class TestTypeSummary(ReportBaseModel):
 class ResilienceReportData(ReportBaseModel):
     """Complete resilience experiment report data."""
 
-    model_name: str = Field(description="Name of the model being tested")
+    model_name: str = Field(description='Name of the model being tested')
     model_type: str = Field(
-        default="Unknown",
-        description="Type/architecture of the model"
+        default='Unknown', description='Type/architecture of the model'
     )
     metrics: ResilienceMetrics = Field(
         default_factory=ResilienceMetrics,
-        description="Core resilience metrics"
+        description='Core resilience metrics',
     )
 
     # Test type results
     distribution_shift_scenarios: List[ScenarioData] = Field(
-        default_factory=list,
-        description="Distribution shift test scenarios"
+        default_factory=list, description='Distribution shift test scenarios'
     )
     worst_sample_tests: List[WorstSampleTestData] = Field(
-        default_factory=list,
-        description="Worst-sample test results"
+        default_factory=list, description='Worst-sample test results'
     )
     worst_cluster_tests: List[WorstClusterTestData] = Field(
-        default_factory=list,
-        description="Worst-cluster test results"
+        default_factory=list, description='Worst-cluster test results'
     )
     outer_sample_tests: List[OuterSampleTestData] = Field(
-        default_factory=list,
-        description="Outer-sample test results"
+        default_factory=list, description='Outer-sample test results'
     )
     hard_sample_tests: List[HardSampleTestData] = Field(
-        default_factory=list,
-        description="Hard-sample test results"
+        default_factory=list, description='Hard-sample test results'
     )
 
     # Test type scores
     test_scores: Dict[str, float] = Field(
-        default_factory=dict,
-        description="Resilience scores by test type"
+        default_factory=dict, description='Resilience scores by test type'
     )
 
     # Feature importance
     feature_importance: Dict[str, float] = Field(
-        default_factory=dict,
-        description="Feature importance scores"
+        default_factory=dict, description='Feature importance scores'
     )
     features: List[str] = Field(
-        default_factory=list,
-        description="List of feature names"
+        default_factory=list, description='List of feature names'
     )
 
     # Metadata
     distance_metrics: List[str] = Field(
-        default_factory=list,
-        description="Distance metrics used"
+        default_factory=list, description='Distance metrics used'
     )
     alphas: List[float] = Field(
-        default_factory=list,
-        description="Alpha values tested"
+        default_factory=list, description='Alpha values tested'
     )
 
     # Charts
     charts: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Generated chart data (Plotly data structures)"
+        description='Generated chart data (Plotly data structures)',
     )
-    notes: str = Field(default="", description="Additional notes")
+    notes: str = Field(default='', description='Additional notes')
 
     @property
     def has_distribution_shift(self) -> bool:
@@ -305,7 +290,7 @@ class ResilienceReportData(ReportBaseModel):
         sorted_features = sorted(
             self.feature_importance.items(),
             key=lambda x: abs(x[1]),
-            reverse=True
+            reverse=True,
         )
         return sorted_features[:10]
 
@@ -338,7 +323,11 @@ class ResilienceReportData(ReportBaseModel):
 
         avg_gap = 0.0
         if valid_tests:
-            gaps = [t.performance_gap for t in valid_tests if t.performance_gap is not None]
+            gaps = [
+                t.performance_gap
+                for t in valid_tests
+                if t.performance_gap is not None
+            ]
             avg_gap = sum(gaps) / len(gaps) if gaps else 0.0
 
         return TestTypeSummary(
@@ -346,7 +335,7 @@ class ResilienceReportData(ReportBaseModel):
             total_tests=len(tests),
             valid_tests=len(valid_tests),
             avg_performance_gap=avg_gap,
-            has_results=len(tests) > 0
+            has_results=len(tests) > 0,
         )
 
     def get_summary_stats(self) -> Dict[str, Any]:
@@ -369,8 +358,8 @@ class ResilienceReportData(ReportBaseModel):
     def __str__(self) -> str:
         """Human-readable string representation."""
         return (
-            f"ResilienceReport({self.model_name}, "
-            f"score={self.metrics.resilience_score:.3f}, "
-            f"gap={self.metrics.avg_performance_gap:.3f}, "
-            f"tests={self.num_test_types})"
+            f'ResilienceReport({self.model_name}, '
+            f'score={self.metrics.resilience_score:.3f}, '
+            f'gap={self.metrics.avg_performance_gap:.3f}, '
+            f'tests={self.num_test_types})'
         )

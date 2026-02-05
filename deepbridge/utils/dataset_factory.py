@@ -4,17 +4,19 @@ This centralizes dataset creation to reduce code duplication.
 """
 
 import typing as t
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
+
 from deepbridge.core.db_data import DBDataset
+
 
 class DBDatasetFactory:
     """
     Factory class for creating DBDataset objects with consistent parameters.
     This class helps eliminate duplicate code for DBDataset creation across the library.
     """
-    
+
     @staticmethod
     def create_from_model(
         train_data: pd.DataFrame,
@@ -27,7 +29,7 @@ class DBDatasetFactory:
     ) -> DBDataset:
         """
         Create a DBDataset with model.
-        
+
         Args:
             train_data: Training data DataFrame
             test_data: Test data DataFrame
@@ -36,7 +38,7 @@ class DBDatasetFactory:
             categorical_features: Optional list of categorical feature names
             dataset_name: Optional name for the dataset
             **kwargs: Additional arguments to pass to DBDataset constructor
-            
+
         Returns:
             DBDataset instance
         """
@@ -49,7 +51,7 @@ class DBDatasetFactory:
             dataset_name=dataset_name,
             **kwargs
         )
-    
+
     @staticmethod
     def create_from_probabilities(
         train_data: pd.DataFrame,
@@ -64,7 +66,7 @@ class DBDatasetFactory:
     ) -> DBDataset:
         """
         Create a DBDataset with probability predictions.
-        
+
         Args:
             train_data: Training data DataFrame
             test_data: Test data DataFrame
@@ -75,7 +77,7 @@ class DBDatasetFactory:
             categorical_features: Optional list of categorical feature names
             dataset_name: Optional name for the dataset
             **kwargs: Additional arguments to pass to DBDataset constructor
-            
+
         Returns:
             DBDataset instance
         """
@@ -90,21 +92,19 @@ class DBDatasetFactory:
             dataset_name=dataset_name,
             **kwargs
         )
-    
+
     @staticmethod
     def create_for_alternative_model(
-        original_dataset: DBDataset,
-        model: t.Any,
-        **kwargs
+        original_dataset: DBDataset, model: t.Any, **kwargs
     ) -> DBDataset:
         """
         Create a DBDataset for an alternative model with the same data as the original dataset.
-        
+
         Args:
             original_dataset: Original DBDataset instance
             model: Alternative model instance
             **kwargs: Additional arguments to pass to DBDataset constructor
-            
+
         Returns:
             DBDataset instance
         """
@@ -114,8 +114,9 @@ class DBDatasetFactory:
             target_column=original_dataset.target_name,
             model=model,
             categorical_features=(
-                original_dataset.categorical_features 
-                if hasattr(original_dataset, 'categorical_features') else None
+                original_dataset.categorical_features
+                if hasattr(original_dataset, 'categorical_features')
+                else None
             ),
             **kwargs
         )

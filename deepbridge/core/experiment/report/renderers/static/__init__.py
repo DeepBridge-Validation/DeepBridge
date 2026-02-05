@@ -3,13 +3,14 @@ Static renderers package for generating non-interactive HTML reports with Seabor
 """
 
 from .base_static_renderer import BaseStaticRenderer
+from .static_resilience_renderer import StaticResilienceRenderer
 from .static_robustness_renderer import StaticRobustnessRenderer
 from .static_uncertainty_renderer import StaticUncertaintyRenderer
-from .static_resilience_renderer import StaticResilienceRenderer
 
 # Make sure we expose ResilienceChartGenerator if available
 try:
     from ...utils.resilience_charts import ResilienceChartGenerator
+
     has_resilience_charts = True
 except ImportError:
     has_resilience_charts = False

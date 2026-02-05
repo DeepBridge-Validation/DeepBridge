@@ -6,9 +6,9 @@ Refactored in Phase 2 to use BaseRenderer template methods.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 # Import BaseRenderer
 from .base_renderer import BaseRenderer
@@ -35,11 +35,20 @@ class FairnessRendererSimple(BaseRenderer):
         super().__init__(template_manager, asset_manager)
 
         # Import data transformer
-        from ..transformers.fairness_simple import FairnessDataTransformerSimple
+        from ..transformers.fairness_simple import (
+            FairnessDataTransformerSimple,
+        )
+
         self.data_transformer = FairnessDataTransformerSimple()
 
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
-               report_type: str = "interactive", save_chart: bool = False) -> str:
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'interactive',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render fairness report from results data.
 
@@ -72,44 +81,62 @@ class FairnessRendererSimple(BaseRenderer):
         FileNotFoundError: If template not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating fairness report to: {file_path}")
-        logger.info(f"Report type: {report_type}")
+        logger.info(f'Generating fairness report to: {file_path}')
+        logger.info(f'Report type: {report_type}')
 
         try:
             # Transform the data
-            report_data = self.data_transformer.transform(results, model_name=model_name)
+            report_data = self.data_transformer.transform(
+                results, model_name=model_name
+            )
 
             # Add custom filters to Jinja2 environment (fairness-specific)
             if hasattr(self.template_manager, 'jinja_env'):
-                self.template_manager.jinja_env.filters['format_number'] = self._format_number
+                self.template_manager.jinja_env.filters[
+                    'format_number'
+                ] = self._format_number
 
             # Load template using BaseRenderer method
             template = self._load_template('fairness', report_type)
-            logger.info(f"Template loaded for fairness/{report_type}")
+            logger.info(f'Template loaded for fairness/{report_type}')
 
             # Get all assets using BaseRenderer method
             assets = self._get_assets('fairness')
 
             # Create base context using BaseRenderer method
-            context = self._create_base_context(report_data, 'fairness', assets)
+            context = self._create_base_context(
+                report_data, 'fairness', assets
+            )
 
             # Add fairness-specific context fields
-            context.update({
-                'report_title': 'Fairness Analysis Report',
-                'report_subtitle': 'Model Bias and Fairness Assessment',
-                'overall_fairness_score': report_data['summary']['overall_fairness_score'],
-                'total_warnings': report_data['summary']['total_warnings'],
-                'total_critical': report_data['summary']['total_critical'],
-                'total_attributes': report_data['summary']['total_attributes'],
-                'assessment': report_data['summary']['assessment'],
-                'config': report_data['summary']['config'],
-                'protected_attributes': report_data['protected_attributes'],
-                'warnings': report_data['issues']['warnings'],
-                'critical_issues': report_data['issues']['critical'],
-                'has_threshold_analysis': report_data['metadata']['has_threshold_analysis'],
-                'has_confusion_matrix': report_data['metadata']['has_confusion_matrix'],
-                'charts': report_data['charts']
-            })
+            context.update(
+                {
+                    'report_title': 'Fairness Analysis Report',
+                    'report_subtitle': 'Model Bias and Fairness Assessment',
+                    'overall_fairness_score': report_data['summary'][
+                        'overall_fairness_score'
+                    ],
+                    'total_warnings': report_data['summary']['total_warnings'],
+                    'total_critical': report_data['summary']['total_critical'],
+                    'total_attributes': report_data['summary'][
+                        'total_attributes'
+                    ],
+                    'assessment': report_data['summary']['assessment'],
+                    'config': report_data['summary']['config'],
+                    'protected_attributes': report_data[
+                        'protected_attributes'
+                    ],
+                    'warnings': report_data['issues']['warnings'],
+                    'critical_issues': report_data['issues']['critical'],
+                    'has_threshold_analysis': report_data['metadata'][
+                        'has_threshold_analysis'
+                    ],
+                    'has_confusion_matrix': report_data['metadata'][
+                        'has_confusion_matrix'
+                    ],
+                    'charts': report_data['charts'],
+                }
+            )
 
             # Add optional fields if available
             if 'dataset_info' in report_data:
@@ -121,11 +148,13 @@ class FairnessRendererSimple(BaseRenderer):
             html_content = self._render_template(template, context)
 
             # Write HTML using BaseRenderer method
-            logger.info(f"Fairness report generated and saved to: {file_path} (type: {report_type})")
+            logger.info(
+                f'Fairness report generated and saved to: {file_path} (type: {report_type})'
+            )
             return self._write_html(html_content, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating fairness report: {str(e)}")
+            logger.error(f'Error generating fairness report: {str(e)}')
             raise
 
     # NOTE: Most helper methods (_load_template, _get_assets, _get_css_content,
@@ -140,6 +169,6 @@ class FairnessRendererSimple(BaseRenderer):
         This is fairness-specific and registered in render() method.
         """
         try:
-            return f"{int(value):,}"
+            return f'{int(value):,}'
         except (ValueError, TypeError):
             return value

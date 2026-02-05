@@ -13,29 +13,31 @@ Features:
 """
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from typing import Dict, List, Any, Callable, Optional
 import logging
-from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class ExecutorType(str, Enum):
     """Executor type enumeration."""
-    THREAD = "thread"
-    PROCESS = "process"
+
+    THREAD = 'thread'
+    PROCESS = 'process'
 
 
 class TaskStatus(str, Enum):
     """Task status enumeration."""
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+
+    PENDING = 'pending'
+    RUNNING = 'running'
+    COMPLETED = 'completed'
+    FAILED = 'failed'
+    CANCELLED = 'cancelled'
 
 
 class ReportTask:
@@ -51,7 +53,7 @@ class ReportTask:
         adapter,
         report,
         output_path: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize report task.
@@ -76,7 +78,7 @@ class ReportTask:
         self.end_time = None
 
     def __repr__(self):
-        return f"ReportTask(id={self.task_id}, status={self.status})"
+        return f'ReportTask(id={self.task_id}, status={self.status})'
 
 
 class ProgressTracker:
@@ -132,12 +134,15 @@ class ProgressTracker:
     def summary(self) -> Dict[str, Any]:
         """Get summary statistics."""
         return {
-            "total": self.total,
-            "completed": self.completed,
-            "failed": self.failed,
-            "cancelled": self.cancelled,
-            "percentage": self.percentage(),
-            "pending": self.total - self.completed - self.failed - self.cancelled
+            'total': self.total,
+            'completed': self.completed,
+            'failed': self.failed,
+            'cancelled': self.cancelled,
+            'percentage': self.percentage(),
+            'pending': self.total
+            - self.completed
+            - self.failed
+            - self.cancelled,
         }
 
 
@@ -167,7 +172,7 @@ class AsyncReportGenerator:
     def __init__(
         self,
         max_workers: int = 4,
-        executor_type: ExecutorType = ExecutorType.THREAD
+        executor_type: ExecutorType = ExecutorType.THREAD,
     ):
         """
         Initialize async generator.
@@ -182,10 +187,12 @@ class AsyncReportGenerator:
         # Create executor
         if executor_type == ExecutorType.PROCESS:
             self.executor = ProcessPoolExecutor(max_workers=max_workers)
-            logger.info(f"Using ProcessPoolExecutor with {max_workers} workers")
+            logger.info(
+                f'Using ProcessPoolExecutor with {max_workers} workers'
+            )
         else:
             self.executor = ThreadPoolExecutor(max_workers=max_workers)
-            logger.info(f"Using ThreadPoolExecutor with {max_workers} workers")
+            logger.info(f'Using ThreadPoolExecutor with {max_workers} workers')
 
     async def generate_single(self, task: ReportTask) -> ReportTask:
         """
@@ -211,19 +218,17 @@ class AsyncReportGenerator:
         try:
             # Run task in executor (thread/process pool)
             result = await loop.run_in_executor(
-                self.executor,
-                self._execute_task,
-                task
+                self.executor, self._execute_task, task
             )
 
             task.result = result
             task.status = TaskStatus.COMPLETED
-            logger.info(f"Task {task.task_id} completed successfully")
+            logger.info(f'Task {task.task_id} completed successfully')
 
         except Exception as e:
             task.error = str(e)
             task.status = TaskStatus.FAILED
-            logger.error(f"Task {task.task_id} failed: {str(e)}")
+            logger.error(f'Task {task.task_id} failed: {str(e)}')
 
         finally:
             task.end_time = datetime.now()
@@ -242,7 +247,7 @@ class AsyncReportGenerator:
         Returns:
             Task result (PDF bytes, markdown string, file path, etc.)
         """
-        logger.debug(f"Executing task {task.task_id}")
+        logger.debug(f'Executing task {task.task_id}')
 
         # Render report
         result = task.adapter.render(task.report)
@@ -268,7 +273,7 @@ class AsyncReportGenerator:
     async def generate_batch(
         self,
         tasks: List[ReportTask],
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
     ) -> List[ReportTask]:
         """
         Generate multiple reports in parallel.
@@ -292,7 +297,7 @@ class AsyncReportGenerator:
             ...     progress_callback=lambda c, t, task: print(f"{c}/{t} complete")
             ... )
         """
-        logger.info(f"Starting batch of {len(tasks)} reports")
+        logger.info(f'Starting batch of {len(tasks)} reports')
 
         # Create progress tracker
         tracker = ProgressTracker(len(tasks), progress_callback)
@@ -309,14 +314,14 @@ class AsyncReportGenerator:
             tracker.update(task)
             completed_tasks.append(task)
 
-        logger.info(f"Batch complete: {tracker.summary()}")
+        logger.info(f'Batch complete: {tracker.summary()}')
         return completed_tasks
 
     async def generate_with_limit(
         self,
         tasks: List[ReportTask],
         limit: int,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
     ) -> List[ReportTask]:
         """
         Generate reports with concurrency limit.
@@ -331,7 +336,7 @@ class AsyncReportGenerator:
         Returns:
             List of completed tasks
         """
-        logger.info(f"Generating {len(tasks)} reports with limit={limit}")
+        logger.info(f'Generating {len(tasks)} reports with limit={limit}')
 
         semaphore = asyncio.Semaphore(limit)
         tracker = ProgressTracker(len(tasks), progress_callback)
@@ -344,7 +349,7 @@ class AsyncReportGenerator:
                 return result
 
         completed = await asyncio.gather(*[limited_task(t) for t in tasks])
-        logger.info(f"Limited batch complete: {tracker.summary()}")
+        logger.info(f'Limited batch complete: {tracker.summary()}')
         return list(completed)
 
     def shutdown(self, wait: bool = True):
@@ -354,7 +359,7 @@ class AsyncReportGenerator:
         Args:
             wait: Wait for pending tasks to complete
         """
-        logger.info("Shutting down executor")
+        logger.info('Shutting down executor')
         self.executor.shutdown(wait=wait)
 
     def __del__(self):
@@ -366,10 +371,9 @@ class AsyncReportGenerator:
 # Convenience Functions
 # ==================================================================================
 
+
 async def generate_report_async(
-    adapter,
-    report,
-    output_path: Optional[str] = None
+    adapter, report, output_path: Optional[str] = None
 ) -> Any:
     """
     Generate a single report asynchronously.
@@ -393,12 +397,12 @@ async def generate_report_async(
         ... )
     """
     generator = AsyncReportGenerator()
-    task = ReportTask("single", adapter, report, output_path)
+    task = ReportTask('single', adapter, report, output_path)
     result_task = await generator.generate_single(task)
     generator.shutdown()
 
     if result_task.status == TaskStatus.FAILED:
-        raise Exception(f"Report generation failed: {result_task.error}")
+        raise Exception(f'Report generation failed: {result_task.error}')
 
     return result_task.result
 
@@ -406,7 +410,7 @@ async def generate_report_async(
 async def generate_reports_async(
     tasks: List[Dict[str, Any]],
     max_workers: int = 4,
-    progress_callback: Optional[Callable] = None
+    progress_callback: Optional[Callable] = None,
 ) -> List[Dict[str, Any]]:
     """
     Generate multiple reports asynchronously.
@@ -435,25 +439,29 @@ async def generate_reports_async(
     report_tasks = []
     for i, task_dict in enumerate(tasks):
         task = ReportTask(
-            task_id=f"task_{i}",
-            adapter=task_dict["adapter"],
-            report=task_dict["report"],
-            output_path=task_dict.get("output_path")
+            task_id=f'task_{i}',
+            adapter=task_dict['adapter'],
+            report=task_dict['report'],
+            output_path=task_dict.get('output_path'),
         )
         report_tasks.append(task)
 
     # Generate
-    completed_tasks = await generator.generate_batch(report_tasks, progress_callback)
+    completed_tasks = await generator.generate_batch(
+        report_tasks, progress_callback
+    )
     generator.shutdown()
 
     # Return results
     return [
         {
-            "task_id": task.task_id,
-            "status": task.status.value,
-            "result": task.result,
-            "error": task.error,
-            "duration": (task.end_time - task.start_time).total_seconds() if task.end_time else None
+            'task_id': task.task_id,
+            'status': task.status.value,
+            'result': task.result,
+            'error': task.error,
+            'duration': (task.end_time - task.start_time).total_seconds()
+            if task.end_time
+            else None,
         }
         for task in completed_tasks
     ]

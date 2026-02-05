@@ -2,15 +2,16 @@
 Uncertainty report renderer.
 """
 
-import os
 import logging
-from typing import Dict, Any, Optional, List
+import os
+from typing import Any, Dict, List, Optional
 
 # Configure logger
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 # Import CSS Manager
 from ..css_manager import CSSManager
+
 
 class UncertaintyRenderer:
     """
@@ -29,6 +30,7 @@ class UncertaintyRenderer:
             Manager for assets (CSS, JS, images)
         """
         from .base_renderer import BaseRenderer
+
         self.base_renderer = BaseRenderer(template_manager, asset_manager)
         self.template_manager = template_manager
         self.asset_manager = asset_manager
@@ -38,19 +40,35 @@ class UncertaintyRenderer:
 
         # Import specific data transformer
         from ..transformers.uncertainty import UncertaintyDataTransformer
+
         self.data_transformer = UncertaintyDataTransformer()
 
         # Try to import the new chart generator
         try:
-            from deepbridge.templates.report_types.uncertainty.static.charts import UncertaintyChartGenerator
+            from deepbridge.templates.report_types.uncertainty.static.charts import (
+                UncertaintyChartGenerator,
+            )
+
             from ...utils.seaborn_utils import SeabornChartGenerator
-            self.chart_generator = UncertaintyChartGenerator(SeabornChartGenerator())
-            logger.info("Initialized UncertaintyChartGenerator for rendering")
+
+            self.chart_generator = UncertaintyChartGenerator(
+                SeabornChartGenerator()
+            )
+            logger.info('Initialized UncertaintyChartGenerator for rendering')
         except ImportError:
             self.chart_generator = None
-            logger.warning("UncertaintyChartGenerator not available, chart generation may be limited")
-    
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "interactive", save_chart: bool = False) -> str:
+            logger.warning(
+                'UncertaintyChartGenerator not available, chart generation may be limited'
+            )
+
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'interactive',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render uncertainty report from results data.
 
@@ -76,32 +94,52 @@ class UncertaintyRenderer:
         FileNotFoundError: If template or assets not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating uncertainty report to: {file_path} (type: {report_type})")
+        logger.info(
+            f'Generating uncertainty report to: {file_path} (type: {report_type})'
+        )
 
         # Check if static report was requested
-        if report_type.lower() == "static":
+        if report_type.lower() == 'static':
             try:
                 # Use static renderer
-                logger.info("Static report requested, using StaticUncertaintyRenderer")
-                from .static.static_uncertainty_renderer import StaticUncertaintyRenderer
-                static_renderer = StaticUncertaintyRenderer(self.template_manager, self.asset_manager)
-                return static_renderer.render(results, file_path, model_name, report_type, save_chart)
+                logger.info(
+                    'Static report requested, using StaticUncertaintyRenderer'
+                )
+                from .static.static_uncertainty_renderer import (
+                    StaticUncertaintyRenderer,
+                )
+
+                static_renderer = StaticUncertaintyRenderer(
+                    self.template_manager, self.asset_manager
+                )
+                return static_renderer.render(
+                    results, file_path, model_name, report_type, save_chart
+                )
             except Exception as e:
-                logger.error(f"Error using static renderer: {str(e)}")
+                logger.error(f'Error using static renderer: {str(e)}')
                 import traceback
-                logger.error(f"Static renderer error traceback: {traceback.format_exc()}")
-                raise ValueError(f"Failed to generate static uncertainty report: {str(e)}")
+
+                logger.error(
+                    f'Static renderer error traceback: {traceback.format_exc()}'
+                )
+                raise ValueError(
+                    f'Failed to generate static uncertainty report: {str(e)}'
+                )
 
         # Continue with interactive report generation
         try:
             # Find template
-            template_paths = self.template_manager.get_template_paths("uncertainty")
+            template_paths = self.template_manager.get_template_paths(
+                'uncertainty'
+            )
             template_path = self.template_manager.find_template(template_paths)
 
             if not template_path:
-                raise FileNotFoundError(f"No template found for uncertainty report in: {template_paths}")
+                raise FileNotFoundError(
+                    f'No template found for uncertainty report in: {template_paths}'
+                )
 
-            logger.info(f"Using template: {template_path}")
+            logger.info(f'Using template: {template_path}')
 
             # Get CSS and JS content using combined methods
             css_content = self._load_css_content()
@@ -114,13 +152,21 @@ class UncertaintyRenderer:
             report_data = self.data_transformer.transform(results, model_name)
 
             # Create template context
-            context = self.base_renderer._create_context(report_data, "uncertainty", css_content, js_content, report_type)
+            context = self.base_renderer._create_context(
+                report_data,
+                'uncertainty',
+                css_content,
+                js_content,
+                report_type,
+            )
 
             # Add uncertainty-specific context directly from report_data
-            context.update({
-                'test_type': 'uncertainty',  # Explicit test type
-                'report_type': 'uncertainty'  # Required for template includes
-            })
+            context.update(
+                {
+                    'test_type': 'uncertainty',  # Explicit test type
+                    'report_type': 'uncertainty',  # Required for template includes
+                }
+            )
 
             # Add available metrics and data from report_data without defaults
             if 'uncertainty_score' in report_data:
@@ -160,14 +206,18 @@ class UncertaintyRenderer:
                 context['metrics_details'] = report_data['metrics_details']
 
             # Render the template
-            rendered_html = self.template_manager.render_template(template, context)
+            rendered_html = self.template_manager.render_template(
+                template, context
+            )
 
             # Write the report to file
             return self.base_renderer._write_report(rendered_html, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating uncertainty report: {str(e)}")
-            raise ValueError(f"Failed to generate uncertainty report: {str(e)}")
+            logger.error(f'Error generating uncertainty report: {str(e)}')
+            raise ValueError(
+                f'Failed to generate uncertainty report: {str(e)}'
+            )
 
     def _load_css_content(self) -> str:
         """
@@ -180,15 +230,19 @@ class UncertaintyRenderer:
         try:
             # Use CSSManager to compile CSS (base + components + custom)
             compiled_css = self.css_manager.get_compiled_css('uncertainty')
-            logger.info(f"CSS compiled successfully using CSSManager: {len(compiled_css)} chars")
+            logger.info(
+                f'CSS compiled successfully using CSSManager: {len(compiled_css)} chars'
+            )
             return compiled_css
         except Exception as e:
-            logger.error(f"Error loading CSS with CSSManager: {str(e)}")
+            logger.error(f'Error loading CSS with CSSManager: {str(e)}')
 
             # Fallback: try to load CSS from asset manager if CSSManager fails
             try:
-                logger.warning("Falling back to asset_manager for CSS loading")
-                css_content = self.asset_manager.get_combined_css_content("uncertainty")
+                logger.warning('Falling back to asset_manager for CSS loading')
+                css_content = self.asset_manager.get_combined_css_content(
+                    'uncertainty'
+                )
 
                 # Add default styles to ensure report functionality even if external CSS is missing
                 default_css = """
@@ -383,11 +437,13 @@ class UncertaintyRenderer:
             """
 
                 # Combine default CSS with loaded CSS
-                combined_css = default_css + "\n\n" + css_content
+                combined_css = default_css + '\n\n' + css_content
                 return combined_css
             except Exception as fallback_error:
-                logger.error(f"Fallback CSS loading also failed: {str(fallback_error)}")
-                return ""
+                logger.error(
+                    f'Fallback CSS loading also failed: {str(fallback_error)}'
+                )
+                return ''
 
     def _load_js_content(self) -> str:
         """
@@ -399,7 +455,9 @@ class UncertaintyRenderer:
         """
         try:
             # Get combined JS content (generic + test-specific)
-            js_content = self.asset_manager.get_combined_js_content("uncertainty")
+            js_content = self.asset_manager.get_combined_js_content(
+                'uncertainty'
+            )
 
             # Add initialization code to ensure proper tab navigation and chart loading
             init_js = """
@@ -442,8 +500,8 @@ class UncertaintyRenderer:
             """
 
             # Combine all JS
-            combined_js = init_js + "\n\n" + js_content
+            combined_js = init_js + '\n\n' + js_content
             return combined_js
         except Exception as e:
-            logger.error(f"Error loading JavaScript: {str(e)}")
-            return ""
+            logger.error(f'Error loading JavaScript: {str(e)}')
+            return ''

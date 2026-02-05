@@ -5,17 +5,18 @@ Provides abstract base for chart generators and result container
 (Phase 2 Sprint 7-8, preparing for Phase 3).
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, field
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Chart Result Container
 # ==================================================================================
+
 
 @dataclass
 class ChartResult:
@@ -35,6 +36,7 @@ class ChartResult:
         ...     metadata={'title': 'Accuracy Over Time'}
         ... )
     """
+
     content: str
     format: str
     metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
@@ -56,13 +58,14 @@ class ChartResult:
         return self.format in ['plotly', 'html']
 
     def __repr__(self) -> str:
-        status = "success" if self.is_success else f"error: {self.error}"
-        return f"ChartResult(format={self.format}, {status})"
+        status = 'success' if self.is_success else f'error: {self.error}'
+        return f'ChartResult(format={self.format}, {status})'
 
 
 # ==================================================================================
 # Chart Generator Base Class
 # ==================================================================================
+
 
 class ChartGenerator(ABC):
     """
@@ -102,7 +105,9 @@ class ChartGenerator(ABC):
         """
         pass
 
-    def _create_error_result(self, error_msg: str, format: str = 'html') -> ChartResult:
+    def _create_error_result(
+        self, error_msg: str, format: str = 'html'
+    ) -> ChartResult:
         """
         Create an error result.
 
@@ -113,14 +118,12 @@ class ChartGenerator(ABC):
         Returns:
             ChartResult with error
         """
-        logger.error(f"{self.__class__.__name__}: {error_msg}")
-        return ChartResult(
-            content="",
-            format=format,
-            error=error_msg
-        )
+        logger.error(f'{self.__class__.__name__}: {error_msg}')
+        return ChartResult(content='', format=format, error=error_msg)
 
-    def _validate_data(self, data: Dict[str, Any], required_keys: list) -> bool:
+    def _validate_data(
+        self, data: Dict[str, Any], required_keys: list
+    ) -> bool:
         """
         Validate that data contains required keys.
 
@@ -136,16 +139,17 @@ class ChartGenerator(ABC):
         """
         missing = [key for key in required_keys if key not in data]
         if missing:
-            raise ValueError(f"Missing required keys: {missing}")
+            raise ValueError(f'Missing required keys: {missing}')
         return True
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
+        return f'{self.__class__.__name__}()'
 
 
 # ==================================================================================
 # Example Chart Generators
 # ==================================================================================
+
 
 class PlotlyChartGenerator(ChartGenerator):
     """
@@ -161,6 +165,7 @@ class PlotlyChartGenerator(ChartGenerator):
 
             # Convert to JSON
             import json
+
             chart_json = json.dumps(figure, ensure_ascii=False)
 
             return ChartResult(
@@ -168,8 +173,8 @@ class PlotlyChartGenerator(ChartGenerator):
                 format='plotly',
                 metadata={
                     'title': kwargs.get('title', ''),
-                    'type': self.__class__.__name__
-                }
+                    'type': self.__class__.__name__,
+                },
             )
 
         except Exception as e:
@@ -207,8 +212,8 @@ class StaticImageGenerator(ChartGenerator):
                 format=format_type,
                 metadata={
                     'title': kwargs.get('title', ''),
-                    'type': self.__class__.__name__
-                }
+                    'type': self.__class__.__name__,
+                },
             )
 
         except Exception as e:
@@ -233,35 +238,33 @@ class StaticImageGenerator(ChartGenerator):
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Demonstrate base chart classes.
     """
-    print("=" * 80)
-    print("Chart Base Classes Example")
-    print("=" * 80)
+    print('=' * 80)
+    print('Chart Base Classes Example')
+    print('=' * 80)
 
     # Example: Create a chart result
     result = ChartResult(
         content='{"data": [], "layout": {}}',
         format='plotly',
-        metadata={'title': 'Example Chart'}
+        metadata={'title': 'Example Chart'},
     )
 
-    print(f"\nChart Result: {result}")
-    print(f"Success: {result.is_success}")
-    print(f"Interactive: {result.is_interactive}")
+    print(f'\nChart Result: {result}')
+    print(f'Success: {result.is_success}')
+    print(f'Interactive: {result.is_interactive}')
 
     # Example: Error result
     error_result = ChartResult(
-        content="",
-        format='plotly',
-        error="Failed to generate chart"
+        content='', format='plotly', error='Failed to generate chart'
     )
 
-    print(f"\nError Result: {error_result}")
-    print(f"Success: {error_result.is_success}")
+    print(f'\nError Result: {error_result}')
+    print(f'Success: {error_result.is_success}')
 
-    print("\n" + "=" * 80)
-    print("Chart Base Classes Example Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Chart Base Classes Example Complete')
+    print('=' * 80)

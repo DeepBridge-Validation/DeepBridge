@@ -5,15 +5,16 @@ This module implements a progressive distillation chain that transfers knowledge
 incrementally from simple to complex models, reducing the knowledge gap.
 """
 
-import numpy as np
-import pandas as pd
-from typing import List, Dict, Tuple, Optional, Any, Union
-from dataclasses import dataclass
 import logging
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from deepbridge.utils.model_registry import ModelType, ModelRegistry
+import numpy as np
+import pandas as pd
+
 from deepbridge.metrics.classification import Classification
+from deepbridge.utils.model_registry import ModelRegistry, ModelType
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class ChainStage:
     """
     Represents a stage in the progressive distillation chain.
     """
+
     model_type: ModelType
     model: Any
     predictions: Optional[np.ndarray] = None
@@ -45,7 +47,7 @@ class ProgressiveDistillationChain:
         chain_order: Optional[List[ModelType]] = None,
         use_adaptive_weights: bool = True,
         min_improvement: float = 0.01,
-        random_state: int = 42
+        random_state: int = 42,
     ):
         """
         Initialize the progressive distillation chain.
@@ -79,10 +81,10 @@ class ProgressiveDistillationChain:
         """
         return [
             ModelType.LOGISTIC_REGRESSION,  # Simplest - linear
-            ModelType.DECISION_TREE,        # Non-linear, interpretable
-            ModelType.RANDOM_FOREST,        # Ensemble of trees
-            ModelType.GBM,                   # Boosted ensemble
-            ModelType.XGB                    # Most complex
+            ModelType.DECISION_TREE,  # Non-linear, interpretable
+            ModelType.RANDOM_FOREST,  # Ensemble of trees
+            ModelType.GBM,  # Boosted ensemble
+            ModelType.XGB,  # Most complex
         ]
 
     def train_progressive(
@@ -94,7 +96,7 @@ class ProgressiveDistillationChain:
         teacher_probs: Optional[np.ndarray] = None,
         temperature_schedule: Optional[List[float]] = None,
         alpha_schedule: Optional[List[float]] = None,
-        hyperparams: Optional[Dict[ModelType, Dict[str, Any]]] = None
+        hyperparams: Optional[Dict[ModelType, Dict[str, Any]]] = None,
     ) -> List[ChainStage]:
         """
         Train models progressively through the chain.
@@ -112,7 +114,9 @@ class ProgressiveDistillationChain:
         Returns:
             List of trained chain stages
         """
-        logger.info(f"Starting progressive chain with {len(self.chain_order)} stages")
+        logger.info(
+            f'Starting progressive chain with {len(self.chain_order)} stages'
+        )
 
         # Initialize schedules
         if temperature_schedule is None:
@@ -132,7 +136,9 @@ class ProgressiveDistillationChain:
         previous_performance = 0.0
 
         for idx, model_type in enumerate(self.chain_order):
-            logger.info(f"Training stage {idx+1}/{len(self.chain_order)}: {model_type.name}")
+            logger.info(
+                f'Training stage {idx+1}/{len(self.chain_order)}: {model_type.name}'
+            )
 
             # Get hyperparameters for this model
             model_params = {}
@@ -151,7 +157,7 @@ class ProgressiveDistillationChain:
                 temperature=temperature_schedule[idx],
                 alpha=alpha_schedule[idx],
                 model_params=model_params,
-                stage_idx=idx
+                stage_idx=idx,
             )
 
             self.stages.append(stage)
@@ -166,30 +172,38 @@ class ProgressiveDistillationChain:
                 metrics = self.metrics_calculator.calculate_metrics(
                     y_true=y_val,
                     y_pred=val_preds,
-                    y_prob=val_probs[:, 1] if val_probs.shape[1] == 2 else val_probs
+                    y_prob=val_probs[:, 1]
+                    if val_probs.shape[1] == 2
+                    else val_probs,
                 )
                 stage.performance = metrics.get('accuracy', 0.0)
             else:
                 # Use training performance as fallback
                 train_probs = stage.model.predict_proba(X_train)
                 if train_probs.ndim == 1:
-                    train_probs = np.column_stack([1 - train_probs, train_probs])
+                    train_probs = np.column_stack(
+                        [1 - train_probs, train_probs]
+                    )
 
                 train_preds = np.argmax(train_probs, axis=1)
                 metrics = self.metrics_calculator.calculate_metrics(
                     y_true=y_train,
                     y_pred=train_preds,
-                    y_prob=train_probs[:, 1] if train_probs.shape[1] == 2 else train_probs
+                    y_prob=train_probs[:, 1]
+                    if train_probs.shape[1] == 2
+                    else train_probs,
                 )
                 stage.performance = metrics.get('accuracy', 0.0)
 
             self.performance_history.append(stage.performance)
-            logger.info(f"Stage {idx+1} performance: {stage.performance:.4f}")
+            logger.info(f'Stage {idx+1} performance: {stage.performance:.4f}')
 
             # Check for improvement
             improvement = stage.performance - previous_performance
             if improvement < self.min_improvement and idx > 0:
-                logger.info(f"Improvement ({improvement:.4f}) below threshold, stopping chain")
+                logger.info(
+                    f'Improvement ({improvement:.4f}) below threshold, stopping chain'
+                )
                 break
 
             # Update best stage
@@ -200,7 +214,9 @@ class ProgressiveDistillationChain:
             # Use this stage's predictions as soft labels for next stage
             previous_probs = stage.predictions
 
-        logger.info(f"Progressive chain complete. Best stage: {self.best_stage_idx+1}")
+        logger.info(
+            f'Progressive chain complete. Best stage: {self.best_stage_idx+1}'
+        )
         return self.stages
 
     def _train_stage(
@@ -215,7 +231,7 @@ class ProgressiveDistillationChain:
         temperature: float,
         alpha: float,
         model_params: Dict[str, Any],
-        stage_idx: int
+        stage_idx: int,
     ) -> ChainStage:
         """
         Train a single stage in the progressive chain.
@@ -243,7 +259,7 @@ class ProgressiveDistillationChain:
         model = self.model_factory.get_model(
             model_type=model_type,
             custom_params={**model_params, 'random_state': self.random_state},
-            mode=ModelMode.CLASSIFICATION
+            mode=ModelMode.CLASSIFICATION,
         )
 
         # Prepare soft labels
@@ -251,7 +267,9 @@ class ProgressiveDistillationChain:
             if self.use_adaptive_weights:
                 # Adaptively weight teacher and previous stage
                 weight = self._calculate_adaptive_weight(stage_idx)
-                soft_labels = weight * teacher_probs + (1 - weight) * previous_probs
+                soft_labels = (
+                    weight * teacher_probs + (1 - weight) * previous_probs
+                )
             else:
                 # Equal weighting
                 soft_labels = 0.5 * teacher_probs + 0.5 * previous_probs
@@ -280,7 +298,10 @@ class ProgressiveDistillationChain:
                     y_train, soft_labels, alpha
                 )
 
-                if hasattr(model, 'fit') and 'sample_weight' in model.fit.__code__.co_varnames:
+                if (
+                    hasattr(model, 'fit')
+                    and 'sample_weight' in model.fit.__code__.co_varnames
+                ):
                     model.fit(X_train, y_train, sample_weight=sample_weights)
                 else:
                     # Fallback to standard training
@@ -300,7 +321,7 @@ class ProgressiveDistillationChain:
             model=model,
             predictions=predictions,
             temperature=temperature,
-            alpha=alpha
+            alpha=alpha,
         )
 
         return stage
@@ -329,7 +350,9 @@ class ProgressiveDistillationChain:
 
         return teacher_weight
 
-    def _apply_temperature(self, probs: np.ndarray, temperature: float) -> np.ndarray:
+    def _apply_temperature(
+        self, probs: np.ndarray, temperature: float
+    ) -> np.ndarray:
         """
         Apply temperature scaling to probabilities.
 
@@ -354,16 +377,15 @@ class ProgressiveDistillationChain:
         scaled_logits = logits / temperature
 
         # Convert back to probabilities
-        exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=-1, keepdims=True))
+        exp_logits = np.exp(
+            scaled_logits - np.max(scaled_logits, axis=-1, keepdims=True)
+        )
         scaled_probs = exp_logits / np.sum(exp_logits, axis=-1, keepdims=True)
 
         return scaled_probs
 
     def _create_sample_weights(
-        self,
-        y_hard: np.ndarray,
-        y_soft: np.ndarray,
-        alpha: float
+        self, y_hard: np.ndarray, y_soft: np.ndarray, alpha: float
     ) -> np.ndarray:
         """
         Create sample weights based on agreement between hard and soft labels.
@@ -386,7 +408,10 @@ class ProgressiveDistillationChain:
         confidence = np.max(y_soft, axis=1)
 
         # Combine into weights
-        weights = alpha * np.ones_like(agreement) + (1 - alpha) * confidence * agreement
+        weights = (
+            alpha * np.ones_like(agreement)
+            + (1 - alpha) * confidence * agreement
+        )
 
         # Normalize
         weights = weights / np.mean(weights)
@@ -401,7 +426,7 @@ class ProgressiveDistillationChain:
             Best model
         """
         if not self.stages:
-            raise ValueError("No stages trained yet")
+            raise ValueError('No stages trained yet')
 
         if self.best_stage_idx >= 0:
             return self.stages[self.best_stage_idx].model
@@ -412,7 +437,7 @@ class ProgressiveDistillationChain:
     def get_ensemble_predictions(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        weights: Optional[List[float]] = None
+        weights: Optional[List[float]] = None,
     ) -> np.ndarray:
         """
         Get ensemble predictions from all stages.
@@ -425,7 +450,7 @@ class ProgressiveDistillationChain:
             Ensemble predictions
         """
         if not self.stages:
-            raise ValueError("No stages trained yet")
+            raise ValueError('No stages trained yet')
 
         # Get predictions from each stage
         all_predictions = []
@@ -466,13 +491,13 @@ class ProgressiveDistillationChain:
             'stages': self.stages,
             'chain_order': self.chain_order,
             'performance_history': self.performance_history,
-            'best_stage_idx': self.best_stage_idx
+            'best_stage_idx': self.best_stage_idx,
         }
 
         with open(filepath, 'wb') as f:
             pickle.dump(chain_data, f)
 
-        logger.info(f"Progressive chain saved to {filepath}")
+        logger.info(f'Progressive chain saved to {filepath}')
 
     def load_chain(self, filepath: str):
         """
@@ -491,7 +516,7 @@ class ProgressiveDistillationChain:
         self.performance_history = chain_data['performance_history']
         self.best_stage_idx = chain_data['best_stage_idx']
 
-        logger.info(f"Progressive chain loaded from {filepath}")
+        logger.info(f'Progressive chain loaded from {filepath}')
 
     def get_complexity_score(self, model_type: ModelType) -> float:
         """
@@ -508,7 +533,7 @@ class ProgressiveDistillationChain:
             ModelType.DECISION_TREE: 0.4,
             ModelType.RANDOM_FOREST: 0.6,
             ModelType.GBM: 0.8,
-            ModelType.XGB: 1.0
+            ModelType.XGB: 1.0,
         }
 
         return complexity_map.get(model_type, 0.5)

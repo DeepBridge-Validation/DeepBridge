@@ -6,9 +6,9 @@ Refactored in Phase 2 to use BaseRenderer template methods.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 # Import BaseRenderer
 from .base_renderer import BaseRenderer
@@ -35,11 +35,20 @@ class RobustnessRendererSimple(BaseRenderer):
         super().__init__(template_manager, asset_manager)
 
         # Import data transformer
-        from ..transformers.robustness_simple import RobustnessDataTransformerSimple
+        from ..transformers.robustness_simple import (
+            RobustnessDataTransformerSimple,
+        )
+
         self.data_transformer = RobustnessDataTransformerSimple()
 
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
-               report_type: str = "interactive", save_chart: bool = False) -> str:
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'interactive',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render robustness report from results data.
 
@@ -67,52 +76,70 @@ class RobustnessRendererSimple(BaseRenderer):
         FileNotFoundError: If template not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating SIMPLE robustness report to: {file_path}")
-        logger.info(f"Report type: {report_type}")
+        logger.info(f'Generating SIMPLE robustness report to: {file_path}')
+        logger.info(f'Report type: {report_type}')
 
         try:
             # Transform the data
-            report_data = self.data_transformer.transform(results, model_name=model_name)
+            report_data = self.data_transformer.transform(
+                results, model_name=model_name
+            )
 
             # Load template using BaseRenderer method
             template = self._load_template('robustness', report_type)
-            logger.info(f"Template loaded for robustness/{report_type}")
+            logger.info(f'Template loaded for robustness/{report_type}')
 
             # Get all assets using BaseRenderer method
             assets = self._get_assets('robustness')
 
             # Create base context using BaseRenderer method
-            context = self._create_base_context(report_data, 'robustness', assets)
+            context = self._create_base_context(
+                report_data, 'robustness', assets
+            )
 
             # Add robustness-specific context fields
-            context.update({
-                'report_title': 'Robustness Analysis Report',
-                'report_subtitle': 'Model Stability and Perturbation Resistance',
-                'robustness_score': report_data['summary']['robustness_score'],
-                'base_score': report_data['summary']['base_score'],
-                'avg_impact': report_data['summary']['avg_overall_impact'],
-                'metric': report_data['summary']['metric'],
-                'total_levels': report_data['metadata']['total_levels'],
-                'total_features': report_data['metadata']['total_features'],
-
-                # Advanced robustness tests (WeakSpot and Overfitting)
-                'has_weakspot_analysis': 'weakspot_analysis' in results,
-                'weakspot_analysis': results.get('weakspot_analysis', {}),
-                'weakspot_analysis_json': self._safe_json_dumps(results.get('weakspot_analysis', {})),
-                'has_overfitting_analysis': 'overfitting_analysis' in results,
-                'overfitting_analysis': results.get('overfitting_analysis', {}),
-                'overfitting_analysis_json': self._safe_json_dumps(results.get('overfitting_analysis', {}))
-            })
+            context.update(
+                {
+                    'report_title': 'Robustness Analysis Report',
+                    'report_subtitle': 'Model Stability and Perturbation Resistance',
+                    'robustness_score': report_data['summary'][
+                        'robustness_score'
+                    ],
+                    'base_score': report_data['summary']['base_score'],
+                    'avg_impact': report_data['summary']['avg_overall_impact'],
+                    'metric': report_data['summary']['metric'],
+                    'total_levels': report_data['metadata']['total_levels'],
+                    'total_features': report_data['metadata'][
+                        'total_features'
+                    ],
+                    # Advanced robustness tests (WeakSpot and Overfitting)
+                    'has_weakspot_analysis': 'weakspot_analysis' in results,
+                    'weakspot_analysis': results.get('weakspot_analysis', {}),
+                    'weakspot_analysis_json': self._safe_json_dumps(
+                        results.get('weakspot_analysis', {})
+                    ),
+                    'has_overfitting_analysis': 'overfitting_analysis'
+                    in results,
+                    'overfitting_analysis': results.get(
+                        'overfitting_analysis', {}
+                    ),
+                    'overfitting_analysis_json': self._safe_json_dumps(
+                        results.get('overfitting_analysis', {})
+                    ),
+                }
+            )
 
             # Render template using BaseRenderer method
             html_content = self._render_template(template, context)
 
             # Write HTML using BaseRenderer method
-            logger.info(f"Report generated and saved to: {file_path} (type: {report_type})")
+            logger.info(
+                f'Report generated and saved to: {file_path} (type: {report_type})'
+            )
             return self._write_html(html_content, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating robustness report: {str(e)}")
+            logger.error(f'Error generating robustness report: {str(e)}')
             raise
 
     # NOTE: All helper methods (_load_template, _get_assets, _get_css_content,

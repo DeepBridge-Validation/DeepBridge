@@ -17,19 +17,25 @@ import warnings
 def _deprecated_chart_warning(chart_name: str):
     """Issue deprecation warning when legacy chart is instantiated."""
     warnings.warn(
-        f"{chart_name} is deprecated and will be removed in a future version. "
-        f"Use the specialized chart classes from fairness.charts instead.",
+        f'{chart_name} is deprecated and will be removed in a future version. '
+        f'Use the specialized chart classes from fairness.charts instead.',
         DeprecationWarning,
-        stacklevel=3
+        stacklevel=3,
     )
 
 
 # Import from deprecated module
 from ..deprecated.legacy_charts import (
-    MetricsComparisonChart as _MetricsComparisonChart,
-    FairnessRadarChart as _FairnessRadarChart,
     ConfusionMatricesChart as _ConfusionMatricesChart,
-    ThresholdAnalysisChart as _ThresholdAnalysisChart
+)
+from ..deprecated.legacy_charts import (
+    FairnessRadarChart as _FairnessRadarChart,
+)
+from ..deprecated.legacy_charts import (
+    MetricsComparisonChart as _MetricsComparisonChart,
+)
+from ..deprecated.legacy_charts import (
+    ThresholdAnalysisChart as _ThresholdAnalysisChart,
 )
 
 
@@ -70,5 +76,5 @@ __all__ = [
     'MetricsComparisonChart',
     'FairnessRadarChart',
     'ConfusionMatricesChart',
-    'ThresholdAnalysisChart'
+    'ThresholdAnalysisChart',
 ]

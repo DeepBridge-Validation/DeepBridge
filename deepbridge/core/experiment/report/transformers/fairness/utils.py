@@ -19,14 +19,33 @@ def get_status_from_interpretation(interpretation: str) -> str:
     """
     interp_upper = interpretation.upper()
 
-    if ('✗' in interpretation or 'CRÍTICO' in interp_upper or 'CRITICAL' in interp_upper or
-        'VERMELHO' in interp_upper or 'RED' in interp_upper or 'HIGH LEGAL RISK' in interp_upper):
+    if (
+        '✗' in interpretation
+        or 'CRÍTICO' in interp_upper
+        or 'CRITICAL' in interp_upper
+        or 'VERMELHO' in interp_upper
+        or 'RED' in interp_upper
+        or 'HIGH LEGAL RISK' in interp_upper
+    ):
         return 'critical'
-    elif ('⚠' in interpretation or 'MODERADO' in interp_upper or 'MODERATE' in interp_upper or
-          'AMARELO' in interp_upper or 'YELLOW' in interp_upper or 'WARNING' in interp_upper):
+    elif (
+        '⚠' in interpretation
+        or 'MODERADO' in interp_upper
+        or 'MODERATE' in interp_upper
+        or 'AMARELO' in interp_upper
+        or 'YELLOW' in interp_upper
+        or 'WARNING' in interp_upper
+    ):
         return 'warning'
-    elif ('✓' in interpretation or 'EXCELENTE' in interp_upper or 'EXCELLENT' in interp_upper or
-          'BOM' in interp_upper or 'GOOD' in interp_upper or 'VERDE' in interp_upper or 'GREEN' in interp_upper):
+    elif (
+        '✓' in interpretation
+        or 'EXCELENTE' in interp_upper
+        or 'EXCELLENT' in interp_upper
+        or 'BOM' in interp_upper
+        or 'GOOD' in interp_upper
+        or 'VERDE' in interp_upper
+        or 'GREEN' in interp_upper
+    ):
         return 'success'
     else:
         return 'ok'
@@ -43,13 +62,13 @@ def get_assessment_text(score: float) -> str:
         Assessment text describing the fairness level
     """
     if score >= 0.9:
-        return "EXCELLENT - Very high fairness"
+        return 'EXCELLENT - Very high fairness'
     elif score >= 0.8:
-        return "GOOD - Adequate fairness for production"
+        return 'GOOD - Adequate fairness for production'
     elif score >= 0.6:
-        return "MODERATE - Requires improvements before production"
+        return 'MODERATE - Requires improvements before production'
     else:
-        return "CRITICAL - Not recommended for production"
+        return 'CRITICAL - Not recommended for production'
 
 
 # Metric categorization constants
@@ -58,7 +77,7 @@ POSTTRAIN_MAIN_METRICS: List[str] = [
     'equal_opportunity',
     'equalized_odds',
     'disparate_impact',
-    'false_negative_rate_difference'
+    'false_negative_rate_difference',
 ]
 
 POSTTRAIN_COMPLEMENTARY_METRICS: List[str] = [
@@ -67,14 +86,14 @@ POSTTRAIN_COMPLEMENTARY_METRICS: List[str] = [
     'precision_difference',
     'accuracy_difference',
     'treatment_equality',
-    'entropy_index'
+    'entropy_index',
 ]
 
 PRETRAIN_METRICS: List[str] = [
     'class_balance',
     'concept_balance',
     'kl_divergence',
-    'js_divergence'
+    'js_divergence',
 ]
 
 # Display labels for metrics
@@ -85,7 +104,6 @@ METRIC_LABELS = {
     'equalized_odds': 'Equalized Odds',
     'disparate_impact': 'Disparate Impact',
     'false_negative_rate_difference': 'FNR Difference',
-
     # Post-training complementary
     'conditional_acceptance': 'Conditional Acceptance',
     'conditional_rejection': 'Conditional Rejection',
@@ -93,12 +111,11 @@ METRIC_LABELS = {
     'accuracy_difference': 'Accuracy Difference',
     'treatment_equality': 'Treatment Equality',
     'entropy_index': 'Entropy Index',
-
     # Pre-training
     'class_balance': 'Class Balance (BCL)',
     'concept_balance': 'Concept Balance (BCO)',
     'kl_divergence': 'KL Divergence',
-    'js_divergence': 'JS Divergence'
+    'js_divergence': 'JS Divergence',
 }
 
 # Short labels for compact displays (e.g., heatmaps)
@@ -113,7 +130,7 @@ METRIC_SHORT_LABELS = {
     'precision_difference': 'Precision<br>Difference',
     'accuracy_difference': 'Accuracy<br>Difference',
     'treatment_equality': 'Treatment<br>Equality',
-    'entropy_index': 'Entropy<br>Index'
+    'entropy_index': 'Entropy<br>Index',
 }
 
 
@@ -127,7 +144,9 @@ def format_metric_name(metric_name: str) -> str:
     Returns:
         Formatted display name
     """
-    return METRIC_LABELS.get(metric_name, metric_name.replace('_', ' ').title())
+    return METRIC_LABELS.get(
+        metric_name, metric_name.replace('_', ' ').title()
+    )
 
 
 def format_attribute_name(attr_name: str) -> str:

@@ -2,11 +2,12 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 
+
 class Quantization(BaseEstimator, ClassifierMixin):
     def __init__(self, base_model, n_bits=8):
         """
         Construtor da classe.
-        
+
         Args:
             base_model: Modelo base a ser quantizado.
             n_bits: Número de bits para quantização (padrão: 8).
@@ -21,7 +22,7 @@ class Quantization(BaseEstimator, ClassifierMixin):
         # Treinar o modelo base
         self.base_model_ = clone(self.base_model)
         self.base_model_.fit(X, y)
-        
+
         # Quantizar os coeficientes do modelo
         self._quantize_weights()
         return self
@@ -36,12 +37,18 @@ class Quantization(BaseEstimator, ClassifierMixin):
 
         # Quantização para inteiros de n_bits
         scale = (np.max(coef) - np.min(coef)) / (2**self.n_bits - 1)
-        self.quantized_coef_ = np.round((coef - np.min(coef)) / scale).astype(np.int32)
-        self.quantized_intercept_ = np.round((intercept - np.min(intercept)) / scale).astype(np.int32)
+        self.quantized_coef_ = np.round((coef - np.min(coef)) / scale).astype(
+            np.int32
+        )
+        self.quantized_intercept_ = np.round(
+            (intercept - np.min(intercept)) / scale
+        ).astype(np.int32)
 
         # Desquantização (simulação para uso em previsões)
         self.base_model_.coef_ = self.quantized_coef_ * scale + np.min(coef)
-        self.base_model_.intercept_ = self.quantized_intercept_ * scale + np.min(intercept)
+        self.base_model_.intercept_ = (
+            self.quantized_intercept_ * scale + np.min(intercept)
+        )
 
     def predict(self, X):
         """

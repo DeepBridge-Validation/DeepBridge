@@ -30,19 +30,20 @@ This transformer can be used in two ways:
    ```
 """
 
-import pandas as pd
-import numpy as np
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
+
+import numpy as np
+import pandas as pd
 
 from ..domain import (
-    RobustnessReportData,
-    RobustnessMetrics,
-    PerturbationLevelData,
     FeatureRobustnessData,
+    PerturbationLevelData,
+    RobustnessMetrics,
+    RobustnessReportData,
 )
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class RobustnessDomainTransformer:
@@ -60,9 +61,7 @@ class RobustnessDomainTransformer:
     """
 
     def transform_to_model(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> RobustnessReportData:
         """
         Transform raw robustness results to type-safe domain model.
@@ -82,7 +81,7 @@ class RobustnessDomainTransformer:
             >>> print(report.metrics.robustness_score)  # Type-safe!
             >>> print(report.metrics.is_robust)  # Property access!
         """
-        logger.info("Transforming robustness data to domain model")
+        logger.info('Transforming robustness data to domain model')
 
         # Extract main components
         if 'test_results' in results:
@@ -98,7 +97,11 @@ class RobustnessDomainTransformer:
         robustness_score = primary_model.get('robustness_score', 0.0)
         avg_raw_impact = primary_model.get('avg_raw_impact', 0.0)
         avg_quantile_impact = primary_model.get('avg_quantile_impact', 0.0)
-        avg_overall_impact = (avg_raw_impact + avg_quantile_impact) / 2 if avg_raw_impact or avg_quantile_impact else 0.0
+        avg_overall_impact = (
+            (avg_raw_impact + avg_quantile_impact) / 2
+            if avg_raw_impact or avg_quantile_impact
+            else 0.0
+        )
 
         metrics = RobustnessMetrics(
             base_score=base_score,
@@ -106,7 +109,7 @@ class RobustnessDomainTransformer:
             avg_raw_impact=avg_raw_impact,
             avg_quantile_impact=avg_quantile_impact,
             avg_overall_impact=avg_overall_impact,
-            metric=primary_model.get('metric', 'AUC')
+            metric=primary_model.get('metric', 'AUC'),
         )
 
         # Transform perturbation levels
@@ -126,17 +129,15 @@ class RobustnessDomainTransformer:
         )
 
         logger.info(
-            f"Transformation complete. Model: {report.model_name}, "
-            f"Score: {report.metrics.robustness_score:.3f}, "
-            f"Robust: {report.metrics.is_robust}"
+            f'Transformation complete. Model: {report.model_name}, '
+            f'Score: {report.metrics.robustness_score:.3f}, '
+            f'Robust: {report.metrics.is_robust}'
         )
 
         return report
 
     def transform(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> Dict[str, Any]:
         """
         Transform to dictionary (backward-compatible mode).
@@ -177,11 +178,11 @@ class RobustnessDomainTransformer:
         levels_list = [
             {
                 'level': level.level,
-                'level_display': level.level_display or f"{level.level:.1f}",
+                'level_display': level.level_display or f'{level.level:.1f}',
                 'mean_score': level.mean_score,
                 'std_score': level.std_score,
                 'impact': level.impact,
-                'worst_score': level.worst_score
+                'worst_score': level.worst_score,
             }
             for level in report.perturbation_levels
         ]
@@ -191,7 +192,7 @@ class RobustnessDomainTransformer:
             {
                 'name': feature.name,
                 'importance': feature.importance,
-                'robustness_impact': feature.robustness_impact
+                'robustness_impact': feature.robustness_impact,
             }
             for feature in report.features
         ]
@@ -199,14 +200,12 @@ class RobustnessDomainTransformer:
         result = {
             'model_name': report.model_name,
             'model_type': report.model_type,
-
             # Summary metrics (flattened)
             'base_score': report.metrics.base_score,
             'robustness_score': report.metrics.robustness_score,
             'avg_raw_impact': report.metrics.avg_raw_impact,
             'avg_quantile_impact': report.metrics.avg_quantile_impact,
             'avg_overall_impact': report.metrics.avg_overall_impact,
-
             # Summary dict (nested format)
             'summary': {
                 'base_score': report.metrics.base_score,
@@ -214,54 +213,55 @@ class RobustnessDomainTransformer:
                 'avg_raw_impact': report.metrics.avg_raw_impact,
                 'avg_quantile_impact': report.metrics.avg_quantile_impact,
                 'avg_overall_impact': report.metrics.avg_overall_impact,
-                'metric': report.metrics.metric
+                'metric': report.metrics.metric,
             },
-
             # Levels
             'levels': levels_list,
-
             # Features
             'features': features_list,
-
             # Metadata
             'metadata': {
                 'total_levels': report.num_perturbation_levels,
                 'total_features': report.num_features,
                 'n_iterations': report.n_iterations,
-                'metric': report.metrics.metric
-            }
+                'metric': report.metrics.metric,
+            },
         }
 
         return result
 
-    def _transform_levels(self, primary_model: Dict) -> List[PerturbationLevelData]:
+    def _transform_levels(
+        self, primary_model: Dict
+    ) -> List[PerturbationLevelData]:
         """Transform perturbation levels data to domain models."""
         levels_data = []
 
         # Get raw perturbation data
         raw_data = primary_model.get('raw', {}).get('by_level', {})
 
-        for level_str, level_data in sorted(raw_data.items(), key=lambda x: float(x[0])):
+        for level_str, level_data in sorted(
+            raw_data.items(), key=lambda x: float(x[0])
+        ):
             level_float = float(level_str)
-            overall_result = level_data.get('overall_result', {}).get('all_features', {})
+            overall_result = level_data.get('overall_result', {}).get(
+                'all_features', {}
+            )
 
             levels_data.append(
                 PerturbationLevelData(
                     level=level_float,
-                    level_display=f"{level_float:.1f}",
+                    level_display=f'{level_float:.1f}',
                     mean_score=float(overall_result.get('mean_score', 0.0)),
                     std_score=float(overall_result.get('std_score', 0.0)),
                     impact=float(overall_result.get('impact', 0.0)),
-                    worst_score=float(overall_result.get('worst_score', 0.0))
+                    worst_score=float(overall_result.get('worst_score', 0.0)),
                 )
             )
 
         return levels_data
 
     def _transform_features(
-        self,
-        initial_eval: Dict,
-        primary_model: Dict
+        self, initial_eval: Dict, primary_model: Dict
     ) -> List[FeatureRobustnessData]:
         """Transform feature importance data to domain models."""
         features_data = []
@@ -275,15 +275,15 @@ class RobustnessDomainTransformer:
         robustness_importance = primary_model.get('feature_importance', {})
 
         for feature_name, importance in sorted(
-            feature_importance.items(),
-            key=lambda x: x[1],
-            reverse=True
+            feature_importance.items(), key=lambda x: x[1], reverse=True
         ):
             features_data.append(
                 FeatureRobustnessData(
                     name=feature_name,
                     importance=float(importance),
-                    robustness_impact=float(robustness_importance.get(feature_name, 0.0))
+                    robustness_impact=float(
+                        robustness_importance.get(feature_name, 0.0)
+                    ),
                 )
             )
 

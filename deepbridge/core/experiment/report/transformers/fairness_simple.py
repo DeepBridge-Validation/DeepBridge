@@ -6,12 +6,12 @@ For new code, import directly from:
     from deepbridge.core.experiment.report.transformers.fairness import FairnessDataTransformer
 """
 
-from typing import Dict, Any
 import logging
+from typing import Any, Dict
 
 from .fairness import FairnessDataTransformer as RefactoredTransformer
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class FairnessDataTransformerSimple:
@@ -26,10 +26,12 @@ class FairnessDataTransformerSimple:
 
     def __init__(self):
         """Initialize with refactored transformer."""
-        logger.debug("Using refactored FairnessDataTransformer")
+        logger.debug('Using refactored FairnessDataTransformer')
         self._transformer = RefactoredTransformer()
 
-    def transform(self, results: Dict[str, Any], model_name: str = "Model") -> Dict[str, Any]:
+    def transform(
+        self, results: Dict[str, Any], model_name: str = 'Model'
+    ) -> Dict[str, Any]:
         """
         Transform raw fairness results into report-ready format.
 

@@ -4,13 +4,14 @@ HTML adapter for reports (Phase 3 Sprint 14).
 Converts domain models to HTML using templates and ChartRegistry.
 """
 
-from typing import Dict, Any, List, Optional
 import logging
 from datetime import datetime
-from .base import ReportAdapter
-from ..domain.general import Report, ReportSection, Metric, ChartSpec
+from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("deepbridge.reports")
+from ..domain.general import ChartSpec, Metric, Report, ReportSection
+from .base import ReportAdapter
+
+logger = logging.getLogger('deepbridge.reports')
 
 
 class HTMLAdapter(ReportAdapter):
@@ -35,8 +36,8 @@ class HTMLAdapter(ReportAdapter):
         self,
         template_manager=None,
         asset_manager=None,
-        theme: str = "default",
-        cache_manager=None
+        theme: str = 'default',
+        cache_manager=None,
     ):
         """
         Initialize HTML adapter.
@@ -54,6 +55,7 @@ class HTMLAdapter(ReportAdapter):
 
         # Import ChartRegistry
         from ..charts import ChartRegistry
+
         self.chart_registry = ChartRegistry
 
     def render(self, report: Report) -> str:
@@ -100,14 +102,13 @@ class HTMLAdapter(ReportAdapter):
                 # Try cache first if available
                 if self.cache_manager:
                     cache_key = self.cache_manager.make_chart_key(
-                        chart_spec.type.value,
-                        chart_spec.data
+                        chart_spec.type.value, chart_spec.data
                     )
                     cached_result = self.cache_manager.get_chart(cache_key)
 
                     if cached_result is not None:
                         charts[chart_spec.id] = cached_result
-                        logger.info(f"Using cached chart: {chart_spec.id}")
+                        logger.info(f'Using cached chart: {chart_spec.id}')
                         continue
 
                 # Generate chart using ChartRegistry
@@ -115,27 +116,39 @@ class HTMLAdapter(ReportAdapter):
                     chart_spec.type.value,  # ChartType enum value
                     chart_spec.data,
                     title=chart_spec.title,
-                    **chart_spec.options
+                    **chart_spec.options,
                 )
 
                 if result.is_success:
                     charts[chart_spec.id] = result.content
-                    logger.info(f"Generated chart: {chart_spec.id}")
+                    logger.info(f'Generated chart: {chart_spec.id}')
 
                     # Cache the result if cache_manager available
                     if self.cache_manager:
-                        self.cache_manager.cache_chart(cache_key, result.content)
+                        self.cache_manager.cache_chart(
+                            cache_key, result.content
+                        )
                 else:
-                    logger.error(f"Failed to generate chart {chart_spec.id}: {result.error}")
-                    charts[chart_spec.id] = self._create_error_chart(chart_spec.title, result.error)
+                    logger.error(
+                        f'Failed to generate chart {chart_spec.id}: {result.error}'
+                    )
+                    charts[chart_spec.id] = self._create_error_chart(
+                        chart_spec.title, result.error
+                    )
 
             except Exception as e:
-                logger.error(f"Error generating chart {chart_spec.id}: {str(e)}")
-                charts[chart_spec.id] = self._create_error_chart(chart_spec.title, str(e))
+                logger.error(
+                    f'Error generating chart {chart_spec.id}: {str(e)}'
+                )
+                charts[chart_spec.id] = self._create_error_chart(
+                    chart_spec.title, str(e)
+                )
 
         return charts
 
-    def _create_context(self, report: Report, charts: Dict[str, str]) -> Dict[str, Any]:
+    def _create_context(
+        self, report: Report, charts: Dict[str, str]
+    ) -> Dict[str, Any]:
         """
         Create template context from report and charts.
 
@@ -152,15 +165,12 @@ class HTMLAdapter(ReportAdapter):
             'metadata': report.metadata,
             'sections': report.sections,
             'summary_metrics': report.summary_metrics,
-
             # Charts
             'charts': charts,
-
             # Metadata
             'title': report.display_title,
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'theme': self.theme,
-
             # Helper functions
             'format_metric': self._format_metric_html,
             'get_chart': lambda chart_id: charts.get(chart_id, ''),
@@ -189,14 +199,22 @@ class HTMLAdapter(ReportAdapter):
             try:
                 # Find appropriate template based on test type
                 test_type = report.metadata.test_type.value
-                template_paths = self.template_manager.get_template_paths(test_type, "static")
-                template_path = self.template_manager.find_template(template_paths)
+                template_paths = self.template_manager.get_template_paths(
+                    test_type, 'static'
+                )
+                template_path = self.template_manager.find_template(
+                    template_paths
+                )
 
                 if template_path:
-                    template = self.template_manager.load_template(template_path)
-                    return self.template_manager.render_template(template, context)
+                    template = self.template_manager.load_template(
+                        template_path
+                    )
+                    return self.template_manager.render_template(
+                        template, context
+                    )
             except Exception as e:
-                logger.warning(f"Could not use template manager: {e}")
+                logger.warning(f'Could not use template manager: {e}')
 
         # Fallback: Generate simple HTML
         return self._generate_simple_html(context)
@@ -214,79 +232,85 @@ class HTMLAdapter(ReportAdapter):
         report = context['report']
 
         html_parts = [
-            "<!DOCTYPE html>",
-            "<html>",
-            "<head>",
+            '<!DOCTYPE html>',
+            '<html>',
+            '<head>',
             f"<title>{context['title']}</title>",
-            "<style>",
+            '<style>',
             self._get_default_css(),
-            "</style>",
-            "</head>",
-            "<body>",
+            '</style>',
+            '</head>',
+            '<body>',
             f"<h1>{context['title']}</h1>",
-            f"<p>Model: {report.metadata.model_name}</p>",
-            f"<p>Test Type: {report.metadata.test_type.value}</p>",
+            f'<p>Model: {report.metadata.model_name}</p>',
+            f'<p>Test Type: {report.metadata.test_type.value}</p>',
             f"<p>Generated: {context['timestamp']}</p>",
         ]
 
         # Summary metrics
         if report.summary_metrics:
-            html_parts.append("<h2>Summary</h2>")
-            html_parts.append("<table>")
+            html_parts.append('<h2>Summary</h2>')
+            html_parts.append('<table>')
             for metric in report.summary_metrics:
                 html_parts.append(
-                    f"<tr><td>{metric.name}</td><td>{metric.formatted_value}</td></tr>"
+                    f'<tr><td>{metric.name}</td><td>{metric.formatted_value}</td></tr>'
                 )
-            html_parts.append("</table>")
+            html_parts.append('</table>')
 
         # Sections
         for section in report.sections:
-            html_parts.append(self._render_section_html(section, context['charts']))
+            html_parts.append(
+                self._render_section_html(section, context['charts'])
+            )
 
-        html_parts.extend(["</body>", "</html>"])
+        html_parts.extend(['</body>', '</html>'])
 
-        return "\n".join(html_parts)
+        return '\n'.join(html_parts)
 
-    def _render_section_html(self, section: ReportSection, charts: Dict[str, str]) -> str:
+    def _render_section_html(
+        self, section: ReportSection, charts: Dict[str, str]
+    ) -> str:
         """Render a section as HTML."""
         html_parts = [
             f"<div class='section' id='{section.id}'>",
-            f"<h2>{section.title}</h2>"
+            f'<h2>{section.title}</h2>',
         ]
 
         if section.description:
-            html_parts.append(f"<p>{section.description}</p>")
+            html_parts.append(f'<p>{section.description}</p>')
 
         # Metrics
         if section.metrics:
-            html_parts.append("<h3>Metrics</h3>")
-            html_parts.append("<table>")
+            html_parts.append('<h3>Metrics</h3>')
+            html_parts.append('<table>')
             for metric in section.metrics:
                 status_class = self._get_metric_status_class(metric)
                 html_parts.append(
                     f"<tr class='{status_class}'>"
-                    f"<td>{metric.name}</td>"
-                    f"<td>{metric.formatted_value}</td>"
-                    "</tr>"
+                    f'<td>{metric.name}</td>'
+                    f'<td>{metric.formatted_value}</td>'
+                    '</tr>'
                 )
-            html_parts.append("</table>")
+            html_parts.append('</table>')
 
         # Charts
         for chart_spec in section.charts:
             chart_content = charts.get(chart_spec.id, '')
             if chart_content:
                 html_parts.append(f"<div class='chart'>")
-                html_parts.append(f"<h3>{chart_spec.title}</h3>")
-                html_parts.append(f"<div id='{chart_spec.id}'>{chart_content}</div>")
-                html_parts.append("</div>")
+                html_parts.append(f'<h3>{chart_spec.title}</h3>')
+                html_parts.append(
+                    f"<div id='{chart_spec.id}'>{chart_content}</div>"
+                )
+                html_parts.append('</div>')
 
         # Subsections
         for subsection in section.subsections:
             html_parts.append(self._render_section_html(subsection, charts))
 
-        html_parts.append("</div>")
+        html_parts.append('</div>')
 
-        return "\n".join(html_parts)
+        return '\n'.join(html_parts)
 
     def _format_metric_html(self, metric: Metric) -> str:
         """Format metric as HTML."""
@@ -296,11 +320,11 @@ class HTMLAdapter(ReportAdapter):
     def _get_metric_status_class(self, metric: Metric) -> str:
         """Get CSS class based on metric status."""
         if metric.is_passing is True:
-            return "metric-pass"
+            return 'metric-pass'
         elif metric.is_passing is False:
-            return "metric-fail"
+            return 'metric-fail'
         else:
-            return "metric-neutral"
+            return 'metric-neutral'
 
     def _create_error_chart(self, title: str, error: str) -> str:
         """Create HTML for error chart."""
@@ -316,10 +340,10 @@ class HTMLAdapter(ReportAdapter):
             # This would use the actual asset manager methods
             return {
                 'css_content': '',  # asset_manager would provide this
-                'js_content': ''
+                'js_content': '',
             }
         except Exception as e:
-            logger.warning(f"Could not load assets: {e}")
+            logger.warning(f'Could not load assets: {e}')
             return {}
 
     def _get_default_css(self) -> str:

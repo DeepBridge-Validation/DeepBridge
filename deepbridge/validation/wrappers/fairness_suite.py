@@ -7,10 +7,11 @@ following industry standards and regulatory requirements (EEOC, ECOA, Fair Lendi
 Integrates seamlessly with the DeepBridge experiment framework.
 """
 
+import time
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Any, Union
-import time
 
 from deepbridge.validation.fairness.metrics import FairnessMetrics
 
@@ -52,52 +53,76 @@ class FairnessSuite:
             'include_pretrain': False,
             'include_threshold_analysis': False,
             'include_confusion_matrix': False,
-            'description': 'Quick fairness check with 2 core metrics'
+            'description': 'Quick fairness check with 2 core metrics',
         },
         'medium': {
             'metrics': [
-                'statistical_parity', 'equal_opportunity', 'disparate_impact',
-                'precision_difference', 'accuracy_difference'
+                'statistical_parity',
+                'equal_opportunity',
+                'disparate_impact',
+                'precision_difference',
+                'accuracy_difference',
             ],
             'include_pretrain': True,
             'include_threshold_analysis': False,
             'include_confusion_matrix': True,
-            'description': 'Standard fairness assessment with 5 post-training + 4 pre-training metrics'
+            'description': 'Standard fairness assessment with 5 post-training + 4 pre-training metrics',
         },
         'full': {
             'metrics': [
                 # All 11 post-training metrics
-                'statistical_parity', 'equal_opportunity', 'equalized_odds',
-                'disparate_impact', 'false_negative_rate_difference',
-                'conditional_acceptance', 'conditional_rejection',
-                'precision_difference', 'accuracy_difference',
-                'treatment_equality', 'entropy_index'
+                'statistical_parity',
+                'equal_opportunity',
+                'equalized_odds',
+                'disparate_impact',
+                'false_negative_rate_difference',
+                'conditional_acceptance',
+                'conditional_rejection',
+                'precision_difference',
+                'accuracy_difference',
+                'treatment_equality',
+                'entropy_index',
             ],
             'include_pretrain': True,
             'include_threshold_analysis': True,
             'include_confusion_matrix': True,
-            'description': 'Comprehensive fairness analysis with all 15 metrics + threshold analysis'
-        }
+            'description': 'Comprehensive fairness analysis with all 15 metrics + threshold analysis',
+        },
     }
 
     # Pre-training metrics (model-independent)
-    _PRETRAIN_METRICS = ['class_balance', 'concept_balance', 'kl_divergence', 'js_divergence']
+    _PRETRAIN_METRICS = [
+        'class_balance',
+        'concept_balance',
+        'kl_divergence',
+        'js_divergence',
+    ]
 
     # Post-training metrics (model-dependent)
     _POSTTRAIN_METRICS = [
-        'statistical_parity', 'equal_opportunity', 'equalized_odds', 'disparate_impact',
-        'false_negative_rate_difference', 'conditional_acceptance', 'conditional_rejection',
-        'precision_difference', 'accuracy_difference', 'treatment_equality', 'entropy_index'
+        'statistical_parity',
+        'equal_opportunity',
+        'equalized_odds',
+        'disparate_impact',
+        'false_negative_rate_difference',
+        'conditional_acceptance',
+        'conditional_rejection',
+        'precision_difference',
+        'accuracy_difference',
+        'treatment_equality',
+        'entropy_index',
     ]
 
-    def __init__(self,
-                 dataset,
-                 protected_attributes: List[str],
-                 privileged_groups: Optional[Dict[str, Any]] = None,
-                 verbose: bool = False,
-                 age_grouping: bool = True,
-                 age_grouping_strategy: str = 'median',
-                 age_threshold: Optional[float] = None):
+    def __init__(
+        self,
+        dataset,
+        protected_attributes: List[str],
+        privileged_groups: Optional[Dict[str, Any]] = None,
+        verbose: bool = False,
+        age_grouping: bool = True,
+        age_grouping_strategy: str = 'median',
+        age_threshold: Optional[float] = None,
+    ):
         """
         Initialize fairness testing suite.
 
@@ -146,24 +171,30 @@ class FairnessSuite:
         self.current_config_name = None
 
         # Store age grouping metadata
-        self.age_grouping_applied = {}  # Will store which attributes were age-grouped
+        self.age_grouping_applied = (
+            {}
+        )  # Will store which attributes were age-grouped
 
         # Validate that protected attributes exist in dataset
         X = self.dataset.get_feature_data()
-        missing_attrs = [attr for attr in protected_attributes if attr not in X.columns]
+        missing_attrs = [
+            attr for attr in protected_attributes if attr not in X.columns
+        ]
 
         if missing_attrs:
             raise ValueError(
-                f"Protected attributes not found in dataset: {missing_attrs}\n"
-                f"Available features: {list(X.columns)}"
+                f'Protected attributes not found in dataset: {missing_attrs}\n'
+                f'Available features: {list(X.columns)}'
             )
 
         if self.verbose:
-            print(f"FairnessSuite initialized")
-            print(f"  Protected attributes: {protected_attributes}")
-            print(f"  Dataset shape: {X.shape}")
+            print(f'FairnessSuite initialized')
+            print(f'  Protected attributes: {protected_attributes}')
+            print(f'  Dataset shape: {X.shape}')
             if self.age_grouping:
-                print(f"  Age grouping: Enabled (strategy: {age_grouping_strategy})")
+                print(
+                    f'  Age grouping: Enabled (strategy: {age_grouping_strategy})'
+                )
 
     def config(self, config_name: str = 'full') -> 'FairnessSuite':
         """
@@ -185,15 +216,15 @@ class FairnessSuite:
         """
         if config_name not in self._CONFIG_TEMPLATES:
             raise ValueError(
-                f"Unknown configuration: {config_name}. "
-                f"Available options: {list(self._CONFIG_TEMPLATES.keys())}"
+                f'Unknown configuration: {config_name}. '
+                f'Available options: {list(self._CONFIG_TEMPLATES.keys())}'
             )
 
         self.current_config = self._CONFIG_TEMPLATES[config_name].copy()
         self.current_config_name = config_name
 
         if self.verbose:
-            print(f"\nConfigured for {config_name} fairness testing")
+            print(f'\nConfigured for {config_name} fairness testing')
             print(f"  Description: {self.current_config['description']}")
             print(f"  Metrics: {self.current_config['metrics']}")
 
@@ -216,9 +247,16 @@ class FairnessSuite:
         """
         # Common age column name patterns (case-insensitive)
         age_patterns = [
-            'age', 'idade', 'edad', 'anni', 'ans',  # age in various languages
-            'vl_idd', 'vl_idade',  # common Brazilian patterns
-            'age_', '_age', '_idd_'  # suffixes/prefixes
+            'age',
+            'idade',
+            'edad',
+            'anni',
+            'ans',  # age in various languages
+            'vl_idd',
+            'vl_idade',  # common Brazilian patterns
+            'age_',
+            '_age',
+            '_idd_',  # suffixes/prefixes
         ]
 
         # Check if column name matches patterns
@@ -249,7 +287,7 @@ class FairnessSuite:
         self,
         age_data: pd.Series,
         strategy: str = 'median',
-        threshold: Optional[float] = None
+        threshold: Optional[float] = None,
     ) -> pd.Series:
         """
         Create age groups based on specified strategy.
@@ -279,56 +317,77 @@ class FairnessSuite:
             if threshold is None:
                 threshold = age_data.median()
 
-            age_groups[age_data >= threshold] = f"Grupo A (>= {threshold:.0f} anos)"
-            age_groups[age_data < threshold] = f"Grupo B (< {threshold:.0f} anos)"
+            age_groups[
+                age_data >= threshold
+            ] = f'Grupo A (>= {threshold:.0f} anos)'
+            age_groups[
+                age_data < threshold
+            ] = f'Grupo B (< {threshold:.0f} anos)'
 
             if self.verbose:
                 count_a = (age_data >= threshold).sum()
                 count_b = (age_data < threshold).sum()
                 pct_a = (count_a / len(age_data)) * 100
                 pct_b = (count_b / len(age_data)) * 100
-                print(f"    Median strategy (threshold={threshold:.0f}):")
-                print(f"      Grupo A (>= {threshold:.0f}): {count_a} ({pct_a:.1f}%)")
-                print(f"      Grupo B (< {threshold:.0f}): {count_b} ({pct_b:.1f}%)")
+                print(f'    Median strategy (threshold={threshold:.0f}):')
+                print(
+                    f'      Grupo A (>= {threshold:.0f}): {count_a} ({pct_a:.1f}%)'
+                )
+                print(
+                    f'      Grupo B (< {threshold:.0f}): {count_b} ({pct_b:.1f}%)'
+                )
 
         elif strategy == 'adea':
             # ADEA framework: <40, 40-49, 50-59, 60+
-            age_groups[age_data < 40] = "< 40 anos"
-            age_groups[(age_data >= 40) & (age_data < 50)] = "40-49 anos"
-            age_groups[(age_data >= 50) & (age_data < 60)] = "50-59 anos"
-            age_groups[age_data >= 60] = "60+ anos"
+            age_groups[age_data < 40] = '< 40 anos'
+            age_groups[(age_data >= 40) & (age_data < 50)] = '40-49 anos'
+            age_groups[(age_data >= 50) & (age_data < 60)] = '50-59 anos'
+            age_groups[age_data >= 60] = '60+ anos'
 
             if self.verbose:
-                print(f"    ADEA strategy (employment framework):")
-                for group in ["< 40 anos", "40-49 anos", "50-59 anos", "60+ anos"]:
+                print(f'    ADEA strategy (employment framework):')
+                for group in [
+                    '< 40 anos',
+                    '40-49 anos',
+                    '50-59 anos',
+                    '60+ anos',
+                ]:
                     count = (age_groups == group).sum()
                     pct = (count / len(age_data)) * 100
-                    print(f"      {group}: {count} ({pct:.1f}%)")
+                    print(f'      {group}: {count} ({pct:.1f}%)')
 
         elif strategy == 'ecoa':
             # ECOA framework: 18-29, 30-39, 40-49, 50-59, 60+
-            age_groups[age_data < 30] = "18-29 anos"
-            age_groups[(age_data >= 30) & (age_data < 40)] = "30-39 anos"
-            age_groups[(age_data >= 40) & (age_data < 50)] = "40-49 anos"
-            age_groups[(age_data >= 50) & (age_data < 60)] = "50-59 anos"
-            age_groups[age_data >= 60] = "60+ anos"
+            age_groups[age_data < 30] = '18-29 anos'
+            age_groups[(age_data >= 30) & (age_data < 40)] = '30-39 anos'
+            age_groups[(age_data >= 40) & (age_data < 50)] = '40-49 anos'
+            age_groups[(age_data >= 50) & (age_data < 60)] = '50-59 anos'
+            age_groups[age_data >= 60] = '60+ anos'
 
             if self.verbose:
-                print(f"    ECOA strategy (credit framework):")
-                for group in ["18-29 anos", "30-39 anos", "40-49 anos", "50-59 anos", "60+ anos"]:
+                print(f'    ECOA strategy (credit framework):')
+                for group in [
+                    '18-29 anos',
+                    '30-39 anos',
+                    '40-49 anos',
+                    '50-59 anos',
+                    '60+ anos',
+                ]:
                     count = (age_groups == group).sum()
                     pct = (count / len(age_data)) * 100
-                    print(f"      {group}: {count} ({pct:.1f}%)")
+                    print(f'      {group}: {count} ({pct:.1f}%)')
 
         else:
             raise ValueError(
-                f"Unknown age grouping strategy: {strategy}. "
+                f'Unknown age grouping strategy: {strategy}. '
                 f"Valid options: 'median', 'adea', 'ecoa'"
             )
 
         return age_groups
 
-    def _preprocess_protected_attributes(self, X: pd.DataFrame) -> pd.DataFrame:
+    def _preprocess_protected_attributes(
+        self, X: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Preprocess protected attributes, applying age grouping if enabled.
 
@@ -354,13 +413,13 @@ class FairnessSuite:
             # Check if this is an age column
             if self._is_age_column(attr, X_processed[attr]):
                 if self.verbose:
-                    print(f"\n  📅 Age variable detected: {attr}")
+                    print(f'\n  📅 Age variable detected: {attr}')
 
                 # Create age groups
                 age_groups = self._create_age_groups(
                     X_processed[attr],
                     strategy=self.age_grouping_strategy,
-                    threshold=self.age_threshold
+                    threshold=self.age_threshold,
                 )
 
                 # Replace original column with grouped version
@@ -372,9 +431,9 @@ class FairnessSuite:
                     'threshold': self.age_threshold,
                     'original_range': (
                         float(X[attr].min()),
-                        float(X[attr].max())
+                        float(X[attr].max()),
                     ),
-                    'groups': age_groups.unique().tolist()
+                    'groups': age_groups.unique().tolist(),
                 }
 
         return X_processed
@@ -383,7 +442,7 @@ class FairnessSuite:
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        sensitive_feature: np.ndarray
+        sensitive_feature: np.ndarray,
     ) -> Dict[str, Dict[str, int]]:
         """
         Calculate detailed confusion matrix for each group.
@@ -417,7 +476,11 @@ class FairnessSuite:
 
             if len(y_true_group) == 0:
                 cm_by_group[str(group)] = {
-                    'TP': 0, 'FP': 0, 'TN': 0, 'FN': 0, 'total': 0
+                    'TP': 0,
+                    'FP': 0,
+                    'TN': 0,
+                    'FN': 0,
+                    'total': 0,
                 }
                 continue
 
@@ -429,7 +492,7 @@ class FairnessSuite:
                 'FP': int(cm[0, 1]),  # False Positives
                 'FN': int(cm[1, 0]),  # False Negatives
                 'TP': int(cm[1, 1]),  # True Positives
-                'total': int(len(y_true_group))
+                'total': int(len(y_true_group)),
             }
 
         return cm_by_group
@@ -440,7 +503,7 @@ class FairnessSuite:
         y_pred_proba: np.ndarray,
         sensitive_feature: np.ndarray,
         thresholds: Optional[np.ndarray] = None,
-        optimize_for: str = 'fairness'
+        optimize_for: str = 'fairness',
     ) -> Dict[str, Any]:
         """
         Analyze how fairness metrics vary with different classification thresholds.
@@ -480,8 +543,12 @@ class FairnessSuite:
             y_pred = (y_pred_proba >= threshold).astype(int)
 
             # Calculate key fairness metrics
-            sp = self.metrics_calculator.statistical_parity(y_pred, sensitive_feature)
-            di = self.metrics_calculator.disparate_impact(y_pred, sensitive_feature)
+            sp = self.metrics_calculator.statistical_parity(
+                y_pred, sensitive_feature
+            )
+            di = self.metrics_calculator.disparate_impact(
+                y_pred, sensitive_feature
+            )
 
             # Calculate performance metric (F1)
             try:
@@ -490,30 +557,39 @@ class FairnessSuite:
                 f1 = 0.0
 
             # Store results
-            results.append({
-                'threshold': float(threshold),
-                'statistical_parity_ratio': sp['ratio'],
-                'disparate_impact_ratio': di['ratio'],
-                'f1_score': float(f1),
-                'passes_80_rule': di['passes_threshold']
-            })
+            results.append(
+                {
+                    'threshold': float(threshold),
+                    'statistical_parity_ratio': sp['ratio'],
+                    'disparate_impact_ratio': di['ratio'],
+                    'f1_score': float(f1),
+                    'passes_80_rule': di['passes_threshold'],
+                }
+            )
 
         # Convert to DataFrame for easier analysis
         import pandas as pd
+
         df_results = pd.DataFrame(results)
 
         # Find optimal threshold based on criterion
         if optimize_for == 'fairness':
             # Maximize disparate impact ratio (closest to 1.0)
-            df_results['fairness_score'] = 1 - np.abs(df_results['disparate_impact_ratio'] - 1.0)
+            df_results['fairness_score'] = 1 - np.abs(
+                df_results['disparate_impact_ratio'] - 1.0
+            )
             optimal_idx = df_results['fairness_score'].idxmax()
         elif optimize_for == 'f1':
             # Maximize F1 score
             optimal_idx = df_results['f1_score'].idxmax()
         else:  # balanced
             # Balanced: maximize product of F1 and fairness
-            df_results['fairness_score'] = 1 - np.abs(df_results['disparate_impact_ratio'] - 1.0)
-            df_results['balanced_score'] = df_results['f1_score'] * df_results['fairness_score']
+            df_results['fairness_score'] = 1 - np.abs(
+                df_results['disparate_impact_ratio'] - 1.0
+            )
+            df_results['balanced_score'] = (
+                df_results['f1_score'] * df_results['fairness_score']
+            )
             optimal_idx = df_results['balanced_score'].idxmax()
 
         optimal_threshold = df_results.loc[optimal_idx, 'threshold']
@@ -525,20 +601,20 @@ class FairnessSuite:
 
         if optimal_threshold != 0.5:
             recommendations.append(
-                f"Considere alterar threshold de 0.5 para {optimal_threshold:.3f} "
-                f"para melhor {optimize_for}"
+                f'Considere alterar threshold de 0.5 para {optimal_threshold:.3f} '
+                f'para melhor {optimize_for}'
             )
 
         if current_default['disparate_impact_ratio'] < 0.8:
             recommendations.append(
-                "⚠️ Default threshold (0.5) violates EEOC 80% rule - "
-                "adjustment required"
+                '⚠️ Default threshold (0.5) violates EEOC 80% rule - '
+                'adjustment required'
             )
 
         if optimal_metrics['disparate_impact_ratio'] < 0.8:
             recommendations.append(
                 "🚨 CRITICAL: Even with optimal threshold, model doesn't achieve compliance - "
-                "consider retraining the model"
+                'consider retraining the model'
             )
 
         return {
@@ -546,7 +622,7 @@ class FairnessSuite:
             'optimal_metrics': optimal_metrics,
             'threshold_curve': df_results.to_dict('records'),
             'recommendations': recommendations,
-            'default_threshold_metrics': current_default.to_dict()
+            'default_threshold_metrics': current_default.to_dict(),
         }
 
     def _calculate_metric(
@@ -554,7 +630,7 @@ class FairnessSuite:
         metric_name: str,
         y_true: Optional[np.ndarray],
         y_pred: Optional[np.ndarray],
-        sensitive_feature: np.ndarray
+        sensitive_feature: np.ndarray,
     ) -> Dict[str, Any]:
         """
         Helper to calculate any fairness metric dynamically.
@@ -576,41 +652,71 @@ class FairnessSuite:
         """
         # Pre-training metrics (don't need predictions)
         if metric_name == 'class_balance':
-            return self.metrics_calculator.class_balance(y_true, sensitive_feature)
+            return self.metrics_calculator.class_balance(
+                y_true, sensitive_feature
+            )
         elif metric_name == 'concept_balance':
-            return self.metrics_calculator.concept_balance(y_true, sensitive_feature)
+            return self.metrics_calculator.concept_balance(
+                y_true, sensitive_feature
+            )
         elif metric_name == 'kl_divergence':
-            return self.metrics_calculator.kl_divergence(y_true, sensitive_feature)
+            return self.metrics_calculator.kl_divergence(
+                y_true, sensitive_feature
+            )
         elif metric_name == 'js_divergence':
-            return self.metrics_calculator.js_divergence(y_true, sensitive_feature)
+            return self.metrics_calculator.js_divergence(
+                y_true, sensitive_feature
+            )
 
         # Post-training metrics (need predictions)
         elif metric_name == 'statistical_parity':
-            return self.metrics_calculator.statistical_parity(y_pred, sensitive_feature)
+            return self.metrics_calculator.statistical_parity(
+                y_pred, sensitive_feature
+            )
         elif metric_name == 'equal_opportunity':
-            return self.metrics_calculator.equal_opportunity(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.equal_opportunity(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'equalized_odds':
-            return self.metrics_calculator.equalized_odds(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.equalized_odds(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'disparate_impact':
-            return self.metrics_calculator.disparate_impact(y_pred, sensitive_feature)
+            return self.metrics_calculator.disparate_impact(
+                y_pred, sensitive_feature
+            )
         elif metric_name == 'false_negative_rate_difference':
-            return self.metrics_calculator.false_negative_rate_difference(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.false_negative_rate_difference(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'conditional_acceptance':
-            return self.metrics_calculator.conditional_acceptance(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.conditional_acceptance(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'conditional_rejection':
-            return self.metrics_calculator.conditional_rejection(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.conditional_rejection(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'precision_difference':
-            return self.metrics_calculator.precision_difference(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.precision_difference(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'accuracy_difference':
-            return self.metrics_calculator.accuracy_difference(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.accuracy_difference(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'treatment_equality':
-            return self.metrics_calculator.treatment_equality(y_true, y_pred, sensitive_feature)
+            return self.metrics_calculator.treatment_equality(
+                y_true, y_pred, sensitive_feature
+            )
         elif metric_name == 'entropy_index':
             return self.metrics_calculator.entropy_index(y_true, y_pred)
         else:
-            raise ValueError(f"Unknown metric: {metric_name}")
+            raise ValueError(f'Unknown metric: {metric_name}')
 
-    def _collect_dataset_info(self, X: pd.DataFrame, y_true: np.ndarray) -> Dict[str, Any]:
+    def _collect_dataset_info(
+        self, X: pd.DataFrame, y_true: np.ndarray
+    ) -> Dict[str, Any]:
         """
         Collect comprehensive dataset information for reporting.
 
@@ -631,7 +737,7 @@ class FairnessSuite:
         info = {
             'total_samples': len(X),
             'target_distribution': {},
-            'protected_attributes_distribution': {}
+            'protected_attributes_distribution': {},
         }
 
         # Target distribution
@@ -641,7 +747,7 @@ class FairnessSuite:
         for value, count in target_counts.items():
             info['target_distribution'][str(value)] = {
                 'count': int(count),
-                'percentage': float(count / total * 100)
+                'percentage': float(count / total * 100),
             }
 
         # Protected attributes distribution
@@ -649,13 +755,13 @@ class FairnessSuite:
             attr_counts = X[attr].value_counts()
             attr_info = {
                 'unique_values': int(X[attr].nunique()),
-                'distribution': {}
+                'distribution': {},
             }
 
             for value, count in attr_counts.items():
                 attr_info['distribution'][str(value)] = {
                     'count': int(count),
-                    'percentage': float(count / total * 100)
+                    'percentage': float(count / total * 100),
                 }
 
             info['protected_attributes_distribution'][attr] = attr_info
@@ -698,7 +804,9 @@ class FairnessSuite:
 
         if self.verbose:
             print(f"\n{'='*70}")
-            print(f"RUNNING FAIRNESS TESTS - {self.current_config_name.upper()}")
+            print(
+                f'RUNNING FAIRNESS TESTS - {self.current_config_name.upper()}'
+            )
             print(f"{'='*70}")
 
         # Get data
@@ -709,17 +817,23 @@ class FairnessSuite:
 
         # Preprocess protected attributes (apply age grouping if enabled)
         if self.verbose and self.age_grouping:
-            print(f"\n🔧 PREPROCESSING PROTECTED ATTRIBUTES")
+            print(f'\n🔧 PREPROCESSING PROTECTED ATTRIBUTES')
         X = self._preprocess_protected_attributes(X)
 
         # Get predictions for post-training metrics
-        needs_predictions = any(m in self._POSTTRAIN_METRICS for m in self.current_config['metrics'])
+        needs_predictions = any(
+            m in self._POSTTRAIN_METRICS
+            for m in self.current_config['metrics']
+        )
 
         if needs_predictions:
             # Try to use existing predictions first
-            if hasattr(self.dataset, 'train_predictions') and self.dataset.train_predictions is not None:
+            if (
+                hasattr(self.dataset, 'train_predictions')
+                and self.dataset.train_predictions is not None
+            ):
                 if self.verbose:
-                    print("Using existing predictions from dataset...")
+                    print('Using existing predictions from dataset...')
                 # Use pre-computed predictions
                 train_preds = self.dataset.train_predictions
 
@@ -731,7 +845,10 @@ class FairnessSuite:
                     if 'y_proba' in train_preds:
                         y_pred_proba = train_preds['y_proba']
                         # If y_proba is 2D, take second column (class 1)
-                        if len(y_pred_proba.shape) == 2 and y_pred_proba.shape[1] > 1:
+                        if (
+                            len(y_pred_proba.shape) == 2
+                            and y_pred_proba.shape[1] > 1
+                        ):
                             y_pred_proba = y_pred_proba[:, 1]
                 elif hasattr(train_preds, 'columns'):
                     # DataFrame format
@@ -743,9 +860,12 @@ class FairnessSuite:
                         elif 'probability' in train_preds.columns:
                             y_pred_proba = train_preds['probability'].values
             # If no pre-computed predictions, generate them
-            elif hasattr(self.dataset, 'model') and self.dataset.model is not None:
+            elif (
+                hasattr(self.dataset, 'model')
+                and self.dataset.model is not None
+            ):
                 if self.verbose:
-                    print("Generating predictions from model...")
+                    print('Generating predictions from model...')
 
                 # Get only the columns the model was trained on
                 # Exclude protected attributes if they weren't used in training
@@ -755,27 +875,40 @@ class FairnessSuite:
                 if hasattr(self.dataset.model, 'feature_names_in_'):
                     model_features = self.dataset.model.feature_names_in_
                     # Keep only columns that the model was trained on
-                    available_features = [f for f in model_features if f in X.columns]
+                    available_features = [
+                        f for f in model_features if f in X.columns
+                    ]
                     X_for_prediction = X[available_features]
-                    if self.verbose and len(available_features) < len(X.columns):
+                    if self.verbose and len(available_features) < len(
+                        X.columns
+                    ):
                         excluded = set(X.columns) - set(available_features)
-                        print(f"  Excluding {len(excluded)} features from prediction: {excluded}")
+                        print(
+                            f'  Excluding {len(excluded)} features from prediction: {excluded}'
+                        )
 
                 y_pred = self.dataset.model.predict(X_for_prediction)
 
                 # Try to get probabilities for threshold analysis
                 if hasattr(self.dataset.model, 'predict_proba'):
-                    y_pred_proba = self.dataset.model.predict_proba(X_for_prediction)[:, 1]
+                    y_pred_proba = self.dataset.model.predict_proba(
+                        X_for_prediction
+                    )[:, 1]
                 elif hasattr(self.dataset.model, 'decision_function'):
                     # For models with decision_function (like SVM)
                     from sklearn.preprocessing import MinMaxScaler
-                    decision = self.dataset.model.decision_function(X_for_prediction)
+
+                    decision = self.dataset.model.decision_function(
+                        X_for_prediction
+                    )
                     scaler = MinMaxScaler()
-                    y_pred_proba = scaler.fit_transform(decision.reshape(-1, 1)).flatten()
+                    y_pred_proba = scaler.fit_transform(
+                        decision.reshape(-1, 1)
+                    ).flatten()
             else:
                 raise ValueError(
-                    "No model found in dataset. Cannot compute predictions.\n"
-                    "Provide a trained model when creating DBDataset."
+                    'No model found in dataset. Cannot compute predictions.\n'
+                    'Provide a trained model when creating DBDataset.'
                 )
 
         # Collect dataset information for reporting
@@ -796,55 +929,65 @@ class FairnessSuite:
             'config': {
                 'name': self.current_config_name,
                 'metrics_tested': self.current_config['metrics'],
-                'include_pretrain': self.current_config.get('include_pretrain', False),
-                'include_confusion_matrix': self.current_config.get('include_confusion_matrix', False),
-                'include_threshold_analysis': self.current_config.get('include_threshold_analysis', False),
+                'include_pretrain': self.current_config.get(
+                    'include_pretrain', False
+                ),
+                'include_confusion_matrix': self.current_config.get(
+                    'include_confusion_matrix', False
+                ),
+                'include_threshold_analysis': self.current_config.get(
+                    'include_threshold_analysis', False
+                ),
                 'age_grouping': self.age_grouping,
-                'age_grouping_strategy': self.age_grouping_strategy if self.age_grouping else None
-            }
+                'age_grouping_strategy': self.age_grouping_strategy
+                if self.age_grouping
+                else None,
+            },
         }
 
         # 1. PRE-TRAINING METRICS (if enabled)
         if self.current_config.get('include_pretrain', False):
             if self.verbose:
-                print(f"\n📋 PRE-TRAINING ANALYSIS (Model-Independent)")
+                print(f'\n📋 PRE-TRAINING ANALYSIS (Model-Independent)')
 
             for attr in self.protected_attributes:
                 if self.verbose:
-                    print(f"\n  Analyzing: {attr}")
+                    print(f'\n  Analyzing: {attr}')
 
                 sensitive_feature = X[attr].values
                 attr_pretrain = {}
 
                 for metric_name in self._PRETRAIN_METRICS:
                     if self.verbose:
-                        print(f"    ✓ {metric_name}")
+                        print(f'    ✓ {metric_name}')
 
-                    result = self._calculate_metric(metric_name, y_true, None, sensitive_feature)
+                    result = self._calculate_metric(
+                        metric_name, y_true, None, sensitive_feature
+                    )
                     attr_pretrain[metric_name] = result
 
                     # Check interpretation for warnings
                     interp = result.get('interpretation', '')
                     if '✗ Red' in interp or 'CRITICAL' in interp.upper():
-                        critical = f"{attr} [{metric_name}]: {interp}"
+                        critical = f'{attr} [{metric_name}]: {interp}'
                         results['critical_issues'].append(critical)
                         if self.verbose:
-                            print(f"        🚨 {interp}")
+                            print(f'        🚨 {interp}')
                     elif '⚠ Yellow' in interp or 'MODERATE' in interp.upper():
-                        warning = f"{attr} [{metric_name}]: {interp}"
+                        warning = f'{attr} [{metric_name}]: {interp}'
                         results['warnings'].append(warning)
                         if self.verbose:
-                            print(f"        ⚠️  {interp}")
+                            print(f'        ⚠️  {interp}')
 
                 results['pretrain_metrics'][attr] = attr_pretrain
 
         # 2. POST-TRAINING METRICS
         if self.verbose:
-            print(f"\n📊 POST-TRAINING ANALYSIS (Model-Dependent)")
+            print(f'\n📊 POST-TRAINING ANALYSIS (Model-Dependent)')
 
         for attr in self.protected_attributes:
             if self.verbose:
-                print(f"\n  Testing fairness for: {attr}")
+                print(f'\n  Testing fairness for: {attr}')
 
             sensitive_feature = X[attr].values
             attr_posttrain = {}
@@ -855,29 +998,31 @@ class FairnessSuite:
                     continue  # Skip if not a post-training metric
 
                 if self.verbose:
-                    print(f"    ✓ {metric_name}")
+                    print(f'    ✓ {metric_name}')
 
-                result = self._calculate_metric(metric_name, y_true, y_pred, sensitive_feature)
+                result = self._calculate_metric(
+                    metric_name, y_true, y_pred, sensitive_feature
+                )
                 attr_posttrain[metric_name] = result
 
                 # Check interpretation for warnings
                 interp = result.get('interpretation', '')
                 if '✗ Red' in interp or 'CRITICAL' in interp.upper():
-                    critical = f"{attr} [{metric_name}]: {interp}"
+                    critical = f'{attr} [{metric_name}]: {interp}'
                     results['critical_issues'].append(critical)
                     if self.verbose:
-                        print(f"        🚨 {interp}")
+                        print(f'        🚨 {interp}')
                 elif '⚠ Yellow' in interp or 'MODERATE' in interp.upper():
-                    warning = f"{attr} [{metric_name}]: {interp}"
+                    warning = f'{attr} [{metric_name}]: {interp}'
                     results['warnings'].append(warning)
                     if self.verbose:
-                        print(f"        ⚠️  {interp}")
+                        print(f'        ⚠️  {interp}')
 
                 # Additional checks for specific metrics
                 if metric_name == 'disparate_impact':
                     if not result.get('passes_threshold', True):
                         critical = (
-                            f"{attr}: Disparate Impact CRITICAL "
+                            f'{attr}: Disparate Impact CRITICAL '
                             f"(ratio={result['ratio']:.3f} < 0.8) - LEGAL RISK"
                         )
                         if critical not in results['critical_issues']:
@@ -886,47 +1031,61 @@ class FairnessSuite:
             results['posttrain_metrics'][attr] = attr_posttrain
 
         # 3. CONFUSION MATRIX ANALYSIS (if enabled)
-        if self.current_config.get('include_confusion_matrix', False) and y_pred is not None:
+        if (
+            self.current_config.get('include_confusion_matrix', False)
+            and y_pred is not None
+        ):
             if self.verbose:
-                print(f"\n🔢 CONFUSION MATRIX ANALYSIS")
+                print(f'\n🔢 CONFUSION MATRIX ANALYSIS')
 
             for attr in self.protected_attributes:
                 sensitive_feature = X[attr].values
-                cm = self._calculate_confusion_matrix_by_group(y_true, y_pred, sensitive_feature)
+                cm = self._calculate_confusion_matrix_by_group(
+                    y_true, y_pred, sensitive_feature
+                )
                 results['confusion_matrix'][attr] = cm
 
                 if self.verbose:
-                    print(f"\n  {attr}:")
+                    print(f'\n  {attr}:')
                     for group, matrix in cm.items():
-                        print(f"    {group}: TP={matrix['TP']}, FP={matrix['FP']}, "
-                              f"TN={matrix['TN']}, FN={matrix['FN']} (total={matrix['total']})")
+                        print(
+                            f"    {group}: TP={matrix['TP']}, FP={matrix['FP']}, "
+                            f"TN={matrix['TN']}, FN={matrix['FN']} (total={matrix['total']})"
+                        )
 
         # 4. THRESHOLD ANALYSIS (if enabled)
-        if (self.current_config.get('include_threshold_analysis', False) and
-            y_pred_proba is not None and len(self.protected_attributes) > 0):
+        if (
+            self.current_config.get('include_threshold_analysis', False)
+            and y_pred_proba is not None
+            and len(self.protected_attributes) > 0
+        ):
 
             if self.verbose:
-                print(f"\n📈 THRESHOLD ANALYSIS")
+                print(f'\n📈 THRESHOLD ANALYSIS')
 
             # Use first protected attribute for threshold analysis
             attr = self.protected_attributes[0]
             sensitive_feature = X[attr].values
 
             threshold_results = self.run_threshold_analysis(
-                y_true, y_pred_proba, sensitive_feature, optimize_for='balanced'
+                y_true,
+                y_pred_proba,
+                sensitive_feature,
+                optimize_for='balanced',
             )
             results['threshold_analysis'] = threshold_results
 
             if self.verbose:
-                print(f"  Optimal threshold: {threshold_results['optimal_threshold']:.3f}")
-                print(f"  Recommendations:")
+                print(
+                    f"  Optimal threshold: {threshold_results['optimal_threshold']:.3f}"
+                )
+                print(f'  Recommendations:')
                 for rec in threshold_results['recommendations']:
-                    print(f"    • {rec}")
+                    print(f'    • {rec}')
 
         # 5. CALCULATE OVERALL FAIRNESS SCORE
         results['overall_fairness_score'] = self._calculate_fairness_score_v2(
-            results['pretrain_metrics'],
-            results['posttrain_metrics']
+            results['pretrain_metrics'], results['posttrain_metrics']
         )
 
         # 6. GENERATE SUMMARY
@@ -934,14 +1093,19 @@ class FairnessSuite:
             'total_attributes_tested': len(self.protected_attributes),
             'pretrain_metrics_count': len(results['pretrain_metrics']),
             'posttrain_metrics_count': len(results['posttrain_metrics']),
-            'attributes_with_warnings': len(set(
-                w.split(':')[0].split('[')[0].strip() for w in results['warnings']
-            )) if results['warnings'] else 0,
+            'attributes_with_warnings': len(
+                set(
+                    w.split(':')[0].split('[')[0].strip()
+                    for w in results['warnings']
+                )
+            )
+            if results['warnings']
+            else 0,
             'critical_issues_found': len(results['critical_issues']),
             'overall_assessment': self._assess_fairness(
                 results['overall_fairness_score']
             ),
-            'execution_time': time.time() - start_time
+            'execution_time': time.time() - start_time,
         }
 
         # Print final summary
@@ -952,15 +1116,16 @@ class FairnessSuite:
         # This enables automatic HTML report generation via .save_html()
         from deepbridge.core.experiment.results import FairnessResult
 
-        return FairnessResult(results=results, metadata={
-            'test_type': 'fairness',
-            'execution_time': results['summary']['execution_time']
-        })
+        return FairnessResult(
+            results=results,
+            metadata={
+                'test_type': 'fairness',
+                'execution_time': results['summary']['execution_time'],
+            },
+        )
 
     def _calculate_fairness_score_v2(
-        self,
-        pretrain_metrics: Dict,
-        posttrain_metrics: Dict
+        self, pretrain_metrics: Dict, posttrain_metrics: Dict
     ) -> float:
         """
         Calculate overall fairness score (0-1, higher is better) considering all metrics.
@@ -1010,16 +1175,20 @@ class FairnessSuite:
 
             # Equalized Odds (weight: 0.15)
             if 'equalized_odds' in attr_metrics:
-                eq_disparity = attr_metrics['equalized_odds']['combined_disparity']
+                eq_disparity = attr_metrics['equalized_odds'][
+                    'combined_disparity'
+                ]
                 eq_score = max(0, 1 - eq_disparity)
                 scores.append(eq_score)
                 weights.append(0.15)
 
             # Other post-training metrics (weight: 0.02 each, up to 0.10 total)
             other_metrics = [
-                'false_negative_rate_difference', 'conditional_acceptance',
-                'conditional_rejection', 'precision_difference',
-                'accuracy_difference'
+                'false_negative_rate_difference',
+                'conditional_acceptance',
+                'conditional_rejection',
+                'precision_difference',
+                'accuracy_difference',
             ]
             for metric_name in other_metrics:
                 if metric_name in attr_metrics:
@@ -1042,7 +1211,9 @@ class FairnessSuite:
                         score = max(0, 1 - value)
                     elif metric_name == 'concept_balance':
                         value = abs(result.get('value', 0))
-                        score = max(0, 1 - (value / 0.5))  # Normalize to 0.5 max disparity
+                        score = max(
+                            0, 1 - (value / 0.5)
+                        )  # Normalize to 0.5 max disparity
                     elif metric_name in ['kl_divergence', 'js_divergence']:
                         value = result.get('value', 0)
                         score = max(0, 1 - value)  # KL/JS should be close to 0
@@ -1070,47 +1241,64 @@ class FairnessSuite:
     def _assess_fairness(self, score: float) -> str:
         """Assess fairness level based on score"""
         if score >= 0.95:
-            return "EXCELLENT - Highly fair and compliant model"
+            return 'EXCELLENT - Highly fair and compliant model'
         elif score >= 0.85:
-            return "GOOD - Adequate fairness for production"
+            return 'GOOD - Adequate fairness for production'
         elif score >= 0.70:
-            return "MODERATE - Requires attention and possible remediation"
+            return 'MODERATE - Requires attention and possible remediation'
         else:
-            return "CRITICAL - Intervention required before deployment"
+            return 'CRITICAL - Intervention required before deployment'
 
     def _print_summary(self, results: Dict):
         """Print formatted summary of results"""
         print(f"\n{'='*70}")
-        print(f"FAIRNESS ASSESSMENT SUMMARY")
+        print(f'FAIRNESS ASSESSMENT SUMMARY')
         print(f"{'='*70}")
-        print(f"Overall Fairness Score: {results['overall_fairness_score']:.3f} / 1.000")
+        print(
+            f"Overall Fairness Score: {results['overall_fairness_score']:.3f} / 1.000"
+        )
         print(f"Assessment: {results['summary']['overall_assessment']}")
         print(f"\nConfiguration: {results['config']['name']}")
-        print(f"Attributes Tested: {results['summary']['total_attributes_tested']}")
+        print(
+            f"Attributes Tested: {results['summary']['total_attributes_tested']}"
+        )
 
         # Show metrics breakdown
         if results['pretrain_metrics']:
-            print(f"Pre-training Metrics: {len(self._PRETRAIN_METRICS)} metrics × "
-                  f"{results['summary']['pretrain_metrics_count']} attributes")
+            print(
+                f'Pre-training Metrics: {len(self._PRETRAIN_METRICS)} metrics × '
+                f"{results['summary']['pretrain_metrics_count']} attributes"
+            )
         if results['posttrain_metrics']:
             total_posttrain = sum(
-                len(metrics) for metrics in results['posttrain_metrics'].values()
+                len(metrics)
+                for metrics in results['posttrain_metrics'].values()
             )
-            print(f"Post-training Metrics: {total_posttrain} total calculations")
+            print(
+                f'Post-training Metrics: {total_posttrain} total calculations'
+            )
 
         # Show confusion matrix info
         if results['confusion_matrix']:
-            print(f"Confusion Matrix: ✓ Generated for {len(results['confusion_matrix'])} attributes")
+            print(
+                f"Confusion Matrix: ✓ Generated for {len(results['confusion_matrix'])} attributes"
+            )
 
         # Show threshold analysis info
         if results['threshold_analysis']:
             ta = results['threshold_analysis']
-            print(f"Threshold Analysis: ✓ Optimal = {ta['optimal_threshold']:.3f}")
+            print(
+                f"Threshold Analysis: ✓ Optimal = {ta['optimal_threshold']:.3f}"
+            )
 
-        print(f"\nIssues Found:")
-        print(f"  Critical Issues: {results['summary']['critical_issues_found']}")
+        print(f'\nIssues Found:')
+        print(
+            f"  Critical Issues: {results['summary']['critical_issues_found']}"
+        )
         print(f"  Warnings: {len(results['warnings'])}")
-        print(f"  Attributes with Issues: {results['summary']['attributes_with_warnings']}")
+        print(
+            f"  Attributes with Issues: {results['summary']['attributes_with_warnings']}"
+        )
 
         print(f"\nExecution Time: {results['summary']['execution_time']:.2f}s")
 
@@ -1118,23 +1306,27 @@ class FairnessSuite:
         if results['critical_issues']:
             print(f"\n🚨 CRITICAL ISSUES ({len(results['critical_issues'])}):")
             for issue in results['critical_issues'][:10]:  # Show first 10
-                print(f"   • {issue}")
+                print(f'   • {issue}')
             if len(results['critical_issues']) > 10:
-                print(f"   ... and {len(results['critical_issues']) - 10} more")
+                print(
+                    f"   ... and {len(results['critical_issues']) - 10} more"
+                )
 
         # Print warnings
         if results['warnings']:
             print(f"\n⚠️  WARNINGS ({len(results['warnings'])}):")
             for warning in results['warnings'][:5]:  # Show first 5
-                print(f"   • {warning}")
+                print(f'   • {warning}')
             if len(results['warnings']) > 5:
                 print(f"   ... and {len(results['warnings']) - 5} more")
 
         # Print threshold recommendations
-        if results.get('threshold_analysis') and results['threshold_analysis'].get('recommendations'):
-            print(f"\n💡 THRESHOLD RECOMMENDATIONS:")
+        if results.get('threshold_analysis') and results[
+            'threshold_analysis'
+        ].get('recommendations'):
+            print(f'\n💡 THRESHOLD RECOMMENDATIONS:')
             for rec in results['threshold_analysis']['recommendations']:
-                print(f"   • {rec}")
+                print(f'   • {rec}')
 
         print(f"{'='*70}\n")
 

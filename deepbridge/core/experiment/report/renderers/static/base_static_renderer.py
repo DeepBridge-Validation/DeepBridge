@@ -4,29 +4,30 @@ Base renderer for generating static HTML reports using Seaborn.
 **Phase 3 Sprint 9:** Enhanced with flexible template method pattern for custom charts.
 """
 
-import os
 import base64
-import tempfile
-import logging
 import datetime
 import io
-from typing import Dict, Any, Optional, List, Callable
+import logging
+import os
+import tempfile
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 # Configure logger
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
+
+# Import CSS Manager
+from ...css_manager import CSSManager
 
 # Import JSON formatter
 from ...utils.json_formatter import JsonFormatter
 
-# Import CSS Manager
-from ...css_manager import CSSManager
 
 class BaseStaticRenderer:
     """
     Base class for static report renderers that use Seaborn for visualizations.
     """
-    
+
     def __init__(self, template_manager, asset_manager):
         """
         Initialize the renderer.
@@ -46,26 +47,37 @@ class BaseStaticRenderer:
 
         # Import data transformer base
         from ...base import DataTransformer
+
         self.data_transformer = DataTransformer()
 
         # Try to import required libraries
         try:
-            import seaborn as sns
             import matplotlib.pyplot as plt
-            import pandas as pd
             import numpy as np
+            import pandas as pd
+            import seaborn as sns
+
             self.sns = sns
             self.plt = plt
             self.pd = pd
             self.np = np
             self.has_visualization_libs = True
             # Set default style
-            sns.set_theme(style="whitegrid")
+            sns.set_theme(style='whitegrid')
         except ImportError as e:
-            logger.error(f"Required libraries for static visualization not available: {str(e)}")
+            logger.error(
+                f'Required libraries for static visualization not available: {str(e)}'
+            )
             self.has_visualization_libs = False
-    
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model", report_type: str = "static", save_chart: bool = False) -> str:
+
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'static',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render static report from results data.
 
@@ -90,9 +102,11 @@ class BaseStaticRenderer:
         -------
         NotImplementedError: Subclasses must implement this method
         """
-        raise NotImplementedError("Subclasses must implement render method")
+        raise NotImplementedError('Subclasses must implement render method')
 
-    def save_charts_as_png(self, charts: Dict[str, str], file_path: str) -> None:
+    def save_charts_as_png(
+        self, charts: Dict[str, str], file_path: str
+    ) -> None:
         """
         Save charts as PNG files in the same directory as the HTML report.
 
@@ -103,8 +117,8 @@ class BaseStaticRenderer:
         file_path : str
             Path to the HTML report file
         """
-        import os
         import base64
+        import os
 
         # Get the directory of the HTML report
         output_dir = os.path.dirname(os.path.abspath(file_path))
@@ -113,41 +127,57 @@ class BaseStaticRenderer:
         file_basename = os.path.splitext(os.path.basename(file_path))[0]
 
         # Create the charts directory if it doesn't exist
-        charts_dir = os.path.join(output_dir, f"{file_basename}_charts")
+        charts_dir = os.path.join(output_dir, f'{file_basename}_charts')
         os.makedirs(charts_dir, exist_ok=True)
 
-        logger.info(f"Saving charts to directory: {charts_dir}")
+        logger.info(f'Saving charts to directory: {charts_dir}')
 
         # Save each chart as a PNG file
         for chart_name, chart_data in charts.items():
             try:
                 # Extract the base64 encoded image data
-                if chart_data and isinstance(chart_data, str) and chart_data.startswith('data:image/png;base64,'):
+                if (
+                    chart_data
+                    and isinstance(chart_data, str)
+                    and chart_data.startswith('data:image/png;base64,')
+                ):
                     # Remove the data URL prefix
-                    base64_data = chart_data.replace('data:image/png;base64,', '')
+                    base64_data = chart_data.replace(
+                        'data:image/png;base64,', ''
+                    )
 
                     # Decode the base64 data
                     image_data = base64.b64decode(base64_data)
 
                     # Generate a filename for the chart
-                    chart_filename = f"{chart_name}.png"
+                    chart_filename = f'{chart_name}.png'
                     chart_path = os.path.join(charts_dir, chart_filename)
 
                     # Save the image data to a file
                     with open(chart_path, 'wb') as f:
                         f.write(image_data)
 
-                    logger.info(f"Saved chart to: {chart_path}")
+                    logger.info(f'Saved chart to: {chart_path}')
                 else:
-                    logger.warning(f"Chart '{chart_name}' does not contain valid PNG data, skipping")
+                    logger.warning(
+                        f"Chart '{chart_name}' does not contain valid PNG data, skipping"
+                    )
             except Exception as e:
-                logger.error(f"Error saving chart '{chart_name}' to PNG: {str(e)}")
-                logger.error(f"Traceback: {str(e)}")
-    
-    def generate_chart(self, chart_type: str, data: Dict[str, Any], title: str = None, figsize: tuple = (10, 6)) -> str:
+                logger.error(
+                    f"Error saving chart '{chart_name}' to PNG: {str(e)}"
+                )
+                logger.error(f'Traceback: {str(e)}')
+
+    def generate_chart(
+        self,
+        chart_type: str,
+        data: Dict[str, Any],
+        title: str = None,
+        figsize: tuple = (10, 6),
+    ) -> str:
         """
         Generate a chart using Seaborn and return base64 encoded image.
-        
+
         Parameters:
         -----------
         chart_type : str
@@ -158,19 +188,19 @@ class BaseStaticRenderer:
             Chart title
         figsize : tuple, optional
             Figure size in inches (width, height)
-            
+
         Returns:
         --------
         str : Base64 encoded image data
         """
         if not self.has_visualization_libs:
-            logger.error("Required libraries for visualization not available")
-            return ""
-        
+            logger.error('Required libraries for visualization not available')
+            return ''
+
         try:
             # Create a figure and axis
             fig, ax = self.plt.subplots(figsize=figsize)
-            
+
             # Generate the chart based on chart_type
             if chart_type == 'bar':
                 self._generate_bar_chart(ax, data)
@@ -181,34 +211,34 @@ class BaseStaticRenderer:
             elif chart_type == 'heatmap':
                 self._generate_heatmap_chart(ax, data)
             else:
-                logger.error(f"Unsupported chart type: {chart_type}")
-                return ""
-            
+                logger.error(f'Unsupported chart type: {chart_type}')
+                return ''
+
             # Set the title if provided
             if title:
                 ax.set_title(title)
-            
+
             # Save the figure to a bytes buffer
             buf = io.BytesIO()
             fig.tight_layout()
             fig.savefig(buf, format='png', dpi=100)
             buf.seek(0)
-            
+
             # Encode the image to base64
             img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-            
+
             # Close the figure to avoid memory leaks
             self.plt.close(fig)
-            
-            return f"data:image/png;base64,{img_base64}"
+
+            return f'data:image/png;base64,{img_base64}'
         except Exception as e:
-            logger.error(f"Error generating {chart_type} chart: {str(e)}")
-            return ""
-    
+            logger.error(f'Error generating {chart_type} chart: {str(e)}')
+            return ''
+
     def _generate_bar_chart(self, ax, data: Dict[str, Any]) -> None:
         """
         Generate a bar chart.
-        
+
         Parameters:
         -----------
         ax : matplotlib.axes.Axes
@@ -218,29 +248,29 @@ class BaseStaticRenderer:
         """
         x = data.get('x', [])
         y = data.get('y', [])
-        
+
         if len(x) == 0 or len(y) == 0:
-            logger.error("Empty data for bar chart")
+            logger.error('Empty data for bar chart')
             return
-        
+
         # Create dataframe for seaborn
         df = self.pd.DataFrame({'x': x, 'y': y})
-        
+
         # Generate bar chart
         self.sns.barplot(x='x', y='y', data=df, ax=ax)
-        
+
         # Set labels
         ax.set_xlabel(data.get('x_label', 'X'))
         ax.set_ylabel(data.get('y_label', 'Y'))
-        
+
         # Rotate x-axis labels if there are many categories
         if len(x) > 5:
             ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
-    
+
     def _generate_line_chart(self, ax, data: Dict[str, Any]) -> None:
         """
         Generate a line chart.
-        
+
         Parameters:
         -----------
         ax : matplotlib.axes.Axes
@@ -249,38 +279,40 @@ class BaseStaticRenderer:
             Data for the chart
         """
         x = data.get('x', [])
-        
+
         # Handle multiple y-series
         if 'y_series' in data and isinstance(data['y_series'], dict):
             for name, values in data['y_series'].items():
                 if len(values) != len(x):
-                    logger.warning(f"Series '{name}' length ({len(values)}) doesn't match x-axis length ({len(x)})")
+                    logger.warning(
+                        f"Series '{name}' length ({len(values)}) doesn't match x-axis length ({len(x)})"
+                    )
                     continue
                 ax.plot(x, values, label=name)
-            
+
             # Add legend
             ax.legend()
         else:
             # Single y-series
             y = data.get('y', [])
             if len(x) == 0 or len(y) == 0:
-                logger.error("Empty data for line chart")
+                logger.error('Empty data for line chart')
                 return
-                
+
             # Create dataframe for seaborn
             df = self.pd.DataFrame({'x': x, 'y': y})
-            
+
             # Generate line chart
             self.sns.lineplot(x='x', y='y', data=df, ax=ax)
-        
+
         # Set labels
         ax.set_xlabel(data.get('x_label', 'X'))
         ax.set_ylabel(data.get('y_label', 'Y'))
-    
+
     def _generate_boxplot_chart(self, ax, data: Dict[str, Any]) -> None:
         """
         Generate a boxplot chart.
-        
+
         Parameters:
         -----------
         ax : matplotlib.axes.Axes
@@ -293,18 +325,18 @@ class BaseStaticRenderer:
             # Multiple models with scores
             models_data = []
             labels = []
-            
+
             for model in data['models']:
                 if 'scores' not in model or not model['scores']:
                     continue
-                    
+
                 models_data.append(model['scores'])
                 labels.append(model.get('name', 'Unknown'))
-            
+
             if not models_data:
-                logger.error("No valid data for boxplot chart")
+                logger.error('No valid data for boxplot chart')
                 return
-                
+
             # Create boxplot
             self.sns.boxplot(data=models_data, ax=ax)
             ax.set_xticklabels(labels)
@@ -312,34 +344,36 @@ class BaseStaticRenderer:
             # Simple key-value structure
             categories = list(data.keys())
             values = [data[c] for c in categories]
-            
+
             # Create dataframe for seaborn
             df = self.pd.DataFrame()
             for i, category in enumerate(categories):
                 if not values[i]:
                     continue
                 category_data = values[i]
-                df_cat = self.pd.DataFrame({
-                    'category': [category] * len(category_data),
-                    'value': category_data
-                })
+                df_cat = self.pd.DataFrame(
+                    {
+                        'category': [category] * len(category_data),
+                        'value': category_data,
+                    }
+                )
                 df = df.append(df_cat)
-                
+
             if df.empty:
-                logger.error("No valid data for boxplot chart")
+                logger.error('No valid data for boxplot chart')
                 return
-                
+
             # Generate boxplot
             self.sns.boxplot(x='category', y='value', data=df, ax=ax)
-        
+
         # Set labels
         ax.set_xlabel(data.get('x_label', ''))
         ax.set_ylabel(data.get('y_label', 'Value'))
-    
+
     def _generate_heatmap_chart(self, ax, data: Dict[str, Any]) -> None:
         """
         Generate a heatmap chart.
-        
+
         Parameters:
         -----------
         ax : matplotlib.axes.Axes
@@ -348,23 +382,23 @@ class BaseStaticRenderer:
             Data for the chart
         """
         if 'matrix' not in data:
-            logger.error("No matrix data for heatmap")
+            logger.error('No matrix data for heatmap')
             return
-            
+
         matrix = data['matrix']
-        
+
         # Generate heatmap
         self.sns.heatmap(
-            matrix, 
+            matrix,
             ax=ax,
             annot=data.get('show_values', True),
             fmt=data.get('format', '.2f'),
             cmap=data.get('colormap', 'viridis'),
             xticklabels=data.get('x_labels', True),
             yticklabels=data.get('y_labels', True),
-            cbar=data.get('show_colorbar', True)
+            cbar=data.get('show_colorbar', True),
         )
-        
+
         # Set labels
         ax.set_xlabel(data.get('x_label', ''))
         ax.set_ylabel(data.get('y_label', ''))
@@ -375,7 +409,7 @@ class BaseStaticRenderer:
         data: Dict[str, Any],
         title: Optional[str] = None,
         figsize: tuple = (10, 6),
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Generate a custom chart using a provided drawing function (Template Method Pattern).
@@ -432,8 +466,8 @@ class BaseStaticRenderer:
         - Easy to test drawing logic in isolation
         """
         if not self.has_visualization_libs:
-            logger.error("Required libraries for visualization not available")
-            return ""
+            logger.error('Required libraries for visualization not available')
+            return ''
 
         try:
             # Create figure and axes
@@ -458,17 +492,23 @@ class BaseStaticRenderer:
             # Clean up
             self.plt.close(fig)
 
-            logger.debug(f"Successfully generated custom chart: {title or 'untitled'}")
-            return f"data:image/png;base64,{img_base64}"
+            logger.debug(
+                f"Successfully generated custom chart: {title or 'untitled'}"
+            )
+            return f'data:image/png;base64,{img_base64}'
 
         except Exception as e:
-            logger.error(f"Error generating custom chart: {str(e)}", exc_info=True)
-            return ""
+            logger.error(
+                f'Error generating custom chart: {str(e)}', exc_info=True
+            )
+            return ''
 
-    def _create_static_context(self, report_data: Dict[str, Any], test_type: str, css_content: str) -> Dict[str, Any]:
+    def _create_static_context(
+        self, report_data: Dict[str, Any], test_type: str, css_content: str
+    ) -> Dict[str, Any]:
         """
         Create template context with common data for static reports.
-        
+
         Parameters:
         -----------
         report_data : Dict[str, Any]
@@ -477,7 +517,7 @@ class BaseStaticRenderer:
             Type of test ('robustness', 'uncertainty', etc.)
         css_content : str
             Combined CSS content
-            
+
         Returns:
         --------
         Dict[str, Any] : Template context
@@ -487,21 +527,21 @@ class BaseStaticRenderer:
             favicon_base64 = self.asset_manager.get_favicon_base64()
             logo_base64 = self.asset_manager.get_logo_base64()
         except Exception as e:
-            logger.warning(f"Error loading images: {str(e)}")
-            favicon_base64 = ""
-            logo_base64 = ""
-        
+            logger.warning(f'Error loading images: {str(e)}')
+            favicon_base64 = ''
+            logo_base64 = ''
+
         # Get current timestamp if not provided
-        timestamp = report_data.get('timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        
+        timestamp = report_data.get(
+            'timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        )
+
         # Base context that all static reports will have
         context = {
             # Complete report data for template access
             'report_data': report_data,
-            
             # CSS content
             'css_content': css_content,
-            
             # Basic metadata
             'model_name': report_data.get('model_name', 'Model'),
             'timestamp': timestamp,
@@ -509,34 +549,31 @@ class BaseStaticRenderer:
             'favicon_base64': favicon_base64,
             'logo': logo_base64,
             'block_title': f"{test_type.capitalize()} Analysis: {report_data.get('model_name', 'Model')}",
-            
             # Main metrics for direct access in templates
             'model_type': report_data.get('model_type', 'Unknown Model'),
             'metric': report_data.get('metric', 'score'),
             'base_score': report_data.get('base_score', 0.0),
-            
             # Feature details
             'feature_subset': report_data.get('feature_subset', []),
-            'feature_subset_display': report_data.get('feature_subset_display', 'All Features'),
-            
+            'feature_subset_display': report_data.get(
+                'feature_subset_display', 'All Features'
+            ),
             # For component display logic
-            'has_alternative_models': 'alternative_models' in report_data and bool(report_data['alternative_models']),
-            
+            'has_alternative_models': 'alternative_models' in report_data
+            and bool(report_data['alternative_models']),
             # Test type information
             'test_type': test_type,
             'test_report_type': test_type,  # The type of test
             'report_type': 'static',  # Always static for this renderer
-            
             # Error message (None by default)
             'error_message': None,
-            
             # Static charts container
-            'charts': {}
+            'charts': {},
         }
-        
+
         return context
-    
-    def _load_static_css_content(self, report_type: str = "static") -> str:
+
+    def _load_static_css_content(self, report_type: str = 'static') -> str:
         """
         Load and combine CSS files for static reports using CSSManager.
 
@@ -593,11 +630,15 @@ class BaseStaticRenderer:
             }
             """
 
-            logger.info(f"CSS compiled successfully using CSSManager for static {report_type} report")
+            logger.info(
+                f'CSS compiled successfully using CSSManager for static {report_type} report'
+            )
             return css_content
 
         except Exception as e:
-            logger.warning(f"Error loading CSS with CSSManager: {str(e)}, falling back to basic CSS")
+            logger.warning(
+                f'Error loading CSS with CSSManager: {str(e)}, falling back to basic CSS'
+            )
 
             # Fallback to basic CSS if CSSManager fails
             return self._get_fallback_static_css()
@@ -761,11 +802,11 @@ class BaseStaticRenderer:
             border-top: 1px solid var(--border-color);
         }
         """
-    
+
     def _ensure_output_dir(self, file_path: str) -> None:
         """
         Ensure output directory exists.
-        
+
         Parameters:
         -----------
         file_path : str
@@ -773,29 +814,29 @@ class BaseStaticRenderer:
         """
         output_dir = os.path.dirname(os.path.abspath(file_path))
         os.makedirs(output_dir, exist_ok=True)
-        logger.info(f"Output directory ensured: {output_dir}")
-    
+        logger.info(f'Output directory ensured: {output_dir}')
+
     def _write_report(self, rendered_html: str, file_path: str) -> str:
         """
         Write rendered HTML to file.
-        
+
         Parameters:
         -----------
         rendered_html : str
             Rendered HTML content
         file_path : str
             Path where the HTML report will be saved
-            
+
         Returns:
         --------
         str : Path to the written file
         """
         # Ensure output directory exists
         self._ensure_output_dir(file_path)
-        
+
         # Write to file with explicit UTF-8 encoding
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(rendered_html)
-            
-        logger.info(f"Static report saved to: {file_path}")
+
+        logger.info(f'Static report saved to: {file_path}')
         return file_path

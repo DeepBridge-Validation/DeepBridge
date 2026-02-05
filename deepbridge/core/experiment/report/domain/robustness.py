@@ -11,7 +11,9 @@ Benefits:
 """
 
 from typing import Dict, List, Optional
+
 from pydantic import Field
+
 from .base import ReportBaseModel
 
 
@@ -22,32 +24,32 @@ class RobustnessMetrics(ReportBaseModel):
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Baseline model performance without perturbations"
+        description='Baseline model performance without perturbations',
     )
     robustness_score: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Overall robustness quality score (0-1)"
+        description='Overall robustness quality score (0-1)',
     )
     avg_raw_impact: float = Field(
         default=0.0,
         ge=0.0,
-        description="Average raw performance impact across perturbations"
+        description='Average raw performance impact across perturbations',
     )
     avg_quantile_impact: float = Field(
         default=0.0,
         ge=0.0,
-        description="Average quantile-based performance impact"
+        description='Average quantile-based performance impact',
     )
     avg_overall_impact: float = Field(
         default=0.0,
         ge=0.0,
-        description="Average overall impact (mean of raw and quantile)"
+        description='Average overall impact (mean of raw and quantile)',
     )
     metric: str = Field(
-        default="AUC",
-        description="Performance metric used (AUC, accuracy, etc.)"
+        default='AUC',
+        description='Performance metric used (AUC, accuracy, etc.)',
     )
 
     @property
@@ -66,29 +68,27 @@ class RobustnessMetrics(ReportBaseModel):
 class PerturbationLevelData(ReportBaseModel):
     """Data for a single perturbation level."""
 
-    level: float = Field(description="Perturbation level (e.g., 0.1, 0.5)")
-    level_display: str = Field(default="", description="Display string for level")
+    level: float = Field(description='Perturbation level (e.g., 0.1, 0.5)')
+    level_display: str = Field(
+        default='', description='Display string for level'
+    )
     mean_score: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Mean score at this perturbation level"
+        description='Mean score at this perturbation level',
     )
     std_score: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Standard deviation of scores"
+        default=0.0, ge=0.0, description='Standard deviation of scores'
     )
     impact: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Performance impact at this level"
+        default=0.0, ge=0.0, description='Performance impact at this level'
     )
     worst_score: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Worst score observed at this level"
+        description='Worst score observed at this level',
     )
 
     @property
@@ -100,16 +100,12 @@ class PerturbationLevelData(ReportBaseModel):
 class FeatureRobustnessData(ReportBaseModel):
     """Feature data with robustness-specific information."""
 
-    name: str = Field(description="Feature name")
+    name: str = Field(description='Feature name')
     importance: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Base feature importance"
+        default=0.0, ge=0.0, description='Base feature importance'
     )
     robustness_impact: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Feature-specific robustness impact"
+        default=0.0, ge=0.0, description='Feature-specific robustness impact'
     )
 
     @property
@@ -121,36 +117,28 @@ class FeatureRobustnessData(ReportBaseModel):
 class RobustnessReportData(ReportBaseModel):
     """Complete robustness experiment report data."""
 
-    model_name: str = Field(description="Name of the model being tested")
+    model_name: str = Field(description='Name of the model being tested')
     model_type: str = Field(
-        default="Unknown",
-        description="Type/architecture of the model"
+        default='Unknown', description='Type/architecture of the model'
     )
     metrics: RobustnessMetrics = Field(
         default_factory=RobustnessMetrics,
-        description="Core robustness metrics"
+        description='Core robustness metrics',
     )
     perturbation_levels: List[PerturbationLevelData] = Field(
-        default_factory=list,
-        description="Data for each perturbation level"
+        default_factory=list, description='Data for each perturbation level'
     )
     features: List[FeatureRobustnessData] = Field(
         default_factory=list,
-        description="Feature importance and robustness data"
+        description='Feature importance and robustness data',
     )
     n_iterations: int = Field(
-        default=10,
-        ge=1,
-        description="Number of iterations per perturbation"
+        default=10, ge=1, description='Number of iterations per perturbation'
     )
     charts: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Generated chart data (Plotly JSON)"
+        default_factory=dict, description='Generated chart data (Plotly JSON)'
     )
-    notes: str = Field(
-        default="",
-        description="Additional notes or comments"
-    )
+    notes: str = Field(default='', description='Additional notes or comments')
 
     @property
     def has_perturbation_data(self) -> bool:
@@ -176,9 +164,7 @@ class RobustnessReportData(ReportBaseModel):
     def top_features(self) -> List[FeatureRobustnessData]:
         """Get top 5 most important features."""
         sorted_features = sorted(
-            self.features,
-            key=lambda f: f.importance,
-            reverse=True
+            self.features, key=lambda f: f.importance, reverse=True
         )
         return sorted_features[:5]
 
@@ -186,9 +172,7 @@ class RobustnessReportData(ReportBaseModel):
     def most_sensitive_features(self) -> List[FeatureRobustnessData]:
         """Get top 5 most sensitive features (highest robustness impact)."""
         sorted_features = sorted(
-            self.features,
-            key=lambda f: f.robustness_impact,
-            reverse=True
+            self.features, key=lambda f: f.robustness_impact, reverse=True
         )
         return sorted_features[:5]
 
@@ -216,9 +200,9 @@ class RobustnessReportData(ReportBaseModel):
     def __str__(self) -> str:
         """Human-readable string representation."""
         return (
-            f"RobustnessReport({self.model_name}, "
-            f"score={self.metrics.robustness_score:.3f}, "
-            f"base={self.metrics.base_score:.3f}, "
-            f"impact={self.metrics.avg_overall_impact:.3f}, "
-            f"levels={self.num_perturbation_levels})"
+            f'RobustnessReport({self.model_name}, '
+            f'score={self.metrics.robustness_score:.3f}, '
+            f'base={self.metrics.base_score:.3f}, '
+            f'impact={self.metrics.avg_overall_impact:.3f}, '
+            f'levels={self.num_perturbation_levels})'
         )

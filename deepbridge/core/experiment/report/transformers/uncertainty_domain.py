@@ -30,20 +30,21 @@ This transformer can be used in two ways:
    ```
 """
 
-import pandas as pd
-import numpy as np
-from typing import Dict, Any
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
 
 from ..domain import (
-    UncertaintyReportData,
-    UncertaintyMetrics,
-    CalibrationResults,
     AlternativeModelData,
+    CalibrationResults,
+    UncertaintyMetrics,
+    UncertaintyReportData,
 )
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class UncertaintyDomainTransformer:
@@ -61,9 +62,7 @@ class UncertaintyDomainTransformer:
     """
 
     def transform_to_model(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> UncertaintyReportData:
         """
         Transform raw uncertainty results to type-safe domain model.
@@ -83,7 +82,7 @@ class UncertaintyDomainTransformer:
             >>> print(report.metrics.uncertainty_score)  # Type-safe!
             >>> print(report.is_well_calibrated)  # Property access!
         """
-        logger.info("Transforming uncertainty data to domain model")
+        logger.info('Transforming uncertainty data to domain model')
 
         # Extract main components
         if 'test_results' in results:
@@ -102,7 +101,9 @@ class UncertaintyDomainTransformer:
             uncertainty_score=summary.get('uncertainty_score', 0.0),
             coverage=summary.get('avg_coverage', 0.0),
             mean_width=summary.get('avg_width', 0.0),
-            expected_coverage=summary.get('expected_coverage', 0.9),  # Default target
+            expected_coverage=summary.get(
+                'expected_coverage', 0.9
+            ),  # Default target
             # calibration_error will be auto-computed
         )
 
@@ -116,7 +117,7 @@ class UncertaintyDomainTransformer:
                 alpha_values=alpha_data.get('alphas', []),
                 coverage_values=alpha_data.get('coverages', []),
                 expected_coverages=alpha_data.get('expected_coverages', []),
-                width_values=alpha_data.get('widths', [])
+                width_values=alpha_data.get('widths', []),
             )
 
         # Extract feature importance
@@ -128,7 +129,9 @@ class UncertaintyDomainTransformer:
         report = UncertaintyReportData(
             model_name=model_name,
             model_type=primary_model.get('model_type', 'Unknown'),
-            timestamp=primary_model.get('timestamp', datetime.now().isoformat()),
+            timestamp=primary_model.get(
+                'timestamp', datetime.now().isoformat()
+            ),
             metrics=metrics,
             calibration_results=calibration_results,
             feature_importance=feature_importance,
@@ -137,17 +140,15 @@ class UncertaintyDomainTransformer:
         )
 
         logger.info(
-            f"Transformation complete. Model: {report.model_name}, "
-            f"Score: {report.metrics.uncertainty_score:.3f}, "
-            f"Calibrated: {report.is_well_calibrated}"
+            f'Transformation complete. Model: {report.model_name}, '
+            f'Score: {report.metrics.uncertainty_score:.3f}, '
+            f'Calibrated: {report.is_well_calibrated}'
         )
 
         return report
 
     def transform(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> Dict[str, Any]:
         """
         Transform to dictionary (backward-compatible mode).
@@ -187,13 +188,11 @@ class UncertaintyDomainTransformer:
         result = {
             'model_name': report.model_name,
             'model_type': report.model_type,
-
             # Summary metrics (flattened for compatibility)
             'uncertainty_score': report.metrics.uncertainty_score,
             'avg_coverage': report.metrics.coverage,
             'avg_width': report.metrics.mean_width,
             'calibration_error': report.metrics.calibration_error,
-
             # Summary dict (nested format)
             'summary': {
                 'uncertainty_score': report.metrics.uncertainty_score,
@@ -202,18 +201,28 @@ class UncertaintyDomainTransformer:
                 'avg_width': report.metrics.mean_width,
                 'expected_coverage': report.metrics.expected_coverage,
             },
-
             # Alpha results
             'alphas': {
-                'total': report.calibration_results.num_alpha_levels if report.calibration_results else 0,
+                'total': report.calibration_results.num_alpha_levels
+                if report.calibration_results
+                else 0,
                 'data': {
-                    'alphas': report.calibration_results.alpha_values if report.calibration_results else [],
-                    'coverages': report.calibration_results.coverage_values if report.calibration_results else [],
-                    'expected_coverages': report.calibration_results.expected_coverages if report.calibration_results else [],
-                    'widths': report.calibration_results.width_values if report.calibration_results else [],
-                }
-            } if report.has_calibration_results else {},
-
+                    'alphas': report.calibration_results.alpha_values
+                    if report.calibration_results
+                    else [],
+                    'coverages': report.calibration_results.coverage_values
+                    if report.calibration_results
+                    else [],
+                    'expected_coverages': report.calibration_results.expected_coverages
+                    if report.calibration_results
+                    else [],
+                    'widths': report.calibration_results.width_values
+                    if report.calibration_results
+                    else [],
+                },
+            }
+            if report.has_calibration_results
+            else {},
             # Features
             'features': {
                 'total': len(report.features),
@@ -221,13 +230,14 @@ class UncertaintyDomainTransformer:
                 'importance_map': report.feature_importance,
                 'top_features': dict(report.top_features),
             },
-
             # Metadata
             'metadata': {
                 'timestamp': report.timestamp,
                 'method': 'CRQR',
-                'total_alphas': report.calibration_results.num_alpha_levels if report.calibration_results else 0,
-            }
+                'total_alphas': report.calibration_results.num_alpha_levels
+                if report.calibration_results
+                else 0,
+            },
         }
 
         return result
@@ -255,7 +265,9 @@ class UncertaintyDomainTransformer:
                 widths.append(mean_width)
 
             avg_coverage = float(np.mean(coverages)) if coverages else 0.0
-            avg_coverage_error = float(np.mean(coverage_errors)) if coverage_errors else 0.0
+            avg_coverage_error = (
+                float(np.mean(coverage_errors)) if coverage_errors else 0.0
+            )
             avg_width = float(np.mean(widths)) if widths else 0.0
         else:
             avg_coverage = 0.0
@@ -294,10 +306,12 @@ class UncertaintyDomainTransformer:
 
                 alphas.append(alpha_value)
                 coverages.append(overall.get('coverage', 0))
-                expected_coverages.append(overall.get('expected_coverage', 1.0 - alpha_value))
+                expected_coverages.append(
+                    overall.get('expected_coverage', 1.0 - alpha_value)
+                )
                 widths.append(overall.get('mean_width', 0))
             except (ValueError, AttributeError) as e:
-                logger.warning(f"Error processing alpha {alpha_key}: {e}")
+                logger.warning(f'Error processing alpha {alpha_key}: {e}')
                 continue
 
         return {
@@ -307,10 +321,12 @@ class UncertaintyDomainTransformer:
                 'coverages': coverages,
                 'expected_coverages': expected_coverages,
                 'widths': widths,
-            }
+            },
         }
 
-    def _transform_features(self, initial_eval: Dict, primary_model: Dict) -> Dict[str, Any]:
+    def _transform_features(
+        self, initial_eval: Dict, primary_model: Dict
+    ) -> Dict[str, Any]:
         """Transform feature importance data."""
         # Try to get feature importance from initial evaluation
         feature_importance = initial_eval.get('feature_importance', {})
@@ -321,14 +337,14 @@ class UncertaintyDomainTransformer:
 
         # Sort by importance
         sorted_features = sorted(
-            feature_importance.items(),
-            key=lambda x: x[1],
-            reverse=True
+            feature_importance.items(), key=lambda x: x[1], reverse=True
         )
 
         return {
             'total': len(sorted_features),
             'feature_names': [f[0] for f in sorted_features],
             'importance_map': dict(sorted_features),
-            'top_features': dict(sorted_features[:5]) if sorted_features else {},
+            'top_features': dict(sorted_features[:5])
+            if sorted_features
+            else {},
         }

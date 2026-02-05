@@ -27,16 +27,17 @@ Example Usage:
     >>> result = pipeline.execute(raw_data)
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, List
 import logging
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Pipeline Stages - Abstract Base Classes
 # ==================================================================================
+
 
 class PipelineStage(ABC):
     """
@@ -63,7 +64,7 @@ class PipelineStage(ABC):
         pass
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
+        return f'{self.__class__.__name__}()'
 
 
 class Validator(PipelineStage):
@@ -107,7 +108,7 @@ class Validator(PipelineStage):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        logger.debug(f"{self.__class__.__name__}: Validation passed")
+        logger.debug(f'{self.__class__.__name__}: Validation passed')
         return data
 
 
@@ -142,7 +143,7 @@ class Transformer(PipelineStage):
     def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Transform and return new structure."""
         result = self.transform(data)
-        logger.debug(f"{self.__class__.__name__}: Transformation complete")
+        logger.debug(f'{self.__class__.__name__}: Transformation complete')
         return result
 
 
@@ -176,13 +177,14 @@ class Enricher(PipelineStage):
     def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Enrich and return enhanced data."""
         result = self.enrich(data)
-        logger.debug(f"{self.__class__.__name__}: Enrichment complete")
+        logger.debug(f'{self.__class__.__name__}: Enrichment complete')
         return result
 
 
 # ==================================================================================
 # Transform Pipeline
 # ==================================================================================
+
 
 class TransformPipeline:
     """
@@ -215,7 +217,7 @@ class TransformPipeline:
     def __init__(self):
         """Initialize empty pipeline."""
         self.stages: List[PipelineStage] = []
-        logger.debug("TransformPipeline initialized")
+        logger.debug('TransformPipeline initialized')
 
     def add_stage(self, stage: PipelineStage) -> 'TransformPipeline':
         """
@@ -231,10 +233,10 @@ class TransformPipeline:
             >>> pipeline.add_stage(MyValidator()).add_stage(MyTransformer())
         """
         if not isinstance(stage, PipelineStage):
-            raise TypeError(f"Stage must be PipelineStage, got {type(stage)}")
+            raise TypeError(f'Stage must be PipelineStage, got {type(stage)}')
 
         self.stages.append(stage)
-        logger.debug(f"Added stage: {stage}")
+        logger.debug(f'Added stage: {stage}')
         return self  # Fluent interface
 
     def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -255,22 +257,26 @@ class TransformPipeline:
             >>> result = pipeline.execute({'model_name': 'MyModel', ...})
         """
         if not self.stages:
-            logger.warning("Pipeline has no stages, returning data unchanged")
+            logger.warning('Pipeline has no stages, returning data unchanged')
             return data
 
-        logger.info(f"Executing pipeline with {len(self.stages)} stages")
+        logger.info(f'Executing pipeline with {len(self.stages)} stages')
 
         result = data
         for i, stage in enumerate(self.stages, 1):
-            logger.debug(f"Stage {i}/{len(self.stages)}: {stage.__class__.__name__}")
+            logger.debug(
+                f'Stage {i}/{len(self.stages)}: {stage.__class__.__name__}'
+            )
 
             try:
                 result = stage.process(result)
             except Exception as e:
-                logger.error(f"Pipeline failed at stage {i} ({stage.__class__.__name__}): {e}")
+                logger.error(
+                    f'Pipeline failed at stage {i} ({stage.__class__.__name__}): {e}'
+                )
                 raise
 
-        logger.info("Pipeline execution complete")
+        logger.info('Pipeline execution complete')
         return result
 
     def clear(self) -> 'TransformPipeline':
@@ -281,7 +287,7 @@ class TransformPipeline:
             Self for fluent interface
         """
         self.stages.clear()
-        logger.debug("Pipeline cleared")
+        logger.debug('Pipeline cleared')
         return self
 
     def __len__(self) -> int:
@@ -290,12 +296,13 @@ class TransformPipeline:
 
     def __repr__(self) -> str:
         stage_names = [s.__class__.__name__ for s in self.stages]
-        return f"TransformPipeline({stage_names})"
+        return f'TransformPipeline({stage_names})'
 
 
 # ==================================================================================
 # Example Implementation (for documentation purposes)
 # ==================================================================================
+
 
 class ExampleValidator(Validator):
     """Example validator showing the pattern."""
@@ -307,7 +314,7 @@ class ExampleValidator(Validator):
 
         for field in required_fields:
             if field not in data:
-                errors.append(f"Missing required field: {field}")
+                errors.append(f'Missing required field: {field}')
 
         return errors
 
@@ -320,10 +327,7 @@ class ExampleTransformer(Transformer):
         return {
             'model': data.get('model_name', 'Unknown'),
             'results': data.get('test_results', {}),
-            'metadata': {
-                'source': 'experiment',
-                'processed': True
-            }
+            'metadata': {'source': 'experiment', 'processed': True},
         }
 
 
@@ -335,7 +339,7 @@ class ExampleEnricher(Enricher):
         # Add summary
         data['summary'] = {
             'total_tests': len(data.get('results', {})),
-            'model_name': data.get('model', 'Unknown')
+            'model_name': data.get('model', 'Unknown'),
         }
 
         # Add quality score (dummy calculation)
@@ -348,41 +352,41 @@ class ExampleEnricher(Enricher):
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Demonstrate pipeline usage.
     """
-    print("=" * 80)
-    print("Transform Pipeline Example")
-    print("=" * 80)
+    print('=' * 80)
+    print('Transform Pipeline Example')
+    print('=' * 80)
 
     # Example data
     example_data = {
         'model_name': 'TestModel',
-        'test_results': {
-            'accuracy': 0.92,
-            'precision': 0.88
-        }
+        'test_results': {'accuracy': 0.92, 'precision': 0.88},
     }
 
     # Create pipeline
-    pipeline = (TransformPipeline()
-                .add_stage(ExampleValidator())
-                .add_stage(ExampleTransformer())
-                .add_stage(ExampleEnricher()))
+    pipeline = (
+        TransformPipeline()
+        .add_stage(ExampleValidator())
+        .add_stage(ExampleTransformer())
+        .add_stage(ExampleEnricher())
+    )
 
-    print(f"\nPipeline: {pipeline}")
-    print(f"Stages: {len(pipeline)}")
+    print(f'\nPipeline: {pipeline}')
+    print(f'Stages: {len(pipeline)}')
 
     # Execute
-    print("\nExecuting pipeline...")
+    print('\nExecuting pipeline...')
     result = pipeline.execute(example_data)
 
     # Show result
-    print("\nResult:")
+    print('\nResult:')
     import json
+
     print(json.dumps(result, indent=2))
 
-    print("\n" + "=" * 80)
-    print("Pipeline Example Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Pipeline Example Complete')
+    print('=' * 80)

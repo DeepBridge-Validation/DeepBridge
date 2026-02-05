@@ -5,11 +5,11 @@ Phase 3 Sprint 11 - Uses new chart generation system.
 Reduces from 1602 → ~350 lines (-78%).
 """
 
-import os
 import logging
-from typing import Dict, Any
+import os
+from typing import Any, Dict
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class StaticUncertaintyRenderer:
@@ -32,24 +32,37 @@ class StaticUncertaintyRenderer:
             Manager for assets (CSS, JS, images)
         """
         from .base_static_renderer import BaseStaticRenderer
-        self.base_renderer = BaseStaticRenderer(template_manager, asset_manager)
+
+        self.base_renderer = BaseStaticRenderer(
+            template_manager, asset_manager
+        )
         self.template_manager = template_manager
         self.asset_manager = asset_manager
 
         # Import transformers
+        from ...transformers.static.static_uncertainty import (
+            StaticUncertaintyTransformer,
+        )
         from ...transformers.uncertainty import UncertaintyDataTransformer
-        from ...transformers.static.static_uncertainty import StaticUncertaintyTransformer
+
         self.data_transformer = UncertaintyDataTransformer()
         self.static_transformer = StaticUncertaintyTransformer()
 
         # Import new chart registry
         from ...charts import ChartRegistry
+
         self.chart_registry = ChartRegistry
 
-        logger.info("StaticUncertaintyRenderer initialized with ChartRegistry")
+        logger.info('StaticUncertaintyRenderer initialized with ChartRegistry')
 
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
-              report_type: str = "static", save_chart: bool = False) -> str:
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'static',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render static uncertainty report from results data.
 
@@ -75,7 +88,7 @@ class StaticUncertaintyRenderer:
         FileNotFoundError: If template or assets not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating static uncertainty report to: {file_path}")
+        logger.info(f'Generating static uncertainty report to: {file_path}')
         self.report_file_path = file_path
         self.save_chart = save_chart
 
@@ -96,10 +109,15 @@ class StaticUncertaintyRenderer:
             return self._write_report(html_content, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating static uncertainty report: {str(e)}", exc_info=True)
+            logger.error(
+                f'Error generating static uncertainty report: {str(e)}',
+                exc_info=True,
+            )
             raise
 
-    def _transform_data(self, results: Dict[str, Any], model_name: str) -> Dict[str, Any]:
+    def _transform_data(
+        self, results: Dict[str, Any], model_name: str
+    ) -> Dict[str, Any]:
         """
         Transform raw results into report data.
 
@@ -114,7 +132,7 @@ class StaticUncertaintyRenderer:
         --------
         Dict[str, Any] : Transformed report data
         """
-        logger.info("Transforming uncertainty data")
+        logger.info('Transforming uncertainty data')
 
         # Use existing data transformer
         report_data = self.data_transformer.transform(results, model_name)
@@ -122,10 +140,14 @@ class StaticUncertaintyRenderer:
         # Apply static-specific transformations
         report_data = self.static_transformer.transform(report_data)
 
-        logger.info(f"Data transformation complete. Report has {len(report_data)} keys")
+        logger.info(
+            f'Data transformation complete. Report has {len(report_data)} keys'
+        )
         return report_data
 
-    def _generate_charts(self, report_data: Dict[str, Any], save_chart: bool = False) -> Dict[str, str]:
+    def _generate_charts(
+        self, report_data: Dict[str, Any], save_chart: bool = False
+    ) -> Dict[str, str]:
         """
         Generate all charts using ChartRegistry.
 
@@ -143,7 +165,7 @@ class StaticUncertaintyRenderer:
         --------
         Dict[str, str] : Dictionary of chart names and their content/paths
         """
-        logger.info("Generating charts using ChartRegistry")
+        logger.info('Generating charts using ChartRegistry')
         charts = {}
 
         # Setup chart directory if needed
@@ -156,51 +178,65 @@ class StaticUncertaintyRenderer:
             # Chart 1: Coverage vs Expected
             if self._has_data(report_data, ['calibration_results']):
                 chart_data = self._prepare_coverage_data(report_data)
-                result = self.chart_registry.generate('coverage_chart', chart_data)
+                result = self.chart_registry.generate(
+                    'coverage_chart', chart_data
+                )
 
                 if result.is_success:
-                    charts['coverage_vs_expected'] = self._process_chart_result(
+                    charts[
+                        'coverage_vs_expected'
+                    ] = self._process_chart_result(
                         result, 'coverage_vs_expected', charts_dir
                     )
-                    logger.info("Generated coverage vs expected chart")
+                    logger.info('Generated coverage vs expected chart')
 
             # Chart 2: Width vs Coverage
             if self._has_data(report_data, ['calibration_results']):
                 chart_data = self._prepare_width_coverage_data(report_data)
-                result = self.chart_registry.generate('width_vs_coverage_static', chart_data)
+                result = self.chart_registry.generate(
+                    'width_vs_coverage_static', chart_data
+                )
 
                 if result.is_success:
                     charts['width_vs_coverage'] = self._process_chart_result(
                         result, 'width_vs_coverage', charts_dir
                     )
-                    logger.info("Generated width vs coverage chart")
+                    logger.info('Generated width vs coverage chart')
 
             # Chart 3: Calibration Error
             if self._has_data(report_data, ['calibration_results']):
                 chart_data = self._prepare_calibration_error_data(report_data)
-                result = self.chart_registry.generate('calibration_error', chart_data)
+                result = self.chart_registry.generate(
+                    'calibration_error', chart_data
+                )
 
                 if result.is_success:
                     charts['calibration_error'] = self._process_chart_result(
                         result, 'calibration_error', charts_dir
                     )
-                    logger.info("Generated calibration error chart")
+                    logger.info('Generated calibration error chart')
 
             # Chart 4: Alternative Methods Comparison
             if self._has_data(report_data, ['alternative_models']):
-                chart_data = self._prepare_alternative_methods_data(report_data)
-                result = self.chart_registry.generate('alternative_methods_comparison', chart_data)
+                chart_data = self._prepare_alternative_methods_data(
+                    report_data
+                )
+                result = self.chart_registry.generate(
+                    'alternative_methods_comparison', chart_data
+                )
 
                 if result.is_success:
                     charts['alternative_methods'] = self._process_chart_result(
                         result, 'alternative_methods', charts_dir
                     )
-                    logger.info("Generated alternative methods comparison chart")
+                    logger.info(
+                        'Generated alternative methods comparison chart'
+                    )
 
-            logger.info(f"Successfully generated {len(charts)} charts")
+            logger.info(f'Successfully generated {len(charts)} charts')
 
         except Exception as e:
-            logger.error(f"Error generating charts: {str(e)}", exc_info=True)
+            logger.error(f'Error generating charts: {str(e)}', exc_info=True)
             # Return whatever charts we managed to generate
 
         return charts
@@ -208,16 +244,20 @@ class StaticUncertaintyRenderer:
     def _setup_charts_directory(self) -> str:
         """Create and return charts directory path."""
         report_dir = os.path.dirname(os.path.abspath(self.report_file_path))
-        charts_dir = os.path.join(report_dir, "uncertainty_charts")
+        charts_dir = os.path.join(report_dir, 'uncertainty_charts')
         os.makedirs(charts_dir, exist_ok=True)
-        logger.info(f"Created chart directory at: {charts_dir}")
+        logger.info(f'Created chart directory at: {charts_dir}')
         return charts_dir
 
-    def _has_data(self, report_data: Dict[str, Any], required_keys: list) -> bool:
+    def _has_data(
+        self, report_data: Dict[str, Any], required_keys: list
+    ) -> bool:
         """Check if required data keys exist."""
         return all(key in report_data for key in required_keys)
 
-    def _prepare_coverage_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_coverage_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Prepare data for coverage vs expected chart.
 
@@ -235,19 +275,23 @@ class StaticUncertaintyRenderer:
         return {
             'alphas': self._to_list(calib.get('alpha_values', [])),
             'coverage': self._to_list(calib.get('coverage_values', [])),
-            'expected': self._to_list(calib.get('expected_coverages', []))
+            'expected': self._to_list(calib.get('expected_coverages', [])),
         }
 
-    def _prepare_width_coverage_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_width_coverage_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for width vs coverage chart."""
         calib = report_data['calibration_results']
 
         return {
             'coverage': self._to_list(calib.get('coverage_values', [])),
-            'width': self._to_list(calib.get('avg_width_values', []))
+            'width': self._to_list(calib.get('avg_width_values', [])),
         }
 
-    def _prepare_calibration_error_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_calibration_error_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for calibration error chart."""
         calib = report_data['calibration_results']
 
@@ -257,15 +301,18 @@ class StaticUncertaintyRenderer:
 
         # Calculate calibration errors
         calibration_errors = [
-            abs(cov - exp) for cov, exp in zip(coverage_values, expected_values)
+            abs(cov - exp)
+            for cov, exp in zip(coverage_values, expected_values)
         ]
 
         return {
             'alphas': alpha_values,
-            'calibration_errors': calibration_errors
+            'calibration_errors': calibration_errors,
         }
 
-    def _prepare_alternative_methods_data(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_alternative_methods_data(
+        self, report_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Prepare data for alternative methods comparison chart."""
         alt_models = report_data.get('alternative_models', [])
 
@@ -277,12 +324,11 @@ class StaticUncertaintyRenderer:
                 methods.append(model.get('name', 'Unknown'))
                 scores.append(model.get('uncertainty_score', 0.0))
 
-        return {
-            'methods': methods,
-            'scores': scores
-        }
+        return {'methods': methods, 'scores': scores}
 
-    def _process_chart_result(self, result, chart_name: str, charts_dir: str = None) -> str:
+    def _process_chart_result(
+        self, result, chart_name: str, charts_dir: str = None
+    ) -> str:
         """
         Process chart result - either save to file or return base64.
 
@@ -301,17 +347,18 @@ class StaticUncertaintyRenderer:
         """
         if charts_dir:
             # Save to file and return relative path
-            file_name = f"{chart_name}.png"
+            file_name = f'{chart_name}.png'
             file_path = os.path.join(charts_dir, file_name)
 
             # Decode base64 and save
             import base64
+
             with open(file_path, 'wb') as f:
                 f.write(base64.b64decode(result.content))
 
             # Return relative path
             charts_subdir = os.path.basename(charts_dir)
-            return f"{charts_subdir}/{file_name}"
+            return f'{charts_subdir}/{file_name}'
         else:
             # Return base64 directly
             return result.content
@@ -325,7 +372,9 @@ class StaticUncertaintyRenderer:
         else:
             return []
 
-    def _create_context(self, report_data: Dict[str, Any], charts: Dict[str, str]) -> Dict[str, Any]:
+    def _create_context(
+        self, report_data: Dict[str, Any], charts: Dict[str, str]
+    ) -> Dict[str, Any]:
         """
         Create template context with data and charts.
 
@@ -346,7 +395,7 @@ class StaticUncertaintyRenderer:
             'model_name': report_data.get('model_name', 'Model'),
             'timestamp': report_data.get('timestamp'),
             'test_type': 'uncertainty',
-            'report_type': 'static'
+            'report_type': 'static',
         }
 
         # Add assets
@@ -368,7 +417,9 @@ class StaticUncertaintyRenderer:
         str : Rendered HTML content
         """
         # Find template
-        template_path = self.template_manager.get_template_paths('uncertainty', 'static')
+        template_path = self.template_manager.get_template_paths(
+            'uncertainty', 'static'
+        )
         template = self.template_manager.load_template(template_path[0])
 
         # Render
@@ -398,5 +449,5 @@ class StaticUncertaintyRenderer:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        logger.info(f"Static uncertainty report written to: {file_path}")
+        logger.info(f'Static uncertainty report written to: {file_path}')
         return file_path

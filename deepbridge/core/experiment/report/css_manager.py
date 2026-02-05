@@ -10,8 +10,8 @@ Version: 1.0
 Date: 2025-10-29
 """
 
-import os
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -49,7 +49,9 @@ class CSSManager:
         self.base_css_path = self.templates_dir / 'base_styles.css'
         self.components_css_path = self.templates_dir / 'report_components.css'
 
-        logger.info(f"CSSManager initialized with templates_dir: {self.templates_dir}")
+        logger.info(
+            f'CSSManager initialized with templates_dir: {self.templates_dir}'
+        )
 
     def get_compiled_css(self, report_type: str) -> str:
         """
@@ -69,13 +71,15 @@ class CSSManager:
         Raises:
             FileNotFoundError: If base or components CSS not found
         """
-        logger.info(f"Compiling CSS for report type: {report_type}")
+        logger.info(f'Compiling CSS for report type: {report_type}')
 
         # Layer 1: Base Styles (required)
         base_css = self._read_css_file(self.base_css_path, required=True)
 
         # Layer 2: Component Styles (required)
-        components_css = self._read_css_file(self.components_css_path, required=True)
+        components_css = self._read_css_file(
+            self.components_css_path, required=True
+        )
 
         # Layer 3: Custom Styles (optional)
         custom_css_path = self._get_custom_css_path(report_type)
@@ -83,13 +87,12 @@ class CSSManager:
 
         # Compile all layers
         compiled_css = self._compile_layers(
-            base_css,
-            components_css,
-            custom_css,
-            report_type
+            base_css, components_css, custom_css, report_type
         )
 
-        logger.info(f"CSS compiled successfully. Total size: {len(compiled_css)} chars")
+        logger.info(
+            f'CSS compiled successfully. Total size: {len(compiled_css)} chars'
+        )
         return compiled_css
 
     def _get_custom_css_path(self, report_type: str) -> Path:
@@ -107,15 +110,26 @@ class CSSManager:
             Path to custom CSS file
         """
         # Try path 1: direct in interactive folder
-        path1 = (self.templates_dir / 'report_types' / report_type /
-                 'interactive' / f'{report_type}_custom.css')
+        path1 = (
+            self.templates_dir
+            / 'report_types'
+            / report_type
+            / 'interactive'
+            / f'{report_type}_custom.css'
+        )
 
         if path1.exists():
             return path1
 
         # Try path 2: in css subfolder
-        path2 = (self.templates_dir / 'report_types' / report_type /
-                 'interactive' / 'css' / f'{report_type}_custom.css')
+        path2 = (
+            self.templates_dir
+            / 'report_types'
+            / report_type
+            / 'interactive'
+            / 'css'
+            / f'{report_type}_custom.css'
+        )
 
         if path2.exists():
             return path2
@@ -139,29 +153,31 @@ class CSSManager:
         """
         if not css_path.exists():
             if required:
-                logger.error(f"Required CSS file not found: {css_path}")
-                raise FileNotFoundError(f"Required CSS file not found: {css_path}")
+                logger.error(f'Required CSS file not found: {css_path}')
+                raise FileNotFoundError(
+                    f'Required CSS file not found: {css_path}'
+                )
             else:
-                logger.warning(f"Optional CSS file not found: {css_path}")
-                return ""
+                logger.warning(f'Optional CSS file not found: {css_path}')
+                return ''
 
         try:
             with open(css_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            logger.debug(f"Read CSS file: {css_path} ({len(content)} chars)")
+            logger.debug(f'Read CSS file: {css_path} ({len(content)} chars)')
             return content
         except Exception as e:
-            logger.error(f"Error reading CSS file {css_path}: {e}")
+            logger.error(f'Error reading CSS file {css_path}: {e}')
             if required:
                 raise
-            return ""
+            return ''
 
     def _compile_layers(
         self,
         base_css: str,
         components_css: str,
         custom_css: str,
-        report_type: str
+        report_type: str,
     ) -> str:
         """
         Compile CSS layers into single stylesheet.
@@ -175,31 +191,32 @@ class CSSManager:
         Returns:
             Compiled CSS with layer separators
         """
-        separator = "\n\n/* " + "=" * 76 + " */\n"
+        separator = '\n\n/* ' + '=' * 76 + ' */\n'
 
         layers = [
-            f"/*\n * DeepBridge Report - {report_type.capitalize()}\n"
-            f" * CSS compiled from three layers\n"
-            f" * Generated: {self._get_timestamp()}\n"
-            f" */\n",
-
+            f'/*\n * DeepBridge Report - {report_type.capitalize()}\n'
+            f' * CSS compiled from three layers\n'
+            f' * Generated: {self._get_timestamp()}\n'
+            f' */\n',
             base_css,
             separator,
-            "/* LAYER 2: SHARED COMPONENTS */",
+            '/* LAYER 2: SHARED COMPONENTS */',
             separator,
-            components_css
+            components_css,
         ]
 
         # Add custom layer if exists
         if custom_css.strip():
-            layers.extend([
-                separator,
-                f"/* LAYER 3: {report_type.upper()} CUSTOM STYLES */",
-                separator,
-                custom_css
-            ])
+            layers.extend(
+                [
+                    separator,
+                    f'/* LAYER 3: {report_type.upper()} CUSTOM STYLES */',
+                    separator,
+                    custom_css,
+                ]
+            )
 
-        return "\n".join(layers)
+        return '\n'.join(layers)
 
     def _get_timestamp(self) -> str:
         """
@@ -209,7 +226,8 @@ class CSSManager:
             Timestamp string
         """
         from datetime import datetime
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def validate_css_files(self) -> dict:
         """
@@ -226,14 +244,18 @@ class CSSManager:
         validation = {
             'base_styles': self.base_css_path.exists(),
             'components': self.components_css_path.exists(),
-            'errors': []
+            'errors': [],
         }
 
         if not validation['base_styles']:
-            validation['errors'].append(f"Base styles not found: {self.base_css_path}")
+            validation['errors'].append(
+                f'Base styles not found: {self.base_css_path}'
+            )
 
         if not validation['components']:
-            validation['errors'].append(f"Components not found: {self.components_css_path}")
+            validation['errors'].append(
+                f'Components not found: {self.components_css_path}'
+            )
 
         return validation
 
@@ -257,7 +279,7 @@ class CSSManager:
         info = {
             'exists': custom_css_path.exists(),
             'path': str(custom_css_path),
-            'size': 0
+            'size': 0,
         }
 
         if info['exists']:
@@ -267,7 +289,9 @@ class CSSManager:
 
 
 # Convenience function for quick usage
-def compile_report_css(report_type: str, templates_dir: Optional[str] = None) -> str:
+def compile_report_css(
+    report_type: str, templates_dir: Optional[str] = None
+) -> str:
     """
     Quick function to compile CSS for a report type.
 
@@ -290,18 +314,18 @@ if __name__ == '__main__':
     # Set up logging for testing
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     )
 
-    print("=" * 80)
-    print("CSS Manager Test")
-    print("=" * 80)
+    print('=' * 80)
+    print('CSS Manager Test')
+    print('=' * 80)
 
     # Initialize manager
     manager = CSSManager()
 
     # Validate CSS files
-    print("\n1. Validating CSS files...")
+    print('\n1. Validating CSS files...')
     validation = manager.validate_css_files()
     print(f"   Base styles: {'✓' if validation['base_styles'] else '✗'}")
     print(f"   Components: {'✓' if validation['components'] else '✗'}")
@@ -312,7 +336,7 @@ if __name__ == '__main__':
     report_types = ['robustness', 'resilience', 'uncertainty']
 
     for report_type in report_types:
-        print(f"\n2. Testing {report_type} report...")
+        print(f'\n2. Testing {report_type} report...')
 
         # Get custom CSS info
         custom_info = manager.get_custom_css_info(report_type)
@@ -323,12 +347,12 @@ if __name__ == '__main__':
         # Compile CSS
         try:
             compiled = manager.get_compiled_css(report_type)
-            print(f"   Compiled CSS size: {len(compiled)} chars")
-            print(f"   Success: ✓")
+            print(f'   Compiled CSS size: {len(compiled)} chars')
+            print(f'   Success: ✓')
         except Exception as e:
-            print(f"   Error: {e}")
-            print(f"   Success: ✗")
+            print(f'   Error: {e}')
+            print(f'   Success: ✗')
 
-    print("\n" + "=" * 80)
-    print("Test Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Test Complete')
+    print('=' * 80)

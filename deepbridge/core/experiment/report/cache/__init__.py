@@ -47,10 +47,10 @@ Example Usage:
     ...     cache.set(key, chart)
 """
 
-from .base import CacheStrategy, CacheEntry
+from .base import CacheEntry, CacheStrategy
+from .cache_manager import CacheManager
 from .memory_cache import MemoryCache
 from .no_op_cache import NoOpCache
-from .cache_manager import CacheManager
 
 __all__ = [
     'CacheStrategy',

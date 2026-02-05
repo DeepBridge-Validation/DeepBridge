@@ -1,8 +1,12 @@
+import numpy as np
+from sklearn.base import BaseEstimator, ClassifierMixin
+
+
 class TemperatureScaling(BaseEstimator, ClassifierMixin):
     def __init__(self, base_model, temperature=1.0):
         """
         Construtor da classe.
-        
+
         Args:
             base_model: Modelo base para aplicar o escalonamento de temperatura.
             temperature: Temperatura para ajustar as probabilidades.
@@ -44,6 +48,8 @@ class TemperatureScaling(BaseEstimator, ClassifierMixin):
             y_proba = self.predict_proba(X_val)[:, 1]
             return -roc_auc_score(y_val, y_proba)  # Maximizar ROC AUC
 
-        result = minimize_scalar(objective, bounds=(0.1, 10.0), method='bounded')
+        result = minimize_scalar(
+            objective, bounds=(0.1, 10.0), method='bounded'
+        )
         self.temperature = result.x
         return self

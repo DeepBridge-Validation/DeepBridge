@@ -33,22 +33,23 @@ This transformer can be used in two ways:
    ```
 """
 
-import pandas as pd
-import numpy as np
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
+
+import numpy as np
+import pandas as pd
 
 from ..domain import (
-    ResilienceReportData,
-    ResilienceMetrics,
-    ScenarioData,
-    WorstSampleTestData,
-    WorstClusterTestData,
-    OuterSampleTestData,
     HardSampleTestData,
+    OuterSampleTestData,
+    ResilienceMetrics,
+    ResilienceReportData,
+    ScenarioData,
+    WorstClusterTestData,
+    WorstSampleTestData,
 )
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class ResilienceDomainTransformer:
@@ -66,9 +67,7 @@ class ResilienceDomainTransformer:
     """
 
     def transform_to_model(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> ResilienceReportData:
         """
         Transform raw resilience results to type-safe domain model.
@@ -88,7 +87,7 @@ class ResilienceDomainTransformer:
             >>> print(report.metrics.resilience_score)  # Type-safe!
             >>> print(report.available_test_types)  # Property access!
         """
-        logger.info("Transforming resilience data to domain model")
+        logger.info('Transforming resilience data to domain model')
 
         # Extract main components
         if 'test_results' in results:
@@ -108,7 +107,7 @@ class ResilienceDomainTransformer:
             avg_performance_gap=summary['avg_performance_gap'],
             max_performance_gap=summary['max_performance_gap'],
             min_performance_gap=summary['min_performance_gap'],
-            base_performance=summary['base_performance']
+            base_performance=summary['base_performance'],
         )
 
         # Transform all test types
@@ -146,17 +145,15 @@ class ResilienceDomainTransformer:
         )
 
         logger.info(
-            f"Transformation complete. Model: {report.model_name}, "
-            f"Score: {report.metrics.resilience_score:.3f}, "
-            f"Test Types: {report.num_test_types}"
+            f'Transformation complete. Model: {report.model_name}, '
+            f'Score: {report.metrics.resilience_score:.3f}, '
+            f'Test Types: {report.num_test_types}'
         )
 
         return report
 
     def transform(
-        self,
-        results: Dict[str, Any],
-        model_name: str = "Model"
+        self, results: Dict[str, Any], model_name: str = 'Model'
     ) -> Dict[str, Any]:
         """
         Transform to dictionary (backward-compatible mode).
@@ -198,7 +195,7 @@ class ResilienceDomainTransformer:
                 'performance_gap': s.performance_gap,
                 'baseline_performance': s.baseline_performance,
                 'target_performance': s.target_performance,
-                'is_valid': s.is_valid
+                'is_valid': s.is_valid,
             }
             for s in report.distribution_shift_scenarios
         ]
@@ -215,7 +212,7 @@ class ResilienceDomainTransformer:
                 'remaining_metric': t.remaining_metric,
                 'n_worst_samples': t.n_worst_samples,
                 'n_remaining_samples': t.n_remaining_samples,
-                'is_valid': t.is_valid
+                'is_valid': t.is_valid,
             }
             for t in report.worst_sample_tests
         ]
@@ -233,7 +230,7 @@ class ResilienceDomainTransformer:
                 'worst_cluster_size': t.worst_cluster_size,
                 'remaining_size': t.remaining_size,
                 'top_features': t.top_features,
-                'is_valid': t.is_valid
+                'is_valid': t.is_valid,
             }
             for t in report.worst_cluster_tests
         ]
@@ -250,7 +247,7 @@ class ResilienceDomainTransformer:
                 'inner_metric': t.inner_metric,
                 'n_outer_samples': t.n_outer_samples,
                 'n_inner_samples': t.n_inner_samples,
-                'is_valid': t.is_valid
+                'is_valid': t.is_valid,
             }
             for t in report.outer_sample_tests
         ]
@@ -269,7 +266,7 @@ class ResilienceDomainTransformer:
                 'n_easy_samples': t.n_easy_samples,
                 'model_disagreements': t.model_disagreements,
                 'is_valid': t.is_valid,
-                'reason': t.reason
+                'reason': t.reason,
             }
             for t in report.hard_sample_tests
         ]
@@ -282,7 +279,7 @@ class ResilienceDomainTransformer:
                 {
                     'name': name,
                     'importance': float(importance),
-                    'importance_abs': abs(float(importance))
+                    'importance_abs': abs(float(importance)),
                 }
                 for name, importance in report.top_features
             ],
@@ -290,20 +287,19 @@ class ResilienceDomainTransformer:
                 {
                     'name': name,
                     'importance': float(importance),
-                    'importance_abs': abs(float(importance))
+                    'importance_abs': abs(float(importance)),
                 }
                 for name, importance in sorted(
                     report.feature_importance.items(),
                     key=lambda x: abs(x[1]),
-                    reverse=True
+                    reverse=True,
                 )
-            ]
+            ],
         }
 
         result = {
             'model_name': report.model_name,
             'model_type': report.model_type,
-
             # Summary metrics
             'resilience_score': report.metrics.resilience_score,
             'summary': {
@@ -315,47 +311,45 @@ class ResilienceDomainTransformer:
                 'min_performance_gap': report.metrics.min_performance_gap,
                 'base_performance': report.metrics.base_performance,
                 'test_counts': {
-                    'distribution_shift': len(report.distribution_shift_scenarios),
+                    'distribution_shift': len(
+                        report.distribution_shift_scenarios
+                    ),
                     'worst_sample': len(report.worst_sample_tests),
                     'worst_cluster': len(report.worst_cluster_tests),
                     'outer_sample': len(report.outer_sample_tests),
-                    'hard_sample': len(report.hard_sample_tests)
-                }
+                    'hard_sample': len(report.hard_sample_tests),
+                },
             },
-
             # Test scores
             'test_scores': report.test_scores,
-
             # Test results
             'distribution_shift': scenarios,
             'worst_sample': {
                 'all_results': worst_sample_list,
-                'total_tests': len(worst_sample_list)
+                'total_tests': len(worst_sample_list),
             },
             'worst_cluster': {
                 'all_results': worst_cluster_list,
-                'total_tests': len(worst_cluster_list)
+                'total_tests': len(worst_cluster_list),
             },
             'outer_sample': {
                 'all_results': outer_sample_list,
-                'total_tests': len(outer_sample_list)
+                'total_tests': len(outer_sample_list),
             },
             'hard_sample': {
                 'all_results': hard_sample_list,
-                'total_tests': len(hard_sample_list)
+                'total_tests': len(hard_sample_list),
             },
-
             # Features
             'features': features_data,
-
             # Metadata
             'metadata': {
                 'total_scenarios': report.metrics.total_scenarios,
                 'total_features': len(report.features),
                 'distance_metrics': report.distance_metrics,
                 'alphas': report.alphas,
-                'test_types': report.available_test_types
-            }
+                'test_types': report.available_test_types,
+            },
         }
 
         return result
@@ -368,38 +362,58 @@ class ResilienceDomainTransformer:
         all_gaps = []
 
         # Distribution shift
-        dist_shift = primary_model.get('distribution_shift', {}).get('all_results', [])
+        dist_shift = primary_model.get('distribution_shift', {}).get(
+            'all_results', []
+        )
         for s in dist_shift:
             gap = s.get('performance_gap')
-            if gap is not None and not (isinstance(gap, float) and np.isnan(gap)):
+            if gap is not None and not (
+                isinstance(gap, float) and np.isnan(gap)
+            ):
                 all_gaps.append(gap)
 
         # Worst sample
-        worst_sample = primary_model.get('worst_sample', {}).get('all_results', [])
+        worst_sample = primary_model.get('worst_sample', {}).get(
+            'all_results', []
+        )
         for s in worst_sample:
             gap = s.get('performance_gap')
-            if gap is not None and not (isinstance(gap, float) and np.isnan(gap)):
+            if gap is not None and not (
+                isinstance(gap, float) and np.isnan(gap)
+            ):
                 all_gaps.append(gap)
 
         # Worst cluster
-        worst_cluster = primary_model.get('worst_cluster', {}).get('all_results', [])
+        worst_cluster = primary_model.get('worst_cluster', {}).get(
+            'all_results', []
+        )
         for s in worst_cluster:
             gap = s.get('performance_gap')
-            if gap is not None and not (isinstance(gap, float) and np.isnan(gap)):
+            if gap is not None and not (
+                isinstance(gap, float) and np.isnan(gap)
+            ):
                 all_gaps.append(gap)
 
         # Outer sample
-        outer_sample = primary_model.get('outer_sample', {}).get('all_results', [])
+        outer_sample = primary_model.get('outer_sample', {}).get(
+            'all_results', []
+        )
         for s in outer_sample:
             gap = s.get('performance_gap')
-            if gap is not None and not (isinstance(gap, float) and np.isnan(gap)):
+            if gap is not None and not (
+                isinstance(gap, float) and np.isnan(gap)
+            ):
                 all_gaps.append(gap)
 
         # Hard sample
-        hard_sample = primary_model.get('hard_sample', {}).get('all_results', [])
+        hard_sample = primary_model.get('hard_sample', {}).get(
+            'all_results', []
+        )
         for s in hard_sample:
             gap = s.get('performance_gap')
-            if gap is not None and not (isinstance(gap, float) and np.isnan(gap)):
+            if gap is not None and not (
+                isinstance(gap, float) and np.isnan(gap)
+            ):
                 all_gaps.append(gap)
 
         # Calculate statistics
@@ -411,8 +425,13 @@ class ResilienceDomainTransformer:
             avg_gap = max_gap = min_gap = 0.0
 
         # Count scenarios
-        total_scenarios = (len(dist_shift) + len(worst_sample) +
-                          len(worst_cluster) + len(outer_sample) + len(hard_sample))
+        total_scenarios = (
+            len(dist_shift)
+            + len(worst_sample)
+            + len(worst_cluster)
+            + len(outer_sample)
+            + len(hard_sample)
+        )
 
         # Get base performance
         base_performance = 0.0
@@ -421,7 +440,9 @@ class ResilienceDomainTransformer:
             base_performance = float(metrics_data.get('accuracy', 0))
 
         return {
-            'resilience_score': float(primary_model.get('resilience_score', 1.0)),
+            'resilience_score': float(
+                primary_model.get('resilience_score', 1.0)
+            ),
             'total_scenarios': total_scenarios,
             'valid_scenarios': len(all_gaps),
             'avg_performance_gap': float(avg_gap),
@@ -432,7 +453,9 @@ class ResilienceDomainTransformer:
 
     def _transform_scenarios(self, primary_model: Dict) -> List[ScenarioData]:
         """Transform distribution shift scenarios."""
-        scenarios = primary_model.get('distribution_shift', {}).get('all_results', [])
+        scenarios = primary_model.get('distribution_shift', {}).get(
+            'all_results', []
+        )
 
         scenario_models = []
         for i, scenario in enumerate(scenarios):
@@ -445,26 +468,36 @@ class ResilienceDomainTransformer:
                 perf_gap = None
             if isinstance(worst_metric, float) and np.isnan(worst_metric):
                 worst_metric = None
-            if isinstance(remaining_metric, float) and np.isnan(remaining_metric):
+            if isinstance(remaining_metric, float) and np.isnan(
+                remaining_metric
+            ):
                 remaining_metric = None
 
             scenario_models.append(
                 ScenarioData(
                     id=i + 1,
-                    name=scenario.get('name', f"Scenario {i + 1}"),
+                    name=scenario.get('name', f'Scenario {i + 1}'),
                     alpha=float(scenario.get('alpha', 0)),
                     distance_metric=scenario.get('distance_metric', 'unknown'),
                     metric=scenario.get('metric', 'unknown'),
-                    performance_gap=float(perf_gap) if perf_gap is not None else None,
-                    baseline_performance=float(worst_metric) if worst_metric is not None else None,
-                    target_performance=float(remaining_metric) if remaining_metric is not None else None,
-                    is_valid=perf_gap is not None
+                    performance_gap=float(perf_gap)
+                    if perf_gap is not None
+                    else None,
+                    baseline_performance=float(worst_metric)
+                    if worst_metric is not None
+                    else None,
+                    target_performance=float(remaining_metric)
+                    if remaining_metric is not None
+                    else None,
+                    is_valid=perf_gap is not None,
                 )
             )
 
         return scenario_models
 
-    def _transform_worst_sample(self, primary_model: Dict) -> List[WorstSampleTestData]:
+    def _transform_worst_sample(
+        self, primary_model: Dict
+    ) -> List[WorstSampleTestData]:
         """Transform worst-sample test results."""
         worst_sample_data = primary_model.get('worst_sample', {})
         all_results = worst_sample_data.get('all_results', [])
@@ -479,7 +512,9 @@ class ResilienceDomainTransformer:
                 perf_gap = None
             if isinstance(worst_metric, float) and np.isnan(worst_metric):
                 worst_metric = None
-            if isinstance(remaining_metric, float) and np.isnan(remaining_metric):
+            if isinstance(remaining_metric, float) and np.isnan(
+                remaining_metric
+            ):
                 remaining_metric = None
 
             test_models.append(
@@ -488,18 +523,28 @@ class ResilienceDomainTransformer:
                     alpha=float(result.get('alpha', 0)),
                     ranking_method=result.get('ranking_method', 'unknown'),
                     metric=result.get('metric', 'unknown'),
-                    performance_gap=float(perf_gap) if perf_gap is not None else None,
-                    worst_metric=float(worst_metric) if worst_metric is not None else None,
-                    remaining_metric=float(remaining_metric) if remaining_metric is not None else None,
+                    performance_gap=float(perf_gap)
+                    if perf_gap is not None
+                    else None,
+                    worst_metric=float(worst_metric)
+                    if worst_metric is not None
+                    else None,
+                    remaining_metric=float(remaining_metric)
+                    if remaining_metric is not None
+                    else None,
                     n_worst_samples=int(result.get('n_worst_samples', 0)),
-                    n_remaining_samples=int(result.get('n_remaining_samples', 0)),
-                    is_valid=perf_gap is not None
+                    n_remaining_samples=int(
+                        result.get('n_remaining_samples', 0)
+                    ),
+                    is_valid=perf_gap is not None,
                 )
             )
 
         return test_models
 
-    def _transform_worst_cluster(self, primary_model: Dict) -> List[WorstClusterTestData]:
+    def _transform_worst_cluster(
+        self, primary_model: Dict
+    ) -> List[WorstClusterTestData]:
         """Transform worst-cluster test results."""
         worst_cluster_data = primary_model.get('worst_cluster', {})
         all_results = worst_cluster_data.get('all_results', [])
@@ -514,26 +559,43 @@ class ResilienceDomainTransformer:
                 perf_gap = None
             if isinstance(worst_metric, float) and np.isnan(worst_metric):
                 worst_metric = None
-            if isinstance(remaining_metric, float) and np.isnan(remaining_metric):
+            if isinstance(remaining_metric, float) and np.isnan(
+                remaining_metric
+            ):
                 remaining_metric = None
 
             # Extract top features
             feature_contributions = result.get('feature_contributions', {})
             top_features = sorted(
-                [{'name': k, 'contribution': float(v)} for k, v in feature_contributions.items()],
+                [
+                    {'name': k, 'contribution': float(v)}
+                    for k, v in feature_contributions.items()
+                ],
                 key=lambda x: abs(x['contribution']),
-                reverse=True
+                reverse=True,
             )[:10]
 
             # Handle None values
             worst_cluster_id_raw = result.get('worst_cluster_id', -1)
-            worst_cluster_id = int(worst_cluster_id_raw) if worst_cluster_id_raw is not None else -1
+            worst_cluster_id = (
+                int(worst_cluster_id_raw)
+                if worst_cluster_id_raw is not None
+                else -1
+            )
 
             worst_cluster_size_raw = result.get('worst_cluster_size', 0)
-            worst_cluster_size = int(worst_cluster_size_raw) if worst_cluster_size_raw is not None else 0
+            worst_cluster_size = (
+                int(worst_cluster_size_raw)
+                if worst_cluster_size_raw is not None
+                else 0
+            )
 
             remaining_size_raw = result.get('remaining_size', 0)
-            remaining_size = int(remaining_size_raw) if remaining_size_raw is not None else 0
+            remaining_size = (
+                int(remaining_size_raw)
+                if remaining_size_raw is not None
+                else 0
+            )
 
             test_models.append(
                 WorstClusterTestData(
@@ -541,19 +603,27 @@ class ResilienceDomainTransformer:
                     n_clusters=int(result.get('n_clusters', 0)),
                     worst_cluster_id=worst_cluster_id,
                     metric=result.get('metric', 'unknown'),
-                    performance_gap=float(perf_gap) if perf_gap is not None else None,
-                    worst_cluster_metric=float(worst_metric) if worst_metric is not None else None,
-                    remaining_metric=float(remaining_metric) if remaining_metric is not None else None,
+                    performance_gap=float(perf_gap)
+                    if perf_gap is not None
+                    else None,
+                    worst_cluster_metric=float(worst_metric)
+                    if worst_metric is not None
+                    else None,
+                    remaining_metric=float(remaining_metric)
+                    if remaining_metric is not None
+                    else None,
                     worst_cluster_size=worst_cluster_size,
                     remaining_size=remaining_size,
                     top_features=top_features,
-                    is_valid=perf_gap is not None
+                    is_valid=perf_gap is not None,
                 )
             )
 
         return test_models
 
-    def _transform_outer_sample(self, primary_model: Dict) -> List[OuterSampleTestData]:
+    def _transform_outer_sample(
+        self, primary_model: Dict
+    ) -> List[OuterSampleTestData]:
         """Transform outer-sample test results."""
         outer_sample_data = primary_model.get('outer_sample', {})
         all_results = outer_sample_data.get('all_results', [])
@@ -577,18 +647,26 @@ class ResilienceDomainTransformer:
                     alpha=float(result.get('alpha', 0)),
                     outlier_method=result.get('outlier_method', 'unknown'),
                     metric=result.get('metric', 'unknown'),
-                    performance_gap=float(perf_gap) if perf_gap is not None else None,
-                    outer_metric=float(outer_metric) if outer_metric is not None else None,
-                    inner_metric=float(inner_metric) if inner_metric is not None else None,
+                    performance_gap=float(perf_gap)
+                    if perf_gap is not None
+                    else None,
+                    outer_metric=float(outer_metric)
+                    if outer_metric is not None
+                    else None,
+                    inner_metric=float(inner_metric)
+                    if inner_metric is not None
+                    else None,
                     n_outer_samples=int(result.get('n_outer_samples', 0)),
                     n_inner_samples=int(result.get('n_inner_samples', 0)),
-                    is_valid=perf_gap is not None
+                    is_valid=perf_gap is not None,
                 )
             )
 
         return test_models
 
-    def _transform_hard_sample(self, primary_model: Dict) -> List[HardSampleTestData]:
+    def _transform_hard_sample(
+        self, primary_model: Dict
+    ) -> List[HardSampleTestData]:
         """Transform hard-sample test results."""
         hard_sample_data = primary_model.get('hard_sample', {})
         all_results = hard_sample_data.get('all_results', [])
@@ -606,7 +684,7 @@ class ResilienceDomainTransformer:
                         id=i + 1,
                         skipped=True,
                         reason='No alternative models available',
-                        is_valid=False
+                        is_valid=False,
                     )
                 )
                 continue
@@ -629,15 +707,23 @@ class ResilienceDomainTransformer:
                 HardSampleTestData(
                     id=i + 1,
                     skipped=False,
-                    disagreement_threshold=float(result.get('disagreement_threshold', 0)),
+                    disagreement_threshold=float(
+                        result.get('disagreement_threshold', 0)
+                    ),
                     metric=result.get('metric', 'unknown'),
-                    performance_gap=float(perf_gap) if perf_gap is not None else None,
-                    hard_metric=float(hard_metric) if hard_metric is not None else None,
-                    easy_metric=float(easy_metric) if easy_metric is not None else None,
+                    performance_gap=float(perf_gap)
+                    if perf_gap is not None
+                    else None,
+                    hard_metric=float(hard_metric)
+                    if hard_metric is not None
+                    else None,
+                    easy_metric=float(easy_metric)
+                    if easy_metric is not None
+                    else None,
                     n_hard_samples=int(result.get('n_hard_samples', 0)),
                     n_easy_samples=int(result.get('n_easy_samples', 0)),
                     model_disagreements=disagreement_list,
-                    is_valid=perf_gap is not None
+                    is_valid=perf_gap is not None,
                 )
             )
 
@@ -650,22 +736,18 @@ class ResilienceDomainTransformer:
         feature_importance = primary_model.get('feature_importance', {})
 
         if not feature_importance:
-            logger.warning("No feature importance data found")
-            return {
-                'total': 0,
-                'importance': {},
-                'feature_list': []
-            }
+            logger.warning('No feature importance data found')
+            return {'total': 0, 'importance': {}, 'feature_list': []}
 
         # Get feature names sorted by importance
         feature_list = sorted(
             feature_importance.keys(),
             key=lambda x: abs(feature_importance[x]),
-            reverse=True
+            reverse=True,
         )
 
         return {
             'total': len(feature_importance),
             'importance': feature_importance,
-            'feature_list': feature_list
+            'feature_list': feature_list,
         }

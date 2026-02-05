@@ -1,27 +1,34 @@
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import pandas as pd
 from scipy.special import expit, logit
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, accuracy_score, classification_report
-from typing import Dict, Any, Union, Optional, List
+
+from deepbridge.metrics.classification import Classification
 
 # Imports absolutos
-from deepbridge.utils.model_registry import ModelRegistry, ModelType, ModelMode
-from deepbridge.metrics.classification import Classification
+from deepbridge.utils.model_registry import ModelMode, ModelRegistry, ModelType
+
 
 class SurrogateModel:
     """
     SurrogateModel provides a simple and direct approach to model distillation
     by fitting regression models to the output probabilities of a complex model.
-    
+
     Unlike the more sophisticated KnowledgeDistillation class, this implementation
     takes a direct regression-based approach to mimicking the teacher model's outputs.
     """
-    
+
     def __init__(
-        self, 
-        model_type: ModelType = ModelType.GBM, 
-        model_params: Optional[Dict[str, Any]] = None
+        self,
+        model_type: ModelType = ModelType.GBM,
+        model_params: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize the surrogate model with the chosen model type.
@@ -34,21 +41,19 @@ class SurrogateModel:
         self.model_params = model_params or {}
         self.is_fitted = False
         self.metrics_calculator = Classification()
-        
+
         # Create the model using ModelRegistry with REGRESSION mode
         self.model = ModelRegistry.get_model(
-            model_type, 
-            self.model_params, 
-            mode=ModelMode.REGRESSION
+            model_type, self.model_params, mode=ModelMode.REGRESSION
         )
 
     def fit(
-        self, 
-        X: Union[np.ndarray, pd.DataFrame], 
-        probas: Union[np.ndarray, pd.DataFrame, pd.Series], 
+        self,
+        X: Union[np.ndarray, pd.DataFrame],
+        probas: Union[np.ndarray, pd.DataFrame, pd.Series],
         test_size: float = 0.2,
         random_state: Optional[int] = 42,
-        verbose: bool = True
+        verbose: bool = True,
     ) -> 'SurrogateModel':
         """
         Train the surrogate model using original features and teacher model probabilities.
@@ -78,7 +83,7 @@ class SurrogateModel:
 
         # Apply logit transformation to probabilities (with small epsilon to avoid log(0) or log(1))
         y_train = logit(np.clip(probas_train, 0.0001, 0.9999))
-        
+
         # Train the model
         self.model.fit(X_train, y_train)
         self.is_fitted = True
@@ -88,7 +93,7 @@ class SurrogateModel:
             # Make predictions
             train_logits = self.model.predict(X_train)
             test_logits = self.model.predict(X_test)
-            
+
             # Convert logits back to probabilities
             train_probas = expit(train_logits)
             test_probas = expit(test_logits)
@@ -97,21 +102,25 @@ class SurrogateModel:
             train_metrics = self.metrics_calculator.calculate_metrics(
                 y_true=probas_train_binary,
                 y_pred=(train_probas > 0.5).astype(int),
-                y_prob=train_probas
+                y_prob=train_probas,
             )
-            
+
             test_metrics = self.metrics_calculator.calculate_metrics(
                 y_true=probas_test_binary,
                 y_pred=(test_probas > 0.5).astype(int),
-                y_prob=test_probas
+                y_prob=test_probas,
             )
 
-            print("Surrogate Model Training Results:")
-            print(f"Train metrics: Accuracy={train_metrics.get('accuracy', 'N/A'):.4f}, "
-                  f"AUC-ROC={train_metrics.get('auc_roc', 'N/A'):.4f}")
-            print(f"Test metrics: Accuracy={test_metrics.get('accuracy', 'N/A'):.4f}, "
-                  f"AUC-ROC={test_metrics.get('auc_roc', 'N/A'):.4f}")
-            
+            print('Surrogate Model Training Results:')
+            print(
+                f"Train metrics: Accuracy={train_metrics.get('accuracy', 'N/A'):.4f}, "
+                f"AUC-ROC={train_metrics.get('auc_roc', 'N/A'):.4f}"
+            )
+            print(
+                f"Test metrics: Accuracy={test_metrics.get('accuracy', 'N/A'):.4f}, "
+                f"AUC-ROC={test_metrics.get('auc_roc', 'N/A'):.4f}"
+            )
+
             # Store metrics
             self.train_metrics = train_metrics
             self.test_metrics = test_metrics
@@ -129,7 +138,7 @@ class SurrogateModel:
             Binary predictions (0 or 1)
         """
         if not self.is_fitted:
-            raise ValueError("Model must be fitted before making predictions")
+            raise ValueError('Model must be fitted before making predictions')
 
         # Get probability predictions
         probabilities = self._predict_probabilities(X)
@@ -139,7 +148,9 @@ class SurrogateModel:
 
         return binary_predictions
 
-    def _predict_probabilities(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
+    def _predict_probabilities(
+        self, X: Union[np.ndarray, pd.DataFrame]
+    ) -> np.ndarray:
         """
         Internal method to get probability predictions.
 
@@ -156,7 +167,7 @@ class SurrogateModel:
         probabilities = expit(logits)
 
         return probabilities
-    
+
     def predict_proba(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         """
         Make probability predictions with the surrogate model.
@@ -169,7 +180,7 @@ class SurrogateModel:
             Array with shape (n_samples, 2) containing probabilities for both classes
         """
         if not self.is_fitted:
-            raise ValueError("Model must be fitted before making predictions")
+            raise ValueError('Model must be fitted before making predictions')
 
         # Get positive class probabilities using internal method
         pos_probas = self._predict_probabilities(X)
@@ -178,8 +189,10 @@ class SurrogateModel:
         probas = np.column_stack([1 - pos_probas, pos_probas])
 
         return probas
-        
-    def _process_probabilities(self, probas: Union[np.ndarray, pd.DataFrame, pd.Series]) -> np.ndarray:
+
+    def _process_probabilities(
+        self, probas: Union[np.ndarray, pd.DataFrame, pd.Series]
+    ) -> np.ndarray:
         """
         Process input probabilities to extract positive class probabilities.
 
@@ -204,11 +217,11 @@ class SurrogateModel:
             else:
                 # Single column DataFrame
                 return probas.iloc[:, 0].values
-                
+
         # Handle Series
         elif isinstance(probas, pd.Series):
             return probas.values
-            
+
         # Handle numpy array
         elif isinstance(probas, np.ndarray):
             # If 2D array with multiple columns
@@ -217,15 +230,17 @@ class SurrogateModel:
             else:
                 # 1D array or single column
                 return probas.flatten()
-                
+
         else:
-            raise ValueError(f"Unsupported probability format: {type(probas)}")
-    
+            raise ValueError(f'Unsupported probability format: {type(probas)}')
+
     def evaluate(
-        self, 
-        X: Union[np.ndarray, pd.DataFrame], 
-        y_true: Union[np.ndarray, pd.Series], 
-        teacher_prob: Optional[Union[np.ndarray, pd.DataFrame, pd.Series]] = None
+        self,
+        X: Union[np.ndarray, pd.DataFrame],
+        y_true: Union[np.ndarray, pd.Series],
+        teacher_prob: Optional[
+            Union[np.ndarray, pd.DataFrame, pd.Series]
+        ] = None,
     ) -> Dict[str, Any]:
         """
         Evaluate the surrogate model using the Classification metrics calculator.
@@ -239,20 +254,22 @@ class SurrogateModel:
             Dictionary containing evaluation metrics
         """
         if not self.is_fitted:
-            raise ValueError("Model must be fitted before evaluation")
-            
+            raise ValueError('Model must be fitted before evaluation')
+
         # Get surrogate model predictions
         surrogate_preds = self.predict(X)  # Now returns binary predictions
-        surrogate_probas = self._predict_probabilities(X)  # Get probabilities for metrics
+        surrogate_probas = self._predict_probabilities(
+            X
+        )  # Get probabilities for metrics
 
         # Calculate metrics using Classification metrics calculator
         metrics = self.metrics_calculator.calculate_metrics(
             y_true=y_true,
             y_pred=surrogate_preds,
             y_prob=surrogate_probas,
-            teacher_prob=teacher_prob
+            teacher_prob=teacher_prob,
         )
-        
+
         return metrics
 
     @classmethod
@@ -263,11 +280,11 @@ class SurrogateModel:
         student_params: Dict[str, Any] = None,
         random_state: int = 42,
         validation_split: float = 0.2,
-        n_trials: int = 10
+        n_trials: int = 10,
     ) -> 'SurrogateModel':
         """
         Create a SurrogateModel instance from pre-calculated probabilities.
-        
+
         Args:
             probabilities: Array or DataFrame containing class probabilities
             student_model_type: Type of student model to use
@@ -275,7 +292,7 @@ class SurrogateModel:
             random_state: Random seed for reproducibility
             validation_split: Parameter added for compatibility with KnowledgeDistillation API
             n_trials: Parameter added for compatibility with KnowledgeDistillation API
-            
+
         Returns:
             SurrogateModel instance
         """
@@ -284,7 +301,4 @@ class SurrogateModel:
         if random_state is not None:
             model_params['random_state'] = random_state
 
-        return cls(
-            model_type=student_model_type,
-            model_params=model_params
-        )
+        return cls(model_type=student_model_type, model_params=model_params)

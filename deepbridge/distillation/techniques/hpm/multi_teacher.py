@@ -5,13 +5,14 @@ This module implements a multi-teacher distillation system with attention mechan
 that adaptively weights knowledge from multiple teacher models.
 """
 
+import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Optional, Any, Union, Tuple
-from dataclasses import dataclass
-import logging
-from sklearn.metrics import pairwise_distances
 from scipy.special import softmax
+from sklearn.metrics import pairwise_distances
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class TeacherModel:
     """
     Represents a teacher model with its characteristics.
     """
+
     model: Any
     model_type: str
     performance: float
@@ -43,7 +45,7 @@ class AttentionWeightedMultiTeacher:
         temperature: float = 1.0,
         agreement_threshold: float = 0.8,
         confidence_threshold: float = 0.7,
-        use_uncertainty_weighting: bool = True
+        use_uncertainty_weighting: bool = True,
     ):
         """
         Initialize the multi-teacher system.
@@ -76,7 +78,7 @@ class AttentionWeightedMultiTeacher:
         model: Any,
         model_type: str,
         performance: float,
-        predictions: Optional[np.ndarray] = None
+        predictions: Optional[np.ndarray] = None,
     ):
         """
         Add a teacher model to the ensemble.
@@ -91,17 +93,19 @@ class AttentionWeightedMultiTeacher:
             model=model,
             model_type=model_type,
             performance=performance,
-            predictions=predictions
+            predictions=predictions,
         )
 
         self.teachers.append(teacher)
-        logger.info(f"Added teacher: {model_type} with performance {performance:.4f}")
+        logger.info(
+            f'Added teacher: {model_type} with performance {performance:.4f}'
+        )
 
     def compute_attention_weights(
         self,
         X: Union[np.ndarray, pd.DataFrame],
         student_predictions: Optional[np.ndarray] = None,
-        student_state: Optional[Dict[str, Any]] = None
+        student_state: Optional[Dict[str, Any]] = None,
     ) -> np.ndarray:
         """
         Compute attention weights for each teacher.
@@ -115,16 +119,14 @@ class AttentionWeightedMultiTeacher:
             Attention weights for each teacher
         """
         if not self.teachers:
-            raise ValueError("No teachers available")
+            raise ValueError('No teachers available')
 
         # Get predictions from all teachers
         teacher_predictions = self._get_all_predictions(X)
 
         if self.attention_type == 'learned':
             weights = self._compute_learned_attention(
-                teacher_predictions,
-                student_predictions,
-                student_state
+                teacher_predictions, student_predictions, student_state
             )
         elif self.attention_type == 'performance':
             weights = self._compute_performance_attention()
@@ -132,9 +134,7 @@ class AttentionWeightedMultiTeacher:
             weights = self._compute_agreement_attention(teacher_predictions)
         elif self.attention_type == 'hybrid':
             weights = self._compute_hybrid_attention(
-                teacher_predictions,
-                student_predictions,
-                student_state
+                teacher_predictions, student_predictions, student_state
             )
         else:
             # Equal weights as fallback
@@ -151,8 +151,7 @@ class AttentionWeightedMultiTeacher:
         return weights
 
     def _get_all_predictions(
-        self,
-        X: Union[np.ndarray, pd.DataFrame]
+        self, X: Union[np.ndarray, pd.DataFrame]
     ) -> List[np.ndarray]:
         """
         Get predictions from all teachers.
@@ -201,7 +200,7 @@ class AttentionWeightedMultiTeacher:
         self,
         teacher_predictions: List[np.ndarray],
         student_predictions: Optional[np.ndarray],
-        student_state: Optional[Dict[str, Any]]
+        student_state: Optional[Dict[str, Any]],
     ) -> np.ndarray:
         """
         Compute learned attention weights based on multiple factors.
@@ -235,16 +234,19 @@ class AttentionWeightedMultiTeacher:
             confidence_weights = np.ones(n_teachers) / n_teachers
 
         # Factor 3: Agreement with other teachers
-        agreement_weights = self._compute_agreement_attention(teacher_predictions)
+        agreement_weights = self._compute_agreement_attention(
+            teacher_predictions
+        )
 
         # Factor 4: Complementarity (diversity)
-        diversity_weights = self._compute_diversity_weights(teacher_predictions)
+        diversity_weights = self._compute_diversity_weights(
+            teacher_predictions
+        )
 
         # Factor 5: Student-teacher alignment (if student predictions available)
         if student_predictions is not None:
             alignment_weights = self._compute_alignment_weights(
-                teacher_predictions,
-                student_predictions
+                teacher_predictions, student_predictions
             )
         else:
             alignment_weights = np.ones(n_teachers) / n_teachers
@@ -259,20 +261,20 @@ class AttentionWeightedMultiTeacher:
             # Early training: focus on performance and agreement
             # Late training: focus on diversity and alignment
             weights = (
-                (0.4 - 0.2 * progress) * performance_weights +
-                (0.3 - 0.1 * progress) * agreement_weights +
-                (0.1 + 0.2 * progress) * diversity_weights +
-                (0.1 + 0.1 * progress) * alignment_weights +
-                0.1 * confidence_weights
+                (0.4 - 0.2 * progress) * performance_weights
+                + (0.3 - 0.1 * progress) * agreement_weights
+                + (0.1 + 0.2 * progress) * diversity_weights
+                + (0.1 + 0.1 * progress) * alignment_weights
+                + 0.1 * confidence_weights
             )
         else:
             # Default combination
             weights = (
-                0.3 * performance_weights +
-                0.25 * agreement_weights +
-                0.2 * diversity_weights +
-                0.15 * alignment_weights +
-                0.1 * confidence_weights
+                0.3 * performance_weights
+                + 0.25 * agreement_weights
+                + 0.2 * diversity_weights
+                + 0.15 * alignment_weights
+                + 0.1 * confidence_weights
             )
 
         return weights
@@ -292,8 +294,7 @@ class AttentionWeightedMultiTeacher:
         return weights
 
     def _compute_agreement_attention(
-        self,
-        teacher_predictions: List[np.ndarray]
+        self, teacher_predictions: List[np.ndarray]
     ) -> np.ndarray:
         """
         Compute attention based on teacher agreement.
@@ -326,8 +327,7 @@ class AttentionWeightedMultiTeacher:
         return weights
 
     def _compute_diversity_weights(
-        self,
-        teacher_predictions: List[np.ndarray]
+        self, teacher_predictions: List[np.ndarray]
     ) -> np.ndarray:
         """
         Compute weights based on prediction diversity.
@@ -350,14 +350,18 @@ class AttentionWeightedMultiTeacher:
             diversity_scores[i] = np.mean(kl_div)
 
         # Higher diversity gets more weight (encourages ensemble diversity)
-        weights = diversity_scores / np.sum(diversity_scores) if np.sum(diversity_scores) > 0 else np.ones(n_teachers) / n_teachers
+        weights = (
+            diversity_scores / np.sum(diversity_scores)
+            if np.sum(diversity_scores) > 0
+            else np.ones(n_teachers) / n_teachers
+        )
 
         return weights
 
     def _compute_alignment_weights(
         self,
         teacher_predictions: List[np.ndarray],
-        student_predictions: np.ndarray
+        student_predictions: np.ndarray,
     ) -> np.ndarray:
         """
         Compute weights based on teacher-student alignment.
@@ -374,7 +378,9 @@ class AttentionWeightedMultiTeacher:
 
         # Ensure student predictions are in probability form
         if student_predictions.ndim == 1:
-            student_predictions = np.column_stack([1 - student_predictions, student_predictions])
+            student_predictions = np.column_stack(
+                [1 - student_predictions, student_predictions]
+            )
 
         for i, teacher_preds in enumerate(teacher_predictions):
             # Calculate KL divergence (lower is better alignment)
@@ -391,7 +397,7 @@ class AttentionWeightedMultiTeacher:
         self,
         teacher_predictions: List[np.ndarray],
         student_predictions: Optional[np.ndarray],
-        student_state: Optional[Dict[str, Any]]
+        student_state: Optional[Dict[str, Any]],
     ) -> np.ndarray:
         """
         Compute hybrid attention combining multiple strategies.
@@ -406,15 +412,13 @@ class AttentionWeightedMultiTeacher:
         """
         # Use learned attention as base
         return self._compute_learned_attention(
-            teacher_predictions,
-            student_predictions,
-            student_state
+            teacher_predictions, student_predictions, student_state
         )
 
     def weighted_knowledge_fusion(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        attention_weights: Optional[np.ndarray] = None
+        attention_weights: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Fuse knowledge from all teachers using attention weights.
@@ -427,7 +431,7 @@ class AttentionWeightedMultiTeacher:
             Fused predictions
         """
         if not self.teachers:
-            raise ValueError("No teachers available")
+            raise ValueError('No teachers available')
 
         # Get or compute attention weights
         if attention_weights is None:
@@ -439,17 +443,18 @@ class AttentionWeightedMultiTeacher:
         # Weighted fusion
         fused_predictions = np.zeros_like(teacher_predictions[0])
 
-        for i, (preds, weight) in enumerate(zip(teacher_predictions, attention_weights)):
+        for i, (preds, weight) in enumerate(
+            zip(teacher_predictions, attention_weights)
+        ):
             fused_predictions += weight * preds
 
             # Update teacher attention weight
             self.teachers[i].attention_weight = weight
 
         # Store fusion result
-        self.fusion_history.append({
-            'weights': attention_weights.copy(),
-            'n_samples': len(X)
-        })
+        self.fusion_history.append(
+            {'weights': attention_weights.copy(), 'n_samples': len(X)}
+        )
 
         return fused_predictions
 
@@ -457,7 +462,7 @@ class AttentionWeightedMultiTeacher:
         self,
         X: Union[np.ndarray, pd.DataFrame],
         y_true: Optional[np.ndarray] = None,
-        optimize_weights: bool = True
+        optimize_weights: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perform adaptive knowledge fusion with optional weight optimization.
@@ -486,7 +491,7 @@ class AttentionWeightedMultiTeacher:
         self,
         X: Union[np.ndarray, pd.DataFrame],
         y_true: np.ndarray,
-        n_iterations: int = 100
+        n_iterations: int = 100,
     ) -> np.ndarray:
         """
         Optimize attention weights using gradient-free optimization.
@@ -503,7 +508,7 @@ class AttentionWeightedMultiTeacher:
 
         # Return equal weights if no teachers
         if n_teachers == 0:
-            logger.warning("No teachers available for weight optimization")
+            logger.warning('No teachers available for weight optimization')
             return np.array([])
 
         best_weights = np.ones(n_teachers) / n_teachers
@@ -514,7 +519,7 @@ class AttentionWeightedMultiTeacher:
 
         # Check if we have predictions
         if not teacher_predictions:
-            logger.warning("No teacher predictions available")
+            logger.warning('No teacher predictions available')
             return best_weights
 
         for _ in range(n_iterations):
@@ -534,7 +539,7 @@ class AttentionWeightedMultiTeacher:
                 best_score = score
                 best_weights = weights
 
-        logger.info(f"Optimized weights achieved score: {best_score:.4f}")
+        logger.info(f'Optimized weights achieved score: {best_score:.4f}')
         return best_weights
 
     def _kl_divergence(self, p: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -580,7 +585,7 @@ class AttentionWeightedMultiTeacher:
             threshold: Minimum average attention weight to keep teacher
         """
         if not self.attention_history or len(self.attention_history) < 5:
-            logger.warning("Not enough history to prune teachers")
+            logger.warning('Not enough history to prune teachers')
             return
 
         avg_weights = np.mean(self.attention_history[-10:], axis=0)
@@ -589,13 +594,15 @@ class AttentionWeightedMultiTeacher:
         keep_indices = avg_weights >= threshold
 
         if np.sum(keep_indices) < 2:
-            logger.warning("Would remove too many teachers, keeping top 2")
+            logger.warning('Would remove too many teachers, keeping top 2')
             keep_indices = np.argsort(avg_weights)[-2:]
 
         # Filter teachers
-        self.teachers = [t for i, t in enumerate(self.teachers) if keep_indices[i]]
+        self.teachers = [
+            t for i, t in enumerate(self.teachers) if keep_indices[i]
+        ]
 
-        logger.info(f"Pruned to {len(self.teachers)} teachers")
+        logger.info(f'Pruned to {len(self.teachers)} teachers')
 
     def reset(self):
         """

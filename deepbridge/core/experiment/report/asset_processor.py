@@ -7,16 +7,16 @@ Processes assets for report generation with streamlined architecture:
 - Images: Cached base64 encoding
 """
 
-import os
 import base64
 import logging
-from typing import Dict, Any
+import os
 from functools import lru_cache
+from typing import Any, Dict
 
 from .css_manager import CSSManager
 from .utils import file_utils
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 class AssetProcessor:
@@ -106,14 +106,16 @@ class AssetProcessor:
             >>> js = processor.get_js_content('/path/to/js')
         """
         if not os.path.exists(js_dir):
-            raise FileNotFoundError(f"JavaScript directory not found: {js_dir}")
+            raise FileNotFoundError(
+                f'JavaScript directory not found: {js_dir}'
+            )
 
         # Discover JS files
         files = file_utils.find_js_files(js_dir)
 
         if not files:
-            logger.warning(f"No JavaScript files found in {js_dir}")
-            return ""
+            logger.warning(f'No JavaScript files found in {js_dir}')
+            return ''
 
         # Build full paths in priority order
         priority_order = ['main', 'utils']  # Load these first
@@ -132,10 +134,14 @@ class AssetProcessor:
                     file_paths.append(full_path)
 
         # Combine files
-        combined_js = "/* ----- Combined JavaScript ----- */\n\n"
-        combined_js += file_utils.combine_text_files(file_paths, separator="\n\n")
+        combined_js = '/* ----- Combined JavaScript ----- */\n\n'
+        combined_js += file_utils.combine_text_files(
+            file_paths, separator='\n\n'
+        )
 
-        logger.info(f"Combined {len(file_paths)} JavaScript files from {js_dir}")
+        logger.info(
+            f'Combined {len(file_paths)} JavaScript files from {js_dir}'
+        )
         return combined_js
 
     def get_generic_js_content(self) -> str:
@@ -151,7 +157,9 @@ class AssetProcessor:
         js_dir = os.path.join(self.asset_manager.assets_dir, 'js')
 
         if not os.path.exists(js_dir):
-            raise FileNotFoundError(f"Generic JavaScript directory not found: {js_dir}")
+            raise FileNotFoundError(
+                f'Generic JavaScript directory not found: {js_dir}'
+            )
 
         return self.get_js_content(js_dir)
 
@@ -172,34 +180,38 @@ class AssetProcessor:
         Example:
             >>> js = processor.get_combined_js_content('uncertainty')
         """
-        combined_js = "/* ===== Combined JavaScript for {} ===== */\n\n".format(test_type)
+        combined_js = (
+            '/* ===== Combined JavaScript for {} ===== */\n\n'.format(
+                test_type
+            )
+        )
 
         # 1. Get test-specific JS
         js_path = file_utils.find_asset_path(
-            self.asset_manager.templates_dir,
-            test_type,
-            'js'
+            self.asset_manager.templates_dir, test_type, 'js'
         )
 
         if js_path:
             try:
                 test_js = self.get_js_content(js_path)
-                combined_js += "/* Test-Specific JavaScript */\n"
-                combined_js += test_js + "\n\n"
-                logger.info(f"Added test-specific JavaScript for {test_type}")
+                combined_js += '/* Test-Specific JavaScript */\n'
+                combined_js += test_js + '\n\n'
+                logger.info(f'Added test-specific JavaScript for {test_type}')
             except Exception as e:
-                logger.warning(f"Could not load test-specific JS for {test_type}: {e}")
+                logger.warning(
+                    f'Could not load test-specific JS for {test_type}: {e}'
+                )
         else:
-            logger.info(f"No test-specific JavaScript found for {test_type}")
+            logger.info(f'No test-specific JavaScript found for {test_type}')
 
         # 2. Get generic JS
         try:
             generic_js = self.get_generic_js_content()
-            combined_js += "/* Generic JavaScript */\n"
+            combined_js += '/* Generic JavaScript */\n'
             combined_js += generic_js
-            logger.info("Added generic JavaScript")
+            logger.info('Added generic JavaScript')
         except Exception as e:
-            logger.warning(f"Could not load generic JavaScript: {e}")
+            logger.warning(f'Could not load generic JavaScript: {e}')
 
         return combined_js
 
@@ -224,7 +236,7 @@ class AssetProcessor:
             >>> data_url = processor.get_base64_image('/path/to/image.png')
         """
         if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image file not found: {image_path}")
+            raise FileNotFoundError(f'Image file not found: {image_path}')
 
         # Determine MIME type from extension
         ext = os.path.splitext(image_path)[1].lower()
@@ -234,17 +246,17 @@ class AssetProcessor:
             '.jpeg': 'image/jpeg',
             '.gif': 'image/gif',
             '.svg': 'image/svg+xml',
-            '.ico': 'image/x-icon'
+            '.ico': 'image/x-icon',
         }
         mime_type = mime_types.get(ext, 'image/png')
 
         # Read and encode
         try:
-            with open(image_path, "rb") as img_file:
+            with open(image_path, 'rb') as img_file:
                 base64_str = base64.b64encode(img_file.read()).decode('utf-8')
-                return f"data:{mime_type};base64,{base64_str}"
+                return f'data:{mime_type};base64,{base64_str}'
         except Exception as e:
-            logger.error(f"Error encoding image {image_path}: {e}")
+            logger.error(f'Error encoding image {image_path}: {e}')
             raise
 
     @lru_cache(maxsize=1)
@@ -259,7 +271,9 @@ class AssetProcessor:
             FileNotFoundError: If logo doesn't exist
         """
         if not os.path.exists(self.asset_manager.logo_path):
-            raise FileNotFoundError(f"Logo file not found: {self.asset_manager.logo_path}")
+            raise FileNotFoundError(
+                f'Logo file not found: {self.asset_manager.logo_path}'
+            )
         return self.get_base64_image(self.asset_manager.logo_path)
 
     @lru_cache(maxsize=1)
@@ -274,7 +288,9 @@ class AssetProcessor:
             FileNotFoundError: If favicon doesn't exist
         """
         if not os.path.exists(self.asset_manager.favicon_path):
-            raise FileNotFoundError(f"Favicon file not found: {self.asset_manager.favicon_path}")
+            raise FileNotFoundError(
+                f'Favicon file not found: {self.asset_manager.favicon_path}'
+            )
         return self.get_base64_image(self.asset_manager.favicon_path)
 
     def get_icons(self) -> Dict[str, str]:
@@ -292,30 +308,31 @@ class AssetProcessor:
         icons_dir = os.path.join(self.asset_manager.images_dir, 'icons')
 
         if not os.path.exists(icons_dir):
-            logger.warning(f"Icons directory not found: {icons_dir}")
+            logger.warning(f'Icons directory not found: {icons_dir}')
             return icons
 
         # Find all image files
         icon_files = file_utils.find_files_by_pattern(
-            icons_dir,
-            '*.{svg,png,jpg,jpeg,ico,gif}'
+            icons_dir, '*.{svg,png,jpg,jpeg,ico,gif}'
         )
 
         if not icon_files:
             # Try individual patterns
             for ext in ['svg', 'png', 'jpg', 'jpeg', 'ico', 'gif']:
-                icon_files.extend(file_utils.find_files_by_pattern(icons_dir, f'*.{ext}'))
+                icon_files.extend(
+                    file_utils.find_files_by_pattern(icons_dir, f'*.{ext}')
+                )
 
         # Encode each icon
         for icon_path in icon_files:
             icon_name = os.path.splitext(os.path.basename(icon_path))[0]
             try:
                 icons[icon_name] = self.get_base64_image(icon_path)
-                logger.debug(f"Loaded icon: {icon_name}")
+                logger.debug(f'Loaded icon: {icon_name}')
             except Exception as e:
-                logger.warning(f"Could not load icon {icon_name}: {e}")
+                logger.warning(f'Could not load icon {icon_name}: {e}')
 
-        logger.info(f"Loaded {len(icons)} icons")
+        logger.info(f'Loaded {len(icons)} icons')
         return icons
 
     # ==================================================================================
@@ -341,49 +358,49 @@ class AssetProcessor:
             >>> assets = processor.create_full_report_assets('uncertainty')
             >>> html = template.render(**assets)
         """
-        logger.info(f"Creating full asset bundle for {test_type}")
+        logger.info(f'Creating full asset bundle for {test_type}')
 
         assets = {}
 
         # CSS
         try:
             assets['css_content'] = self.get_combined_css_content(test_type)
-            logger.info("CSS loaded successfully")
+            logger.info('CSS loaded successfully')
         except Exception as e:
-            logger.error(f"Error loading CSS: {e}")
-            assets['css_content'] = ""
+            logger.error(f'Error loading CSS: {e}')
+            assets['css_content'] = ''
 
         # JavaScript
         try:
             assets['js_content'] = self.get_combined_js_content(test_type)
-            logger.info("JavaScript loaded successfully")
+            logger.info('JavaScript loaded successfully')
         except Exception as e:
-            logger.error(f"Error loading JavaScript: {e}")
-            assets['js_content'] = ""
+            logger.error(f'Error loading JavaScript: {e}')
+            assets['js_content'] = ''
 
         # Logo
         try:
             assets['logo'] = self.get_logo_base64()
-            logger.info("Logo loaded successfully")
+            logger.info('Logo loaded successfully')
         except Exception as e:
-            logger.warning(f"Error loading logo: {e}")
-            assets['logo'] = ""
+            logger.warning(f'Error loading logo: {e}')
+            assets['logo'] = ''
 
         # Favicon
         try:
             assets['favicon'] = self.get_favicon_base64()
-            logger.info("Favicon loaded successfully")
+            logger.info('Favicon loaded successfully')
         except Exception as e:
-            logger.warning(f"Error loading favicon: {e}")
-            assets['favicon'] = ""
+            logger.warning(f'Error loading favicon: {e}')
+            assets['favicon'] = ''
 
         # Icons
         try:
             assets['icons'] = self.get_icons()
             logger.info(f"Loaded {len(assets['icons'])} icons")
         except Exception as e:
-            logger.warning(f"Error loading icons: {e}")
+            logger.warning(f'Error loading icons: {e}')
             assets['icons'] = {}
 
-        logger.info(f"Asset bundle created for {test_type}")
+        logger.info(f'Asset bundle created for {test_type}')
         return assets

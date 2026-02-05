@@ -13,11 +13,12 @@ Use Cases:
 Based on research from Google's Slice Finder and Microsoft's Spotlight.
 """
 
+import warnings
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any, Callable
 from sklearn.tree import DecisionTreeRegressor
-import warnings
 
 
 class WeakspotDetector:
@@ -53,11 +54,13 @@ class WeakspotDetector:
     ...     print(f"  {ws['feature']}: {ws['range']} (severity={ws['severity']:.2f})")
     """
 
-    def __init__(self,
-                 slice_method: str = 'quantile',
-                 n_slices: int = 10,
-                 min_samples_per_slice: int = 30,
-                 severity_threshold: float = 0.15):
+    def __init__(
+        self,
+        slice_method: str = 'quantile',
+        n_slices: int = 10,
+        min_samples_per_slice: int = 30,
+        severity_threshold: float = 0.15,
+    ):
         """
         Initialize WeakSpot Detector.
 
@@ -79,19 +82,21 @@ class WeakspotDetector:
         """
         valid_methods = ['uniform', 'quantile', 'tree-based']
         if slice_method not in valid_methods:
-            raise ValueError(f"slice_method must be one of {valid_methods}")
+            raise ValueError(f'slice_method must be one of {valid_methods}')
 
         self.slice_method = slice_method
         self.n_slices = n_slices
         self.min_samples_per_slice = min_samples_per_slice
         self.severity_threshold = severity_threshold
 
-    def detect_weak_regions(self,
-                           X: pd.DataFrame,
-                           y_true: np.ndarray,
-                           y_pred: np.ndarray,
-                           slice_features: Optional[List[str]] = None,
-                           metric: str = 'mae') -> Dict[str, Any]:
+    def detect_weak_regions(
+        self,
+        X: pd.DataFrame,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        slice_features: Optional[List[str]] = None,
+        metric: str = 'mae',
+    ) -> Dict[str, Any]:
         """
         Identify weak regions where model performance degrades.
 
@@ -131,22 +136,30 @@ class WeakspotDetector:
         """
         # Validate inputs
         if len(y_true) != len(y_pred):
-            raise ValueError(f"y_true and y_pred must have same length ({len(y_true)} vs {len(y_pred)})")
+            raise ValueError(
+                f'y_true and y_pred must have same length ({len(y_true)} vs {len(y_pred)})'
+            )
 
         if len(X) != len(y_true):
-            raise ValueError(f"X and y_true must have same length ({len(X)} vs {len(y_true)})")
+            raise ValueError(
+                f'X and y_true must have same length ({len(X)} vs {len(y_true)})'
+            )
 
         # Select features to analyze
         if slice_features is None:
             # Auto-select numeric features
-            slice_features = X.select_dtypes(include=[np.number]).columns.tolist()
+            slice_features = X.select_dtypes(
+                include=[np.number]
+            ).columns.tolist()
             if not slice_features:
-                raise ValueError("No numeric features found in X. Specify slice_features manually.")
+                raise ValueError(
+                    'No numeric features found in X. Specify slice_features manually.'
+                )
         else:
             # Validate that features exist
             missing = [f for f in slice_features if f not in X.columns]
             if missing:
-                raise ValueError(f"Features not found in X: {missing}")
+                raise ValueError(f'Features not found in X: {missing}')
 
         # Calculate residuals/errors
         residuals = self._calculate_residuals(y_true, y_pred, metric)
@@ -161,18 +174,22 @@ class WeakspotDetector:
 
             # Skip if feature has too many missing values
             if np.isnan(feature_values).sum() / len(feature_values) > 0.5:
-                warnings.warn(f"Feature '{feature}' has >50% missing values, skipping")
+                warnings.warn(
+                    f"Feature '{feature}' has >50% missing values, skipping"
+                )
                 continue
 
             # Create slices for this feature
-            slices = self._create_slices(feature_values, method=self.slice_method)
+            slices = self._create_slices(
+                feature_values, method=self.slice_method
+            )
 
             feature_analysis = {
                 'feature': feature,
                 'slices': [],
                 'worst_slice': None,
                 'best_slice': None,
-                'n_slices_evaluated': 0
+                'n_slices_evaluated': 0,
             }
 
             for slice_idx, (slice_range, slice_mask) in enumerate(slices):
@@ -191,20 +208,22 @@ class WeakspotDetector:
                 slice_max_residual = np.max(np.abs(slice_residuals))
 
                 # Severity: relative degradation vs global average
-                severity = (slice_mean_residual - global_mean_residual) / global_mean_residual
+                severity = (
+                    slice_mean_residual - global_mean_residual
+                ) / global_mean_residual
 
                 slice_info = {
                     'slice_idx': slice_idx,
                     'feature': feature,
                     'range': slice_range,
-                    'range_str': f"[{slice_range[0]:.2f}, {slice_range[1]:.2f}]",
+                    'range_str': f'[{slice_range[0]:.2f}, {slice_range[1]:.2f}]',
                     'n_samples': int(n_samples),
                     'mean_residual': float(slice_mean_residual),
                     'std_residual': float(slice_std_residual),
                     'max_residual': float(slice_max_residual),
                     'global_mean_residual': float(global_mean_residual),
                     'severity': float(severity),
-                    'is_weak': severity > self.severity_threshold
+                    'is_weak': severity > self.severity_threshold,
                 }
 
                 feature_analysis['slices'].append(slice_info)
@@ -216,27 +235,35 @@ class WeakspotDetector:
             # Find worst and best slices for this feature
             if feature_analysis['slices']:
                 feature_analysis['worst_slice'] = max(
-                    feature_analysis['slices'],
-                    key=lambda s: s['severity']
+                    feature_analysis['slices'], key=lambda s: s['severity']
                 )
                 feature_analysis['best_slice'] = min(
-                    feature_analysis['slices'],
-                    key=lambda s: s['severity']
+                    feature_analysis['slices'], key=lambda s: s['severity']
                 )
 
             slice_analysis[feature] = feature_analysis
 
         # Sort weakspots by severity (worst first)
-        weakspots = sorted(weakspots, key=lambda w: w['severity'], reverse=True)
+        weakspots = sorted(
+            weakspots, key=lambda w: w['severity'], reverse=True
+        )
 
         # Generate summary
         summary = {
             'total_weakspots': len(weakspots),
-            'features_with_weakspots': len(set(w['feature'] for w in weakspots)),
+            'features_with_weakspots': len(
+                set(w['feature'] for w in weakspots)
+            ),
             'features_analyzed': len(slice_features),
-            'avg_severity': float(np.mean([w['severity'] for w in weakspots])) if weakspots else 0.0,
-            'max_severity': float(max([w['severity'] for w in weakspots])) if weakspots else 0.0,
-            'critical_weakspots': len([w for w in weakspots if w['severity'] > 0.5])
+            'avg_severity': float(np.mean([w['severity'] for w in weakspots]))
+            if weakspots
+            else 0.0,
+            'max_severity': float(max([w['severity'] for w in weakspots]))
+            if weakspots
+            else 0.0,
+            'critical_weakspots': len(
+                [w for w in weakspots if w['severity'] > 0.5]
+            ),
         }
 
         return {
@@ -249,14 +276,13 @@ class WeakspotDetector:
                 'n_slices': self.n_slices,
                 'min_samples_per_slice': self.min_samples_per_slice,
                 'severity_threshold': self.severity_threshold,
-                'metric': metric
-            }
+                'metric': metric,
+            },
         }
 
-    def _calculate_residuals(self,
-                            y_true: np.ndarray,
-                            y_pred: np.ndarray,
-                            metric: str) -> np.ndarray:
+    def _calculate_residuals(
+        self, y_true: np.ndarray, y_pred: np.ndarray, metric: str
+    ) -> np.ndarray:
         """
         Calculate residuals/errors based on metric.
 
@@ -282,11 +308,13 @@ class WeakspotDetector:
             # For classification
             return (y_true != y_pred).astype(float)
         else:
-            raise ValueError(f"Unknown metric: {metric}. Use 'mae', 'mse', 'residual', or 'error_rate'")
+            raise ValueError(
+                f"Unknown metric: {metric}. Use 'mae', 'mse', 'residual', or 'error_rate'"
+            )
 
-    def _create_slices(self,
-                      feature_values: np.ndarray,
-                      method: str) -> List[Tuple[Tuple[float, float], np.ndarray]]:
+    def _create_slices(
+        self, feature_values: np.ndarray, method: str
+    ) -> List[Tuple[Tuple[float, float], np.ndarray]]:
         """
         Create slices of a feature using specified method.
 
@@ -316,11 +344,11 @@ class WeakspotDetector:
         elif method == 'tree-based':
             return self._tree_based_slices(feature_values, valid_values)
         else:
-            raise ValueError(f"Unknown slice method: {method}")
+            raise ValueError(f'Unknown slice method: {method}')
 
-    def _uniform_slices(self,
-                       feature_values: np.ndarray,
-                       valid_values: np.ndarray) -> List[Tuple[Tuple[float, float], np.ndarray]]:
+    def _uniform_slices(
+        self, feature_values: np.ndarray, valid_values: np.ndarray
+    ) -> List[Tuple[Tuple[float, float], np.ndarray]]:
         """
         Create slices with equal-width bins.
 
@@ -331,27 +359,33 @@ class WeakspotDetector:
 
         # Handle edge case where all values are the same
         if min_val == max_val:
-            return [((min_val, max_val), np.ones(len(feature_values), dtype=bool))]
+            return [
+                ((min_val, max_val), np.ones(len(feature_values), dtype=bool))
+            ]
 
         bin_edges = np.linspace(min_val, max_val, self.n_slices + 1)
 
         slices = []
         for i in range(self.n_slices):
-            slice_range = (float(bin_edges[i]), float(bin_edges[i+1]))
+            slice_range = (float(bin_edges[i]), float(bin_edges[i + 1]))
 
             if i == self.n_slices - 1:
                 # Last slice includes upper edge
-                slice_mask = (feature_values >= slice_range[0]) & (feature_values <= slice_range[1])
+                slice_mask = (feature_values >= slice_range[0]) & (
+                    feature_values <= slice_range[1]
+                )
             else:
-                slice_mask = (feature_values >= slice_range[0]) & (feature_values < slice_range[1])
+                slice_mask = (feature_values >= slice_range[0]) & (
+                    feature_values < slice_range[1]
+                )
 
             slices.append((slice_range, slice_mask))
 
         return slices
 
-    def _quantile_slices(self,
-                        feature_values: np.ndarray,
-                        valid_values: np.ndarray) -> List[Tuple[Tuple[float, float], np.ndarray]]:
+    def _quantile_slices(
+        self, feature_values: np.ndarray, valid_values: np.ndarray
+    ) -> List[Tuple[Tuple[float, float], np.ndarray]]:
         """
         Create slices with equal-frequency bins (quantiles).
 
@@ -367,25 +401,33 @@ class WeakspotDetector:
 
         if actual_n_slices == 0:
             # All values are the same
-            return [((float(bin_edges[0]), float(bin_edges[0])),
-                    np.ones(len(feature_values), dtype=bool))]
+            return [
+                (
+                    (float(bin_edges[0]), float(bin_edges[0])),
+                    np.ones(len(feature_values), dtype=bool),
+                )
+            ]
 
         slices = []
         for i in range(actual_n_slices):
-            slice_range = (float(bin_edges[i]), float(bin_edges[i+1]))
+            slice_range = (float(bin_edges[i]), float(bin_edges[i + 1]))
 
             if i == actual_n_slices - 1:
-                slice_mask = (feature_values >= slice_range[0]) & (feature_values <= slice_range[1])
+                slice_mask = (feature_values >= slice_range[0]) & (
+                    feature_values <= slice_range[1]
+                )
             else:
-                slice_mask = (feature_values >= slice_range[0]) & (feature_values < slice_range[1])
+                slice_mask = (feature_values >= slice_range[0]) & (
+                    feature_values < slice_range[1]
+                )
 
             slices.append((slice_range, slice_mask))
 
         return slices
 
-    def _tree_based_slices(self,
-                          feature_values: np.ndarray,
-                          valid_values: np.ndarray) -> List[Tuple[Tuple[float, float], np.ndarray]]:
+    def _tree_based_slices(
+        self, feature_values: np.ndarray, valid_values: np.ndarray
+    ) -> List[Tuple[Tuple[float, float], np.ndarray]]:
         """
         Create adaptive slices using decision tree splits.
 
@@ -398,14 +440,14 @@ class WeakspotDetector:
         # TODO: Full implementation would use decision tree to find optimal splits
         # For now, fall back to quantile slicing
         warnings.warn(
-            "tree-based slicing not fully implemented yet, using quantile method",
-            UserWarning
+            'tree-based slicing not fully implemented yet, using quantile method',
+            UserWarning,
         )
         return self._quantile_slices(feature_values, valid_values)
 
-    def get_top_weakspots(self,
-                         results: Dict[str, Any],
-                         n: int = 5) -> List[Dict]:
+    def get_top_weakspots(
+        self, results: Dict[str, Any], n: int = 5
+    ) -> List[Dict]:
         """
         Get top N weakspots ordered by severity.
 
@@ -435,26 +477,34 @@ class WeakspotDetector:
         """
         summary = results['summary']
 
-        print("\n" + "="*70)
-        print("WEAKSPOT DETECTION SUMMARY")
-        print("="*70)
+        print('\n' + '=' * 70)
+        print('WEAKSPOT DETECTION SUMMARY')
+        print('=' * 70)
         print(f"Total Weakspots Found: {summary['total_weakspots']}")
-        print(f"Features with Weakspots: {summary['features_with_weakspots']} / {summary['features_analyzed']}")
+        print(
+            f"Features with Weakspots: {summary['features_with_weakspots']} / {summary['features_analyzed']}"
+        )
         print(f"Average Severity: {summary['avg_severity']:.2%}")
         print(f"Max Severity: {summary['max_severity']:.2%}")
-        print(f"Critical Weakspots (>50% degradation): {summary['critical_weakspots']}")
+        print(
+            f"Critical Weakspots (>50% degradation): {summary['critical_weakspots']}"
+        )
         print(f"\nGlobal Mean Residual: {results['global_mean_residual']:.4f}")
 
         if verbose and results['weakspots']:
-            print("\n" + "-"*70)
-            print("TOP 5 WEAKSPOTS (Ordered by Severity)")
-            print("-"*70)
+            print('\n' + '-' * 70)
+            print('TOP 5 WEAKSPOTS (Ordered by Severity)')
+            print('-' * 70)
 
             for i, ws in enumerate(results['weakspots'][:5], 1):
                 print(f"\n{i}. Feature: {ws['feature']}")
                 print(f"   Range: {ws['range_str']}")
                 print(f"   Samples: {ws['n_samples']}")
-                print(f"   Mean Residual: {ws['mean_residual']:.4f} (global: {ws['global_mean_residual']:.4f})")
-                print(f"   Severity: {ws['severity']:.2%} {'🚨 CRITICAL' if ws['severity'] > 0.5 else '⚠️  WARNING'}")
+                print(
+                    f"   Mean Residual: {ws['mean_residual']:.4f} (global: {ws['global_mean_residual']:.4f})"
+                )
+                print(
+                    f"   Severity: {ws['severity']:.2%} {'🚨 CRITICAL' if ws['severity'] > 0.5 else '⚠️  WARNING'}"
+                )
 
-        print("="*70 + "\n")
+        print('=' * 70 + '\n')

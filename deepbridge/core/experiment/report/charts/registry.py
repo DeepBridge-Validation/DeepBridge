@@ -5,16 +5,18 @@ Provides centralized registry for registering and accessing chart generators
 (Phase 2 Sprint 7-8, preparing for Phase 3).
 """
 
-from typing import Dict, List, Type, Optional
 import logging
+from typing import Dict, List, Optional, Type
+
 from .base import ChartGenerator, ChartResult
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Chart Registry
 # ==================================================================================
+
 
 class ChartRegistry:
     """
@@ -55,13 +57,17 @@ class ChartRegistry:
             >>> ChartRegistry.register('line_chart', generator)
         """
         if not isinstance(generator, ChartGenerator):
-            raise TypeError(f"Generator must be ChartGenerator, got {type(generator)}")
+            raise TypeError(
+                f'Generator must be ChartGenerator, got {type(generator)}'
+            )
 
         if name in cls._generators:
             logger.warning(f"Chart '{name}' already registered, overwriting")
 
         cls._generators[name] = generator
-        logger.info(f"Registered chart generator: {name} ({generator.__class__.__name__})")
+        logger.info(
+            f'Registered chart generator: {name} ({generator.__class__.__name__})'
+        )
 
     @classmethod
     def unregister(cls, name: str) -> bool:
@@ -79,7 +85,7 @@ class ChartRegistry:
         """
         if name in cls._generators:
             del cls._generators[name]
-            logger.info(f"Unregistered chart generator: {name}")
+            logger.info(f'Unregistered chart generator: {name}')
             return True
         return False
 
@@ -112,7 +118,7 @@ class ChartRegistry:
             raise ValueError(error_msg)
 
         generator = cls._generators[name]
-        logger.debug(f"Generating chart: {name}")
+        logger.debug(f'Generating chart: {name}')
 
         try:
             return generator.generate(data, **kwargs)
@@ -179,7 +185,7 @@ class ChartRegistry:
             >>> ChartRegistry.clear()
         """
         cls._generators.clear()
-        logger.info("Cleared all chart generators")
+        logger.info('Cleared all chart generators')
 
     @classmethod
     def count(cls) -> int:
@@ -216,6 +222,7 @@ class ChartRegistry:
 # Decorator for Registration
 # ==================================================================================
 
+
 def register_chart(name: str):
     """
     Decorator to automatically register chart generator classes.
@@ -229,11 +236,13 @@ def register_chart(name: str):
         ...     def generate(self, data, **kwargs):
         ...         return ChartResult(...)
     """
+
     def decorator(generator_class: Type[ChartGenerator]):
         # Instantiate and register
         instance = generator_class()
         ChartRegistry.register(name, instance)
         return generator_class
+
     return decorator
 
 
@@ -241,64 +250,66 @@ def register_chart(name: str):
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Demonstrate registry usage.
     """
-    print("=" * 80)
-    print("Chart Registry Example")
-    print("=" * 80)
+    print('=' * 80)
+    print('Chart Registry Example')
+    print('=' * 80)
 
     # Example: Create mock generator
     from .base import ChartGenerator, ChartResult
 
     class ExampleLineChart(ChartGenerator):
         """Example line chart generator."""
+
         def generate(self, data, **kwargs):
             return ChartResult(
                 content='{"type": "line", "data": []}',
                 format='plotly',
-                metadata={'title': kwargs.get('title', 'Line Chart')}
+                metadata={'title': kwargs.get('title', 'Line Chart')},
             )
 
     class ExampleBarChart(ChartGenerator):
         """Example bar chart generator."""
+
         def generate(self, data, **kwargs):
             return ChartResult(
                 content='{"type": "bar", "data": []}',
                 format='plotly',
-                metadata={'title': kwargs.get('title', 'Bar Chart')}
+                metadata={'title': kwargs.get('title', 'Bar Chart')},
             )
 
     # Register generators
-    print("\nRegistering generators...")
+    print('\nRegistering generators...')
     ChartRegistry.register('line_chart', ExampleLineChart())
     ChartRegistry.register('bar_chart', ExampleBarChart())
 
     # List charts
-    print(f"\nAvailable charts: {ChartRegistry.list_charts()}")
-    print(f"Total charts: {ChartRegistry.count()}")
+    print(f'\nAvailable charts: {ChartRegistry.list_charts()}')
+    print(f'Total charts: {ChartRegistry.count()}')
 
     # Get info
-    print(f"\nChart info: {ChartRegistry.get_info()}")
+    print(f'\nChart info: {ChartRegistry.get_info()}')
 
     # Generate a chart
-    print("\nGenerating line chart...")
+    print('\nGenerating line chart...')
     result = ChartRegistry.generate(
         'line_chart',
         data={'x': [1, 2, 3], 'y': [4, 5, 6]},
-        title='Example Line Chart'
+        title='Example Line Chart',
     )
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
 
     # Try to generate non-existent chart
-    print("\nTrying to generate non-existent chart...")
+    print('\nTrying to generate non-existent chart...')
     try:
         ChartRegistry.generate('non_existent', {})
     except ValueError as e:
-        print(f"Expected error: {e}")
+        print(f'Expected error: {e}')
 
-    print("\n" + "=" * 80)
-    print("Chart Registry Example Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Chart Registry Example Complete')
+    print('=' * 80)

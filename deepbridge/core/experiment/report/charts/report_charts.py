@@ -8,17 +8,19 @@ and resilience reports with both Plotly (interactive) and Matplotlib
 Created in Phase 3 Sprint 9 (TAREFA 9.1).
 """
 
-from typing import Dict, Any, List, Optional
 import logging
-from .base import PlotlyChartGenerator, StaticImageGenerator, ChartResult
+from typing import Any, Dict, List, Optional
+
+from .base import ChartResult, PlotlyChartGenerator, StaticImageGenerator
 from .registry import ChartRegistry, register_chart
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Uncertainty Report Charts (Plotly)
 # ==================================================================================
+
 
 @register_chart('width_vs_coverage')
 class WidthVsCoverageChart(PlotlyChartGenerator):
@@ -39,30 +41,29 @@ class WidthVsCoverageChart(PlotlyChartGenerator):
         self._validate_data(data, ['coverage', 'width'])
 
         figure = {
-            'data': [{
-                'x': data['coverage'],
-                'y': data['width'],
-                'type': 'scatter',
-                'mode': 'lines+markers',
-                'name': 'Width-Coverage Trade-off',
-                'line': {'color': '#2ca02c', 'width': 2},
-                'marker': {'size': 8, 'color': '#2ca02c'}
-            }],
+            'data': [
+                {
+                    'x': data['coverage'],
+                    'y': data['width'],
+                    'type': 'scatter',
+                    'mode': 'lines+markers',
+                    'name': 'Width-Coverage Trade-off',
+                    'line': {'color': '#2ca02c', 'width': 2},
+                    'marker': {'size': 8, 'color': '#2ca02c'},
+                }
+            ],
             'layout': {
                 'title': kwargs.get('title', 'Width vs Coverage Trade-off'),
                 'xaxis': {
                     'title': 'Coverage',
                     'tickformat': '.2f',
-                    'range': [0, 1.05]
+                    'range': [0, 1.05],
                 },
-                'yaxis': {
-                    'title': 'Average Width',
-                    'tickformat': '.2f'
-                },
+                'yaxis': {'title': 'Average Width', 'tickformat': '.2f'},
                 'template': 'plotly_white',
                 'hovermode': 'closest',
-                'showlegend': False
-            }
+                'showlegend': False,
+            },
         }
 
         return figure
@@ -94,32 +95,35 @@ class CalibrationErrorChart(PlotlyChartGenerator):
         ]
 
         figure = {
-            'data': [{
-                'x': [f"{a:.1f}" for a in data['alphas']],
-                'y': data['calibration_errors'],
-                'type': 'bar',
-                'marker': {'color': colors},
-                'text': [f"{e:.3f}" for e in data['calibration_errors']],
-                'textposition': 'auto'
-            }],
+            'data': [
+                {
+                    'x': [f'{a:.1f}' for a in data['alphas']],
+                    'y': data['calibration_errors'],
+                    'type': 'bar',
+                    'marker': {'color': colors},
+                    'text': [f'{e:.3f}' for e in data['calibration_errors']],
+                    'textposition': 'auto',
+                }
+            ],
             'layout': {
-                'title': kwargs.get('title', 'Calibration Error by Alpha Level'),
+                'title': kwargs.get(
+                    'title', 'Calibration Error by Alpha Level'
+                ),
                 'xaxis': {'title': 'Alpha Level'},
-                'yaxis': {
-                    'title': 'Calibration Error',
-                    'tickformat': '.3f'
-                },
+                'yaxis': {'title': 'Calibration Error', 'tickformat': '.3f'},
                 'template': 'plotly_white',
                 'showlegend': False,
-                'shapes': [{
-                    'type': 'line',
-                    'x0': -0.5,
-                    'x1': len(data['alphas']) - 0.5,
-                    'y0': threshold,
-                    'y1': threshold,
-                    'line': {'color': 'red', 'dash': 'dash', 'width': 2}
-                }]
-            }
+                'shapes': [
+                    {
+                        'type': 'line',
+                        'x0': -0.5,
+                        'x1': len(data['alphas']) - 0.5,
+                        'y0': threshold,
+                        'y1': threshold,
+                        'line': {'color': 'red', 'dash': 'dash', 'width': 2},
+                    }
+                ],
+            },
         }
 
         return figure
@@ -144,30 +148,34 @@ class AlternativeMethodsChart(PlotlyChartGenerator):
         self._validate_data(data, ['methods', 'scores'])
 
         figure = {
-            'data': [{
-                'x': data['scores'],
-                'y': data['methods'],
-                'type': 'bar',
-                'orientation': 'h',
-                'marker': {
-                    'color': data['scores'],
-                    'colorscale': 'Viridis',
-                    'showscale': False
-                },
-                'text': [f"{s:.3f}" for s in data['scores']],
-                'textposition': 'auto'
-            }],
+            'data': [
+                {
+                    'x': data['scores'],
+                    'y': data['methods'],
+                    'type': 'bar',
+                    'orientation': 'h',
+                    'marker': {
+                        'color': data['scores'],
+                        'colorscale': 'Viridis',
+                        'showscale': False,
+                    },
+                    'text': [f'{s:.3f}' for s in data['scores']],
+                    'textposition': 'auto',
+                }
+            ],
             'layout': {
-                'title': kwargs.get('title', 'Alternative UQ Methods Comparison'),
+                'title': kwargs.get(
+                    'title', 'Alternative UQ Methods Comparison'
+                ),
                 'xaxis': {
                     'title': 'Uncertainty Score',
                     'tickformat': '.2f',
-                    'range': [0, 1]
+                    'range': [0, 1],
                 },
                 'yaxis': {'title': ''},
                 'template': 'plotly_white',
-                'showlegend': False
-            }
+                'showlegend': False,
+            },
         }
 
         return figure
@@ -176,6 +184,7 @@ class AlternativeMethodsChart(PlotlyChartGenerator):
 # ==================================================================================
 # Robustness Report Charts (Plotly)
 # ==================================================================================
+
 
 @register_chart('perturbation_impact')
 class PerturbationImpactChart(PlotlyChartGenerator):
@@ -199,34 +208,35 @@ class PerturbationImpactChart(PlotlyChartGenerator):
         std_scores = data.get('std_scores', [0] * len(data['mean_scores']))
 
         figure = {
-            'data': [{
-                'x': data['perturbation_levels'],
-                'y': data['mean_scores'],
-                'error_y': {
-                    'type': 'data',
-                    'array': std_scores,
-                    'visible': True
-                },
-                'type': 'scatter',
-                'mode': 'lines+markers',
-                'name': 'Mean Performance',
-                'line': {'color': '#d62728', 'width': 2},
-                'marker': {'size': 10}
-            }],
+            'data': [
+                {
+                    'x': data['perturbation_levels'],
+                    'y': data['mean_scores'],
+                    'error_y': {
+                        'type': 'data',
+                        'array': std_scores,
+                        'visible': True,
+                    },
+                    'type': 'scatter',
+                    'mode': 'lines+markers',
+                    'name': 'Mean Performance',
+                    'line': {'color': '#d62728', 'width': 2},
+                    'marker': {'size': 10},
+                }
+            ],
             'layout': {
-                'title': kwargs.get('title', 'Performance vs Perturbation Level'),
-                'xaxis': {
-                    'title': 'Perturbation Level',
-                    'tickformat': '.2f'
-                },
+                'title': kwargs.get(
+                    'title', 'Performance vs Perturbation Level'
+                ),
+                'xaxis': {'title': 'Perturbation Level', 'tickformat': '.2f'},
                 'yaxis': {
                     'title': 'Performance Score',
                     'tickformat': '.2f',
-                    'range': [0, 1.05]
+                    'range': [0, 1.05],
                 },
                 'template': 'plotly_white',
-                'hovermode': 'x unified'
-            }
+                'hovermode': 'x unified',
+            },
         }
 
         return figure
@@ -255,7 +265,7 @@ class FeatureRobustnessChart(PlotlyChartGenerator):
         sorted_data = sorted(
             zip(data['features'], data['robustness_scores']),
             key=lambda x: x[1],
-            reverse=True
+            reverse=True,
         )
 
         # Limit to top N features
@@ -269,27 +279,31 @@ class FeatureRobustnessChart(PlotlyChartGenerator):
         ]
 
         figure = {
-            'data': [{
-                'x': list(scores),
-                'y': list(features),
-                'type': 'bar',
-                'orientation': 'h',
-                'marker': {'color': colors},
-                'text': [f"{s:.2f}" for s in scores],
-                'textposition': 'auto'
-            }],
+            'data': [
+                {
+                    'x': list(scores),
+                    'y': list(features),
+                    'type': 'bar',
+                    'orientation': 'h',
+                    'marker': {'color': colors},
+                    'text': [f'{s:.2f}' for s in scores],
+                    'textposition': 'auto',
+                }
+            ],
             'layout': {
-                'title': kwargs.get('title', f'Top {top_n} Feature Robustness'),
+                'title': kwargs.get(
+                    'title', f'Top {top_n} Feature Robustness'
+                ),
                 'xaxis': {
                     'title': 'Robustness Score',
                     'tickformat': '.2f',
-                    'range': [0, 1]
+                    'range': [0, 1],
                 },
                 'yaxis': {'title': ''},
                 'template': 'plotly_white',
                 'showlegend': False,
-                'height': max(400, len(features) * 30)
-            }
+                'height': max(400, len(features) * 30),
+            },
         }
 
         return figure
@@ -298,6 +312,7 @@ class FeatureRobustnessChart(PlotlyChartGenerator):
 # ==================================================================================
 # Resilience Report Charts (Plotly)
 # ==================================================================================
+
 
 @register_chart('test_type_comparison')
 class TestTypeComparisonChart(PlotlyChartGenerator):
@@ -322,27 +337,29 @@ class TestTypeComparisonChart(PlotlyChartGenerator):
         scores = data['scores'] + [data['scores'][0]]
 
         figure = {
-            'data': [{
-                'type': 'scatterpolar',
-                'r': scores,
-                'theta': test_types,
-                'fill': 'toself',
-                'fillcolor': 'rgba(31, 119, 180, 0.2)',
-                'line': {'color': '#1f77b4', 'width': 2},
-                'marker': {'size': 8}
-            }],
+            'data': [
+                {
+                    'type': 'scatterpolar',
+                    'r': scores,
+                    'theta': test_types,
+                    'fill': 'toself',
+                    'fillcolor': 'rgba(31, 119, 180, 0.2)',
+                    'line': {'color': '#1f77b4', 'width': 2},
+                    'marker': {'size': 8},
+                }
+            ],
             'layout': {
                 'title': kwargs.get('title', 'Resilience Across Test Types'),
                 'polar': {
                     'radialaxis': {
                         'visible': True,
                         'range': [0, 1],
-                        'tickformat': '.2f'
+                        'tickformat': '.2f',
                     }
                 },
                 'template': 'plotly_white',
-                'showlegend': False
-            }
+                'showlegend': False,
+            },
         }
 
         return figure
@@ -368,35 +385,39 @@ class ScenarioDegradationChart(PlotlyChartGenerator):
         self._validate_data(data, ['scenarios', 'psi_values', 'performance'])
 
         figure = {
-            'data': [{
-                'x': data['psi_values'],
-                'y': data['performance'],
-                'type': 'scatter',
-                'mode': 'markers+text',
-                'marker': {
-                    'size': 12,
-                    'color': data['psi_values'],
-                    'colorscale': 'RdYlGn_r',
-                    'showscale': True,
-                    'colorbar': {'title': 'PSI Value'}
-                },
-                'text': data['scenarios'],
-                'textposition': 'top center'
-            }],
+            'data': [
+                {
+                    'x': data['psi_values'],
+                    'y': data['performance'],
+                    'type': 'scatter',
+                    'mode': 'markers+text',
+                    'marker': {
+                        'size': 12,
+                        'color': data['psi_values'],
+                        'colorscale': 'RdYlGn_r',
+                        'showscale': True,
+                        'colorbar': {'title': 'PSI Value'},
+                    },
+                    'text': data['scenarios'],
+                    'textposition': 'top center',
+                }
+            ],
             'layout': {
-                'title': kwargs.get('title', 'Performance vs Distribution Shift'),
+                'title': kwargs.get(
+                    'title', 'Performance vs Distribution Shift'
+                ),
                 'xaxis': {
                     'title': 'PSI (Population Stability Index)',
-                    'tickformat': '.2f'
+                    'tickformat': '.2f',
                 },
                 'yaxis': {
                     'title': 'Performance',
                     'tickformat': '.2f',
-                    'range': [0, 1.05]
+                    'range': [0, 1.05],
                 },
                 'template': 'plotly_white',
-                'hovermode': 'closest'
-            }
+                'hovermode': 'closest',
+            },
         }
 
         return figure
@@ -405,6 +426,7 @@ class ScenarioDegradationChart(PlotlyChartGenerator):
 # ==================================================================================
 # General Purpose Charts
 # ==================================================================================
+
 
 @register_chart('model_comparison')
 class ModelComparisonChart(PlotlyChartGenerator):
@@ -430,14 +452,16 @@ class ModelComparisonChart(PlotlyChartGenerator):
 
         traces = []
         for metric_name, values in data['metrics'].items():
-            traces.append({
-                'x': data['models'],
-                'y': values,
-                'type': 'bar',
-                'name': metric_name.capitalize(),
-                'text': [f"{v:.2f}" for v in values],
-                'textposition': 'auto'
-            })
+            traces.append(
+                {
+                    'x': data['models'],
+                    'y': values,
+                    'type': 'bar',
+                    'name': metric_name.capitalize(),
+                    'text': [f'{v:.2f}' for v in values],
+                    'textposition': 'auto',
+                }
+            )
 
         figure = {
             'data': traces,
@@ -447,12 +471,12 @@ class ModelComparisonChart(PlotlyChartGenerator):
                 'yaxis': {
                     'title': 'Score',
                     'tickformat': '.2f',
-                    'range': [0, 1.05]
+                    'range': [0, 1.05],
                 },
                 'template': 'plotly_white',
                 'barmode': 'group',
-                'hovermode': 'x unified'
-            }
+                'hovermode': 'x unified',
+            },
         }
 
         return figure
@@ -484,28 +508,25 @@ class IntervalBoxplotChart(PlotlyChartGenerator):
         for i, category in enumerate(data['categories']):
             interval_data = data['intervals'][i]
             widths = [
-                u - l for u, l in zip(interval_data['upper'], interval_data['lower'])
+                u - l
+                for u, l in zip(interval_data['upper'], interval_data['lower'])
             ]
 
-            traces.append({
-                'y': widths,
-                'type': 'box',
-                'name': category,
-                'boxmean': 'sd'
-            })
+            traces.append(
+                {'y': widths, 'type': 'box', 'name': category, 'boxmean': 'sd'}
+            )
 
         figure = {
             'data': traces,
             'layout': {
-                'title': kwargs.get('title', 'Prediction Interval Widths by Category'),
+                'title': kwargs.get(
+                    'title', 'Prediction Interval Widths by Category'
+                ),
                 'xaxis': {'title': 'Category'},
-                'yaxis': {
-                    'title': 'Interval Width',
-                    'tickformat': '.2f'
-                },
+                'yaxis': {'title': 'Interval Width', 'tickformat': '.2f'},
                 'template': 'plotly_white',
-                'showlegend': False
-            }
+                'showlegend': False,
+            },
         }
 
         return figure
@@ -515,6 +536,7 @@ class IntervalBoxplotChart(PlotlyChartGenerator):
 # Matplotlib Static Versions
 # ==================================================================================
 
+
 class WidthVsCoverageStatic(StaticImageGenerator):
     """Static PNG version of width vs coverage chart."""
 
@@ -523,19 +545,29 @@ class WidthVsCoverageStatic(StaticImageGenerator):
         self._validate_data(data, ['coverage', 'width'])
 
         try:
-            import matplotlib.pyplot as plt
-            import io
             import base64
+            import io
+
+            import matplotlib.pyplot as plt
 
             fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
-            ax.plot(data['coverage'], data['width'], 'o-', color='#2ca02c',
-                   linewidth=2, markersize=8)
+            ax.plot(
+                data['coverage'],
+                data['width'],
+                'o-',
+                color='#2ca02c',
+                linewidth=2,
+                markersize=8,
+            )
 
             ax.set_xlabel('Coverage', fontsize=12)
             ax.set_ylabel('Average Width', fontsize=12)
-            ax.set_title(kwargs.get('title', 'Width vs Coverage Trade-off'),
-                        fontsize=14, fontweight='bold')
+            ax.set_title(
+                kwargs.get('title', 'Width vs Coverage Trade-off'),
+                fontsize=14,
+                fontweight='bold',
+            )
             ax.grid(True, alpha=0.3)
             ax.set_xlim(0, 1.05)
 
@@ -548,7 +580,7 @@ class WidthVsCoverageStatic(StaticImageGenerator):
             return img_base64, 'png'
 
         except ImportError:
-            raise ValueError("Matplotlib required for static images")
+            raise ValueError('Matplotlib required for static images')
 
 
 class PerturbationImpactStatic(StaticImageGenerator):
@@ -559,23 +591,34 @@ class PerturbationImpactStatic(StaticImageGenerator):
         self._validate_data(data, ['perturbation_levels', 'mean_scores'])
 
         try:
-            import matplotlib.pyplot as plt
-            import io
             import base64
+            import io
+
+            import matplotlib.pyplot as plt
             import numpy as np
 
             fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
             std_scores = data.get('std_scores', [0] * len(data['mean_scores']))
 
-            ax.errorbar(data['perturbation_levels'], data['mean_scores'],
-                       yerr=std_scores, fmt='o-', color='#d62728',
-                       linewidth=2, markersize=8, capsize=5)
+            ax.errorbar(
+                data['perturbation_levels'],
+                data['mean_scores'],
+                yerr=std_scores,
+                fmt='o-',
+                color='#d62728',
+                linewidth=2,
+                markersize=8,
+                capsize=5,
+            )
 
             ax.set_xlabel('Perturbation Level', fontsize=12)
             ax.set_ylabel('Performance Score', fontsize=12)
-            ax.set_title(kwargs.get('title', 'Performance vs Perturbation Level'),
-                        fontsize=14, fontweight='bold')
+            ax.set_title(
+                kwargs.get('title', 'Performance vs Perturbation Level'),
+                fontsize=14,
+                fontweight='bold',
+            )
             ax.grid(True, alpha=0.3)
             ax.set_ylim(0, 1.05)
 
@@ -588,12 +631,13 @@ class PerturbationImpactStatic(StaticImageGenerator):
             return img_base64, 'png'
 
         except ImportError:
-            raise ValueError("Matplotlib required for static images")
+            raise ValueError('Matplotlib required for static images')
 
 
 # ==================================================================================
 # Bulk Registration
 # ==================================================================================
+
 
 def register_report_charts():
     """
@@ -607,13 +651,13 @@ def register_report_charts():
     # Register static versions
     static_charts = {
         'width_vs_coverage_static': WidthVsCoverageStatic(),
-        'perturbation_impact_static': PerturbationImpactStatic()
+        'perturbation_impact_static': PerturbationImpactStatic(),
     }
 
     for name, generator in static_charts.items():
         if not ChartRegistry.is_registered(name):
             ChartRegistry.register(name, generator)
-            logger.info(f"Registered static chart: {name}")
+            logger.info(f'Registered static chart: {name}')
 
 
 # Auto-register on import
@@ -624,48 +668,53 @@ register_report_charts()
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """Demonstrate report-specific charts."""
-    print("=" * 80)
-    print("Report-Specific Chart Generators")
-    print("=" * 80)
+    print('=' * 80)
+    print('Report-Specific Chart Generators')
+    print('=' * 80)
 
-    print(f"\nTotal registered charts: {ChartRegistry.count()}")
-    print(f"Available charts: {ChartRegistry.list_charts()}")
+    print(f'\nTotal registered charts: {ChartRegistry.count()}')
+    print(f'Available charts: {ChartRegistry.list_charts()}')
 
     # Example: Width vs Coverage
-    print("\n" + "-" * 80)
-    print("Example 1: Width vs Coverage")
-    print("-" * 80)
+    print('\n' + '-' * 80)
+    print('Example 1: Width vs Coverage')
+    print('-' * 80)
 
     result = ChartRegistry.generate(
         'width_vs_coverage',
         data={
             'coverage': [0.91, 0.81, 0.71, 0.61, 0.51],
-            'width': [2.3, 1.8, 1.5, 1.2, 0.9]
+            'width': [2.3, 1.8, 1.5, 1.2, 0.9],
         },
-        title='Width-Coverage Trade-off'
+        title='Width-Coverage Trade-off',
     )
 
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
 
     # Example: Test Type Comparison
-    print("\n" + "-" * 80)
-    print("Example 2: Test Type Comparison (Radar)")
-    print("-" * 80)
+    print('\n' + '-' * 80)
+    print('Example 2: Test Type Comparison (Radar)')
+    print('-' * 80)
 
     result = ChartRegistry.generate(
         'test_type_comparison',
         data={
-            'test_types': ['worst_sample', 'worst_cluster', 'outer_sample', 'hard_sample'],
-            'scores': [0.85, 0.82, 0.88, 0.79]
-        }
+            'test_types': [
+                'worst_sample',
+                'worst_cluster',
+                'outer_sample',
+                'hard_sample',
+            ],
+            'scores': [0.85, 0.82, 0.88, 0.79],
+        },
     )
 
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
 
-    print("\n" + "=" * 80)
-    print(f"✅ {ChartRegistry.count()} charts registered and ready!")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print(f'✅ {ChartRegistry.count()} charts registered and ready!')
+    print('=' * 80)

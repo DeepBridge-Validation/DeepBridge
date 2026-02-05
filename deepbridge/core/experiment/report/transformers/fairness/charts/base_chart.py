@@ -5,7 +5,8 @@ Provides common functionality and configuration for all fairness charts.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any, Dict
+
 import plotly.graph_objects as go
 import plotly.io as pio
 
@@ -28,7 +29,7 @@ class BaseChart(ABC):
         'success': COLOR_SUCCESS,
         'ok': COLOR_SUCCESS,
         'warning': COLOR_WARNING,
-        'critical': COLOR_CRITICAL
+        'critical': COLOR_CRITICAL,
     }
 
     # Common layout settings
@@ -37,7 +38,7 @@ class BaseChart(ABC):
         'paper_bgcolor': '#FFFFFF',
         'plot_bgcolor': '#FFFFFF',
         'font': {'color': '#2c3e50'},
-        'autosize': True
+        'autosize': True,
     }
 
     @abstractmethod
@@ -79,6 +80,7 @@ class BaseChart(ABC):
             JSON string representation
         """
         import json
+
         import numpy as np
 
         # Convert to dict first to avoid binary data encoding issues
@@ -98,14 +100,19 @@ class BaseChart(ABC):
                     # This is a binary array - convert to regular list
                     import base64
                     import struct
+
                     bdata = obj['bdata']
                     decoded = base64.b64decode(bdata)
                     dtype = obj['dtype']
                     if dtype == 'f8':  # float64
-                        values = struct.unpack('d' * (len(decoded) // 8), decoded)
+                        values = struct.unpack(
+                            'd' * (len(decoded) // 8), decoded
+                        )
                         return list(values)
                     elif dtype == 'i4':  # int32
-                        values = struct.unpack('i' * (len(decoded) // 4), decoded)
+                        values = struct.unpack(
+                            'i' * (len(decoded) // 4), decoded
+                        )
                         return list(values)
                     else:
                         return obj
@@ -129,11 +136,11 @@ class BaseChart(ABC):
 
     def _format_percentage(self, value: float, decimals: int = 1) -> str:
         """Format value as percentage string."""
-        return f"{value:.{decimals}f}%"
+        return f'{value:.{decimals}f}%'
 
     def _format_decimal(self, value: float, decimals: int = 4) -> str:
         """Format value as decimal string."""
-        return f"{value:.{decimals}f}"
+        return f'{value:.{decimals}f}'
 
     def _get_color_for_status(self, status: str) -> str:
         """Get color for a given status."""

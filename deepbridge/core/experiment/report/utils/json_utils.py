@@ -8,10 +8,10 @@ Version: 1.0
 Date: 2025-11-05
 """
 
-import json
-import math
 import datetime
+import json
 import logging
+import math
 from typing import Any, Dict, List, Union
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 # Try to import numpy if available
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
-    logger.debug("NumPy not available, numpy type handling disabled")
+    logger.debug('NumPy not available, numpy type handling disabled')
 
 
 class SafeJSONEncoder(json.JSONEncoder):
@@ -81,11 +82,15 @@ class SafeJSONEncoder(json.JSONEncoder):
         try:
             return str(obj)
         except Exception as e:
-            logger.warning(f"Could not serialize object of type {type(obj)}: {e}")
+            logger.warning(
+                f'Could not serialize object of type {type(obj)}: {e}'
+            )
             return None
 
 
-def safe_json_dumps(data: Union[Dict, List, Any], indent: int = None, **kwargs) -> str:
+def safe_json_dumps(
+    data: Union[Dict, List, Any], indent: int = None, **kwargs
+) -> str:
     """
     Safely serialize data to JSON string.
 
@@ -122,12 +127,12 @@ def safe_json_dumps(data: Union[Dict, List, Any], indent: int = None, **kwargs) 
             cls=SafeJSONEncoder,
             ensure_ascii=False,
             indent=indent,
-            **kwargs
+            **kwargs,
         )
     except Exception as e:
-        logger.error(f"Error serializing data to JSON: {str(e)}")
+        logger.error(f'Error serializing data to JSON: {str(e)}')
         # Return empty JSON object as fallback
-        return "{}"
+        return '{}'
 
 
 def safe_json_loads(json_str: str) -> Union[Dict, List, Any]:
@@ -187,7 +192,9 @@ def clean_for_json(data: Any) -> Any:
         return data
 
     elif HAS_NUMPY and isinstance(data, (np.floating, np.integer)):
-        if isinstance(data, np.floating) and (np.isnan(data) or np.isinf(data)):
+        if isinstance(data, np.floating) and (
+            np.isnan(data) or np.isinf(data)
+        ):
             return None
         return float(data) if isinstance(data, np.floating) else int(data)
 
@@ -252,74 +259,72 @@ if __name__ == '__main__':
     # Set up logging for testing
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     )
 
-    print("=" * 80)
-    print("JSON Utils Test")
-    print("=" * 80)
+    print('=' * 80)
+    print('JSON Utils Test')
+    print('=' * 80)
 
     # Test 1: NaN and Infinity handling
-    print("\n1. Testing NaN and Infinity handling...")
+    print('\n1. Testing NaN and Infinity handling...')
     test_data = {
         'nan_value': float('nan'),
         'inf_value': float('inf'),
         'neg_inf_value': float('-inf'),
-        'normal_value': 3.14
+        'normal_value': 3.14,
     }
     json_str = safe_json_dumps(test_data, indent=2)
-    print(f"Input: {test_data}")
-    print(f"JSON output:\n{json_str}")
+    print(f'Input: {test_data}')
+    print(f'JSON output:\n{json_str}')
 
     # Test 2: Datetime handling
-    print("\n2. Testing datetime handling...")
+    print('\n2. Testing datetime handling...')
     test_data = {
         'timestamp': datetime.datetime(2025, 11, 5, 12, 0, 0),
-        'date': datetime.date(2025, 11, 5)
+        'date': datetime.date(2025, 11, 5),
     }
     json_str = safe_json_dumps(test_data, indent=2)
-    print(f"JSON output:\n{json_str}")
+    print(f'JSON output:\n{json_str}')
 
     # Test 3: Nested structures
-    print("\n3. Testing nested structures...")
+    print('\n3. Testing nested structures...')
     test_data = {
-        'metrics': {
-            'accuracy': 0.95,
-            'loss': float('nan')
-        },
-        'scores': [1.0, 2.0, float('inf'), 4.0]
+        'metrics': {'accuracy': 0.95, 'loss': float('nan')},
+        'scores': [1.0, 2.0, float('inf'), 4.0],
     }
     json_str = safe_json_dumps(test_data, indent=2)
-    print(f"JSON output:\n{json_str}")
+    print(f'JSON output:\n{json_str}')
 
     # Test 4: Format for JavaScript
-    print("\n4. Testing format_for_javascript...")
+    print('\n4. Testing format_for_javascript...')
     test_data = {'value': float('nan'), 'count': 42}
     js_str = format_for_javascript(test_data)
-    print(f"JavaScript ready: const data = {js_str};")
+    print(f'JavaScript ready: const data = {js_str};')
 
     # Test 5: NumPy types (if available)
     if HAS_NUMPY:
-        print("\n5. Testing NumPy types...")
+        print('\n5. Testing NumPy types...')
         test_data = {
             'np_int': np.int64(42),
             'np_float': np.float64(3.14),
             'np_nan': np.float64(np.nan),
-            'np_array': np.array([1, 2, 3])
+            'np_array': np.array([1, 2, 3]),
         }
         json_str = safe_json_dumps(test_data, indent=2)
-        print(f"JSON output:\n{json_str}")
+        print(f'JSON output:\n{json_str}')
     else:
-        print("\n5. NumPy not available, skipping NumPy tests")
+        print('\n5. NumPy not available, skipping NumPy tests')
 
-    print("\n" + "=" * 80)
-    print("Test Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Test Complete')
+    print('=' * 80)
 
 
 # ==================================================================================
 # Data Preparation for Templates (Phase 2 Sprint 5-6)
 # ==================================================================================
+
 
 def prepare_data_for_template(data: Dict, test_type: str) -> Dict:
     """
@@ -346,5 +351,5 @@ def prepare_data_for_template(data: Dict, test_type: str) -> Dict:
     return {
         'data': data,
         'data_json': format_for_javascript(data),
-        'test_type': test_type
+        'test_type': test_type,
     }

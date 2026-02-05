@@ -5,14 +5,15 @@ Este módulo fornece uma API simplificada para o HPM-KD que corresponde
 ao código apresentado no paper científico (Listing 1).
 """
 
+import logging
+from typing import Any, Optional, Union
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Union, Any
-import logging
-
-from deepbridge.distillation.techniques.hpm import HPMDistiller, HPMConfig
-from deepbridge.utils.model_registry import ModelType
 from sklearn.metrics import accuracy_score
+
+from deepbridge.distillation.techniques.hpm import HPMConfig, HPMDistiller
+from deepbridge.utils.model_registry import ModelType
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class HPMKD:
         test_loader: Optional[Any] = None,
         auto_config: bool = True,
         config: Optional[HPMConfig] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Inicializa o HPM-KD com configuração automática.
@@ -84,7 +85,7 @@ class HPMKD:
                 use_adaptive_temperature=True,
                 use_cache=True,
                 verbose=True,
-                **kwargs
+                **kwargs,
             )
         elif config is None:
             config = HPMConfig(**kwargs)
@@ -96,7 +97,7 @@ class HPMKD:
         self._distiller = HPMDistiller(
             teacher_model=teacher_model,
             student_model_type=student_model_type,
-            config=config
+            config=config,
         )
 
         # Métricas
@@ -104,7 +105,7 @@ class HPMKD:
         self._student_acc = None
         self._is_distilled = False
 
-        logger.info("HPMKD initialized with auto_config=%s", auto_config)
+        logger.info('HPMKD initialized with auto_config=%s', auto_config)
 
     def _process_data_loaders(self, train_loader, test_loader):
         """Processa data loaders ou arrays."""
@@ -114,9 +115,13 @@ class HPMKD:
                 self.X_train, self.y_train = train_loader
             elif hasattr(train_loader, 'dataset'):
                 # PyTorch DataLoader
-                self.X_train, self.y_train = self._extract_from_dataloader(train_loader)
+                self.X_train, self.y_train = self._extract_from_dataloader(
+                    train_loader
+                )
             else:
-                raise ValueError("train_loader deve ser tuple (X, y) ou DataLoader")
+                raise ValueError(
+                    'train_loader deve ser tuple (X, y) ou DataLoader'
+                )
         else:
             self.X_train, self.y_train = None, None
 
@@ -126,9 +131,13 @@ class HPMKD:
                 self.X_test, self.y_test = test_loader
             elif hasattr(test_loader, 'dataset'):
                 # PyTorch DataLoader
-                self.X_test, self.y_test = self._extract_from_dataloader(test_loader)
+                self.X_test, self.y_test = self._extract_from_dataloader(
+                    test_loader
+                )
             else:
-                raise ValueError("test_loader deve ser tuple (X, y) ou DataLoader")
+                raise ValueError(
+                    'test_loader deve ser tuple (X, y) ou DataLoader'
+                )
         else:
             self.X_test, self.y_test = None, None
 
@@ -138,10 +147,18 @@ class HPMKD:
         for batch in dataloader:
             if isinstance(batch, (list, tuple)) and len(batch) == 2:
                 X_batch, y_batch = batch
-                X_list.append(X_batch.numpy() if hasattr(X_batch, 'numpy') else X_batch)
-                y_list.append(y_batch.numpy() if hasattr(y_batch, 'numpy') else y_batch)
+                X_list.append(
+                    X_batch.numpy() if hasattr(X_batch, 'numpy') else X_batch
+                )
+                y_list.append(
+                    y_batch.numpy() if hasattr(y_batch, 'numpy') else y_batch
+                )
 
-        X = np.vstack(X_list) if len(X_list[0].shape) > 1 else np.concatenate(X_list)
+        X = (
+            np.vstack(X_list)
+            if len(X_list[0].shape) > 1
+            else np.concatenate(X_list)
+        )
         y = np.concatenate(y_list)
         return X, y
 
@@ -167,11 +184,17 @@ class HPMKD:
         elif 'mlp' in model_name or 'neural' in model_name:
             return ModelType.MLP
         else:
-            logger.warning(f"Tipo de modelo desconhecido: {model_name}. Usando DecisionTree.")
+            logger.warning(
+                f'Tipo de modelo desconhecido: {model_name}. Usando DecisionTree.'
+            )
             return ModelType.DECISION_TREE
 
-    def distill(self, epochs: int = 150, X_val: Optional[np.ndarray] = None,
-                y_val: Optional[np.ndarray] = None):
+    def distill(
+        self,
+        epochs: int = 150,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+    ):
         """
         Executa a destilação progressiva multi-professor.
 
@@ -181,18 +204,24 @@ class HPMKD:
             y_val: Labels de validação (opcional)
         """
         if self.X_train is None or self.y_train is None:
-            raise ValueError("Dados de treinamento não fornecidos. Use train_loader no __init__.")
+            raise ValueError(
+                'Dados de treinamento não fornecidos. Use train_loader no __init__.'
+            )
 
-        logger.info(f"Starting distillation with epochs={epochs}")
+        logger.info(f'Starting distillation with epochs={epochs}')
 
         # Se não houver validação, criar split
         if X_val is None:
             from sklearn.model_selection import train_test_split
+
             X_train, X_val, y_train, y_val = train_test_split(
-                self.X_train, self.y_train,
+                self.X_train,
+                self.y_train,
                 test_size=0.2,
                 random_state=42,
-                stratify=self.y_train if len(np.unique(self.y_train)) > 1 else None
+                stratify=self.y_train
+                if len(np.unique(self.y_train)) > 1
+                else None,
             )
         else:
             X_train, y_train = self.X_train, self.y_train
@@ -201,18 +230,15 @@ class HPMKD:
         if self.X_test is not None and self.y_test is not None:
             teacher_preds = self.teacher_model.predict(self.X_test)
             self._teacher_acc = accuracy_score(self.y_test, teacher_preds)
-            logger.info(f"Teacher accuracy: {self._teacher_acc:.4f}")
+            logger.info(f'Teacher accuracy: {self._teacher_acc:.4f}')
 
         # Executar destilação
         self._distiller.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val
+            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val
         )
 
         self._is_distilled = True
-        logger.info("Distillation completed successfully")
+        logger.info('Distillation completed successfully')
 
     def evaluate(self) -> float:
         """
@@ -222,16 +248,18 @@ class HPMKD:
             Acurácia do modelo estudante
         """
         if not self._is_distilled:
-            raise RuntimeError("Modelo ainda não foi destilado. Execute distill() primeiro.")
+            raise RuntimeError(
+                'Modelo ainda não foi destilado. Execute distill() primeiro.'
+            )
 
         if self.X_test is None or self.y_test is None:
-            raise ValueError("Dados de teste não fornecidos.")
+            raise ValueError('Dados de teste não fornecidos.')
 
         # Fazer predições
         student_preds = self._distiller.predict(self.X_test)
         self._student_acc = accuracy_score(self.y_test, student_preds)
 
-        logger.info(f"Student accuracy: {self._student_acc:.4f}")
+        logger.info(f'Student accuracy: {self._student_acc:.4f}')
         return self._student_acc
 
     @property
@@ -263,7 +291,9 @@ class HPMKD:
             if self.X_test is not None and self.y_test is not None:
                 if self._teacher_acc is None:
                     teacher_preds = self.teacher_model.predict(self.X_test)
-                    self._teacher_acc = accuracy_score(self.y_test, teacher_preds)
+                    self._teacher_acc = accuracy_score(
+                        self.y_test, teacher_preds
+                    )
 
                 if self._student_acc is None and self._is_distilled:
                     self._student_acc = self.evaluate()
@@ -289,10 +319,12 @@ class HPMKD:
         # Random Forest / Gradient Boosting
         if hasattr(model, 'estimators_'):
             if hasattr(model, 'n_estimators'):
-                total_nodes = sum([
-                    tree.tree_.node_count if hasattr(tree, 'tree_') else 0
-                    for tree in model.estimators_
-                ])
+                total_nodes = sum(
+                    [
+                        tree.tree_.node_count if hasattr(tree, 'tree_') else 0
+                        for tree in model.estimators_
+                    ]
+                )
                 return total_nodes
 
         # Decision Tree
@@ -315,7 +347,9 @@ class HPMKD:
                 pass
 
         # Fallback
-        logger.warning(f"Could not determine size for model type: {type(model).__name__}")
+        logger.warning(
+            f'Could not determine size for model type: {type(model).__name__}'
+        )
         return 1
 
     def predict(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
@@ -329,7 +363,9 @@ class HPMKD:
             Predições
         """
         if not self._is_distilled:
-            raise RuntimeError("Modelo ainda não foi destilado. Execute distill() primeiro.")
+            raise RuntimeError(
+                'Modelo ainda não foi destilado. Execute distill() primeiro.'
+            )
 
         return self._distiller.predict(X)
 
@@ -344,7 +380,9 @@ class HPMKD:
             Probabilidades de classe
         """
         if not self._is_distilled:
-            raise RuntimeError("Modelo ainda não foi destilado. Execute distill() primeiro.")
+            raise RuntimeError(
+                'Modelo ainda não foi destilado. Execute distill() primeiro.'
+            )
 
         return self._distiller.predict_proba(X)
 
@@ -354,5 +392,5 @@ class HPMKD:
         return self._distiller.student_model
 
     def __repr__(self):
-        status = "distilled" if self._is_distilled else "not distilled"
-        return f"HPMKD(auto_config={self.auto_config}, status={status})"
+        status = 'distilled' if self._is_distilled else 'not distilled'
+        return f'HPMKD(auto_config={self.auto_config}, status={status})'

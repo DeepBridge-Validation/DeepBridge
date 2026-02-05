@@ -8,18 +8,21 @@ from typing import Dict, Optional
 from .base_chart import BaseChartGenerator
 
 # Configure logger
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
+
 
 class ModelResilienceScoresChart(BaseChartGenerator):
     """
     Generate horizontal bar charts showing resilience scores for different models.
     """
-    
-    def generate(self,
-                models_data: Dict[str, float],
-                title: str = "Resilience Scores by Model",
-                sort_by: str = "score",  # "score" or "name"
-                ascending: bool = False) -> str:
+
+    def generate(
+        self,
+        models_data: Dict[str, float],
+        title: str = 'Resilience Scores by Model',
+        sort_by: str = 'score',  # "score" or "name"
+        ascending: bool = False,
+    ) -> str:
         """
         Generate a horizontal bar chart showing resilience scores for different models.
 
@@ -42,8 +45,10 @@ class ModelResilienceScoresChart(BaseChartGenerator):
 
         # Validate input data
         if not self._validate_data(models_data):
-            logger.warning("Invalid or empty models data for resilience scores chart")
-            return ""
+            logger.warning(
+                'Invalid or empty models data for resilience scores chart'
+            )
+            return ''
 
         # Clean and process model scores
         clean_data = {}
@@ -54,16 +59,20 @@ class ModelResilienceScoresChart(BaseChartGenerator):
                 continue
 
         if not clean_data:
-            logger.warning("No valid numeric resilience scores for chart")
-            return ""
+            logger.warning('No valid numeric resilience scores for chart')
+            return ''
 
         # Sort the data
-        if sort_by and sort_by.lower() == "score":
+        if sort_by and sort_by.lower() == 'score':
             # Sort by score
-            sorted_data = sorted(clean_data.items(), key=lambda x: x[1], reverse=not ascending)
+            sorted_data = sorted(
+                clean_data.items(), key=lambda x: x[1], reverse=not ascending
+            )
         else:
             # Sort by model name
-            sorted_data = sorted(clean_data.items(), key=lambda x: x[0], reverse=not ascending)
+            sorted_data = sorted(
+                clean_data.items(), key=lambda x: x[0], reverse=not ascending
+            )
 
         # Extract sorted model names and scores
         model_names = [item[0] for item in sorted_data]
@@ -78,15 +87,16 @@ class ModelResilienceScoresChart(BaseChartGenerator):
                     'y': scores,
                     'x_label': 'Model',
                     'y_label': 'Resilience Score',
-                    'horizontal': False  # Indicates a vertical bar chart
+                    'horizontal': False,  # Indicates a vertical bar chart
                 }
 
                 return self.chart_generator.bar_chart(
-                    data=bar_data,
-                    title=title
+                    data=bar_data, title=title
                 )
             except Exception as e:
-                logger.error(f"Error using chart generator for resilience scores chart: {str(e)}")
+                logger.error(
+                    f'Error using chart generator for resilience scores chart: {str(e)}'
+                )
 
         # Fallback - implement direct charting
         try:
@@ -104,26 +114,36 @@ class ModelResilienceScoresChart(BaseChartGenerator):
             # Add value labels
             for i, bar in enumerate(bars):
                 width = bar.get_width()
-                ax.text(width + 0.01, bar.get_y() + bar.get_height()/2,
-                       f"{width:.4f}", va='center', fontweight='bold')
+                ax.text(
+                    width + 0.01,
+                    bar.get_y() + bar.get_height() / 2,
+                    f'{width:.4f}',
+                    va='center',
+                    fontweight='bold',
+                )
 
             # Labels and title
             ax.set_title(title, fontsize=16)
-            ax.set_xlabel("Resilience Score", fontsize=14)
-            ax.set_ylabel("Model", fontsize=14)
+            ax.set_xlabel('Resilience Score', fontsize=14)
+            ax.set_ylabel('Model', fontsize=14)
 
             # Add grid for better readability
             ax.grid(True, axis='x', linestyle='--', alpha=0.7)
 
             # Add annotation explaining the chart
-            fig.text(0.5, 0.01,
-                    "Higher scores indicate better model resilience to distribution shifts",
-                    ha='center', fontsize=10, fontstyle='italic')
+            fig.text(
+                0.5,
+                0.01,
+                'Higher scores indicate better model resilience to distribution shifts',
+                ha='center',
+                fontsize=10,
+                fontstyle='italic',
+            )
 
             # Tight layout
             self.plt.tight_layout(rect=[0, 0.05, 1, 1])
 
             return self._save_figure_to_base64(fig)
         except Exception as e:
-            logger.error(f"Error generating resilience scores chart: {str(e)}")
-            return ""
+            logger.error(f'Error generating resilience scores chart: {str(e)}')
+            return ''

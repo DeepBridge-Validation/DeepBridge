@@ -6,9 +6,9 @@ Refactored in Phase 2 to use BaseRenderer template methods.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 # Import BaseRenderer
 from .base_renderer import BaseRenderer
@@ -35,11 +35,20 @@ class ResilienceRendererSimple(BaseRenderer):
         super().__init__(template_manager, asset_manager)
 
         # Import data transformer
-        from ..transformers.resilience_simple import ResilienceDataTransformerSimple
+        from ..transformers.resilience_simple import (
+            ResilienceDataTransformerSimple,
+        )
+
         self.data_transformer = ResilienceDataTransformerSimple()
 
-    def render(self, results: Dict[str, Any], file_path: str, model_name: str = "Model",
-               report_type: str = "interactive", save_chart: bool = False) -> str:
+    def render(
+        self,
+        results: Dict[str, Any],
+        file_path: str,
+        model_name: str = 'Model',
+        report_type: str = 'interactive',
+        save_chart: bool = False,
+    ) -> str:
         """
         Render resilience report from results data.
 
@@ -67,43 +76,59 @@ class ResilienceRendererSimple(BaseRenderer):
         FileNotFoundError: If template not found
         ValueError: If required data missing
         """
-        logger.info(f"Generating SIMPLE resilience report to: {file_path}")
-        logger.info(f"Report type: {report_type}")
+        logger.info(f'Generating SIMPLE resilience report to: {file_path}')
+        logger.info(f'Report type: {report_type}')
 
         try:
             # Transform the data
-            report_data = self.data_transformer.transform(results, model_name=model_name)
+            report_data = self.data_transformer.transform(
+                results, model_name=model_name
+            )
 
             # Load template using BaseRenderer method
             template = self._load_template('resilience', report_type)
-            logger.info(f"Template loaded for resilience/{report_type}")
+            logger.info(f'Template loaded for resilience/{report_type}')
 
             # Get all assets using BaseRenderer method
             assets = self._get_assets('resilience')
 
             # Create base context using BaseRenderer method
-            context = self._create_base_context(report_data, 'resilience', assets)
+            context = self._create_base_context(
+                report_data, 'resilience', assets
+            )
 
             # Add resilience-specific context fields
-            context.update({
-                'report_title': 'Resilience Analysis Report',
-                'report_subtitle': 'Distribution Shift and Model Resilience',
-                'resilience_score': report_data['summary']['resilience_score'],
-                'total_scenarios': report_data['summary']['total_scenarios'],
-                'valid_scenarios': report_data['summary']['valid_scenarios'],
-                'total_features': report_data['features']['total'],
-                'report_type': report_type
-            })
+            context.update(
+                {
+                    'report_title': 'Resilience Analysis Report',
+                    'report_subtitle': 'Distribution Shift and Model Resilience',
+                    'resilience_score': report_data['summary'][
+                        'resilience_score'
+                    ],
+                    'total_scenarios': report_data['summary'][
+                        'total_scenarios'
+                    ],
+                    'valid_scenarios': report_data['summary'][
+                        'valid_scenarios'
+                    ],
+                    'total_features': report_data['features']['total'],
+                    'report_type': report_type,
+                }
+            )
 
             # Render template using BaseRenderer method
             html_content = self._render_template(template, context)
 
             # Write HTML using BaseRenderer method
-            logger.info(f"Report generated and saved to: {file_path} (type: {report_type})")
+            logger.info(
+                f'Report generated and saved to: {file_path} (type: {report_type})'
+            )
             return self._write_html(html_content, file_path)
 
         except Exception as e:
-            logger.error(f"Error generating resilience report: {e}", exc_info=True)
+            logger.error(
+                f'Error generating resilience report: {e}', exc_info=True
+            )
             raise
 
     # NOTE: All helper methods (_load_template, _get_assets, _get_css_content,

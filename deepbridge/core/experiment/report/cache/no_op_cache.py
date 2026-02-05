@@ -5,7 +5,8 @@ Provides a cache implementation that does nothing.
 Useful for disabling caching or testing.
 """
 
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from .base import CacheStrategy
 
 

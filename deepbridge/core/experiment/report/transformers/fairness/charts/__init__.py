@@ -5,30 +5,30 @@ Contains all chart implementations for fairness visualizations.
 """
 
 from .base_chart import BaseChart
-from .posttrain_charts import (
-    DisparateImpactGaugeChart,
-    DisparityComparisonChart,
-    ComplianceStatusMatrixChart
-)
-from .pretrain_charts import (
-    PretrainMetricsOverviewChart,
-    GroupSizesChart,
-    ConceptBalanceChart
-)
 from .complementary_charts import (
+    ComplementaryMetricsRadarChart,
     PrecisionAccuracyComparisonChart,
     TreatmentEqualityScatterChart,
-    ComplementaryMetricsRadarChart
 )
 from .distribution_charts import (
     ProtectedAttributesDistributionChart,
-    TargetDistributionChart
+    TargetDistributionChart,
 )
 from .legacy_charts import (
-    MetricsComparisonChart,
-    FairnessRadarChart,
     ConfusionMatricesChart,
-    ThresholdAnalysisChart
+    FairnessRadarChart,
+    MetricsComparisonChart,
+    ThresholdAnalysisChart,
+)
+from .posttrain_charts import (
+    ComplianceStatusMatrixChart,
+    DisparateImpactGaugeChart,
+    DisparityComparisonChart,
+)
+from .pretrain_charts import (
+    ConceptBalanceChart,
+    GroupSizesChart,
+    PretrainMetricsOverviewChart,
 )
 
 __all__ = [
@@ -52,5 +52,5 @@ __all__ = [
     'MetricsComparisonChart',
     'FairnessRadarChart',
     'ConfusionMatricesChart',
-    'ThresholdAnalysisChart'
+    'ThresholdAnalysisChart',
 ]

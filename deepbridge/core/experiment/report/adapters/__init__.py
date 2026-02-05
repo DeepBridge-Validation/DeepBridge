@@ -47,8 +47,8 @@ Benefits:
 from .base import ReportAdapter
 from .html_adapter import HTMLAdapter
 from .json_adapter import JSONAdapter
-from .pdf_adapter import PDFAdapter
 from .markdown_adapter import MarkdownAdapter
+from .pdf_adapter import PDFAdapter
 
 __all__ = [
     'ReportAdapter',

@@ -1,18 +1,21 @@
 import typing as t
-import pandas as pd
+
 import numpy as np
-from deepbridge.utils.model_registry import ModelRegistry, ModelType, ModelMode
+import pandas as pd
+
+from deepbridge.utils.model_registry import ModelMode, ModelRegistry, ModelType
+
 
 class ModelManager:
     """
     Manages creation and handling of different models in the experiment.
     """
-    
+
     def __init__(self, dataset, experiment_type, verbose=False):
         self.dataset = dataset
         self.experiment_type = experiment_type
         self.verbose = verbose
-        
+
     def get_default_model_type(self):
         """Get a default model type for XGBoost or similar"""
         # Try to find XGBoost or fallback to first model type
@@ -21,7 +24,7 @@ class ModelManager:
                 return model_type
         # Fallback to first model type
         return next(iter(ModelType))
-    
+
     def create_alternative_models(self, X_train, y_train, lazy=False):
         """
         Create 3 alternative models different from the original model,
@@ -46,13 +49,17 @@ class ModelManager:
         # OTIMIZAÇÃO: Se lazy loading ativado, retornar vazio
         if lazy:
             if self.verbose:
-                print("⚡ Lazy loading ativado: Pulando criação de alternative_models (economizando ~30-50s)")
+                print(
+                    '⚡ Lazy loading ativado: Pulando criação de alternative_models (economizando ~30-50s)'
+                )
             return alternative_models
 
         # Check if dataset has a model
         if not hasattr(self.dataset, 'model') or self.dataset.model is None:
             if self.verbose:
-                print("No original model found in dataset. Skipping alternative model creation.")
+                print(
+                    'No original model found in dataset. Skipping alternative model creation.'
+                )
             return alternative_models
 
         # Get original model type if possible
@@ -68,22 +75,29 @@ class ModelManager:
             ModelType.LOGISTIC_REGRESSION,
             ModelType.DECISION_TREE,
             ModelType.RANDOM_FOREST,
-            ModelType.MLP
+            ModelType.MLP,
         ]
 
         if self.verbose:
-            print(f"Available model types in priority order: {[mt.name for mt in prioritized_order]}")
-            print(f"Original model identified as: {original_model.__class__.__name__}")
+            print(
+                f'Available model types in priority order: {[mt.name for mt in prioritized_order]}'
+            )
+            print(
+                f'Original model identified as: {original_model.__class__.__name__}'
+            )
 
         # Identify original model type by name
         original_model_type = None
         for model_type in prioritized_order:
-            if model_type.name in original_model_name or original_model_name in model_type.name:
+            if (
+                model_type.name in original_model_name
+                or original_model_name in model_type.name
+            ):
                 original_model_type = model_type
                 break
 
         if self.verbose:
-            print(f"Mapped to model type: {original_model_type}")
+            print(f'Mapped to model type: {original_model_type}')
 
         # Create a list of models to generate, excluding the original model if identified
         models_to_create = []
@@ -94,11 +108,17 @@ class ModelManager:
                     break
 
         if self.verbose:
-            print(f"Creating alternative models: {[m.name for m in models_to_create]}")
+            print(
+                f'Creating alternative models: {[m.name for m in models_to_create]}'
+            )
 
         # Determine if we're working with a classification problem
-        is_classification = self.experiment_type == "binary_classification"
-        mode = ModelMode.CLASSIFICATION if is_classification else ModelMode.REGRESSION
+        is_classification = self.experiment_type == 'binary_classification'
+        mode = (
+            ModelMode.CLASSIFICATION
+            if is_classification
+            else ModelMode.REGRESSION
+        )
 
         # Create and fit each alternative model
         for model_type in models_to_create:
@@ -107,12 +127,12 @@ class ModelManager:
                 model = ModelRegistry.get_model(
                     model_type=model_type,
                     custom_params=None,  # Use default parameters
-                    mode=mode  # Use classification or regression mode based on experiment_type
+                    mode=mode,  # Use classification or regression mode based on experiment_type
                 )
 
                 # Fit the model on training data
                 if self.verbose:
-                    print(f"Fitting {model_type.name} model...")
+                    print(f'Fitting {model_type.name} model...')
 
                 model.fit(X_train, y_train)
 
@@ -120,69 +140,93 @@ class ModelManager:
                 alternative_models[model_type.name] = model
 
                 if self.verbose:
-                    print(f"Successfully created and fitted {model_type.name} as {model.__class__.__name__}")
+                    print(
+                        f'Successfully created and fitted {model_type.name} as {model.__class__.__name__}'
+                    )
             except Exception as e:
                 if self.verbose:
-                    print(f"Failed to fit {model_type.name}: {str(e)}")
+                    print(f'Failed to fit {model_type.name}: {str(e)}')
 
         if self.verbose:
-            print(f"Created {len(alternative_models)} alternative models")
+            print(f'Created {len(alternative_models)} alternative models')
 
         return alternative_models
-    
-    def create_distillation_model(self, 
-                            distillation_method: str,
-                            student_model_type: ModelType,
-                            student_params: t.Optional[dict],
-                            temperature: float,
-                            alpha: float,
-                            use_probabilities: bool,
-                            n_trials: int,
-                            validation_split: float) -> object:
+
+    def create_distillation_model(
+        self,
+        distillation_method: str,
+        student_model_type: ModelType,
+        student_params: t.Optional[dict],
+        temperature: float,
+        alpha: float,
+        use_probabilities: bool,
+        n_trials: int,
+        validation_split: float,
+    ) -> object:
         """Create appropriate distillation model based on method and available data"""
         if use_probabilities:
             prob_train = self.dataset.original_prob
             if prob_train is None:
-                raise ValueError("No teacher probabilities available. Set use_probabilities=False to use teacher model")
+                raise ValueError(
+                    'No teacher probabilities available. Set use_probabilities=False to use teacher model'
+                )
             return self._create_model_from_probabilities(
-                distillation_method, student_model_type, student_params,
-                temperature, alpha, n_trials, validation_split
+                distillation_method,
+                student_model_type,
+                student_params,
+                temperature,
+                alpha,
+                n_trials,
+                validation_split,
             )
         else:
             if self.dataset.model is None:
-                raise ValueError("No teacher model available. Set use_probabilities=True to use pre-calculated probabilities")
+                raise ValueError(
+                    'No teacher model available. Set use_probabilities=True to use pre-calculated probabilities'
+                )
             return self._create_model_from_teacher(
-                distillation_method, student_model_type, student_params,
-                temperature, alpha, n_trials, validation_split
+                distillation_method,
+                student_model_type,
+                student_params,
+                temperature,
+                alpha,
+                n_trials,
+                validation_split,
             )
-            
-    def _create_model_from_probabilities(self,
-                                  distillation_method: str,
-                                  student_model_type: ModelType,
-                                  student_params: t.Optional[dict],
-                                  temperature: float,
-                                  alpha: float,
-                                  n_trials: int,
-                                  validation_split: float) -> object:
+
+    def _create_model_from_probabilities(
+        self,
+        distillation_method: str,
+        student_model_type: ModelType,
+        student_params: t.Optional[dict],
+        temperature: float,
+        alpha: float,
+        n_trials: int,
+        validation_split: float,
+    ) -> object:
         """Create distillation model from pre-calculated probabilities"""
         prob_train = self.dataset.original_prob
-        
-        if distillation_method.lower() == "surrogate":
+
+        if distillation_method.lower() == 'surrogate':
             # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.surrogate import SurrogateModel
-            
+            from deepbridge.distillation.techniques.surrogate import (
+                SurrogateModel,
+            )
+
             return SurrogateModel.from_probabilities(
                 probabilities=prob_train,
                 student_model_type=student_model_type,
                 student_params=student_params,
                 random_state=None,  # Use default or get from dataset
                 validation_split=validation_split,
-                n_trials=n_trials
+                n_trials=n_trials,
             )
-        elif distillation_method.lower() == "knowledge_distillation":
+        elif distillation_method.lower() == 'knowledge_distillation':
             # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.knowledge_distillation import KnowledgeDistillation
-            
+            from deepbridge.distillation.techniques.knowledge_distillation import (
+                KnowledgeDistillation,
+            )
+
             return KnowledgeDistillation.from_probabilities(
                 probabilities=prob_train,
                 student_model_type=student_model_type,
@@ -191,28 +235,36 @@ class ModelManager:
                 alpha=alpha,
                 n_trials=n_trials,
                 validation_split=validation_split,
-                random_state=None  # Use default or get from dataset
+                random_state=None,  # Use default or get from dataset
             )
         else:
-            raise ValueError(f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'")
-            
-    def _create_model_from_teacher(self,
-                            distillation_method: str,
-                            student_model_type: ModelType,
-                            student_params: t.Optional[dict],
-                            temperature: float,
-                            alpha: float,
-                            n_trials: int,
-                            validation_split: float) -> object:
+            raise ValueError(
+                f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'"
+            )
+
+    def _create_model_from_teacher(
+        self,
+        distillation_method: str,
+        student_model_type: ModelType,
+        student_params: t.Optional[dict],
+        temperature: float,
+        alpha: float,
+        n_trials: int,
+        validation_split: float,
+    ) -> object:
         """Create distillation model from teacher model"""
-        if distillation_method.lower() == "surrogate":
+        if distillation_method.lower() == 'surrogate':
             # Surrogate method doesn't support direct use of teacher model
-            raise ValueError("The surrogate method does not support direct use of teacher model. "
-                           "Please set use_probabilities=True or use method='knowledge_distillation'")
-        elif distillation_method.lower() == "knowledge_distillation":
+            raise ValueError(
+                'The surrogate method does not support direct use of teacher model. '
+                "Please set use_probabilities=True or use method='knowledge_distillation'"
+            )
+        elif distillation_method.lower() == 'knowledge_distillation':
             # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.knowledge_distillation import KnowledgeDistillation
-            
+            from deepbridge.distillation.techniques.knowledge_distillation import (
+                KnowledgeDistillation,
+            )
+
             return KnowledgeDistillation(
                 teacher_model=self.dataset.model,
                 student_model_type=student_model_type,
@@ -221,7 +273,9 @@ class ModelManager:
                 alpha=alpha,
                 n_trials=n_trials,
                 validation_split=validation_split,
-                random_state=None  # Use default or get from dataset
+                random_state=None,  # Use default or get from dataset
             )
         else:
-            raise ValueError(f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'")
+            raise ValueError(
+                f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'"
+            )

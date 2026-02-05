@@ -11,6 +11,7 @@ Replaces Dict[str, Any] with validated Pydantic models:
 """
 
 from typing import Any, Dict, List, Optional
+
 from pydantic import Field, field_validator, model_validator
 
 from .base import ReportBaseModel
@@ -28,33 +29,31 @@ class UncertaintyMetrics(ReportBaseModel):
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Overall uncertainty quality score (0-1)"
+        description='Overall uncertainty quality score (0-1)',
     )
 
     coverage: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Empirical coverage rate (0-1)"
+        description='Empirical coverage rate (0-1)',
     )
 
     mean_width: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Mean prediction interval width"
+        default=0.0, ge=0.0, description='Mean prediction interval width'
     )
 
     expected_coverage: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Target coverage rate (e.g., 0.9 for 90% confidence)"
+        description='Target coverage rate (e.g., 0.9 for 90% confidence)',
     )
 
     calibration_error: float = Field(
         default=0.0,
         ge=0.0,
-        description="Absolute difference between coverage and expected coverage"
+        description='Absolute difference between coverage and expected coverage',
     )
 
     @model_validator(mode='after')
@@ -62,9 +61,15 @@ class UncertaintyMetrics(ReportBaseModel):
         """Compute calibration error from coverage values if not explicitly set."""
         # Only compute if calibration_error is still default (0.0)
         # and we have coverage values
-        if self.calibration_error == 0.0 and (self.coverage != 0.0 or self.expected_coverage != 0.0):
+        if self.calibration_error == 0.0 and (
+            self.coverage != 0.0 or self.expected_coverage != 0.0
+        ):
             # Use object.__setattr__ to avoid triggering validation recursion
-            object.__setattr__(self, 'calibration_error', abs(self.coverage - self.expected_coverage))
+            object.__setattr__(
+                self,
+                'calibration_error',
+                abs(self.coverage - self.expected_coverage),
+            )
         return self
 
 
@@ -78,22 +83,20 @@ class CalibrationResults(ReportBaseModel):
 
     alpha_values: List[float] = Field(
         default_factory=list,
-        description="Significance levels (1 - confidence)"
+        description='Significance levels (1 - confidence)',
     )
 
     coverage_values: List[float] = Field(
-        default_factory=list,
-        description="Empirical coverage at each alpha"
+        default_factory=list, description='Empirical coverage at each alpha'
     )
 
     expected_coverages: List[float] = Field(
         default_factory=list,
-        description="Expected coverage (1 - alpha) at each alpha"
+        description='Expected coverage (1 - alpha) at each alpha',
     )
 
     width_values: List[float] = Field(
-        default_factory=list,
-        description="Mean interval width at each alpha"
+        default_factory=list, description='Mean interval width at each alpha'
     )
 
     @field_validator('coverage_values', 'expected_coverages', 'width_values')
@@ -103,8 +106,8 @@ class CalibrationResults(ReportBaseModel):
         alpha_values = info.data.get('alpha_values', [])
         if alpha_values and v and len(v) != len(alpha_values):
             raise ValueError(
-                f"Length mismatch: {info.field_name} has {len(v)} elements "
-                f"but alpha_values has {len(alpha_values)} elements"
+                f'Length mismatch: {info.field_name} has {len(v)} elements '
+                f'but alpha_values has {len(alpha_values)} elements'
             )
         return v
 
@@ -127,33 +130,28 @@ class AlternativeModelData(ReportBaseModel):
     Deep Ensembles, Conformal Prediction variants).
     """
 
-    name: str = Field(
-        description="Name of the alternative method"
-    )
+    name: str = Field(description='Name of the alternative method')
 
     uncertainty_score: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Overall uncertainty score for this method"
+        description='Overall uncertainty score for this method',
     )
 
     coverage: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Coverage rate for this method"
+        description='Coverage rate for this method',
     )
 
     mean_width: float = Field(
-        default=0.0,
-        ge=0.0,
-        description="Mean interval width for this method"
+        default=0.0, ge=0.0, description='Mean interval width for this method'
     )
 
     metrics: Dict[str, float] = Field(
-        default_factory=dict,
-        description="Additional method-specific metrics"
+        default_factory=dict, description='Additional method-specific metrics'
     )
 
     @property
@@ -174,21 +172,14 @@ class FeatureImportance(ReportBaseModel):
     Indicates which features contribute most to prediction uncertainty.
     """
 
-    feature_name: str = Field(
-        description="Name of the feature"
-    )
+    feature_name: str = Field(description='Name of the feature')
 
     importance_score: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="Importance score (0-1)"
+        default=0.0, ge=0.0, le=1.0, description='Importance score (0-1)'
     )
 
     rank: int = Field(
-        default=0,
-        ge=0,
-        description="Rank by importance (1 = most important)"
+        default=0, ge=0, description='Rank by importance (1 = most important)'
     )
 
 
@@ -212,65 +203,55 @@ class UncertaintyReportData(ReportBaseModel):
     """
 
     # Metadata
-    model_name: str = Field(
-        description="Name of the model being analyzed"
-    )
+    model_name: str = Field(description='Name of the model being analyzed')
 
     model_type: str = Field(
-        default="Unknown",
-        description="Type/architecture of the model"
+        default='Unknown', description='Type/architecture of the model'
     )
 
     timestamp: str = Field(
-        description="Report generation timestamp (ISO format)"
+        description='Report generation timestamp (ISO format)'
     )
 
     # Core metrics
     metrics: UncertaintyMetrics = Field(
         default_factory=UncertaintyMetrics,
-        description="Core uncertainty metrics"
+        description='Core uncertainty metrics',
     )
 
     # Calibration analysis
     calibration_results: Optional[CalibrationResults] = Field(
-        default=None,
-        description="Calibration analysis results (optional)"
+        default=None, description='Calibration analysis results (optional)'
     )
 
     # Feature analysis
     feature_importance: Dict[str, float] = Field(
         default_factory=dict,
-        description="Feature importance scores (feature_name -> importance)"
+        description='Feature importance scores (feature_name -> importance)',
     )
 
     features: List[str] = Field(
-        default_factory=list,
-        description="List of feature names"
+        default_factory=list, description='List of feature names'
     )
 
     # Alternative methods comparison
     alternative_models: Dict[str, AlternativeModelData] = Field(
         default_factory=dict,
-        description="Alternative UQ methods for comparison"
+        description='Alternative UQ methods for comparison',
     )
 
     # Chart data (kept as dict for flexibility)
     charts: Dict[str, str] = Field(
         default_factory=dict,
-        description="Generated chart images (chart_name -> base64_image)"
+        description='Generated chart images (chart_name -> base64_image)',
     )
 
     # Additional metadata
     dataset_size: int = Field(
-        default=0,
-        ge=0,
-        description="Size of test dataset"
+        default=0, ge=0, description='Size of test dataset'
     )
 
-    notes: str = Field(
-        default="",
-        description="Additional notes or comments"
-    )
+    notes: str = Field(default='', description='Additional notes or comments')
 
     # Properties for convenience
 
@@ -282,8 +263,10 @@ class UncertaintyReportData(ReportBaseModel):
     @property
     def has_calibration_results(self) -> bool:
         """Check if calibration analysis was performed."""
-        return self.calibration_results is not None and \
-               self.calibration_results.has_calibration_data
+        return (
+            self.calibration_results is not None
+            and self.calibration_results.has_calibration_data
+        )
 
     @property
     def has_feature_importance(self) -> bool:
@@ -304,9 +287,7 @@ class UncertaintyReportData(ReportBaseModel):
             List of (feature_name, importance_score) tuples, sorted descending
         """
         sorted_features = sorted(
-            self.feature_importance.items(),
-            key=lambda x: x[1],
-            reverse=True
+            self.feature_importance.items(), key=lambda x: x[1], reverse=True
         )
         return sorted_features[:5]
 
@@ -339,8 +320,8 @@ class UncertaintyReportData(ReportBaseModel):
     def __str__(self) -> str:
         """Human-readable summary."""
         return (
-            f"UncertaintyReport({self.model_name}): "
-            f"score={self.metrics.uncertainty_score:.3f}, "
-            f"coverage={self.metrics.coverage:.3f}, "
-            f"calibration_error={self.metrics.calibration_error:.3f}"
+            f'UncertaintyReport({self.model_name}): '
+            f'score={self.metrics.uncertainty_score:.3f}, '
+            f'coverage={self.metrics.coverage:.3f}, '
+            f'calibration_error={self.metrics.calibration_error:.3f}'
         )

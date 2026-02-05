@@ -5,13 +5,14 @@ Converts domain models to PDF format using WeasyPrint.
 Generates PDF from HTML with optimized styling for print.
 """
 
-from typing import Dict, Any, Optional
 import logging
 from pathlib import Path
-from .base import ReportAdapter
-from ..domain.general import Report
+from typing import Any, Dict, Optional
 
-logger = logging.getLogger("deepbridge.reports")
+from ..domain.general import Report
+from .base import ReportAdapter
+
+logger = logging.getLogger('deepbridge.reports')
 
 
 class PDFAdapter(ReportAdapter):
@@ -37,9 +38,9 @@ class PDFAdapter(ReportAdapter):
         self,
         template_manager=None,
         asset_manager=None,
-        theme: str = "pdf",
-        page_size: str = "A4",
-        cache_manager=None
+        theme: str = 'pdf',
+        page_size: str = 'A4',
+        cache_manager=None,
     ):
         """
         Initialize PDF adapter.
@@ -59,6 +60,7 @@ class PDFAdapter(ReportAdapter):
 
         # Import ChartRegistry
         from ..charts import ChartRegistry
+
         self.chart_registry = ChartRegistry
 
     def render(self, report: Report) -> bytes:
@@ -84,7 +86,7 @@ class PDFAdapter(ReportAdapter):
         # Step 2: Convert HTML to PDF
         pdf_bytes = self._html_to_pdf(html_content)
 
-        logger.info(f"PDF generated successfully ({len(pdf_bytes)} bytes)")
+        logger.info(f'PDF generated successfully ({len(pdf_bytes)} bytes)')
         return pdf_bytes
 
     def _generate_pdf_html(self, report: Report) -> str:
@@ -132,14 +134,13 @@ class PDFAdapter(ReportAdapter):
                 # Try cache first if available
                 if self.cache_manager:
                     cache_key = self.cache_manager.make_chart_key(
-                        f"{chart_spec.type.value}_static",
-                        chart_spec.data
+                        f'{chart_spec.type.value}_static', chart_spec.data
                     )
                     cached_result = self.cache_manager.get_chart(cache_key)
 
                     if cached_result is not None:
                         charts[chart_spec.id] = cached_result
-                        logger.info(f"Using cached chart: {chart_spec.id}")
+                        logger.info(f'Using cached chart: {chart_spec.id}')
                         continue
 
                 # Use static version of chart if available
@@ -150,22 +151,28 @@ class PDFAdapter(ReportAdapter):
                     chart_type,
                     chart_spec.data,
                     title=chart_spec.title,
-                    **chart_spec.options
+                    **chart_spec.options,
                 )
 
                 if result.is_success:
                     charts[chart_spec.id] = result.content
-                    logger.info(f"Generated static chart: {chart_spec.id}")
+                    logger.info(f'Generated static chart: {chart_spec.id}')
 
                     # Cache the result
                     if self.cache_manager:
-                        self.cache_manager.cache_chart(cache_key, result.content)
+                        self.cache_manager.cache_chart(
+                            cache_key, result.content
+                        )
                 else:
-                    logger.error(f"Failed to generate chart {chart_spec.id}: {result.error}")
+                    logger.error(
+                        f'Failed to generate chart {chart_spec.id}: {result.error}'
+                    )
                     charts[chart_spec.id] = self._create_error_placeholder()
 
             except Exception as e:
-                logger.error(f"Error generating chart {chart_spec.id}: {str(e)}")
+                logger.error(
+                    f'Error generating chart {chart_spec.id}: {str(e)}'
+                )
                 charts[chart_spec.id] = self._create_error_placeholder()
 
         return charts
@@ -182,14 +189,16 @@ class PDFAdapter(ReportAdapter):
         """
         # Map interactive charts to static versions
         static_mapping = {
-            "width_vs_coverage": "width_vs_coverage_static",
-            "perturbation_impact": "perturbation_impact_static",
+            'width_vs_coverage': 'width_vs_coverage_static',
+            'perturbation_impact': 'perturbation_impact_static',
             # Add more mappings as needed
         }
 
         return static_mapping.get(chart_type, chart_type)
 
-    def _create_pdf_context(self, report: Report, charts: Dict[str, str]) -> Dict[str, Any]:
+    def _create_pdf_context(
+        self, report: Report, charts: Dict[str, str]
+    ) -> Dict[str, Any]:
         """
         Create template context for PDF generation.
 
@@ -202,26 +211,22 @@ class PDFAdapter(ReportAdapter):
         """
         context = {
             # Report structure
-            "title": report.title,
-            "subtitle": report.subtitle,
-            "model_name": report.metadata.model_name,
-            "test_type": report.metadata.test_type.value,
-            "created_at": report.metadata.created_at,
-
+            'title': report.title,
+            'subtitle': report.subtitle,
+            'model_name': report.metadata.model_name,
+            'test_type': report.metadata.test_type.value,
+            'created_at': report.metadata.created_at,
             # Content
-            "summary": self._format_summary(report.summary_metrics),
-            "sections": self._format_sections(report.sections, charts),
-
+            'summary': self._format_summary(report.summary_metrics),
+            'sections': self._format_sections(report.sections, charts),
             # Charts
-            "charts": charts,
-
+            'charts': charts,
             # PDF-specific settings
-            "pdf_mode": True,
-            "page_size": self.page_size,
-            "css_content": self._get_pdf_css(report.metadata.test_type.value),
-
+            'pdf_mode': True,
+            'page_size': self.page_size,
+            'css_content': self._get_pdf_css(report.metadata.test_type.value),
             # Assets
-            "logo": self._get_logo_data_uri(),
+            'logo': self._get_logo_data_uri(),
         }
 
         return context
@@ -230,12 +235,14 @@ class PDFAdapter(ReportAdapter):
         """Format summary metrics for template."""
         formatted = []
         for metric in summary_metrics:
-            formatted.append({
-                "name": metric.name,
-                "value": self._format_metric_value(metric.value),
-                "unit": metric.unit or "",
-                "description": metric.description or ""
-            })
+            formatted.append(
+                {
+                    'name': metric.name,
+                    'value': self._format_metric_value(metric.value),
+                    'unit': metric.unit or '',
+                    'description': metric.description or '',
+                }
+            )
         return formatted
 
     def _format_sections(self, sections: list, charts: Dict[str, str]) -> list:
@@ -244,12 +251,16 @@ class PDFAdapter(ReportAdapter):
 
         for section in sections:
             section_data = {
-                "id": section.id,
-                "title": section.title,
-                "description": section.description or "",
-                "metrics": self._format_metrics(section.metrics),
-                "charts": self._format_section_charts(section.charts, charts),
-                "subsections": self._format_sections(section.subsections, charts) if section.subsections else []
+                'id': section.id,
+                'title': section.title,
+                'description': section.description or '',
+                'metrics': self._format_metrics(section.metrics),
+                'charts': self._format_section_charts(section.charts, charts),
+                'subsections': self._format_sections(
+                    section.subsections, charts
+                )
+                if section.subsections
+                else [],
             }
             formatted.append(section_data)
 
@@ -257,30 +268,37 @@ class PDFAdapter(ReportAdapter):
 
     def _format_metrics(self, metrics: list) -> list:
         """Format metrics for template."""
-        return [{
-            "name": m.name,
-            "value": self._format_metric_value(m.value),
-            "unit": m.unit or "",
-            "description": m.description or ""
-        } for m in metrics]
+        return [
+            {
+                'name': m.name,
+                'value': self._format_metric_value(m.value),
+                'unit': m.unit or '',
+                'description': m.description or '',
+            }
+            for m in metrics
+        ]
 
-    def _format_section_charts(self, chart_specs: list, charts: Dict[str, str]) -> list:
+    def _format_section_charts(
+        self, chart_specs: list, charts: Dict[str, str]
+    ) -> list:
         """Format charts for section."""
         formatted = []
         for chart_spec in chart_specs:
             if chart_spec.id in charts:
-                formatted.append({
-                    "id": chart_spec.id,
-                    "title": chart_spec.title,
-                    "image": charts[chart_spec.id],
-                    "description": chart_spec.description or ""
-                })
+                formatted.append(
+                    {
+                        'id': chart_spec.id,
+                        'title': chart_spec.title,
+                        'image': charts[chart_spec.id],
+                        'description': chart_spec.description or '',
+                    }
+                )
         return formatted
 
     def _format_metric_value(self, value) -> str:
         """Format metric value for display."""
         if isinstance(value, float):
-            return f"{value:.4f}"
+            return f'{value:.4f}'
         return str(value)
 
     def _get_pdf_css(self, test_type: str) -> str:
@@ -300,14 +318,15 @@ class PDFAdapter(ReportAdapter):
             CSS string
         """
         # Get base CSS from CSSManager if available
-        base_css = ""
+        base_css = ''
         if hasattr(self, 'css_manager') and self.css_manager:
             try:
                 from ..css_manager import CSSManager
+
                 css_manager = CSSManager()
                 base_css = css_manager.get_compiled_css(test_type)
             except Exception as e:
-                logger.warning(f"Could not load base CSS: {e}")
+                logger.warning(f'Could not load base CSS: {e}')
 
         # PDF-specific CSS
         pdf_css = """
@@ -442,7 +461,7 @@ class PDFAdapter(ReportAdapter):
         }
         """
 
-        return base_css + "\n\n" + pdf_css
+        return base_css + '\n\n' + pdf_css
 
     def _get_logo_data_uri(self) -> str:
         """
@@ -454,18 +473,21 @@ class PDFAdapter(ReportAdapter):
         # Try to get logo from asset_manager
         if self.asset_manager:
             try:
-                logo_path = self.asset_manager.get_asset_path("logo.png")
+                logo_path = self.asset_manager.get_asset_path('logo.png')
                 if logo_path and Path(logo_path).exists():
                     import base64
-                    with open(logo_path, "rb") as f:
+
+                    with open(logo_path, 'rb') as f:
                         logo_data = base64.b64encode(f.read()).decode()
-                    return f"data:image/png;base64,{logo_data}"
+                    return f'data:image/png;base64,{logo_data}'
             except Exception as e:
-                logger.warning(f"Could not load logo: {e}")
+                logger.warning(f'Could not load logo: {e}')
 
-        return ""
+        return ''
 
-    def _render_pdf_template(self, context: Dict[str, Any], report: Report) -> str:
+    def _render_pdf_template(
+        self, context: Dict[str, Any], report: Report
+    ) -> str:
         """
         Render PDF template with context.
 
@@ -482,9 +504,9 @@ class PDFAdapter(ReportAdapter):
 
         # Try to load PDF-specific template
         template_paths = [
-            f"report_types/{report.metadata.test_type.value}/pdf/index.html",
-            f"report_types/{report.metadata.test_type.value}/static/index.html",
-            "pdf/base.html"
+            f'report_types/{report.metadata.test_type.value}/pdf/index.html',
+            f'report_types/{report.metadata.test_type.value}/static/index.html',
+            'pdf/base.html',
         ]
 
         for template_path in template_paths:
@@ -492,7 +514,7 @@ class PDFAdapter(ReportAdapter):
                 template = self.template_manager.get_template(template_path)
                 return template.render(context)
             except Exception as e:
-                logger.debug(f"Template {template_path} not found: {e}")
+                logger.debug(f'Template {template_path} not found: {e}')
                 continue
 
         # Fallback to simple HTML
@@ -625,7 +647,7 @@ class PDFAdapter(ReportAdapter):
             Exception: If PDF generation fails
         """
         try:
-            from weasyprint import HTML, CSS
+            from weasyprint import CSS, HTML
             from weasyprint.text.fonts import FontConfiguration
 
             # Create font configuration
@@ -640,7 +662,7 @@ class PDFAdapter(ReportAdapter):
             return pdf_bytes
 
         except Exception as e:
-            logger.error(f"Failed to generate PDF: {str(e)}")
+            logger.error(f'Failed to generate PDF: {str(e)}')
             raise
 
     def _create_error_placeholder(self) -> str:
@@ -651,7 +673,7 @@ class PDFAdapter(ReportAdapter):
             Base64-encoded error image
         """
         # Simple 1x1 transparent PNG
-        return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
     def save_to_file(self, pdf_bytes: bytes, file_path: str) -> str:
         """
@@ -672,5 +694,5 @@ class PDFAdapter(ReportAdapter):
         with open(output_path, 'wb') as f:
             f.write(pdf_bytes)
 
-        logger.info(f"PDF saved to: {output_path}")
+        logger.info(f'PDF saved to: {output_path}')
         return str(output_path)

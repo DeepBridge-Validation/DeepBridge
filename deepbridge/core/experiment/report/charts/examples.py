@@ -7,17 +7,19 @@ These serve as templates for Phase 3 expansion.
 Created in Phase 2 Sprint 7-8 (TAREFA 7.2).
 """
 
-from typing import Dict, Any
 import logging
-from .base import PlotlyChartGenerator, StaticImageGenerator, ChartResult
+from typing import Any, Dict
+
+from .base import ChartResult, PlotlyChartGenerator, StaticImageGenerator
 from .registry import ChartRegistry, register_chart
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Example Plotly Charts
 # ==================================================================================
+
 
 @register_chart('line_chart')
 class LineChartGenerator(PlotlyChartGenerator):
@@ -43,22 +45,27 @@ class LineChartGenerator(PlotlyChartGenerator):
         self._validate_data(data, ['x', 'y'])
 
         figure = {
-            'data': [{
-                'x': data['x'],
-                'y': data['y'],
-                'type': 'scatter',
-                'mode': 'lines+markers',
-                'name': kwargs.get('series_name', 'Series'),
-                'line': {'color': kwargs.get('color', '#1f77b4'), 'width': 2},
-                'marker': {'size': 6}
-            }],
+            'data': [
+                {
+                    'x': data['x'],
+                    'y': data['y'],
+                    'type': 'scatter',
+                    'mode': 'lines+markers',
+                    'name': kwargs.get('series_name', 'Series'),
+                    'line': {
+                        'color': kwargs.get('color', '#1f77b4'),
+                        'width': 2,
+                    },
+                    'marker': {'size': 6},
+                }
+            ],
             'layout': {
                 'title': kwargs.get('title', 'Line Chart'),
                 'xaxis': {'title': kwargs.get('xaxis_title', 'X')},
                 'yaxis': {'title': kwargs.get('yaxis_title', 'Y')},
                 'template': 'plotly_white',
-                'hovermode': 'x unified'
-            }
+                'hovermode': 'x unified',
+            },
         }
 
         return figure
@@ -88,23 +95,25 @@ class BarChartGenerator(PlotlyChartGenerator):
         self._validate_data(data, ['labels', 'values'])
 
         figure = {
-            'data': [{
-                'x': data['labels'],
-                'y': data['values'],
-                'type': 'bar',
-                'name': kwargs.get('series_name', 'Values'),
-                'marker': {
-                    'color': kwargs.get('color', '#2ca02c'),
-                    'line': {'width': 1, 'color': 'white'}
+            'data': [
+                {
+                    'x': data['labels'],
+                    'y': data['values'],
+                    'type': 'bar',
+                    'name': kwargs.get('series_name', 'Values'),
+                    'marker': {
+                        'color': kwargs.get('color', '#2ca02c'),
+                        'line': {'width': 1, 'color': 'white'},
+                    },
                 }
-            }],
+            ],
             'layout': {
                 'title': kwargs.get('title', 'Bar Chart'),
                 'xaxis': {'title': kwargs.get('xaxis_title', 'Category')},
                 'yaxis': {'title': kwargs.get('yaxis_title', 'Value')},
                 'template': 'plotly_white',
-                'hovermode': 'x'
-            }
+                'hovermode': 'x',
+            },
         }
 
         return figure
@@ -138,7 +147,7 @@ class CoverageChartGenerator(PlotlyChartGenerator):
                     'mode': 'lines+markers',
                     'name': 'Actual Coverage',
                     'line': {'color': '#1f77b4', 'width': 2},
-                    'marker': {'size': 8}
+                    'marker': {'size': 8},
                 },
                 {
                     'x': data['alphas'],
@@ -146,28 +155,21 @@ class CoverageChartGenerator(PlotlyChartGenerator):
                     'type': 'scatter',
                     'mode': 'lines',
                     'name': 'Expected Coverage',
-                    'line': {
-                        'color': '#ff7f0e',
-                        'width': 2,
-                        'dash': 'dash'
-                    }
-                }
+                    'line': {'color': '#ff7f0e', 'width': 2, 'dash': 'dash'},
+                },
             ],
             'layout': {
                 'title': kwargs.get('title', 'Coverage vs Expected'),
-                'xaxis': {
-                    'title': 'Alpha Level',
-                    'tickformat': '.1f'
-                },
+                'xaxis': {'title': 'Alpha Level', 'tickformat': '.1f'},
                 'yaxis': {
                     'title': 'Coverage',
                     'tickformat': '.2f',
-                    'range': [0, 1.05]
+                    'range': [0, 1.05],
                 },
                 'template': 'plotly_white',
                 'hovermode': 'x unified',
-                'legend': {'x': 0.02, 'y': 0.98}
-            }
+                'legend': {'x': 0.02, 'y': 0.98},
+            },
         }
 
         return figure
@@ -176,6 +178,7 @@ class CoverageChartGenerator(PlotlyChartGenerator):
 # ==================================================================================
 # Example Static Image Chart
 # ==================================================================================
+
 
 class SimpleBarImageGenerator(StaticImageGenerator):
     """
@@ -190,15 +193,20 @@ class SimpleBarImageGenerator(StaticImageGenerator):
         self._validate_data(data, ['labels', 'values'])
 
         try:
-            import matplotlib.pyplot as plt
-            import io
             import base64
+            import io
+
+            import matplotlib.pyplot as plt
 
             # Create figure
             fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
             # Plot
-            ax.bar(data['labels'], data['values'], color=kwargs.get('color', '#2ca02c'))
+            ax.bar(
+                data['labels'],
+                data['values'],
+                color=kwargs.get('color', '#2ca02c'),
+            )
 
             # Styling
             ax.set_title(kwargs.get('title', 'Bar Chart'))
@@ -216,13 +224,14 @@ class SimpleBarImageGenerator(StaticImageGenerator):
             return img_base64, 'png'
 
         except ImportError:
-            logger.warning("Matplotlib not available, returning error")
-            raise ValueError("Matplotlib required for static images")
+            logger.warning('Matplotlib not available, returning error')
+            raise ValueError('Matplotlib required for static images')
 
 
 # ==================================================================================
 # Bulk Registration Helper
 # ==================================================================================
+
 
 def register_example_charts():
     """
@@ -242,7 +251,7 @@ def register_example_charts():
     # Register static image chart (not decorated)
     if not ChartRegistry.is_registered('bar_image'):
         ChartRegistry.register('bar_image', SimpleBarImageGenerator())
-        logger.info("Registered static bar image chart")
+        logger.info('Registered static bar image chart')
 
 
 # Auto-register on import
@@ -253,80 +262,75 @@ register_example_charts()
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Demonstrate example chart generators.
     """
-    print("=" * 80)
-    print("Example Chart Generators")
-    print("=" * 80)
+    print('=' * 80)
+    print('Example Chart Generators')
+    print('=' * 80)
 
     # Show registered charts
-    print(f"\nRegistered charts: {ChartRegistry.list_charts()}")
-    print(f"Total: {ChartRegistry.count()}")
+    print(f'\nRegistered charts: {ChartRegistry.list_charts()}')
+    print(f'Total: {ChartRegistry.count()}')
 
     # Example 1: Line chart
-    print("\n" + "-" * 80)
-    print("Example 1: Line Chart")
-    print("-" * 80)
+    print('\n' + '-' * 80)
+    print('Example 1: Line Chart')
+    print('-' * 80)
 
-    line_data = {
-        'x': [1, 2, 3, 4, 5],
-        'y': [2.1, 4.3, 3.8, 5.2, 6.1]
-    }
+    line_data = {'x': [1, 2, 3, 4, 5], 'y': [2.1, 4.3, 3.8, 5.2, 6.1]}
 
     result = ChartRegistry.generate(
         'line_chart',
         data=line_data,
         title='Performance Over Time',
         xaxis_title='Iteration',
-        yaxis_title='Score'
+        yaxis_title='Score',
     )
 
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
-    print(f"Format: {result.format}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
+    print(f'Format: {result.format}')
 
     # Example 2: Bar chart
-    print("\n" + "-" * 80)
-    print("Example 2: Bar Chart")
-    print("-" * 80)
+    print('\n' + '-' * 80)
+    print('Example 2: Bar Chart')
+    print('-' * 80)
 
     bar_data = {
         'labels': ['Model A', 'Model B', 'Model C', 'Model D'],
-        'values': [0.85, 0.92, 0.78, 0.88]
+        'values': [0.85, 0.92, 0.78, 0.88],
     }
 
     result = ChartRegistry.generate(
         'bar_chart',
         data=bar_data,
         title='Model Comparison',
-        yaxis_title='Accuracy'
+        yaxis_title='Accuracy',
     )
 
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
 
     # Example 3: Coverage chart (uncertainty-specific)
-    print("\n" + "-" * 80)
-    print("Example 3: Coverage Chart")
-    print("-" * 80)
+    print('\n' + '-' * 80)
+    print('Example 3: Coverage Chart')
+    print('-' * 80)
 
     coverage_data = {
         'alphas': [0.1, 0.2, 0.3, 0.4, 0.5],
         'coverage': [0.91, 0.81, 0.72, 0.61, 0.51],
-        'expected': [0.90, 0.80, 0.70, 0.60, 0.50]
+        'expected': [0.90, 0.80, 0.70, 0.60, 0.50],
     }
 
     result = ChartRegistry.generate(
-        'coverage_chart',
-        data=coverage_data,
-        title='Calibration Analysis'
+        'coverage_chart', data=coverage_data, title='Calibration Analysis'
     )
 
-    print(f"Result: {result}")
-    print(f"Success: {result.is_success}")
+    print(f'Result: {result}')
+    print(f'Success: {result.is_success}')
 
-    print("\n" + "=" * 80)
-    print("Example Chart Generators Complete")
-    print("=" * 80)
+    print('\n' + '=' * 80)
+    print('Example Chart Generators Complete')
+    print('=' * 80)

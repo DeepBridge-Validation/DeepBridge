@@ -4,13 +4,14 @@ Markdown adapter for reports (Phase 4 Sprint 20-21).
 Converts domain models to Markdown format for documentation and notebooks.
 """
 
-from typing import Dict, Any, Optional, List
 import logging
 from pathlib import Path
-from .base import ReportAdapter
-from ..domain.general import Report, ReportSection, Metric, ChartSpec
+from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("deepbridge.reports")
+from ..domain.general import ChartSpec, Metric, Report, ReportSection
+from .base import ReportAdapter
+
+logger = logging.getLogger('deepbridge.reports')
 
 
 class MarkdownAdapter(ReportAdapter):
@@ -43,7 +44,7 @@ class MarkdownAdapter(ReportAdapter):
         self,
         include_toc: bool = True,
         heading_level_start: int = 1,
-        chart_placeholder: str = "chart"
+        chart_placeholder: str = 'chart',
     ):
         """
         Initialize Markdown adapter.
@@ -89,12 +90,16 @@ class MarkdownAdapter(ReportAdapter):
         md.extend(self._render_summary(report))
 
         # Sections
-        md.extend(self._render_sections(report.sections, level=self.heading_level_start + 1))
+        md.extend(
+            self._render_sections(
+                report.sections, level=self.heading_level_start + 1
+            )
+        )
 
         # Footer
         md.extend(self._render_footer(report))
 
-        return "\n".join(md)
+        return '\n'.join(md)
 
     def _render_header(self, report: Report) -> List[str]:
         """
@@ -110,30 +115,32 @@ class MarkdownAdapter(ReportAdapter):
 
         # Title
         md.append(f"{'#' * self.heading_level_start} {report.title}")
-        md.append("")
+        md.append('')
 
         # Subtitle
         if report.subtitle:
-            md.append(f"**{report.subtitle}**")
-            md.append("")
+            md.append(f'**{report.subtitle}**')
+            md.append('')
 
         # Metadata
-        md.append("## Metadata")
-        md.append("")
-        md.append(f"- **Model**: {report.metadata.model_name}")
+        md.append('## Metadata')
+        md.append('')
+        md.append(f'- **Model**: {report.metadata.model_name}')
         md.append(f"- **Model Type**: {report.metadata.model_type or 'N/A'}")
-        md.append(f"- **Test Type**: {report.metadata.test_type.value}")
-        md.append(f"- **Generated**: {report.metadata.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+        md.append(f'- **Test Type**: {report.metadata.test_type.value}')
+        md.append(
+            f"- **Generated**: {report.metadata.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
 
         if report.metadata.dataset_name:
-            md.append(f"- **Dataset**: {report.metadata.dataset_name}")
+            md.append(f'- **Dataset**: {report.metadata.dataset_name}')
 
         if report.metadata.tags:
             md.append(f"- **Tags**: {', '.join(report.metadata.tags)}")
 
-        md.append("")
-        md.append("---")
-        md.append("")
+        md.append('')
+        md.append('---')
+        md.append('')
 
         return md
 
@@ -149,23 +156,25 @@ class MarkdownAdapter(ReportAdapter):
         """
         md = []
 
-        md.append("## Table of Contents")
-        md.append("")
+        md.append('## Table of Contents')
+        md.append('')
 
         # Summary
-        md.append("- [Summary](#summary)")
+        md.append('- [Summary](#summary)')
 
         # Sections
         for section in report.sections:
             md.extend(self._render_toc_section(section, level=1))
 
-        md.append("")
-        md.append("---")
-        md.append("")
+        md.append('')
+        md.append('---')
+        md.append('')
 
         return md
 
-    def _render_toc_section(self, section: ReportSection, level: int) -> List[str]:
+    def _render_toc_section(
+        self, section: ReportSection, level: int
+    ) -> List[str]:
         """
         Render TOC entry for section.
 
@@ -178,9 +187,9 @@ class MarkdownAdapter(ReportAdapter):
         """
         md = []
 
-        indent = "  " * level
+        indent = '  ' * level
         anchor = self._create_anchor(section.title)
-        md.append(f"{indent}- [{section.title}](#{anchor})")
+        md.append(f'{indent}- [{section.title}](#{anchor})')
 
         # Subsections
         for subsection in section.subsections:
@@ -200,19 +209,21 @@ class MarkdownAdapter(ReportAdapter):
         """
         md = []
 
-        md.append("## Summary")
-        md.append("")
+        md.append('## Summary')
+        md.append('')
 
         if report.summary_metrics:
             md.extend(self._render_metrics_table(report.summary_metrics))
         else:
-            md.append("*No summary metrics available.*")
+            md.append('*No summary metrics available.*')
 
-        md.append("")
+        md.append('')
 
         return md
 
-    def _render_sections(self, sections: List[ReportSection], level: int) -> List[str]:
+    def _render_sections(
+        self, sections: List[ReportSection], level: int
+    ) -> List[str]:
         """
         Render all sections recursively.
 
@@ -245,26 +256,26 @@ class MarkdownAdapter(ReportAdapter):
 
         # Section title
         md.append(f"{'#' * level} {section.title}")
-        md.append("")
+        md.append('')
 
         # Description
         if section.description:
             md.append(section.description)
-            md.append("")
+            md.append('')
 
         # Metrics
         if section.metrics:
-            md.append("### Metrics")
-            md.append("")
+            md.append('### Metrics')
+            md.append('')
             md.extend(self._render_metrics_table(section.metrics))
-            md.append("")
+            md.append('')
 
         # Charts
         if section.charts:
-            md.append("### Charts")
-            md.append("")
+            md.append('### Charts')
+            md.append('')
             md.extend(self._render_charts(section.charts))
-            md.append("")
+            md.append('')
 
         # Subsections
         if section.subsections:
@@ -283,20 +294,20 @@ class MarkdownAdapter(ReportAdapter):
             List of markdown lines
         """
         if not metrics:
-            return ["*No metrics available.*"]
+            return ['*No metrics available.*']
 
         md = []
 
         # Table header
-        md.append("| Metric | Value | Unit | Description |")
-        md.append("|--------|-------|------|-------------|")
+        md.append('| Metric | Value | Unit | Description |')
+        md.append('|--------|-------|------|-------------|')
 
         # Table rows
         for metric in metrics:
             value = self._format_metric_value(metric.value)
-            unit = metric.unit or "-"
-            description = metric.description or "-"
-            md.append(f"| {metric.name} | {value} | {unit} | {description} |")
+            unit = metric.unit or '-'
+            description = metric.description or '-'
+            md.append(f'| {metric.name} | {value} | {unit} | {description} |')
 
         return md
 
@@ -313,29 +324,31 @@ class MarkdownAdapter(ReportAdapter):
         md = []
 
         for chart in charts:
-            md.append(f"#### {chart.title}")
-            md.append("")
+            md.append(f'#### {chart.title}')
+            md.append('')
 
             if chart.description:
                 md.append(chart.description)
-                md.append("")
+                md.append('')
 
             # Chart placeholder
-            if self.chart_placeholder == "chart":
-                md.append(f"*Chart: {chart.type.value}*")
-                md.append("")
-                md.append("```")
-                md.append(f"Chart Type: {chart.type.value}")
-                md.append(f"Chart ID: {chart.id}")
-                md.append("Note: Chart data available in JSON export or HTML report")
-                md.append("```")
-            elif self.chart_placeholder == "link":
-                chart_filename = f"{chart.id}.png"
-                md.append(f"![{chart.title}]({chart_filename})")
-            elif self.chart_placeholder == "ignore":
+            if self.chart_placeholder == 'chart':
+                md.append(f'*Chart: {chart.type.value}*')
+                md.append('')
+                md.append('```')
+                md.append(f'Chart Type: {chart.type.value}')
+                md.append(f'Chart ID: {chart.id}')
+                md.append(
+                    'Note: Chart data available in JSON export or HTML report'
+                )
+                md.append('```')
+            elif self.chart_placeholder == 'link':
+                chart_filename = f'{chart.id}.png'
+                md.append(f'![{chart.title}]({chart_filename})')
+            elif self.chart_placeholder == 'ignore':
                 pass  # Don't include charts
 
-            md.append("")
+            md.append('')
 
         return md
 
@@ -351,11 +364,13 @@ class MarkdownAdapter(ReportAdapter):
         """
         md = []
 
-        md.append("---")
-        md.append("")
-        md.append("*Generated by DeepBridge*")
-        md.append(f"*{report.metadata.created_at.strftime('%Y-%m-%d %H:%M:%S')}*")
-        md.append("")
+        md.append('---')
+        md.append('')
+        md.append('*Generated by DeepBridge*')
+        md.append(
+            f"*{report.metadata.created_at.strftime('%Y-%m-%d %H:%M:%S')}*"
+        )
+        md.append('')
 
         return md
 
@@ -372,13 +387,13 @@ class MarkdownAdapter(ReportAdapter):
         if isinstance(value, float):
             # Format float with appropriate precision
             if abs(value) < 0.01 or abs(value) > 10000:
-                return f"{value:.2e}"
+                return f'{value:.2e}'
             else:
-                return f"{value:.4f}"
+                return f'{value:.4f}'
         elif isinstance(value, bool):
-            return "Yes" if value else "No"
+            return 'Yes' if value else 'No'
         elif isinstance(value, list):
-            return ", ".join(str(v) for v in value[:5])  # Limit to 5 items
+            return ', '.join(str(v) for v in value[:5])  # Limit to 5 items
         else:
             return str(value)
 
@@ -396,10 +411,10 @@ class MarkdownAdapter(ReportAdapter):
         anchor = text.lower()
 
         # Replace spaces with hyphens
-        anchor = anchor.replace(" ", "-")
+        anchor = anchor.replace(' ', '-')
 
         # Remove special characters
-        anchor = "".join(c for c in anchor if c.isalnum() or c == "-")
+        anchor = ''.join(c for c in anchor if c.isalnum() or c == '-')
 
         return anchor
 
@@ -422,5 +437,5 @@ class MarkdownAdapter(ReportAdapter):
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(markdown)
 
-        logger.info(f"Markdown saved to: {output_path}")
+        logger.info(f'Markdown saved to: {output_path}')
         return str(output_path)

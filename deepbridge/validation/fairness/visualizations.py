@@ -17,27 +17,30 @@ Available visualizations:
     6. Group Comparison - Detailed comparison of model performance by group
 """
 
+import warnings
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Any, Union
-import warnings
 
 # Try to import visualization libraries
 try:
-    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    warnings.warn("matplotlib not available. Visualizations will not work.")
+    warnings.warn('matplotlib not available. Visualizations will not work.')
 
 try:
     import seaborn as sns
+
     SEABORN_AVAILABLE = True
 except ImportError:
     SEABORN_AVAILABLE = False
-    warnings.warn("seaborn not available. Some visualizations may be limited.")
+    warnings.warn('seaborn not available. Some visualizations may be limited.')
 
 
 class FairnessVisualizer:
@@ -65,7 +68,7 @@ class FairnessVisualizer:
         'red': '#e74c3c',
         'blue': '#3498db',
         'purple': '#9b59b6',
-        'gray': '#95a5a6'
+        'gray': '#95a5a6',
     }
 
     METRIC_LABELS = {
@@ -83,7 +86,7 @@ class FairnessVisualizer:
         'class_balance': 'Class Balance',
         'concept_balance': 'Concept Balance',
         'kl_divergence': 'KL Divergence',
-        'js_divergence': 'JS Divergence'
+        'js_divergence': 'JS Divergence',
     }
 
     @staticmethod
@@ -91,14 +94,18 @@ class FairnessVisualizer:
         """Check if required visualization libraries are available"""
         if not MATPLOTLIB_AVAILABLE:
             raise ImportError(
-                "matplotlib is required for visualizations. "
-                "Install it with: pip install matplotlib"
+                'matplotlib is required for visualizations. '
+                'Install it with: pip install matplotlib'
             )
 
     @staticmethod
     def _get_color_for_interpretation(interpretation: str) -> str:
         """Get color based on interpretation text"""
-        if '✓ Verde' in interpretation or 'EXCELENTE' in interpretation or 'BOM' in interpretation:
+        if (
+            '✓ Verde' in interpretation
+            or 'EXCELENTE' in interpretation
+            or 'BOM' in interpretation
+        ):
             return FairnessVisualizer.COLORS['green']
         elif '⚠ Amarelo' in interpretation or 'MODERADO' in interpretation:
             return FairnessVisualizer.COLORS['yellow']
@@ -111,7 +118,9 @@ class FairnessVisualizer:
     def _save_or_show(fig, output_path: Optional[str] = None, dpi: int = 300):
         """Save figure to file or display it"""
         if output_path:
-            fig.savefig(output_path, dpi=dpi, bbox_inches='tight', facecolor='white')
+            fig.savefig(
+                output_path, dpi=dpi, bbox_inches='tight', facecolor='white'
+            )
             plt.close(fig)
             return output_path
         else:
@@ -126,7 +135,7 @@ class FairnessVisualizer:
         sensitive_feature: str,
         output_path: Optional[str] = None,
         title: Optional[str] = None,
-        figsize: tuple = (12, 6)
+        figsize: tuple = (12, 6),
     ) -> Optional[str]:
         """
         Plot target distribution by protected group.
@@ -165,9 +174,19 @@ class FairnessVisualizer:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
         # Plot 1: Count by group
-        df_counts = df.groupby([sensitive_feature, target_col]).size().unstack(fill_value=0)
-        df_counts.plot(kind='bar', stacked=False, ax=ax1, color=['#e74c3c', '#2ecc71'])
-        ax1.set_title(f'Distribution of {target_col} by {sensitive_feature}', fontsize=14, fontweight='bold')
+        df_counts = (
+            df.groupby([sensitive_feature, target_col])
+            .size()
+            .unstack(fill_value=0)
+        )
+        df_counts.plot(
+            kind='bar', stacked=False, ax=ax1, color=['#e74c3c', '#2ecc71']
+        )
+        ax1.set_title(
+            f'Distribution of {target_col} by {sensitive_feature}',
+            fontsize=14,
+            fontweight='bold',
+        )
         ax1.set_xlabel(sensitive_feature, fontsize=12)
         ax1.set_ylabel('Count', fontsize=12)
         ax1.legend(['Negative (0)', 'Positive (1)'], loc='upper right')
@@ -176,15 +195,29 @@ class FairnessVisualizer:
 
         # Plot 2: Positive rate by group
         positive_rates = df.groupby(sensitive_feature)[target_col].mean()
-        bars = ax2.bar(positive_rates.index, positive_rates.values,
-                       color=FairnessVisualizer.COLORS['blue'], alpha=0.7, edgecolor='black')
+        bars = ax2.bar(
+            positive_rates.index,
+            positive_rates.values,
+            color=FairnessVisualizer.COLORS['blue'],
+            alpha=0.7,
+            edgecolor='black',
+        )
 
         # Add overall mean line
         overall_mean = df[target_col].mean()
-        ax2.axhline(y=overall_mean, color=FairnessVisualizer.COLORS['red'],
-                   linestyle='--', linewidth=2, label=f'Overall Mean ({overall_mean:.2%})')
+        ax2.axhline(
+            y=overall_mean,
+            color=FairnessVisualizer.COLORS['red'],
+            linestyle='--',
+            linewidth=2,
+            label=f'Overall Mean ({overall_mean:.2%})',
+        )
 
-        ax2.set_title(f'Positive Rate by {sensitive_feature}', fontsize=14, fontweight='bold')
+        ax2.set_title(
+            f'Positive Rate by {sensitive_feature}',
+            fontsize=14,
+            fontweight='bold',
+        )
         ax2.set_xlabel(sensitive_feature, fontsize=12)
         ax2.set_ylabel('Positive Rate', fontsize=12)
         ax2.set_ylim(0, 1)
@@ -195,8 +228,14 @@ class FairnessVisualizer:
         # Add value labels on bars
         for bar in bars:
             height = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height:.2%}', ha='center', va='bottom', fontweight='bold')
+            ax2.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f'{height:.2%}',
+                ha='center',
+                va='bottom',
+                fontweight='bold',
+            )
 
         if title:
             fig.suptitle(title, fontsize=16, fontweight='bold', y=1.02)
@@ -209,7 +248,7 @@ class FairnessVisualizer:
         protected_attrs: List[str],
         output_path: Optional[str] = None,
         title: Optional[str] = None,
-        figsize: tuple = (14, 8)
+        figsize: tuple = (14, 8),
     ) -> Optional[str]:
         """
         Plot comparison of all fairness metrics across protected attributes.
@@ -255,27 +294,37 @@ class FairnessVisualizer:
                 if 'ratio' in metric_result:
                     value = metric_result['ratio']
                 elif 'disparity' in metric_result:
-                    value = metric_result.get('combined_disparity', metric_result['disparity'])
+                    value = metric_result.get(
+                        'combined_disparity', metric_result['disparity']
+                    )
                 elif 'value' in metric_result:
-                    value = abs(metric_result['value'])  # Use absolute for differences
+                    value = abs(
+                        metric_result['value']
+                    )  # Use absolute for differences
                 else:
                     value = 0.0
 
                 interpretation = metric_result.get('interpretation', '')
-                color = FairnessVisualizer._get_color_for_interpretation(interpretation)
+                color = FairnessVisualizer._get_color_for_interpretation(
+                    interpretation
+                )
 
-                data.append({
-                    'attribute': attr,
-                    'metric': FairnessVisualizer.METRIC_LABELS.get(metric_name, metric_name),
-                    'value': value,
-                    'color': color,
-                    'interpretation': interpretation
-                })
+                data.append(
+                    {
+                        'attribute': attr,
+                        'metric': FairnessVisualizer.METRIC_LABELS.get(
+                            metric_name, metric_name
+                        ),
+                        'value': value,
+                        'color': color,
+                        'interpretation': interpretation,
+                    }
+                )
 
         df_metrics = pd.DataFrame(data)
 
         if df_metrics.empty:
-            warnings.warn("No metrics data to plot")
+            warnings.warn('No metrics data to plot')
             return None
 
         # Create plot
@@ -286,30 +335,75 @@ class FairnessVisualizer:
         n_metrics = len(df_metrics) // n_attrs if n_attrs > 0 else 0
 
         y_pos = np.arange(len(df_metrics))
-        bars = ax.barh(y_pos, df_metrics['value'], color=df_metrics['color'], alpha=0.8, edgecolor='black')
+        bars = ax.barh(
+            y_pos,
+            df_metrics['value'],
+            color=df_metrics['color'],
+            alpha=0.8,
+            edgecolor='black',
+        )
 
         # Add labels
-        labels = [f"{row['attribute']}: {row['metric']}" for _, row in df_metrics.iterrows()]
+        labels = [
+            f"{row['attribute']}: {row['metric']}"
+            for _, row in df_metrics.iterrows()
+        ]
         ax.set_yticks(y_pos)
         ax.set_yticklabels(labels, fontsize=10)
-        ax.set_xlabel('Metric Value (closer to 0 or 1 is better)', fontsize=12, fontweight='bold')
-        ax.set_title(title or 'Fairness Metrics Comparison', fontsize=16, fontweight='bold')
+        ax.set_xlabel(
+            'Metric Value (closer to 0 or 1 is better)',
+            fontsize=12,
+            fontweight='bold',
+        )
+        ax.set_title(
+            title or 'Fairness Metrics Comparison',
+            fontsize=16,
+            fontweight='bold',
+        )
         ax.grid(axis='x', alpha=0.3)
 
         # Add reference lines
-        ax.axvline(x=0.8, color='orange', linestyle='--', linewidth=1.5, alpha=0.5, label='EEOC 80% Rule')
-        ax.axvline(x=1.0, color='green', linestyle='--', linewidth=1.5, alpha=0.5, label='Perfect Parity')
+        ax.axvline(
+            x=0.8,
+            color='orange',
+            linestyle='--',
+            linewidth=1.5,
+            alpha=0.5,
+            label='EEOC 80% Rule',
+        )
+        ax.axvline(
+            x=1.0,
+            color='green',
+            linestyle='--',
+            linewidth=1.5,
+            alpha=0.5,
+            label='Perfect Parity',
+        )
 
         # Add value labels
         for i, (bar, value) in enumerate(zip(bars, df_metrics['value'])):
-            ax.text(value, bar.get_y() + bar.get_height()/2,
-                   f' {value:.3f}', va='center', fontsize=9, fontweight='bold')
+            ax.text(
+                value,
+                bar.get_y() + bar.get_height() / 2,
+                f' {value:.3f}',
+                va='center',
+                fontsize=9,
+                fontweight='bold',
+            )
 
         # Legend for colors
         legend_elements = [
-            mpatches.Patch(color=FairnessVisualizer.COLORS['green'], label='✓ Verde (OK)'),
-            mpatches.Patch(color=FairnessVisualizer.COLORS['yellow'], label='⚠ Amarelo (Atenção)'),
-            mpatches.Patch(color=FairnessVisualizer.COLORS['red'], label='✗ Vermelho (Crítico)')
+            mpatches.Patch(
+                color=FairnessVisualizer.COLORS['green'], label='✓ Verde (OK)'
+            ),
+            mpatches.Patch(
+                color=FairnessVisualizer.COLORS['yellow'],
+                label='⚠ Amarelo (Atenção)',
+            ),
+            mpatches.Patch(
+                color=FairnessVisualizer.COLORS['red'],
+                label='✗ Vermelho (Crítico)',
+            ),
         ]
         ax.legend(handles=legend_elements, loc='lower right', fontsize=10)
 
@@ -321,7 +415,7 @@ class FairnessVisualizer:
         metrics: List[str] = ['disparate_impact_ratio', 'f1_score'],
         output_path: Optional[str] = None,
         title: Optional[str] = None,
-        figsize: tuple = (14, 6)
+        figsize: tuple = (14, 6),
     ) -> Optional[str]:
         """
         Plot impact of classification threshold on fairness and performance.
@@ -364,35 +458,70 @@ class FairnessVisualizer:
         colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12']
         for i, metric in enumerate(metrics):
             if metric in df.columns:
-                ax.plot(df['threshold'], df[metric], label=metric.replace('_', ' ').title(),
-                       linewidth=2.5, color=colors[i % len(colors)])
+                ax.plot(
+                    df['threshold'],
+                    df[metric],
+                    label=metric.replace('_', ' ').title(),
+                    linewidth=2.5,
+                    color=colors[i % len(colors)],
+                )
 
         # Add EEOC 80% rule line
-        ax.axhline(y=0.8, color='orange', linestyle='--', linewidth=2, alpha=0.7, label='EEOC 80% Rule')
+        ax.axhline(
+            y=0.8,
+            color='orange',
+            linestyle='--',
+            linewidth=2,
+            alpha=0.7,
+            label='EEOC 80% Rule',
+        )
 
         # Add optimal threshold line
-        ax.axvline(x=optimal_threshold, color='green', linestyle='--', linewidth=2.5,
-                  alpha=0.8, label=f'Optimal Threshold ({optimal_threshold:.3f})')
+        ax.axvline(
+            x=optimal_threshold,
+            color='green',
+            linestyle='--',
+            linewidth=2.5,
+            alpha=0.8,
+            label=f'Optimal Threshold ({optimal_threshold:.3f})',
+        )
 
         # Add default threshold line
-        ax.axvline(x=0.5, color='gray', linestyle=':', linewidth=2, alpha=0.6, label='Default (0.5)')
+        ax.axvline(
+            x=0.5,
+            color='gray',
+            linestyle=':',
+            linewidth=2,
+            alpha=0.6,
+            label='Default (0.5)',
+        )
 
-        ax.set_xlabel('Classification Threshold', fontsize=13, fontweight='bold')
+        ax.set_xlabel(
+            'Classification Threshold', fontsize=13, fontweight='bold'
+        )
         ax.set_ylabel('Metric Value', fontsize=13, fontweight='bold')
-        ax.set_title(title or 'Threshold Impact on Fairness and Performance',
-                    fontsize=16, fontweight='bold')
+        ax.set_title(
+            title or 'Threshold Impact on Fairness and Performance',
+            fontsize=16,
+            fontweight='bold',
+        )
         ax.legend(loc='best', fontsize=11, framealpha=0.9)
         ax.grid(True, alpha=0.3)
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1.05)
 
         # Add annotations
-        optimal_di = df[df['threshold'] == optimal_threshold]['disparate_impact_ratio'].values[0]
-        ax.annotate(f'DI: {optimal_di:.3f}',
-                   xy=(optimal_threshold, optimal_di),
-                   xytext=(optimal_threshold + 0.1, optimal_di + 0.05),
-                   arrowprops=dict(arrowstyle='->', color='green', lw=1.5),
-                   fontsize=10, fontweight='bold')
+        optimal_di = df[df['threshold'] == optimal_threshold][
+            'disparate_impact_ratio'
+        ].values[0]
+        ax.annotate(
+            f'DI: {optimal_di:.3f}',
+            xy=(optimal_threshold, optimal_di),
+            xytext=(optimal_threshold + 0.1, optimal_di + 0.05),
+            arrowprops=dict(arrowstyle='->', color='green', lw=1.5),
+            fontsize=10,
+            fontweight='bold',
+        )
 
         return FairnessVisualizer._save_or_show(fig, output_path)
 
@@ -402,7 +531,7 @@ class FairnessVisualizer:
         attribute_name: str,
         output_path: Optional[str] = None,
         title: Optional[str] = None,
-        figsize: tuple = (12, 5)
+        figsize: tuple = (12, 5),
     ) -> Optional[str]:
         """
         Plot confusion matrices side-by-side for each group.
@@ -447,31 +576,52 @@ class FairnessVisualizer:
             ax = axes[idx]
 
             # Create confusion matrix array
-            cm_array = np.array([[cm['TN'], cm['FP']],
-                                [cm['FN'], cm['TP']]])
+            cm_array = np.array([[cm['TN'], cm['FP']], [cm['FN'], cm['TP']]])
 
             # Plot heatmap
             if SEABORN_AVAILABLE:
-                sns.heatmap(cm_array, annot=True, fmt='d', cmap='Blues',
-                           cbar=True, ax=ax, square=True, linewidths=2, linecolor='black',
-                           annot_kws={'size': 14, 'weight': 'bold'})
+                sns.heatmap(
+                    cm_array,
+                    annot=True,
+                    fmt='d',
+                    cmap='Blues',
+                    cbar=True,
+                    ax=ax,
+                    square=True,
+                    linewidths=2,
+                    linecolor='black',
+                    annot_kws={'size': 14, 'weight': 'bold'},
+                )
             else:
                 im = ax.imshow(cm_array, cmap='Blues', aspect='auto')
                 ax.figure.colorbar(im, ax=ax)
                 for i in range(2):
                     for j in range(2):
-                        text = ax.text(j, i, cm_array[i, j],
-                                     ha="center", va="center", color="black",
-                                     fontsize=14, fontweight='bold')
+                        text = ax.text(
+                            j,
+                            i,
+                            cm_array[i, j],
+                            ha='center',
+                            va='center',
+                            color='black',
+                            fontsize=14,
+                            fontweight='bold',
+                        )
 
             ax.set_xlabel('Predicted', fontsize=11, fontweight='bold')
             ax.set_ylabel('Actual', fontsize=11, fontweight='bold')
-            ax.set_title(f'{group}\n(n={cm["total"]})', fontsize=12, fontweight='bold')
+            ax.set_title(
+                f'{group}\n(n={cm["total"]})', fontsize=12, fontweight='bold'
+            )
             ax.set_xticklabels(['Negative (0)', 'Positive (1)'])
             ax.set_yticklabels(['Negative (0)', 'Positive (1)'])
 
-        fig.suptitle(title or f'Confusion Matrices by {attribute_name}',
-                    fontsize=16, fontweight='bold', y=1.05)
+        fig.suptitle(
+            title or f'Confusion Matrices by {attribute_name}',
+            fontsize=16,
+            fontweight='bold',
+            y=1.05,
+        )
 
         return FairnessVisualizer._save_or_show(fig, output_path)
 
@@ -481,7 +631,7 @@ class FairnessVisualizer:
         output_path: Optional[str] = None,
         title: Optional[str] = None,
         figsize: tuple = (10, 10),
-        selected_metrics: Optional[List[str]] = None
+        selected_metrics: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         Plot radar chart showing fairness across multiple dimensions.
@@ -527,7 +677,7 @@ class FairnessVisualizer:
                 'disparate_impact',
                 'equal_opportunity',
                 'equalized_odds',
-                'precision_difference'
+                'precision_difference',
             ]
 
         # Extract metric values for each attribute
@@ -541,8 +691,13 @@ class FairnessVisualizer:
                 if metric_name in attr_metrics:
                     # Extract the numeric value from the metric dict
                     metric_value = attr_metrics[metric_name]
-                    if isinstance(metric_value, dict) and 'value' in metric_value:
-                        value = abs(metric_value['value'])  # Use absolute value for radar
+                    if (
+                        isinstance(metric_value, dict)
+                        and 'value' in metric_value
+                    ):
+                        value = abs(
+                            metric_value['value']
+                        )  # Use absolute value for radar
                         # Normalize to 0-1 scale (1 = perfect fairness)
                         # For most metrics, closer to 0 is better, but for disparate_impact, closer to 1 is better
                         if metric_name == 'disparate_impact':
@@ -579,8 +734,15 @@ class FairnessVisualizer:
 
             # Plot
             color = colors[i % len(colors)]
-            ax.plot(angles, values, 'o-', linewidth=2.5, color=color,
-                   label=attr_name.title(), markersize=6)
+            ax.plot(
+                angles,
+                values,
+                'o-',
+                linewidth=2.5,
+                color=color,
+                label=attr_name.title(),
+                markersize=6,
+            )
             ax.fill(angles, values, alpha=0.15, color=color)
 
         # Fix axis to go in the right order
@@ -596,11 +758,22 @@ class FairnessVisualizer:
         ax.grid(True, linewidth=1, alpha=0.3)
 
         # Add reference circle at 0.8 (good fairness threshold)
-        ax.plot(angles, [0.8] * len(angles), '--', linewidth=1.5,
-               color='gray', alpha=0.5, label='Good Threshold')
+        ax.plot(
+            angles,
+            [0.8] * len(angles),
+            '--',
+            linewidth=1.5,
+            color='gray',
+            alpha=0.5,
+            label='Good Threshold',
+        )
 
-        ax.set_title(title or 'Fairness Radar Chart\n(1.0 = Perfect Fairness)',
-                    fontsize=16, fontweight='bold', pad=20)
+        ax.set_title(
+            title or 'Fairness Radar Chart\n(1.0 = Perfect Fairness)',
+            fontsize=16,
+            fontweight='bold',
+            pad=20,
+        )
         ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=11)
 
         return FairnessVisualizer._save_or_show(fig, output_path)
@@ -612,7 +785,7 @@ class FairnessVisualizer:
         metrics_to_plot: Optional[List[str]] = None,
         output_path: Optional[str] = None,
         title: Optional[str] = None,
-        figsize: tuple = (14, 8)
+        figsize: tuple = (14, 8),
     ) -> Optional[str]:
         """
         Plot detailed comparison of metrics between groups for a single protected attribute.
@@ -650,7 +823,9 @@ class FairnessVisualizer:
 
         # Get metrics for the specified attribute
         if attribute_name not in metrics_results:
-            warnings.warn(f"Attribute '{attribute_name}' not found in metrics_results")
+            warnings.warn(
+                f"Attribute '{attribute_name}' not found in metrics_results"
+            )
             return None
 
         attr_metrics = metrics_results[attribute_name]
@@ -662,7 +837,7 @@ class FairnessVisualizer:
                 'equal_opportunity',
                 'disparate_impact',
                 'precision_difference',
-                'accuracy_difference'
+                'accuracy_difference',
             ]
 
         # Extract metric values
@@ -670,27 +845,43 @@ class FairnessVisualizer:
         for metric_name in metrics_to_plot:
             if metric_name in attr_metrics:
                 metric_result = attr_metrics[metric_name]
-                if isinstance(metric_result, dict) and 'value' in metric_result:
+                if (
+                    isinstance(metric_result, dict)
+                    and 'value' in metric_result
+                ):
                     value = abs(metric_result['value'])  # Use absolute value
                     interpretation = metric_result.get('interpretation', '')
 
                     # Determine color based on interpretation
-                    if '✗' in interpretation or 'CRÍTICO' in interpretation or 'Vermelho' in interpretation:
+                    if (
+                        '✗' in interpretation
+                        or 'CRÍTICO' in interpretation
+                        or 'Vermelho' in interpretation
+                    ):
                         color = FairnessVisualizer.COLORS['red']
                         status = 'Critical'
-                    elif '⚠' in interpretation or 'MODERADO' in interpretation or 'Amarelo' in interpretation:
+                    elif (
+                        '⚠' in interpretation
+                        or 'MODERADO' in interpretation
+                        or 'Amarelo' in interpretation
+                    ):
                         color = FairnessVisualizer.COLORS['yellow']
                         status = 'Warning'
                     else:
                         color = FairnessVisualizer.COLORS['green']
                         status = 'OK'
 
-                    data.append({
-                        'metric': FairnessVisualizer.METRIC_LABELS.get(metric_name, metric_name.replace('_', ' ').title()),
-                        'value': value,
-                        'color': color,
-                        'status': status
-                    })
+                    data.append(
+                        {
+                            'metric': FairnessVisualizer.METRIC_LABELS.get(
+                                metric_name,
+                                metric_name.replace('_', ' ').title(),
+                            ),
+                            'value': value,
+                            'color': color,
+                            'status': status,
+                        }
+                    )
 
         if not data:
             warnings.warn(f"No metrics data available for '{attribute_name}'")
@@ -705,14 +896,27 @@ class FairnessVisualizer:
         y_pos = np.arange(len(df))
         colors = df['color'].values
 
-        bars = ax.barh(y_pos, df['value'], color=colors, alpha=0.7, edgecolor='black', linewidth=1)
+        bars = ax.barh(
+            y_pos,
+            df['value'],
+            color=colors,
+            alpha=0.7,
+            edgecolor='black',
+            linewidth=1,
+        )
 
         # Customize plot
         ax.set_yticks(y_pos)
         ax.set_yticklabels(df['metric'], fontsize=11)
-        ax.set_xlabel('Metric Value (Absolute)', fontsize=13, fontweight='bold')
-        ax.set_title(title or f'Fairness Metrics for {attribute_name.title()}',
-                    fontsize=16, fontweight='bold', pad=20)
+        ax.set_xlabel(
+            'Metric Value (Absolute)', fontsize=13, fontweight='bold'
+        )
+        ax.set_title(
+            title or f'Fairness Metrics for {attribute_name.title()}',
+            fontsize=16,
+            fontweight='bold',
+            pad=20,
+        )
         ax.set_xlim(0, max(1.0, df['value'].max() * 1.1))
         ax.grid(axis='x', alpha=0.3, linestyle='--')
 
@@ -720,24 +924,61 @@ class FairnessVisualizer:
         for i, (bar, row) in enumerate(zip(bars, df.itertuples())):
             width = bar.get_width()
             label = f'{width:.3f}'
-            ax.text(width + 0.02, bar.get_y() + bar.get_height()/2,
-                   label, ha='left', va='center', fontsize=10, fontweight='bold')
+            ax.text(
+                width + 0.02,
+                bar.get_y() + bar.get_height() / 2,
+                label,
+                ha='left',
+                va='center',
+                fontsize=10,
+                fontweight='bold',
+            )
 
         # Add reference line for fairness thresholds
         if any(m in metrics_to_plot for m in ['disparate_impact']):
-            ax.axvline(x=0.8, color='orange', linestyle='--', linewidth=2,
-                      alpha=0.7, label='EEOC 80% Rule')
-        ax.axvline(x=0.1, color='gray', linestyle=':', linewidth=1.5,
-                  alpha=0.5, label='Threshold 0.1')
+            ax.axvline(
+                x=0.8,
+                color='orange',
+                linestyle='--',
+                linewidth=2,
+                alpha=0.7,
+                label='EEOC 80% Rule',
+            )
+        ax.axvline(
+            x=0.1,
+            color='gray',
+            linestyle=':',
+            linewidth=1.5,
+            alpha=0.5,
+            label='Threshold 0.1',
+        )
 
         # Create legend for status colors
         from matplotlib.patches import Patch
+
         legend_elements = [
-            Patch(facecolor=FairnessVisualizer.COLORS['green'], label='OK', alpha=0.7),
-            Patch(facecolor=FairnessVisualizer.COLORS['yellow'], label='Warning', alpha=0.7),
-            Patch(facecolor=FairnessVisualizer.COLORS['red'], label='Critical', alpha=0.7)
+            Patch(
+                facecolor=FairnessVisualizer.COLORS['green'],
+                label='OK',
+                alpha=0.7,
+            ),
+            Patch(
+                facecolor=FairnessVisualizer.COLORS['yellow'],
+                label='Warning',
+                alpha=0.7,
+            ),
+            Patch(
+                facecolor=FairnessVisualizer.COLORS['red'],
+                label='Critical',
+                alpha=0.7,
+            ),
         ]
-        ax.legend(handles=legend_elements, loc='lower right', fontsize=11, framealpha=0.9)
+        ax.legend(
+            handles=legend_elements,
+            loc='lower right',
+            fontsize=11,
+            framealpha=0.9,
+        )
 
         plt.tight_layout()
 

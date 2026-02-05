@@ -41,63 +41,69 @@ Example:
     >>> # json_data = JSONAdapter().render(report)
 """
 
-from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 from enum import Enum
-from pydantic import Field, field_validator
-from .base import ReportBaseModel
+from typing import Any, Dict, List, Optional, Union
 
+from pydantic import Field, field_validator
+
+from .base import ReportBaseModel
 
 # ==================================================================================
 # Enums
 # ==================================================================================
 
+
 class ReportType(str, Enum):
     """Report type enumeration."""
-    UNCERTAINTY = "uncertainty"
-    ROBUSTNESS = "robustness"
-    RESILIENCE = "resilience"
-    FAIRNESS = "fairness"
-    DISTILLATION = "distillation"
-    HYPERPARAMETER = "hyperparameter"
-    CUSTOM = "custom"
+
+    UNCERTAINTY = 'uncertainty'
+    ROBUSTNESS = 'robustness'
+    RESILIENCE = 'resilience'
+    FAIRNESS = 'fairness'
+    DISTILLATION = 'distillation'
+    HYPERPARAMETER = 'hyperparameter'
+    CUSTOM = 'custom'
 
 
 class MetricType(str, Enum):
     """Metric type enumeration."""
-    SCALAR = "scalar"  # Single numeric value
-    PERCENTAGE = "percentage"  # 0-1 or 0-100
-    DURATION = "duration"  # Time measurement
-    COUNT = "count"  # Integer count
-    BOOLEAN = "boolean"  # True/False
-    TEXT = "text"  # Text value
-    ARRAY = "array"  # List of values
+
+    SCALAR = 'scalar'  # Single numeric value
+    PERCENTAGE = 'percentage'  # 0-1 or 0-100
+    DURATION = 'duration'  # Time measurement
+    COUNT = 'count'  # Integer count
+    BOOLEAN = 'boolean'  # True/False
+    TEXT = 'text'  # Text value
+    ARRAY = 'array'  # List of values
 
 
 class ChartType(str, Enum):
     """Chart type enumeration."""
+
     # From ChartRegistry
-    LINE = "line_chart"
-    BAR = "bar_chart"
-    COVERAGE = "coverage_chart"
-    WIDTH_VS_COVERAGE = "width_vs_coverage"
-    CALIBRATION_ERROR = "calibration_error"
-    ALTERNATIVE_METHODS = "alternative_methods_comparison"
-    PERTURBATION_IMPACT = "perturbation_impact"
-    FEATURE_ROBUSTNESS = "feature_robustness"
-    TEST_TYPE_COMPARISON = "test_type_comparison"
-    SCENARIO_DEGRADATION = "scenario_degradation"
-    MODEL_COMPARISON = "model_comparison"
-    INTERVAL_BOXPLOT = "interval_boxplot"
+    LINE = 'line_chart'
+    BAR = 'bar_chart'
+    COVERAGE = 'coverage_chart'
+    WIDTH_VS_COVERAGE = 'width_vs_coverage'
+    CALIBRATION_ERROR = 'calibration_error'
+    ALTERNATIVE_METHODS = 'alternative_methods_comparison'
+    PERTURBATION_IMPACT = 'perturbation_impact'
+    FEATURE_ROBUSTNESS = 'feature_robustness'
+    TEST_TYPE_COMPARISON = 'test_type_comparison'
+    SCENARIO_DEGRADATION = 'scenario_degradation'
+    MODEL_COMPARISON = 'model_comparison'
+    INTERVAL_BOXPLOT = 'interval_boxplot'
     # Static versions
-    WIDTH_VS_COVERAGE_STATIC = "width_vs_coverage_static"
-    PERTURBATION_IMPACT_STATIC = "perturbation_impact_static"
-    BAR_IMAGE = "bar_image"
+    WIDTH_VS_COVERAGE_STATIC = 'width_vs_coverage_static'
+    PERTURBATION_IMPACT_STATIC = 'perturbation_impact_static'
+    BAR_IMAGE = 'bar_image'
 
 
 # ==================================================================================
 # Metadata
 # ==================================================================================
+
 
 class ReportMetadata(ReportBaseModel):
     """
@@ -117,31 +123,56 @@ class ReportMetadata(ReportBaseModel):
         ...     created_at=datetime.now()
         ... )
     """
-    model_name: str = Field(description="Name of the model being tested")
-    test_type: ReportType = Field(description="Type of test/report")
-    created_at: datetime = Field(default_factory=datetime.now, description="Report creation timestamp")
-    version: str = Field(default="1.0", description="Report format version")
-    created_by: Optional[str] = Field(default=None, description="User/system that created the report")
-    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
-    description: Optional[str] = Field(default=None, description="Report description")
+
+    model_name: str = Field(description='Name of the model being tested')
+    test_type: ReportType = Field(description='Type of test/report')
+    created_at: datetime = Field(
+        default_factory=datetime.now, description='Report creation timestamp'
+    )
+    version: str = Field(default='1.0', description='Report format version')
+    created_by: Optional[str] = Field(
+        default=None, description='User/system that created the report'
+    )
+    tags: List[str] = Field(
+        default_factory=list, description='Tags for categorization'
+    )
+    description: Optional[str] = Field(
+        default=None, description='Report description'
+    )
 
     # Test configuration
-    dataset_name: Optional[str] = Field(default=None, description="Dataset used for testing")
-    dataset_size: Optional[int] = Field(default=None, description="Number of samples")
-    test_duration: Optional[float] = Field(default=None, description="Test duration in seconds")
+    dataset_name: Optional[str] = Field(
+        default=None, description='Dataset used for testing'
+    )
+    dataset_size: Optional[int] = Field(
+        default=None, description='Number of samples'
+    )
+    test_duration: Optional[float] = Field(
+        default=None, description='Test duration in seconds'
+    )
 
     # Model info
-    model_type: Optional[str] = Field(default=None, description="Type of model (e.g., 'classification', 'regression')")
-    model_architecture: Optional[str] = Field(default=None, description="Model architecture")
-    model_version: Optional[str] = Field(default=None, description="Model version")
+    model_type: Optional[str] = Field(
+        default=None,
+        description="Type of model (e.g., 'classification', 'regression')",
+    )
+    model_architecture: Optional[str] = Field(
+        default=None, description='Model architecture'
+    )
+    model_version: Optional[str] = Field(
+        default=None, description='Model version'
+    )
 
     # Additional metadata
-    extra: Dict[str, Any] = Field(default_factory=dict, description="Additional custom metadata")
+    extra: Dict[str, Any] = Field(
+        default_factory=dict, description='Additional custom metadata'
+    )
 
 
 # ==================================================================================
 # Metric
 # ==================================================================================
+
 
 class Metric(ReportBaseModel):
     """
@@ -168,24 +199,48 @@ class Metric(ReportBaseModel):
         ... )
         >>> metric.is_passing  # True (0.95 >= 0.90)
     """
-    name: str = Field(description="Metric name/identifier")
-    value: Union[float, int, str, bool, List, None] = Field(description="Metric value")
-    type: MetricType = Field(default=MetricType.SCALAR, description="Type of metric")
+
+    name: str = Field(description='Metric name/identifier')
+    value: Union[float, int, str, bool, List, None] = Field(
+        description='Metric value'
+    )
+    type: MetricType = Field(
+        default=MetricType.SCALAR, description='Type of metric'
+    )
 
     # Optional metadata
-    description: Optional[str] = Field(default=None, description="Human-readable description")
-    unit: Optional[str] = Field(default=None, description="Unit of measurement")
-    format_string: Optional[str] = Field(default=None, description="Format string for display (e.g., '.2f', '.1%')")
+    description: Optional[str] = Field(
+        default=None, description='Human-readable description'
+    )
+    unit: Optional[str] = Field(
+        default=None, description='Unit of measurement'
+    )
+    format_string: Optional[str] = Field(
+        default=None,
+        description="Format string for display (e.g., '.2f', '.1%')",
+    )
 
     # Validation/thresholds
-    min_value: Optional[float] = Field(default=None, description="Minimum expected value")
-    max_value: Optional[float] = Field(default=None, description="Maximum expected value")
-    threshold: Optional[float] = Field(default=None, description="Pass/fail threshold")
-    higher_is_better: bool = Field(default=True, description="Whether higher values are better")
+    min_value: Optional[float] = Field(
+        default=None, description='Minimum expected value'
+    )
+    max_value: Optional[float] = Field(
+        default=None, description='Maximum expected value'
+    )
+    threshold: Optional[float] = Field(
+        default=None, description='Pass/fail threshold'
+    )
+    higher_is_better: bool = Field(
+        default=True, description='Whether higher values are better'
+    )
 
     # Status
-    is_primary: bool = Field(default=False, description="Whether this is a primary metric")
-    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+    is_primary: bool = Field(
+        default=False, description='Whether this is a primary metric'
+    )
+    tags: List[str] = Field(
+        default_factory=list, description='Tags for categorization'
+    )
 
     @property
     def is_passing(self) -> Optional[bool]:
@@ -212,22 +267,22 @@ class Metric(ReportBaseModel):
             Formatted string representation of value
         """
         if self.value is None:
-            return "N/A"
+            return 'N/A'
 
         if self.format_string:
             try:
-                return f"{self.value:{self.format_string}}"
+                return f'{self.value:{self.format_string}}'
             except:
                 pass
 
         # Default formatting by type
         if self.type == MetricType.PERCENTAGE:
             if isinstance(self.value, (int, float)):
-                return f"{self.value * 100:.1f}%"
+                return f'{self.value * 100:.1f}%'
         elif self.type == MetricType.COUNT:
             return str(int(self.value))
         elif isinstance(self.value, float):
-            return f"{self.value:.4f}"
+            return f'{self.value:.4f}'
 
         return str(self.value)
 
@@ -235,6 +290,7 @@ class Metric(ReportBaseModel):
 # ==================================================================================
 # ChartSpec
 # ==================================================================================
+
 
 class ChartSpec(ReportBaseModel):
     """
@@ -261,27 +317,43 @@ class ChartSpec(ReportBaseModel):
         ...     }
         ... )
     """
-    id: str = Field(description="Unique identifier for the chart")
-    type: ChartType = Field(description="Type of chart (from ChartRegistry)")
-    title: str = Field(description="Chart title")
+
+    id: str = Field(description='Unique identifier for the chart')
+    type: ChartType = Field(description='Type of chart (from ChartRegistry)')
+    title: str = Field(description='Chart title')
 
     # Data
-    data: Dict[str, Any] = Field(description="Chart data (format depends on chart type)")
+    data: Dict[str, Any] = Field(
+        description='Chart data (format depends on chart type)'
+    )
 
     # Optional configuration
-    description: Optional[str] = Field(default=None, description="Chart description")
-    width: Optional[int] = Field(default=None, description="Chart width in pixels")
-    height: Optional[int] = Field(default=None, description="Chart height in pixels")
-    options: Dict[str, Any] = Field(default_factory=dict, description="Additional chart options")
+    description: Optional[str] = Field(
+        default=None, description='Chart description'
+    )
+    width: Optional[int] = Field(
+        default=None, description='Chart width in pixels'
+    )
+    height: Optional[int] = Field(
+        default=None, description='Chart height in pixels'
+    )
+    options: Dict[str, Any] = Field(
+        default_factory=dict, description='Additional chart options'
+    )
 
     # Metadata
-    is_primary: bool = Field(default=False, description="Whether this is a primary chart")
-    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+    is_primary: bool = Field(
+        default=False, description='Whether this is a primary chart'
+    )
+    tags: List[str] = Field(
+        default_factory=list, description='Tags for categorization'
+    )
 
 
 # ==================================================================================
 # ReportSection
 # ==================================================================================
+
 
 class ReportSection(ReportBaseModel):
     """
@@ -303,20 +375,35 @@ class ReportSection(ReportBaseModel):
         >>> section.add_metric(Metric(name="calibration_error", value=0.02))
         >>> section.add_chart(ChartSpec(id="calib_plot", type=ChartType.COVERAGE, ...))
     """
-    id: str = Field(description="Unique section identifier")
-    title: str = Field(description="Section title")
-    description: Optional[str] = Field(default=None, description="Section description")
+
+    id: str = Field(description='Unique section identifier')
+    title: str = Field(description='Section title')
+    description: Optional[str] = Field(
+        default=None, description='Section description'
+    )
 
     # Content
-    metrics: List[Metric] = Field(default_factory=list, description="Metrics in this section")
-    charts: List[ChartSpec] = Field(default_factory=list, description="Charts in this section")
-    subsections: List['ReportSection'] = Field(default_factory=list, description="Nested subsections")
-    content: Optional[str] = Field(default=None, description="Free-form content (markdown/HTML)")
+    metrics: List[Metric] = Field(
+        default_factory=list, description='Metrics in this section'
+    )
+    charts: List[ChartSpec] = Field(
+        default_factory=list, description='Charts in this section'
+    )
+    subsections: List['ReportSection'] = Field(
+        default_factory=list, description='Nested subsections'
+    )
+    content: Optional[str] = Field(
+        default=None, description='Free-form content (markdown/HTML)'
+    )
 
     # Organization
-    order: int = Field(default=0, description="Display order")
-    is_collapsed: bool = Field(default=False, description="Whether section is initially collapsed")
-    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+    order: int = Field(default=0, description='Display order')
+    is_collapsed: bool = Field(
+        default=False, description='Whether section is initially collapsed'
+    )
+    tags: List[str] = Field(
+        default_factory=list, description='Tags for categorization'
+    )
 
     def add_metric(self, metric: Metric) -> 'ReportSection':
         """Add a metric to this section."""
@@ -347,6 +434,7 @@ class ReportSection(ReportBaseModel):
 # ==================================================================================
 # Report
 # ==================================================================================
+
 
 class Report(ReportBaseModel):
     """
@@ -380,19 +468,32 @@ class Report(ReportBaseModel):
         >>> # Export via adapter (Sprint 14)
         >>> # html = HTMLAdapter().render(report)
     """
-    metadata: ReportMetadata = Field(description="Report metadata")
-    sections: List[ReportSection] = Field(default_factory=list, description="Report sections")
-    summary_metrics: List[Metric] = Field(default_factory=list, description="Summary/overview metrics")
+
+    metadata: ReportMetadata = Field(description='Report metadata')
+    sections: List[ReportSection] = Field(
+        default_factory=list, description='Report sections'
+    )
+    summary_metrics: List[Metric] = Field(
+        default_factory=list, description='Summary/overview metrics'
+    )
 
     # Optional content
-    title: Optional[str] = Field(default=None, description="Report title (defaults to test type)")
-    subtitle: Optional[str] = Field(default=None, description="Report subtitle")
-    introduction: Optional[str] = Field(default=None, description="Introduction text")
-    conclusion: Optional[str] = Field(default=None, description="Conclusion text")
+    title: Optional[str] = Field(
+        default=None, description='Report title (defaults to test type)'
+    )
+    subtitle: Optional[str] = Field(
+        default=None, description='Report subtitle'
+    )
+    introduction: Optional[str] = Field(
+        default=None, description='Introduction text'
+    )
+    conclusion: Optional[str] = Field(
+        default=None, description='Conclusion text'
+    )
 
     # Configuration
-    theme: str = Field(default="default", description="Visual theme")
-    language: str = Field(default="en", description="Report language")
+    theme: str = Field(default='default', description='Visual theme')
+    language: str = Field(default='en', description='Report language')
 
     def add_section(self, section: ReportSection) -> 'Report':
         """Add a section to the report."""
@@ -434,7 +535,7 @@ class Report(ReportBaseModel):
         """Get display title (uses metadata if no explicit title)."""
         if self.title:
             return self.title
-        return f"{self.metadata.test_type.value.title()} Report - {self.metadata.model_name}"
+        return f'{self.metadata.test_type.value.title()} Report - {self.metadata.model_name}'
 
 
 # Update forward refs for recursive types

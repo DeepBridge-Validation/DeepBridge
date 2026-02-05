@@ -5,6 +5,7 @@ Provides common configuration and validators for all report domain models.
 """
 
 from typing import Any
+
 from pydantic import BaseModel, field_validator
 
 
@@ -88,8 +89,8 @@ class ReportBaseModel(BaseModel):
     def __repr__(self) -> str:
         """Concise representation for debugging."""
         fields = ', '.join(
-            f"{k}={repr(v)[:50]}"
+            f'{k}={repr(v)[:50]}'
             for k, v in self.model_dump().items()
             if v is not None
         )
-        return f"{self.__class__.__name__}({fields})"
+        return f'{self.__class__.__name__}({fields})'

@@ -4,14 +4,15 @@ Legacy fairness charts.
 Contains older chart implementations for backward compatibility.
 """
 
-from typing import Dict, Any, List
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
+from typing import Any, Dict, List
+
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from ..charts.base_chart import BaseChart
-from ..utils import get_status_from_interpretation, format_attribute_name
+from ..utils import format_attribute_name, get_status_from_interpretation
 
 
 class MetricsComparisonChart(BaseChart):
@@ -43,14 +44,16 @@ class MetricsComparisonChart(BaseChart):
             'equal_opportunity',
             'equalized_odds',
             'disparate_impact',
-            'false_negative_rate_difference'
+            'false_negative_rate_difference',
         ]
 
         # Prepare data
         chart_data = []
         for attr in protected_attrs:
             if attr in posttrain_metrics:
-                for metric_name, metric_result in posttrain_metrics[attr].items():
+                for metric_name, metric_result in posttrain_metrics[
+                    attr
+                ].items():
                     # Only include main metrics
                     if metric_name not in main_metrics:
                         continue
@@ -74,14 +77,18 @@ class MetricsComparisonChart(BaseChart):
                         # Ensure value is float and normalized
                         value = float(value)
 
-                        chart_data.append({
-                            'attribute': attr,
-                            'metric': metric_name.replace('_', ' ').title(),
-                            'value': value,
-                            'status': get_status_from_interpretation(
-                                metric_result.get('interpretation', '')
-                            )
-                        })
+                        chart_data.append(
+                            {
+                                'attribute': attr,
+                                'metric': metric_name.replace(
+                                    '_', ' '
+                                ).title(),
+                                'value': value,
+                                'status': get_status_from_interpretation(
+                                    metric_result.get('interpretation', '')
+                                ),
+                            }
+                        )
 
         if not chart_data:
             return '{}'
@@ -98,7 +105,7 @@ class MetricsComparisonChart(BaseChart):
             color_discrete_map=self.COLOR_MAP_STATUS,
             labels={'value': 'Disparity', 'metric': 'Fairness Metric'},
             title='Fairness Metrics Comparison by Protected Attribute',
-            orientation='h'
+            orientation='h',
         )
 
         # Update hover template to show values with 4 decimal places
@@ -113,19 +120,16 @@ class MetricsComparisonChart(BaseChart):
         xaxis_max = max(max_value * 1.1, 0.3)
 
         fig.update_xaxes(
-            title_text="Disparity",
-            range=[0, xaxis_max]  # Constrain to reasonable disparity scale
+            title_text='Disparity',
+            range=[0, xaxis_max],  # Constrain to reasonable disparity scale
         )
 
         # Add reference line at 0.1 (recommended threshold) for all subplots
-        fig.add_vline(x=0.1, line_dash="dash", line_color="gray", opacity=0.5)
+        fig.add_vline(x=0.1, line_dash='dash', line_color='gray', opacity=0.5)
 
         # Apply common layout last (so it doesn't override our customizations)
         self._apply_common_layout(
-            fig,
-            height=500,
-            showlegend=True,
-            legend_title_text='Status'
+            fig, height=500, showlegend=True, legend_title_text='Status'
         )
 
         return self._to_json(fig)
@@ -159,7 +163,7 @@ class FairnessRadarChart(BaseChart):
             'disparate_impact',
             'equal_opportunity',
             'equalized_odds',
-            'precision_difference'
+            'precision_difference',
         ]
 
         fig = go.Figure()
@@ -192,24 +196,21 @@ class FairnessRadarChart(BaseChart):
                 values.append(values[0])
                 labels.append(labels[0])
 
-                fig.add_trace(go.Scatterpolar(
-                    r=values,
-                    theta=labels,
-                    fill='toself',
-                    name=format_attribute_name(attr)
-                ))
+                fig.add_trace(
+                    go.Scatterpolar(
+                        r=values,
+                        theta=labels,
+                        fill='toself',
+                        name=format_attribute_name(attr),
+                    )
+                )
 
         self._apply_common_layout(
             fig,
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[0, 1]
-                )
-            ),
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
             showlegend=True,
             title='Fairness Radar Chart (1.0 = Perfect Fairness)',
-            height=500
+            height=500,
         )
 
         return self._to_json(fig)
@@ -246,7 +247,7 @@ class ConfusionMatricesChart(BaseChart):
             if attr in confusion_matrices:
                 groups = list(confusion_matrices[attr].keys())
                 total_groups += len(groups)
-                subplot_titles.extend([f"{attr}: {g}" for g in groups])
+                subplot_titles.extend([f'{attr}: {g}' for g in groups])
 
         if total_groups == 0:
             return '{}'
@@ -259,7 +260,7 @@ class ConfusionMatricesChart(BaseChart):
             rows=rows,
             cols=cols,
             subplot_titles=subplot_titles,
-            specs=[[{'type': 'heatmap'}] * cols for _ in range(rows)]
+            specs=[[{'type': 'heatmap'}] * cols for _ in range(rows)],
         )
 
         row, col = 1, 1
@@ -269,7 +270,7 @@ class ConfusionMatricesChart(BaseChart):
                     # Create confusion matrix
                     matrix = [
                         [cm_data.get('TN', 0), cm_data.get('FP', 0)],
-                        [cm_data.get('FN', 0), cm_data.get('TP', 0)]
+                        [cm_data.get('FN', 0), cm_data.get('TP', 0)],
                     ]
 
                     fig.add_trace(
@@ -281,10 +282,10 @@ class ConfusionMatricesChart(BaseChart):
                             showscale=False,
                             text=matrix,
                             texttemplate='%{text}',
-                            textfont={"size": 12}
+                            textfont={'size': 12},
                         ),
                         row=row,
-                        col=col
+                        col=col,
                     )
 
                     col += 1
@@ -296,7 +297,7 @@ class ConfusionMatricesChart(BaseChart):
             fig,
             height=250 * rows,
             title='Confusion Matrices by Group',
-            showlegend=False
+            showlegend=False,
         )
 
         return self._to_json(fig)
@@ -321,7 +322,10 @@ class ThresholdAnalysisChart(BaseChart):
         """
         threshold_analysis = data.get('threshold_analysis', {})
 
-        if not threshold_analysis or 'threshold_curve' not in threshold_analysis:
+        if (
+            not threshold_analysis
+            or 'threshold_curve' not in threshold_analysis
+        ):
             return '{}'
 
         curve_data = threshold_analysis['threshold_curve']
@@ -334,38 +338,42 @@ class ThresholdAnalysisChart(BaseChart):
 
         # Plot each metric
         if 'disparate_impact_ratio' in df.columns:
-            fig.add_trace(go.Scatter(
-                x=df['threshold'],
-                y=df['disparate_impact_ratio'],
-                mode='lines',
-                name='Disparate Impact Ratio',
-                line=dict(color=self.COLOR_INFO, width=3)
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=df['threshold'],
+                    y=df['disparate_impact_ratio'],
+                    mode='lines',
+                    name='Disparate Impact Ratio',
+                    line=dict(color=self.COLOR_INFO, width=3),
+                )
+            )
 
         if 'f1_score' in df.columns:
-            fig.add_trace(go.Scatter(
-                x=df['threshold'],
-                y=df['f1_score'],
-                mode='lines',
-                name='F1 Score (Performance)',
-                line=dict(color='#9B59B6', width=3)
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=df['threshold'],
+                    y=df['f1_score'],
+                    mode='lines',
+                    name='F1 Score (Performance)',
+                    line=dict(color='#9B59B6', width=3),
+                )
+            )
 
         # Mark optimal threshold
         optimal_threshold = threshold_analysis.get('optimal_threshold', 0.5)
         fig.add_vline(
             x=optimal_threshold,
-            line_dash="dash",
-            line_color="red",
-            annotation_text=f"Optimal: {optimal_threshold:.3f}"
+            line_dash='dash',
+            line_color='red',
+            annotation_text=f'Optimal: {optimal_threshold:.3f}',
         )
 
         # Add EEOC threshold
         fig.add_hline(
             y=0.8,
-            line_dash="dot",
-            line_color="orange",
-            annotation_text="EEOC 80%"
+            line_dash='dot',
+            line_color='orange',
+            annotation_text='EEOC 80%',
         )
 
         self._apply_common_layout(
@@ -377,12 +385,8 @@ class ThresholdAnalysisChart(BaseChart):
             showlegend=True,
             hovermode='x unified',
             legend=dict(
-                orientation='h',
-                yanchor='bottom',
-                y=1.02,
-                xanchor='right',
-                x=1
-            )
+                orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1
+            ),
         )
 
         return self._to_json(fig)

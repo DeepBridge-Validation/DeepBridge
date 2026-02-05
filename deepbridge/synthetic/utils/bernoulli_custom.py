@@ -1,5 +1,6 @@
-from copulas.univariate.base import Univariate
 import numpy as np
+from copulas.univariate.base import Univariate
+
 
 class BernoulliCustom(Univariate):
     def __init__(self):
@@ -14,7 +15,9 @@ class BernoulliCustom(Univariate):
         """
         X = np.asarray(X)
         if not np.all(np.isin(X, [0, 1])):
-            raise ValueError("Bernoulli distribution only accepts binary data (0 and 1).")
+            raise ValueError(
+                'Bernoulli distribution only accepts binary data (0 and 1).'
+            )
         self.p = np.mean(X)
 
     def probability_density(self, X):

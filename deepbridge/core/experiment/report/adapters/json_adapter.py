@@ -5,10 +5,11 @@ Converts domain models to JSON format for API responses, storage, etc.
 """
 
 import json
-from typing import Dict, Any
 from datetime import datetime
-from .base import ReportAdapter
+from typing import Any, Dict
+
 from ..domain.general import Report
+from .base import ReportAdapter
 
 
 class JSONAdapter(ReportAdapter):
@@ -70,7 +71,7 @@ class JSONAdapter(ReportAdapter):
             data,
             indent=self.indent,
             ensure_ascii=self.ensure_ascii,
-            default=self._json_serializer
+            default=self._json_serializer,
         )
 
     def render_dict(self, report: Report) -> Dict[str, Any]:
@@ -131,4 +132,4 @@ class JSONAdapter(ReportAdapter):
         if isinstance(obj, datetime):
             return obj.isoformat()
 
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+        raise TypeError(f'Object of type {type(obj)} is not JSON serializable')

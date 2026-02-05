@@ -14,17 +14,18 @@ Example Usage:
     >>> report_data = pipeline.execute(raw_uncertainty_results)
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
-from .pipeline import Validator, Transformer, Enricher, TransformPipeline
+from .pipeline import Enricher, Transformer, TransformPipeline, Validator
 
-logger = logging.getLogger("deepbridge.reports")
+logger = logging.getLogger('deepbridge.reports')
 
 
 # ==================================================================================
 # Uncertainty Validation
 # ==================================================================================
+
 
 class UncertaintyValidator(Validator):
     """
@@ -63,13 +64,17 @@ class UncertaintyValidator(Validator):
 
                 # Check for CRQR results
                 if 'crqr' not in primary:
-                    errors.append("Missing 'test_results.primary_model.crqr' key")
+                    errors.append(
+                        "Missing 'test_results.primary_model.crqr' key"
+                    )
                 else:
                     crqr = primary['crqr']
 
                     # Check for alphas
                     if 'alphas' not in crqr or not crqr['alphas']:
-                        errors.append("Missing or empty 'alphas' in CRQR results")
+                        errors.append(
+                            "Missing or empty 'alphas' in CRQR results"
+                        )
 
         # Check for initial_model_evaluation
         if 'initial_model_evaluation' not in data:
@@ -79,7 +84,9 @@ class UncertaintyValidator(Validator):
 
             # Check for feature importance
             if 'feature_importance' not in initial_eval:
-                errors.append("Missing 'feature_importance' in initial_model_evaluation")
+                errors.append(
+                    "Missing 'feature_importance' in initial_model_evaluation"
+                )
 
         return errors
 
@@ -87,6 +94,7 @@ class UncertaintyValidator(Validator):
 # ==================================================================================
 # Uncertainty Transformation
 # ==================================================================================
+
 
 class UncertaintyTransformer(Transformer):
     """
@@ -113,16 +121,20 @@ class UncertaintyTransformer(Transformer):
         alphas_data = []
         for alpha_key, alpha_data in crqr['alphas'].items():
             if isinstance(alpha_data, dict):
-                alphas_data.append({
-                    'alpha': float(alpha_key),
-                    'coverage': alpha_data.get('coverage', 0.0),
-                    'expected_coverage': alpha_data.get('expected_coverage', 0.0),
-                    'avg_width': alpha_data.get('avg_width', 0.0),
-                    'calibration_error': abs(
-                        alpha_data.get('coverage', 0.0) -
-                        alpha_data.get('expected_coverage', 0.0)
-                    )
-                })
+                alphas_data.append(
+                    {
+                        'alpha': float(alpha_key),
+                        'coverage': alpha_data.get('coverage', 0.0),
+                        'expected_coverage': alpha_data.get(
+                            'expected_coverage', 0.0
+                        ),
+                        'avg_width': alpha_data.get('avg_width', 0.0),
+                        'calibration_error': abs(
+                            alpha_data.get('coverage', 0.0)
+                            - alpha_data.get('expected_coverage', 0.0)
+                        ),
+                    }
+                )
 
         # Sort by alpha
         alphas_data.sort(key=lambda x: x['alpha'])
@@ -138,14 +150,15 @@ class UncertaintyTransformer(Transformer):
             'feature_importance': feature_importance,
             'metadata': {
                 'num_alphas': len(alphas_data),
-                'num_features': len(feature_importance)
-            }
+                'num_features': len(feature_importance),
+            },
         }
 
 
 # ==================================================================================
 # Uncertainty Enrichment
 # ==================================================================================
+
 
 class UncertaintyEnricher(Enricher):
     """
@@ -176,7 +189,9 @@ class UncertaintyEnricher(Enricher):
         # Calculate summary statistics
         if alphas:
             avg_coverage = sum(a['coverage'] for a in alphas) / len(alphas)
-            avg_calibration_error = sum(a['calibration_error'] for a in alphas) / len(alphas)
+            avg_calibration_error = sum(
+                a['calibration_error'] for a in alphas
+            ) / len(alphas)
             avg_width = sum(a['avg_width'] for a in alphas) / len(alphas)
 
             # Calculate uncertainty score (0-1, higher is better)
@@ -195,7 +210,7 @@ class UncertaintyEnricher(Enricher):
             'avg_coverage': round(avg_coverage, 4),
             'avg_calibration_error': round(avg_calibration_error, 4),
             'avg_width': round(avg_width, 4),
-            'is_well_calibrated': avg_calibration_error < 0.05
+            'is_well_calibrated': avg_calibration_error < 0.05,
         }
 
         # Top features (sorted by absolute importance)
@@ -203,7 +218,7 @@ class UncertaintyEnricher(Enricher):
             sorted_features = sorted(
                 feature_importance.items(),
                 key=lambda x: abs(x[1]),
-                reverse=True
+                reverse=True,
             )
             data['top_features'] = sorted_features[:10]
         else:
@@ -212,14 +227,14 @@ class UncertaintyEnricher(Enricher):
         # Add convenience fields
         data['features'] = {
             'total': len(feature_importance),
-            'top_10': data['top_features']
+            'top_10': data['top_features'],
         }
 
         logger.debug(
-            f"Uncertainty enrichment complete: "
-            f"score={uncertainty_score:.3f}, "
-            f"alphas={len(alphas)}, "
-            f"features={len(feature_importance)}"
+            f'Uncertainty enrichment complete: '
+            f'score={uncertainty_score:.3f}, '
+            f'alphas={len(alphas)}, '
+            f'features={len(feature_importance)}'
         )
 
         return data
@@ -228,6 +243,7 @@ class UncertaintyEnricher(Enricher):
 # ==================================================================================
 # Pipeline Factory
 # ==================================================================================
+
 
 def create_uncertainty_pipeline() -> TransformPipeline:
     """
@@ -243,23 +259,25 @@ def create_uncertainty_pipeline() -> TransformPipeline:
         >>> print(report_data['summary']['uncertainty_score'])
         0.9234
     """
-    return (TransformPipeline()
-            .add_stage(UncertaintyValidator())
-            .add_stage(UncertaintyTransformer())
-            .add_stage(UncertaintyEnricher()))
+    return (
+        TransformPipeline()
+        .add_stage(UncertaintyValidator())
+        .add_stage(UncertaintyTransformer())
+        .add_stage(UncertaintyEnricher())
+    )
 
 
 # ==================================================================================
 # Main - Example Usage
 # ==================================================================================
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Demonstrate uncertainty pipeline usage.
     """
-    print("=" * 80)
-    print("Uncertainty Pipeline Example")
-    print("=" * 80)
+    print('=' * 80)
+    print('Uncertainty Pipeline Example')
+    print('=' * 80)
 
     # Example uncertainty data (simplified)
     example_data = {
@@ -272,15 +290,15 @@ if __name__ == "__main__":
                         '0.1': {
                             'coverage': 0.91,
                             'expected_coverage': 0.90,
-                            'avg_width': 2.34
+                            'avg_width': 2.34,
                         },
                         '0.2': {
                             'coverage': 0.81,
                             'expected_coverage': 0.80,
-                            'avg_width': 1.87
-                        }
+                            'avg_width': 1.87,
+                        },
                     }
-                }
+                },
             }
         },
         'initial_model_evaluation': {
@@ -288,39 +306,39 @@ if __name__ == "__main__":
                 'feature1': 0.45,
                 'feature2': 0.32,
                 'feature3': 0.15,
-                'feature4': 0.08
+                'feature4': 0.08,
             }
-        }
+        },
     }
 
     # Create and execute pipeline
     pipeline = create_uncertainty_pipeline()
 
-    print(f"\nPipeline: {pipeline}")
+    print(f'\nPipeline: {pipeline}')
 
     try:
-        print("\nExecuting pipeline...")
+        print('\nExecuting pipeline...')
         result = pipeline.execute(example_data)
 
         # Show results
-        print("\n" + "-" * 80)
-        print("Results:")
-        print("-" * 80)
+        print('\n' + '-' * 80)
+        print('Results:')
+        print('-' * 80)
         print(f"Model: {result['model_name']} ({result['model_type']})")
-        print(f"\nSummary:")
+        print(f'\nSummary:')
         for key, value in result['summary'].items():
-            print(f"  {key}: {value}")
+            print(f'  {key}: {value}')
 
         print(f"\nTop Features ({len(result['top_features'])}):")
         for feature, importance in result['top_features'][:5]:
-            print(f"  {feature}: {importance:.4f}")
+            print(f'  {feature}: {importance:.4f}')
 
-        print("\n" + "=" * 80)
-        print("Uncertainty Pipeline Example Complete")
-        print("=" * 80)
+        print('\n' + '=' * 80)
+        print('Uncertainty Pipeline Example Complete')
+        print('=' * 80)
 
     except ValueError as e:
-        print(f"\nValidation Error: {e}")
+        print(f'\nValidation Error: {e}')
     except Exception as e:
-        print(f"\nError: {e}")
+        print(f'\nError: {e}')
         raise
