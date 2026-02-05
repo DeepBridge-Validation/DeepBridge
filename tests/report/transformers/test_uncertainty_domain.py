@@ -23,25 +23,25 @@ SAMPLE_UNCERTAINTY_RESULTS = {
                     'overall_result': {
                         'coverage': 0.92,
                         'expected_coverage': 0.90,
-                        'mean_width': 0.15
+                        'mean_width': 0.15,
                     }
                 },
                 'alpha_0.2': {
                     'overall_result': {
                         'coverage': 0.82,
                         'expected_coverage': 0.80,
-                        'mean_width': 0.12
+                        'mean_width': 0.12,
                     }
                 },
                 'alpha_0.3': {
                     'overall_result': {
                         'coverage': 0.72,
                         'expected_coverage': 0.70,
-                        'mean_width': 0.10
+                        'mean_width': 0.10,
                     }
                 },
             }
-        }
+        },
     },
     'initial_model_evaluation': {
         'feature_importance': {
@@ -50,7 +50,7 @@ SAMPLE_UNCERTAINTY_RESULTS = {
             'feature3': 0.4,
             'feature4': 0.2,
         }
-    }
+    },
 }
 
 
@@ -62,24 +62,22 @@ class TestUncertaintyDomainTransformer:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Verify type
         assert isinstance(report, UncertaintyReportData)
 
         # Verify basic fields
-        assert report.model_name == "TestModel"
-        assert report.model_type == "RandomForest"
+        assert report.model_name == 'TestModel'
+        assert report.model_type == 'RandomForest'
 
     def test_transform_to_model_calculates_metrics(self):
         """Test that metrics are calculated correctly."""
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Verify metrics exist
@@ -95,8 +93,7 @@ class TestUncertaintyDomainTransformer:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Should have calibration results
@@ -113,8 +110,7 @@ class TestUncertaintyDomainTransformer:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Should have features
@@ -132,10 +128,7 @@ class TestUncertaintyDomainTransformer:
         """Test that transform() returns Dict for backward compatibility."""
         transformer = UncertaintyDomainTransformer()
 
-        result = transformer.transform(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
-        )
+        result = transformer.transform(SAMPLE_UNCERTAINTY_RESULTS, 'TestModel')
 
         # Verify it's a dict
         assert isinstance(result, dict)
@@ -161,8 +154,7 @@ class TestDomainModelBenefits:
 
         # NEW WAY: Type-safe model
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Type-safe access (IDE autocomplete works!)
@@ -179,8 +171,7 @@ class TestDomainModelBenefits:
 
         # OLD WAY: Dict with .get() calls
         result_dict = transformer.transform(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Verbose .get() calls
@@ -196,8 +187,7 @@ class TestDomainModelBenefits:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Before (Dict): Multiple .get() calls
@@ -223,14 +213,19 @@ class TestDomainModelBenefits:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Convenient properties instead of manual checks
-        assert report.has_calibration_results  # vs checking if calibration_results is not None
-        assert report.has_feature_importance  # vs checking if feature_importance dict is not empty
-        assert isinstance(report.top_features, list)  # Already sorted and limited
+        assert (
+            report.has_calibration_results
+        )  # vs checking if calibration_results is not None
+        assert (
+            report.has_feature_importance
+        )  # vs checking if feature_importance dict is not empty
+        assert isinstance(
+            report.top_features, list
+        )  # Already sorted and limited
         assert isinstance(report.get_summary_stats(), dict)  # Quick overview
 
         # is_well_calibrated property
@@ -247,8 +242,7 @@ class TestDomainModelBenefits:
 
         # Valid data works
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
         assert report.metrics.coverage >= 0.0
         assert report.metrics.coverage <= 1.0
@@ -261,17 +255,16 @@ class TestDomainModelBenefits:
         transformer = UncertaintyDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_UNCERTAINTY_RESULTS,
-            "TestModel"
+            SAMPLE_UNCERTAINTY_RESULTS, 'TestModel'
         )
 
         # Get string representation
         str_repr = str(report)
 
         # Should include key info
-        assert "TestModel" in str_repr
-        assert "score=" in str_repr
-        assert "coverage=" in str_repr
+        assert 'TestModel' in str_repr
+        assert 'score=' in str_repr
+        assert 'coverage=' in str_repr
 
 
 class TestEdgeCases:
@@ -284,10 +277,10 @@ class TestEdgeCases:
         # Empty results
         empty_results = {'primary_model': {}, 'initial_model_evaluation': {}}
 
-        report = transformer.transform_to_model(empty_results, "EmptyModel")
+        report = transformer.transform_to_model(empty_results, 'EmptyModel')
 
         # Should create valid model with defaults
-        assert report.model_name == "EmptyModel"
+        assert report.model_name == 'EmptyModel'
         # Empty data gives score of 1.0 (no error because no data)
         assert report.metrics.uncertainty_score == 1.0
         assert not report.has_calibration_results
@@ -298,12 +291,11 @@ class TestEdgeCases:
 
         results_no_features = {
             'primary_model': SAMPLE_UNCERTAINTY_RESULTS['primary_model'],
-            'initial_model_evaluation': {}  # No features
+            'initial_model_evaluation': {},  # No features
         }
 
         report = transformer.transform_to_model(
-            results_no_features,
-            "NoFeaturesModel"
+            results_no_features, 'NoFeaturesModel'
         )
 
         # Should handle gracefully
@@ -316,19 +308,16 @@ class TestEdgeCases:
         transformer = UncertaintyDomainTransformer()
 
         # Wrapped format
-        wrapped_results = {
-            'test_results': SAMPLE_UNCERTAINTY_RESULTS
-        }
+        wrapped_results = {'test_results': SAMPLE_UNCERTAINTY_RESULTS}
 
         report = transformer.transform_to_model(
-            wrapped_results,
-            "WrappedModel"
+            wrapped_results, 'WrappedModel'
         )
 
         # Should work the same
-        assert report.model_name == "WrappedModel"
+        assert report.model_name == 'WrappedModel'
         assert report.has_calibration_results
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

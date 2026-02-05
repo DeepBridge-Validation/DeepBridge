@@ -19,30 +19,30 @@ class TestFindFilesByPattern:
     def test_find_css_files(self, tmp_path):
         """Test finding CSS files with pattern."""
         # Create test CSS files
-        (tmp_path / "main.css").write_text("body {}")
-        (tmp_path / "components.css").write_text(".btn {}")
+        (tmp_path / 'main.css').write_text('body {}')
+        (tmp_path / 'components.css').write_text('.btn {}')
 
-        files = file_utils.find_files_by_pattern(str(tmp_path), "*.css")
+        files = file_utils.find_files_by_pattern(str(tmp_path), '*.css')
 
         assert len(files) == 2
-        assert any("main.css" in f for f in files)
-        assert any("components.css" in f for f in files)
+        assert any('main.css' in f for f in files)
+        assert any('components.css' in f for f in files)
 
     def test_find_js_files_with_subdirs(self, tmp_path):
         """Test finding JS files in subdirectories."""
         # Create structure
-        (tmp_path / "main.js").write_text("console.log()")
-        charts_dir = tmp_path / "charts"
+        (tmp_path / 'main.js').write_text('console.log()')
+        charts_dir = tmp_path / 'charts'
         charts_dir.mkdir()
-        (charts_dir / "line.js").write_text("// line chart")
+        (charts_dir / 'line.js').write_text('// line chart')
 
-        files = file_utils.find_files_by_pattern(str(tmp_path), "**/*.js")
+        files = file_utils.find_files_by_pattern(str(tmp_path), '**/*.js')
 
         assert len(files) >= 2
 
     def test_nonexistent_directory(self):
         """Test handling of non-existent directory."""
-        files = file_utils.find_files_by_pattern("/nonexistent/path", "*.css")
+        files = file_utils.find_files_by_pattern('/nonexistent/path', '*.css')
         assert files == []
 
 
@@ -51,7 +51,7 @@ class TestFindCssFiles:
 
     def test_find_main_css(self, tmp_path):
         """Test finding main CSS file."""
-        (tmp_path / "main.css").write_text("body {}")
+        (tmp_path / 'main.css').write_text('body {}')
 
         files = file_utils.find_css_files(str(tmp_path))
 
@@ -60,7 +60,7 @@ class TestFindCssFiles:
 
     def test_find_styles_css_as_main(self, tmp_path):
         """Test finding styles.css as main."""
-        (tmp_path / "styles.css").write_text("body {}")
+        (tmp_path / 'styles.css').write_text('body {}')
 
         files = file_utils.find_css_files(str(tmp_path))
 
@@ -70,13 +70,13 @@ class TestFindCssFiles:
     def test_find_components_css(self, tmp_path):
         """Test finding CSS files in components directory."""
         # Create main CSS
-        (tmp_path / "main.css").write_text("body {}")
+        (tmp_path / 'main.css').write_text('body {}')
 
         # Create components
-        components_dir = tmp_path / "components"
+        components_dir = tmp_path / 'components'
         components_dir.mkdir()
-        (components_dir / "buttons.css").write_text(".btn {}")
-        (components_dir / "cards.css").write_text(".card {}")
+        (components_dir / 'buttons.css').write_text('.btn {}')
+        (components_dir / 'cards.css').write_text('.card {}')
 
         files = file_utils.find_css_files(str(tmp_path))
 
@@ -96,7 +96,7 @@ class TestFindJsFiles:
 
     def test_find_main_js(self, tmp_path):
         """Test finding main.js."""
-        (tmp_path / "main.js").write_text("console.log('main')")
+        (tmp_path / 'main.js').write_text("console.log('main')")
 
         files = file_utils.find_js_files(str(tmp_path))
 
@@ -105,7 +105,7 @@ class TestFindJsFiles:
 
     def test_find_utils_js(self, tmp_path):
         """Test finding utils.js."""
-        (tmp_path / "utils.js").write_text("// utils")
+        (tmp_path / 'utils.js').write_text('// utils')
 
         files = file_utils.find_js_files(str(tmp_path))
 
@@ -115,13 +115,13 @@ class TestFindJsFiles:
     def test_find_js_in_subdirs(self, tmp_path):
         """Test finding JS in common subdirectories."""
         # Create main
-        (tmp_path / "main.js").write_text("console.log('main')")
+        (tmp_path / 'main.js').write_text("console.log('main')")
 
         # Create charts subdir
-        charts_dir = tmp_path / "charts"
+        charts_dir = tmp_path / 'charts'
         charts_dir.mkdir()
-        (charts_dir / "line.js").write_text("// line chart")
-        (charts_dir / "bar.js").write_text("// bar chart")
+        (charts_dir / 'line.js').write_text('// line chart')
+        (charts_dir / 'bar.js').write_text('// bar chart')
 
         files = file_utils.find_js_files(str(tmp_path))
 
@@ -137,14 +137,13 @@ class TestFindAssetPath:
     def test_find_interactive_css(self, tmp_path):
         """Test finding interactive CSS path."""
         # Create structure
-        css_path = tmp_path / "report_types" / "uncertainty" / "interactive" / "css"
+        css_path = (
+            tmp_path / 'report_types' / 'uncertainty' / 'interactive' / 'css'
+        )
         css_path.mkdir(parents=True)
 
         result = file_utils.find_asset_path(
-            str(tmp_path),
-            'uncertainty',
-            'css',
-            'interactive'
+            str(tmp_path), 'uncertainty', 'css', 'interactive'
         )
 
         assert result is not None
@@ -155,14 +154,11 @@ class TestFindAssetPath:
     def test_find_static_js(self, tmp_path):
         """Test finding static JS path."""
         # Create structure
-        js_path = tmp_path / "report_types" / "robustness" / "static" / "js"
+        js_path = tmp_path / 'report_types' / 'robustness' / 'static' / 'js'
         js_path.mkdir(parents=True)
 
         result = file_utils.find_asset_path(
-            str(tmp_path),
-            'robustness',
-            'js',
-            'static'
+            str(tmp_path), 'robustness', 'js', 'static'
         )
 
         assert result is not None
@@ -172,9 +168,7 @@ class TestFindAssetPath:
     def test_find_nonexistent_path(self, tmp_path):
         """Test handling of non-existent path."""
         result = file_utils.find_asset_path(
-            str(tmp_path),
-            'nonexistent',
-            'css'
+            str(tmp_path), 'nonexistent', 'css'
         )
 
         assert result is None
@@ -185,8 +179,8 @@ class TestReadHtmlFiles:
 
     def test_read_html_files(self, tmp_path):
         """Test reading HTML files from directory."""
-        (tmp_path / "header.html").write_text("<header>Header</header>")
-        (tmp_path / "footer.html").write_text("<footer>Footer</footer>")
+        (tmp_path / 'header.html').write_text('<header>Header</header>')
+        (tmp_path / 'footer.html').write_text('<footer>Footer</footer>')
 
         files = file_utils.read_html_files(str(tmp_path))
 
@@ -207,39 +201,38 @@ class TestCombineTextFiles:
 
     def test_combine_css_files(self, tmp_path):
         """Test combining CSS files."""
-        file1 = tmp_path / "base.css"
-        file2 = tmp_path / "components.css"
+        file1 = tmp_path / 'base.css'
+        file2 = tmp_path / 'components.css'
 
-        file1.write_text("body { margin: 0; }")
-        file2.write_text(".btn { padding: 10px; }")
+        file1.write_text('body { margin: 0; }')
+        file2.write_text('.btn { padding: 10px; }')
 
         combined = file_utils.combine_text_files([str(file1), str(file2)])
 
-        assert "body { margin: 0; }" in combined
-        assert ".btn { padding: 10px; }" in combined
+        assert 'body { margin: 0; }' in combined
+        assert '.btn { padding: 10px; }' in combined
 
     def test_custom_separator(self, tmp_path):
         """Test combining with custom separator."""
-        file1 = tmp_path / "file1.txt"
-        file2 = tmp_path / "file2.txt"
+        file1 = tmp_path / 'file1.txt'
+        file2 = tmp_path / 'file2.txt'
 
-        file1.write_text("Content 1")
-        file2.write_text("Content 2")
+        file1.write_text('Content 1')
+        file2.write_text('Content 2')
 
         combined = file_utils.combine_text_files(
-            [str(file1), str(file2)],
-            separator="\n---\n"
+            [str(file1), str(file2)], separator='\n---\n'
         )
 
-        assert "Content 1" in combined
-        assert "Content 2" in combined
-        assert "\n---\n" in combined
+        assert 'Content 1' in combined
+        assert 'Content 2' in combined
+        assert '\n---\n' in combined
 
     def test_empty_list(self):
         """Test combining empty file list."""
         combined = file_utils.combine_text_files([])
-        assert combined == ""
+        assert combined == ''
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

@@ -31,7 +31,7 @@ class TestResilienceMetrics:
             avg_performance_gap=0.15,
             max_performance_gap=0.35,
             min_performance_gap=0.05,
-            base_performance=0.90
+            base_performance=0.90,
         )
 
         assert metrics.resilience_score == 0.85
@@ -70,33 +70,27 @@ class TestScenarioData:
         """Test creating scenario data."""
         scenario = ScenarioData(
             id=1,
-            name="Test Scenario",
+            name='Test Scenario',
             alpha=0.1,
-            distance_metric="euclidean",
-            metric="accuracy",
+            distance_metric='euclidean',
+            metric='accuracy',
             performance_gap=0.15,
             baseline_performance=0.75,
             target_performance=0.90,
-            is_valid=True
+            is_valid=True,
         )
 
         assert scenario.id == 1
-        assert scenario.name == "Test Scenario"
+        assert scenario.name == 'Test Scenario'
         assert scenario.performance_gap == 0.15
 
     def test_has_significant_gap_property(self):
         """Test has_significant_gap property."""
         significant = ScenarioData(
-            id=1,
-            name="Test",
-            performance_gap=0.25,
-            is_valid=True
+            id=1, name='Test', performance_gap=0.25, is_valid=True
         )
         not_significant = ScenarioData(
-            id=2,
-            name="Test",
-            performance_gap=0.15,
-            is_valid=True
+            id=2, name='Test', performance_gap=0.15, is_valid=True
         )
 
         assert significant.has_significant_gap is True
@@ -111,19 +105,19 @@ class TestWorstSampleTestData:
         test = WorstSampleTestData(
             id=1,
             alpha=0.2,
-            ranking_method="loss",
-            metric="accuracy",
+            ranking_method='loss',
+            metric='accuracy',
             performance_gap=0.12,
             worst_metric=0.75,
             remaining_metric=0.87,
             n_worst_samples=100,
             n_remaining_samples=400,
-            is_valid=True
+            is_valid=True,
         )
 
         assert test.id == 1
         assert test.alpha == 0.2
-        assert test.ranking_method == "loss"
+        assert test.ranking_method == 'loss'
         assert test.performance_gap == 0.12
 
 
@@ -136,7 +130,7 @@ class TestWorstClusterTestData:
             id=1,
             n_clusters=5,
             worst_cluster_id=2,
-            metric="accuracy",
+            metric='accuracy',
             performance_gap=0.18,
             worst_cluster_metric=0.70,
             remaining_metric=0.88,
@@ -144,9 +138,9 @@ class TestWorstClusterTestData:
             remaining_size=450,
             top_features=[
                 {'name': 'f1', 'contribution': 0.5},
-                {'name': 'f2', 'contribution': 0.3}
+                {'name': 'f2', 'contribution': 0.3},
             ],
-            is_valid=True
+            is_valid=True,
         )
 
         assert test.id == 1
@@ -162,18 +156,18 @@ class TestOuterSampleTestData:
         test = OuterSampleTestData(
             id=1,
             alpha=0.1,
-            outlier_method="isolation_forest",
-            metric="accuracy",
+            outlier_method='isolation_forest',
+            metric='accuracy',
             performance_gap=0.20,
             outer_metric=0.65,
             inner_metric=0.85,
             n_outer_samples=50,
             n_inner_samples=450,
-            is_valid=True
+            is_valid=True,
         )
 
         assert test.id == 1
-        assert test.outlier_method == "isolation_forest"
+        assert test.outlier_method == 'isolation_forest'
         assert test.performance_gap == 0.20
 
 
@@ -186,16 +180,14 @@ class TestHardSampleTestData:
             id=1,
             skipped=False,
             disagreement_threshold=0.3,
-            metric="accuracy",
+            metric='accuracy',
             performance_gap=0.15,
             hard_metric=0.70,
             easy_metric=0.85,
             n_hard_samples=80,
             n_easy_samples=420,
-            model_disagreements=[
-                {'model_pair': 'A-B', 'disagreement': 0.4}
-            ],
-            is_valid=True
+            model_disagreements=[{'model_pair': 'A-B', 'disagreement': 0.4}],
+            is_valid=True,
         )
 
         assert test.id == 1
@@ -207,12 +199,12 @@ class TestHardSampleTestData:
         test = HardSampleTestData(
             id=1,
             skipped=True,
-            reason="No alternative models available",
-            is_valid=False
+            reason='No alternative models available',
+            is_valid=False,
         )
 
         assert test.skipped is True
-        assert test.reason == "No alternative models available"
+        assert test.reason == 'No alternative models available'
 
 
 class TestTestTypeSummary:
@@ -221,14 +213,14 @@ class TestTestTypeSummary:
     def test_create_test_type_summary(self):
         """Test creating test type summary."""
         summary = TestTypeSummary(
-            test_type="distribution_shift",
+            test_type='distribution_shift',
             total_tests=20,
             valid_tests=18,
             avg_performance_gap=0.12,
-            has_results=True
+            has_results=True,
         )
 
-        assert summary.test_type == "distribution_shift"
+        assert summary.test_type == 'distribution_shift'
         assert summary.total_tests == 20
         assert summary.valid_tests == 18
 
@@ -238,52 +230,47 @@ class TestResilienceReportData:
 
     def test_create_minimal_report(self):
         """Test creating report with minimal data."""
-        report = ResilienceReportData(
-            model_name="TestModel"
-        )
+        report = ResilienceReportData(model_name='TestModel')
 
-        assert report.model_name == "TestModel"
-        assert report.model_type == "Unknown"
+        assert report.model_name == 'TestModel'
+        assert report.model_type == 'Unknown'
         assert report.metrics.resilience_score == 1.0
 
     def test_create_complete_report(self):
         """Test creating report with complete data."""
         report = ResilienceReportData(
-            model_name="CompleteModel",
-            model_type="RandomForest",
+            model_name='CompleteModel',
+            model_type='RandomForest',
             metrics=ResilienceMetrics(
                 resilience_score=0.85,
                 total_scenarios=50,
                 valid_scenarios=48,
-                avg_performance_gap=0.12
+                avg_performance_gap=0.12,
             ),
             distribution_shift_scenarios=[
                 ScenarioData(
                     id=1,
-                    name="Scenario 1",
+                    name='Scenario 1',
                     alpha=0.1,
                     performance_gap=0.10,
-                    is_valid=True
+                    is_valid=True,
                 )
             ],
             worst_sample_tests=[
                 WorstSampleTestData(
                     id=1,
                     alpha=0.2,
-                    ranking_method="loss",
+                    ranking_method='loss',
                     performance_gap=0.15,
-                    is_valid=True
+                    is_valid=True,
                 )
             ],
-            test_scores={
-                'distribution_shift': 0.90,
-                'worst_sample': 0.85
-            },
+            test_scores={'distribution_shift': 0.90, 'worst_sample': 0.85},
             feature_importance={'f1': 0.8, 'f2': 0.6},
-            features=['f1', 'f2']
+            features=['f1', 'f2'],
         )
 
-        assert report.model_name == "CompleteModel"
+        assert report.model_name == 'CompleteModel'
         assert report.metrics.resilience_score == 0.85
         assert report.has_distribution_shift
         assert report.has_worst_sample
@@ -292,13 +279,11 @@ class TestResilienceReportData:
     def test_property_has_test_types(self):
         """Test has_* properties for test types."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             distribution_shift_scenarios=[
-                ScenarioData(id=1, name="S1", is_valid=True)
+                ScenarioData(id=1, name='S1', is_valid=True)
             ],
-            worst_sample_tests=[
-                WorstSampleTestData(id=1, is_valid=True)
-            ]
+            worst_sample_tests=[WorstSampleTestData(id=1, is_valid=True)],
         )
 
         assert report.has_distribution_shift is True
@@ -310,9 +295,9 @@ class TestResilienceReportData:
     def test_property_available_test_types(self):
         """Test available_test_types property."""
         report = ResilienceReportData(
-            model_name="Test",
-            distribution_shift_scenarios=[ScenarioData(id=1, name="S1")],
-            worst_sample_tests=[WorstSampleTestData(id=1)]
+            model_name='Test',
+            distribution_shift_scenarios=[ScenarioData(id=1, name='S1')],
+            worst_sample_tests=[WorstSampleTestData(id=1)],
         )
 
         types = report.available_test_types
@@ -323,10 +308,10 @@ class TestResilienceReportData:
     def test_property_num_test_types(self):
         """Test num_test_types property."""
         report = ResilienceReportData(
-            model_name="Test",
-            distribution_shift_scenarios=[ScenarioData(id=1, name="S1")],
+            model_name='Test',
+            distribution_shift_scenarios=[ScenarioData(id=1, name='S1')],
             worst_sample_tests=[WorstSampleTestData(id=1)],
-            outer_sample_tests=[OuterSampleTestData(id=1)]
+            outer_sample_tests=[OuterSampleTestData(id=1)],
         )
 
         assert report.num_test_types == 3
@@ -334,7 +319,7 @@ class TestResilienceReportData:
     def test_property_top_features(self):
         """Test top_features property."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             feature_importance={
                 'f1': 0.9,
                 'f2': -0.8,  # Negative importance
@@ -346,8 +331,8 @@ class TestResilienceReportData:
                 'f8': 0.2,
                 'f9': 0.1,
                 'f10': 0.05,
-                'f11': 0.01  # Should not appear in top 10
-            }
+                'f11': 0.01,  # Should not appear in top 10
+            },
         )
 
         top = report.top_features
@@ -359,12 +344,12 @@ class TestResilienceReportData:
     def test_property_worst_test_type(self):
         """Test worst_test_type property."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             test_scores={
                 'distribution_shift': 0.90,
                 'worst_sample': 0.70,  # Worst
-                'worst_cluster': 0.85
-            }
+                'worst_cluster': 0.85,
+            },
         )
 
         worst = report.worst_test_type
@@ -373,12 +358,12 @@ class TestResilienceReportData:
     def test_property_best_test_type(self):
         """Test best_test_type property."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             test_scores={
                 'distribution_shift': 0.95,  # Best
                 'worst_sample': 0.70,
-                'worst_cluster': 0.85
-            }
+                'worst_cluster': 0.85,
+            },
         )
 
         best = report.best_test_type
@@ -387,12 +372,18 @@ class TestResilienceReportData:
     def test_get_test_type_summary(self):
         """Test get_test_type_summary method."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             distribution_shift_scenarios=[
-                ScenarioData(id=1, name="S1", performance_gap=0.10, is_valid=True),
-                ScenarioData(id=2, name="S2", performance_gap=0.20, is_valid=True),
-                ScenarioData(id=3, name="S3", performance_gap=None, is_valid=False),
-            ]
+                ScenarioData(
+                    id=1, name='S1', performance_gap=0.10, is_valid=True
+                ),
+                ScenarioData(
+                    id=2, name='S2', performance_gap=0.20, is_valid=True
+                ),
+                ScenarioData(
+                    id=3, name='S3', performance_gap=None, is_valid=False
+                ),
+            ],
         )
 
         summary = report.get_test_type_summary('distribution_shift')
@@ -406,26 +397,23 @@ class TestResilienceReportData:
     def test_get_summary_stats(self):
         """Test get_summary_stats method."""
         report = ResilienceReportData(
-            model_name="Test",
-            model_type="RF",
+            model_name='Test',
+            model_type='RF',
             metrics=ResilienceMetrics(
                 resilience_score=0.85,
                 total_scenarios=50,
                 valid_scenarios=48,
                 avg_performance_gap=0.12,
-                max_performance_gap=0.30
+                max_performance_gap=0.30,
             ),
-            distribution_shift_scenarios=[ScenarioData(id=1, name="S1")],
+            distribution_shift_scenarios=[ScenarioData(id=1, name='S1')],
             worst_sample_tests=[WorstSampleTestData(id=1)],
-            test_scores={
-                'distribution_shift': 0.90,
-                'worst_sample': 0.80
-            }
+            test_scores={'distribution_shift': 0.90, 'worst_sample': 0.80},
         )
 
         stats = report.get_summary_stats()
 
-        assert stats['model_name'] == "Test"
+        assert stats['model_name'] == 'Test'
         assert stats['resilience_score'] == 0.85
         assert stats['is_resilient'] is True
         assert stats['num_test_types'] == 2
@@ -435,20 +423,19 @@ class TestResilienceReportData:
     def test_str_representation(self):
         """Test string representation."""
         report = ResilienceReportData(
-            model_name="TestModel",
+            model_name='TestModel',
             metrics=ResilienceMetrics(
-                resilience_score=0.85,
-                avg_performance_gap=0.12
+                resilience_score=0.85, avg_performance_gap=0.12
             ),
-            distribution_shift_scenarios=[ScenarioData(id=1, name="S1")],
-            worst_sample_tests=[WorstSampleTestData(id=1)]
+            distribution_shift_scenarios=[ScenarioData(id=1, name='S1')],
+            worst_sample_tests=[WorstSampleTestData(id=1)],
         )
 
         str_repr = str(report)
 
-        assert "TestModel" in str_repr
-        assert "0.850" in str_repr or "0.85" in str_repr
-        assert "tests=2" in str_repr
+        assert 'TestModel' in str_repr
+        assert '0.850' in str_repr or '0.85' in str_repr
+        assert 'tests=2' in str_repr
 
 
 class TestDomainModelBenefits:
@@ -457,11 +444,10 @@ class TestDomainModelBenefits:
     def test_type_safety_no_get_calls(self):
         """Demonstrate that domain models eliminate .get() calls."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             metrics=ResilienceMetrics(
-                resilience_score=0.85,
-                avg_performance_gap=0.12
-            )
+                resilience_score=0.85, avg_performance_gap=0.12
+            ),
         )
 
         # Before (Dict): report.get('resilience_score', 1.0)
@@ -475,10 +461,10 @@ class TestDomainModelBenefits:
     def test_property_convenience(self):
         """Demonstrate convenience properties."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             metrics=ResilienceMetrics(resilience_score=0.75),
-            distribution_shift_scenarios=[ScenarioData(id=1, name="S1")],
-            feature_importance={'f1': 0.8}
+            distribution_shift_scenarios=[ScenarioData(id=1, name='S1')],
+            feature_importance={'f1': 0.8},
         )
 
         # Convenient properties
@@ -491,24 +477,21 @@ class TestDomainModelBenefits:
     def test_complex_nested_access(self):
         """Demonstrate simplified access to nested data."""
         report = ResilienceReportData(
-            model_name="Test",
+            model_name='Test',
             distribution_shift_scenarios=[
                 ScenarioData(
                     id=1,
-                    name="Critical Scenario",
+                    name='Critical Scenario',
                     performance_gap=0.35,
-                    is_valid=True
+                    is_valid=True,
                 )
             ],
-            test_scores={
-                'distribution_shift': 0.80,
-                'worst_sample': 0.75
-            }
+            test_scores={'distribution_shift': 0.80, 'worst_sample': 0.75},
         )
 
         # Direct access to nested data (no .get() chains!)
         first_scenario = report.distribution_shift_scenarios[0]
-        assert first_scenario.name == "Critical Scenario"
+        assert first_scenario.name == 'Critical Scenario'
         assert first_scenario.has_significant_gap is True
 
         # Properties work on nested objects
@@ -516,5 +499,5 @@ class TestDomainModelBenefits:
         assert worst_type == 'worst_sample'
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

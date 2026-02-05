@@ -18,33 +18,33 @@ def sample_posttrain_metrics():
                 'disparity': 0.05,
                 'interpretation': '✓ GOOD - Low disparity',
                 'testable_groups': ['Male', 'Female'],
-                'excluded_groups': []
+                'excluded_groups': [],
             },
             'disparate_impact': {
                 'ratio': 0.85,
                 'passes_80_rule': True,
-                'interpretation': '✓ GOOD - Passes 80% rule'
+                'interpretation': '✓ GOOD - Passes 80% rule',
             },
             'equal_opportunity': {
                 'disparity': 0.03,
-                'interpretation': '✓ GOOD - Equal opportunity maintained'
+                'interpretation': '✓ GOOD - Equal opportunity maintained',
             },
             'equalized_odds': {
                 'disparity': 0.04,
-                'interpretation': '✓ GOOD - Balanced error rates'
+                'interpretation': '✓ GOOD - Balanced error rates',
             },
             'false_negative_rate_difference': {
                 'disparity': 0.02,
-                'interpretation': '✓ GOOD - Low FNR difference'
+                'interpretation': '✓ GOOD - Low FNR difference',
             },
             'precision_difference': {
                 'disparity': 0.06,
-                'interpretation': '✓ GOOD - Similar precision'
+                'interpretation': '✓ GOOD - Similar precision',
             },
             'accuracy_difference': {
                 'disparity': 0.01,
-                'interpretation': '✓ GOOD - Similar accuracy'
-            }
+                'interpretation': '✓ GOOD - Similar accuracy',
+            },
         }
     }
 
@@ -57,7 +57,7 @@ def sample_pretrain_metrics():
             'class_balance': {
                 'value': 0.02,
                 'interpretation': '✓ GOOD - Balanced classes',
-                'all_groups': {'Male': 0.51, 'Female': 0.49}
+                'all_groups': {'Male': 0.51, 'Female': 0.49},
             },
             'concept_balance': {
                 'value': 0.03,
@@ -65,16 +65,16 @@ def sample_pretrain_metrics():
                 'group_b': 'Female',
                 'group_a_positive_rate': 0.52,
                 'group_b_positive_rate': 0.49,
-                'interpretation': '✓ GOOD - Similar concept distribution'
+                'interpretation': '✓ GOOD - Similar concept distribution',
             },
             'kl_divergence': {
                 'value': 0.015,
-                'interpretation': '✓ GOOD - Low KL divergence'
+                'interpretation': '✓ GOOD - Low KL divergence',
             },
             'js_divergence': {
                 'value': 0.008,
-                'interpretation': '✓ GOOD - Low JS divergence'
-            }
+                'interpretation': '✓ GOOD - Low JS divergence',
+            },
         }
     }
 
@@ -85,7 +85,7 @@ def sample_confusion_matrix():
     return {
         'gender': {
             'Male': {'TP': 45, 'TN': 40, 'FP': 5, 'FN': 10},
-            'Female': {'TP': 42, 'TN': 38, 'FP': 7, 'FN': 13}
+            'Female': {'TP': 42, 'TN': 38, 'FP': 7, 'FN': 13},
         }
     }
 
@@ -103,9 +103,9 @@ def sample_protected_attrs_distribution():
         'gender': {
             'distribution': {
                 'Male': {'count': 500, 'percentage': 52.0},
-                'Female': {'count': 460, 'percentage': 48.0}
+                'Female': {'count': 460, 'percentage': 48.0},
             },
-            'total_samples': 960
+            'total_samples': 960,
         }
     }
 
@@ -115,7 +115,7 @@ def sample_target_distribution():
     """Sample target distribution data."""
     return {
         '0': {'count': 400, 'percentage': 41.7},
-        '1': {'count': 560, 'percentage': 58.3}
+        '1': {'count': 560, 'percentage': 58.3},
     }
 
 
@@ -124,13 +124,33 @@ def sample_threshold_analysis():
     """Sample threshold analysis data."""
     return {
         'threshold_curve': [
-            {'threshold': 0.1, 'disparate_impact_ratio': 0.65, 'f1_score': 0.75},
-            {'threshold': 0.3, 'disparate_impact_ratio': 0.75, 'f1_score': 0.82},
-            {'threshold': 0.5, 'disparate_impact_ratio': 0.85, 'f1_score': 0.88},
-            {'threshold': 0.7, 'disparate_impact_ratio': 0.82, 'f1_score': 0.85},
-            {'threshold': 0.9, 'disparate_impact_ratio': 0.78, 'f1_score': 0.78}
+            {
+                'threshold': 0.1,
+                'disparate_impact_ratio': 0.65,
+                'f1_score': 0.75,
+            },
+            {
+                'threshold': 0.3,
+                'disparate_impact_ratio': 0.75,
+                'f1_score': 0.82,
+            },
+            {
+                'threshold': 0.5,
+                'disparate_impact_ratio': 0.85,
+                'f1_score': 0.88,
+            },
+            {
+                'threshold': 0.7,
+                'disparate_impact_ratio': 0.82,
+                'f1_score': 0.85,
+            },
+            {
+                'threshold': 0.9,
+                'disparate_impact_ratio': 0.78,
+                'f1_score': 0.78,
+            },
         ],
-        'optimal_threshold': 0.5
+        'optimal_threshold': 0.5,
     }
 
 

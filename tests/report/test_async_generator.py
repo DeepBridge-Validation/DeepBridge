@@ -35,27 +35,26 @@ from deepbridge.core.experiment.report.domain.general import (
 # Fixtures
 # ==================================================================================
 
+
 @pytest.fixture
 def sample_report():
     """Create a sample report for testing."""
     metadata = ReportMetadata(
-        model_name="TestModel",
+        model_name='TestModel',
         test_type=ReportType.UNCERTAINTY,
-        created_at=datetime(2025, 11, 6, 12, 0, 0)
+        created_at=datetime(2025, 11, 6, 12, 0, 0),
     )
 
     report = Report(
-        metadata=metadata,
-        title="Test Report",
-        subtitle="Async Test"
+        metadata=metadata, title='Test Report', subtitle='Async Test'
     )
 
     report.add_summary_metric(
-        Metric(name="accuracy", value=0.95, type=MetricType.PERCENTAGE)
+        Metric(name='accuracy', value=0.95, type=MetricType.PERCENTAGE)
     )
 
-    section = ReportSection(id="test", title="Test Section")
-    section.add_metric(Metric(name="metric1", value=1.0))
+    section = ReportSection(id='test', title='Test Section')
+    section.add_metric(Metric(name='metric1', value=1.0))
     report.add_section(section)
 
     return report
@@ -65,32 +64,34 @@ def sample_report():
 # ReportTask Tests
 # ==================================================================================
 
+
 class TestReportTask:
     """Tests for ReportTask."""
 
     def test_task_creation(self, sample_report):
         """Test task can be created."""
         adapter = MarkdownAdapter()
-        task = ReportTask("task1", adapter, sample_report, "output.md")
+        task = ReportTask('task1', adapter, sample_report, 'output.md')
 
-        assert task.task_id == "task1"
+        assert task.task_id == 'task1'
         assert task.adapter == adapter
         assert task.report == sample_report
-        assert task.output_path == "output.md"
+        assert task.output_path == 'output.md'
         assert task.status == TaskStatus.PENDING
         assert task.result is None
         assert task.error is None
 
     def test_task_repr(self, sample_report):
         """Test task string representation."""
-        task = ReportTask("task1", MarkdownAdapter(), sample_report)
-        assert "task1" in repr(task)
-        assert "pending" in repr(task).lower()
+        task = ReportTask('task1', MarkdownAdapter(), sample_report)
+        assert 'task1' in repr(task)
+        assert 'pending' in repr(task).lower()
 
 
 # ==================================================================================
 # ProgressTracker Tests
 # ==================================================================================
+
 
 class TestProgressTracker:
     """Tests for ProgressTracker."""
@@ -108,7 +109,7 @@ class TestProgressTracker:
         """Test updating tracker with completed task."""
         tracker = ProgressTracker(total=5)
 
-        task = ReportTask("task1", MarkdownAdapter(), sample_report)
+        task = ReportTask('task1', MarkdownAdapter(), sample_report)
         task.status = TaskStatus.COMPLETED
         tracker.register_task(task)
         tracker.update(task)
@@ -120,7 +121,7 @@ class TestProgressTracker:
         """Test updating tracker with failed task."""
         tracker = ProgressTracker(total=5)
 
-        task = ReportTask("task1", MarkdownAdapter(), sample_report)
+        task = ReportTask('task1', MarkdownAdapter(), sample_report)
         task.status = TaskStatus.FAILED
         tracker.register_task(task)
         tracker.update(task)
@@ -149,12 +150,12 @@ class TestProgressTracker:
 
         summary = tracker.summary()
 
-        assert summary["total"] == 10
-        assert summary["completed"] == 7
-        assert summary["failed"] == 2
-        assert summary["cancelled"] == 1
-        assert summary["percentage"] == 70.0
-        assert summary["pending"] == 0
+        assert summary['total'] == 10
+        assert summary['completed'] == 7
+        assert summary['failed'] == 2
+        assert summary['cancelled'] == 1
+        assert summary['percentage'] == 70.0
+        assert summary['pending'] == 0
 
     def test_tracker_with_callback(self, sample_report):
         """Test tracker with callback."""
@@ -165,17 +166,18 @@ class TestProgressTracker:
 
         tracker = ProgressTracker(total=3, callback=callback)
 
-        task1 = ReportTask("task1", MarkdownAdapter(), sample_report)
+        task1 = ReportTask('task1', MarkdownAdapter(), sample_report)
         task1.status = TaskStatus.COMPLETED
         tracker.update(task1)
 
         assert len(calls) == 1
-        assert calls[0] == (1, 3, "task1")
+        assert calls[0] == (1, 3, 'task1')
 
 
 # ==================================================================================
 # AsyncReportGenerator Tests
 # ==================================================================================
+
 
 class TestAsyncReportGenerator:
     """Tests for AsyncReportGenerator."""
@@ -191,8 +193,7 @@ class TestAsyncReportGenerator:
     def test_generator_with_process_executor(self):
         """Test generator with process executor."""
         generator = AsyncReportGenerator(
-            max_workers=2,
-            executor_type=ExecutorType.PROCESS
+            max_workers=2, executor_type=ExecutorType.PROCESS
         )
 
         assert generator.executor_type == ExecutorType.PROCESS
@@ -203,13 +204,10 @@ class TestAsyncReportGenerator:
         generator = AsyncReportGenerator()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "test.md"
+            output_path = Path(tmpdir) / 'test.md'
 
             task = ReportTask(
-                "task1",
-                MarkdownAdapter(),
-                sample_report,
-                str(output_path)
+                'task1', MarkdownAdapter(), sample_report, str(output_path)
             )
 
             result_task = await generator.generate_single(task)
@@ -227,13 +225,10 @@ class TestAsyncReportGenerator:
         generator = AsyncReportGenerator()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "test.pdf"
+            output_path = Path(tmpdir) / 'test.pdf'
 
             task = ReportTask(
-                "task1",
-                PDFAdapter(),
-                sample_report,
-                str(output_path)
+                'task1', PDFAdapter(), sample_report, str(output_path)
             )
 
             result_task = await generator.generate_single(task)
@@ -252,15 +247,32 @@ class TestAsyncReportGenerator:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
-                ReportTask("task1", MarkdownAdapter(), sample_report, str(Path(tmpdir) / "r1.md")),
-                ReportTask("task2", MarkdownAdapter(), sample_report, str(Path(tmpdir) / "r2.md")),
-                ReportTask("task3", PDFAdapter(), sample_report, str(Path(tmpdir) / "r3.pdf")),
+                ReportTask(
+                    'task1',
+                    MarkdownAdapter(),
+                    sample_report,
+                    str(Path(tmpdir) / 'r1.md'),
+                ),
+                ReportTask(
+                    'task2',
+                    MarkdownAdapter(),
+                    sample_report,
+                    str(Path(tmpdir) / 'r2.md'),
+                ),
+                ReportTask(
+                    'task3',
+                    PDFAdapter(),
+                    sample_report,
+                    str(Path(tmpdir) / 'r3.pdf'),
+                ),
             ]
 
             completed_tasks = await generator.generate_batch(tasks)
 
             assert len(completed_tasks) == 3
-            assert all(t.status == TaskStatus.COMPLETED for t in completed_tasks)
+            assert all(
+                t.status == TaskStatus.COMPLETED for t in completed_tasks
+            )
             assert all(Path(t.result).exists() for t in completed_tasks)
 
         generator.shutdown()
@@ -277,11 +289,18 @@ class TestAsyncReportGenerator:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
-                ReportTask("task1", MarkdownAdapter(), sample_report, str(Path(tmpdir) / f"r{i}.md"))
+                ReportTask(
+                    'task1',
+                    MarkdownAdapter(),
+                    sample_report,
+                    str(Path(tmpdir) / f'r{i}.md'),
+                )
                 for i in range(5)
             ]
 
-            completed_tasks = await generator.generate_batch(tasks, progress_callback)
+            completed_tasks = await generator.generate_batch(
+                tasks, progress_callback
+            )
 
             assert len(completed_tasks) == 5
             assert len(progress_updates) == 5
@@ -296,14 +315,23 @@ class TestAsyncReportGenerator:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
-                ReportTask("task1", MarkdownAdapter(), sample_report, str(Path(tmpdir) / f"r{i}.md"))
+                ReportTask(
+                    'task1',
+                    MarkdownAdapter(),
+                    sample_report,
+                    str(Path(tmpdir) / f'r{i}.md'),
+                )
                 for i in range(10)
             ]
 
-            completed_tasks = await generator.generate_with_limit(tasks, limit=2)
+            completed_tasks = await generator.generate_with_limit(
+                tasks, limit=2
+            )
 
             assert len(completed_tasks) == 10
-            assert all(t.status == TaskStatus.COMPLETED for t in completed_tasks)
+            assert all(
+                t.status == TaskStatus.COMPLETED for t in completed_tasks
+            )
 
         generator.shutdown()
 
@@ -312,7 +340,7 @@ class TestAsyncReportGenerator:
         """Test task timing information."""
         generator = AsyncReportGenerator()
 
-        task = ReportTask("task1", MarkdownAdapter(), sample_report)
+        task = ReportTask('task1', MarkdownAdapter(), sample_report)
         result_task = await generator.generate_single(task)
 
         assert result_task.start_time is not None
@@ -326,6 +354,7 @@ class TestAsyncReportGenerator:
 # Convenience Function Tests
 # ==================================================================================
 
+
 class TestConvenienceFunctions:
     """Tests for convenience functions."""
 
@@ -333,12 +362,10 @@ class TestConvenienceFunctions:
     async def test_generate_report_async(self, sample_report):
         """Test generate_report_async function."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "test.md"
+            output_path = Path(tmpdir) / 'test.md'
 
             result = await generate_report_async(
-                MarkdownAdapter(),
-                sample_report,
-                str(output_path)
+                MarkdownAdapter(), sample_report, str(output_path)
             )
 
             assert result is not None
@@ -350,9 +377,9 @@ class TestConvenienceFunctions:
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
                 {
-                    "adapter": MarkdownAdapter(),
-                    "report": sample_report,
-                    "output_path": str(Path(tmpdir) / f"r{i}.md")
+                    'adapter': MarkdownAdapter(),
+                    'report': sample_report,
+                    'output_path': str(Path(tmpdir) / f'r{i}.md'),
                 }
                 for i in range(3)
             ]
@@ -360,9 +387,9 @@ class TestConvenienceFunctions:
             results = await generate_reports_async(tasks, max_workers=2)
 
             assert len(results) == 3
-            assert all(r["status"] == "completed" for r in results)
-            assert all(r["result"] is not None for r in results)
-            assert all(r["duration"] is not None for r in results)
+            assert all(r['status'] == 'completed' for r in results)
+            assert all(r['result'] is not None for r in results)
+            assert all(r['duration'] is not None for r in results)
 
     @pytest.mark.asyncio
     async def test_generate_reports_async_with_progress(self, sample_report):
@@ -375,17 +402,15 @@ class TestConvenienceFunctions:
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
                 {
-                    "adapter": MarkdownAdapter(),
-                    "report": sample_report,
-                    "output_path": str(Path(tmpdir) / f"r{i}.md")
+                    'adapter': MarkdownAdapter(),
+                    'report': sample_report,
+                    'output_path': str(Path(tmpdir) / f'r{i}.md'),
                 }
                 for i in range(5)
             ]
 
             results = await generate_reports_async(
-                tasks,
-                max_workers=2,
-                progress_callback=progress
+                tasks, max_workers=2, progress_callback=progress
             )
 
             assert len(results) == 5
@@ -396,6 +421,7 @@ class TestConvenienceFunctions:
 # Integration Tests
 # ==================================================================================
 
+
 class TestAsyncIntegration:
     """Integration tests for async generation."""
 
@@ -404,22 +430,30 @@ class TestAsyncIntegration:
         """Test generating multiple formats asynchronously."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tasks = [
-                {"adapter": MarkdownAdapter(), "report": sample_report, "output_path": str(Path(tmpdir) / "report.md")},
-                {"adapter": PDFAdapter(), "report": sample_report, "output_path": str(Path(tmpdir) / "report.pdf")},
+                {
+                    'adapter': MarkdownAdapter(),
+                    'report': sample_report,
+                    'output_path': str(Path(tmpdir) / 'report.md'),
+                },
+                {
+                    'adapter': PDFAdapter(),
+                    'report': sample_report,
+                    'output_path': str(Path(tmpdir) / 'report.pdf'),
+                },
             ]
 
             results = await generate_reports_async(tasks)
 
             assert len(results) == 2
-            assert all(r["status"] == "completed" for r in results)
+            assert all(r['status'] == 'completed' for r in results)
 
             # Verify files exist
-            assert Path(tmpdir, "report.md").exists()
-            assert Path(tmpdir, "report.pdf").exists()
+            assert Path(tmpdir, 'report.md').exists()
+            assert Path(tmpdir, 'report.pdf').exists()
 
             # Verify content
-            md_content = Path(tmpdir, "report.md").read_text()
-            assert "Test Report" in md_content
+            md_content = Path(tmpdir, 'report.md').read_text()
+            assert 'Test Report' in md_content
 
-            pdf_content = Path(tmpdir, "report.pdf").read_bytes()
+            pdf_content = Path(tmpdir, 'report.pdf').read_bytes()
             assert pdf_content[:4] == b'%PDF'

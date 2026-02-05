@@ -22,51 +22,55 @@ class TestAssetManagerCaching:
     def asset_manager(self, tmp_path):
         """Create AssetManager with test assets."""
         # Create minimal template structure
-        templates_dir = tmp_path / "templates"
+        templates_dir = tmp_path / 'templates'
         templates_dir.mkdir()
 
         # Assets directory
-        assets_dir = templates_dir / "assets"
+        assets_dir = templates_dir / 'assets'
         assets_dir.mkdir()
 
         # CSS directory
-        css_dir = assets_dir / "css"
+        css_dir = assets_dir / 'css'
         css_dir.mkdir()
-        (css_dir / "main.css").write_text("body { margin: 0; }")
+        (css_dir / 'main.css').write_text('body { margin: 0; }')
 
         # JS directory
-        js_dir = assets_dir / "js"
+        js_dir = assets_dir / 'js'
         js_dir.mkdir()
-        (js_dir / "main.js").write_text("console.log('main');")
+        (js_dir / 'main.js').write_text("console.log('main');")
 
         # Images directory
-        images_dir = assets_dir / "images"
+        images_dir = assets_dir / 'images'
         images_dir.mkdir()
         # Create minimal 1x1 PNG
         logo_bytes = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-        (images_dir / "logo.png").write_bytes(logo_bytes)
-        (images_dir / "favicon.ico").write_bytes(logo_bytes)
+        (images_dir / 'logo.png').write_bytes(logo_bytes)
+        (images_dir / 'favicon.ico').write_bytes(logo_bytes)
 
         # Common directory
-        common_dir = templates_dir / "common"
+        common_dir = templates_dir / 'common'
         common_dir.mkdir()
 
         # Report types
-        report_types_dir = templates_dir / "report_types"
+        report_types_dir = templates_dir / 'report_types'
         report_types_dir.mkdir()
 
-        uncertainty_dir = report_types_dir / "uncertainty"
+        uncertainty_dir = report_types_dir / 'uncertainty'
         uncertainty_dir.mkdir()
 
         # CSS for uncertainty
-        uncertainty_css = uncertainty_dir / "css"
+        uncertainty_css = uncertainty_dir / 'css'
         uncertainty_css.mkdir()
-        (uncertainty_css / "uncertainty.css").write_text(".uncertainty { color: blue; }")
+        (uncertainty_css / 'uncertainty.css').write_text(
+            '.uncertainty { color: blue; }'
+        )
 
         # JS for uncertainty
-        uncertainty_js = uncertainty_dir / "js"
+        uncertainty_js = uncertainty_dir / 'js'
         uncertainty_js.mkdir()
-        (uncertainty_js / "uncertainty.js").write_text("console.log('uncertainty');")
+        (uncertainty_js / 'uncertainty.js').write_text(
+            "console.log('uncertainty');"
+        )
 
         return AssetManager(str(templates_dir))
 
@@ -88,8 +92,9 @@ class TestAssetManagerCaching:
 
         # Cached call should be significantly faster (at least 5x faster)
         # Note: This might be flaky on slow systems, but generally cache should be much faster
-        assert cached_duration < first_duration * 0.8, \
-            f"Cached call ({cached_duration:.6f}s) should be faster than first call ({first_duration:.6f}s)"
+        assert (
+            cached_duration < first_duration * 0.8
+        ), f'Cached call ({cached_duration:.6f}s) should be faster than first call ({first_duration:.6f}s)'
 
     def test_js_caching_works(self, asset_manager):
         """Test that JS content is cached on repeated calls."""
@@ -115,12 +120,14 @@ class TestAssetManagerCaching:
         """Test that different test types are cached separately."""
         # Create robustness directory
         templates_dir = Path(asset_manager.templates_dir)
-        robustness_dir = templates_dir / "report_types" / "robustness"
+        robustness_dir = templates_dir / 'report_types' / 'robustness'
         robustness_dir.mkdir()
 
-        robustness_css = robustness_dir / "css"
+        robustness_css = robustness_dir / 'css'
         robustness_css.mkdir()
-        (robustness_css / "robustness.css").write_text(".robustness { color: red; }")
+        (robustness_css / 'robustness.css').write_text(
+            '.robustness { color: red; }'
+        )
 
         # Get CSS for different types
         css_uncertainty = asset_manager.get_combined_css_content('uncertainty')
@@ -131,7 +138,9 @@ class TestAssetManagerCaching:
 
         # Both should be cached - second calls should be fast
         start = time.time()
-        css_uncertainty2 = asset_manager.get_combined_css_content('uncertainty')
+        css_uncertainty2 = asset_manager.get_combined_css_content(
+            'uncertainty'
+        )
         cached_duration = time.time() - start
 
         assert css_uncertainty == css_uncertainty2
@@ -162,24 +171,28 @@ class TestTemplateManagerCaching:
     @pytest.fixture
     def template_manager(self, tmp_path):
         """Create TemplateManager with test templates."""
-        templates_dir = tmp_path / "templates"
+        templates_dir = tmp_path / 'templates'
         templates_dir.mkdir()
 
         # Create report types
-        report_types_dir = templates_dir / "report_types"
+        report_types_dir = templates_dir / 'report_types'
         report_types_dir.mkdir()
 
         # Uncertainty templates
-        uncertainty_dir = report_types_dir / "uncertainty"
+        uncertainty_dir = report_types_dir / 'uncertainty'
         uncertainty_dir.mkdir()
 
-        uncertainty_static = uncertainty_dir / "static"
+        uncertainty_static = uncertainty_dir / 'static'
         uncertainty_static.mkdir()
-        (uncertainty_static / "index.html").write_text("<html><body>Uncertainty Report</body></html>")
+        (uncertainty_static / 'index.html').write_text(
+            '<html><body>Uncertainty Report</body></html>'
+        )
 
-        uncertainty_interactive = uncertainty_dir / "interactive"
+        uncertainty_interactive = uncertainty_dir / 'interactive'
         uncertainty_interactive.mkdir()
-        (uncertainty_interactive / "index.html").write_text("<html><body>Interactive Report</body></html>")
+        (uncertainty_interactive / 'index.html').write_text(
+            '<html><body>Interactive Report</body></html>'
+        )
 
         return TemplateManager(str(templates_dir))
 
@@ -224,15 +237,21 @@ class TestTemplateManagerCaching:
     def test_caching_different_report_types(self, template_manager):
         """Test that different report types are cached separately."""
         # Get paths for different types
-        static_paths = template_manager.get_template_paths('uncertainty', 'static')
-        interactive_paths = template_manager.get_template_paths('uncertainty', 'interactive')
+        static_paths = template_manager.get_template_paths(
+            'uncertainty', 'static'
+        )
+        interactive_paths = template_manager.get_template_paths(
+            'uncertainty', 'interactive'
+        )
 
         # Should be different
         assert static_paths != interactive_paths
 
         # Both should be cached
         start = time.time()
-        static_paths2 = template_manager.get_template_paths('uncertainty', 'static')
+        static_paths2 = template_manager.get_template_paths(
+            'uncertainty', 'static'
+        )
         cached_duration = time.time() - start
 
         assert static_paths == static_paths2
@@ -245,47 +264,57 @@ class TestCachingPerformanceImprovement:
     @pytest.fixture
     def full_setup(self, tmp_path):
         """Create full setup with AssetManager and TemplateManager."""
-        templates_dir = tmp_path / "templates"
+        templates_dir = tmp_path / 'templates'
         templates_dir.mkdir()
 
         # Create structure
-        assets_dir = templates_dir / "assets"
+        assets_dir = templates_dir / 'assets'
         assets_dir.mkdir()
 
-        css_dir = assets_dir / "css"
+        css_dir = assets_dir / 'css'
         css_dir.mkdir()
-        (css_dir / "main.css").write_text("body { margin: 0; }\n" * 100)  # Larger file
+        (css_dir / 'main.css').write_text(
+            'body { margin: 0; }\n' * 100
+        )  # Larger file
 
-        js_dir = assets_dir / "js"
+        js_dir = assets_dir / 'js'
         js_dir.mkdir()
-        (js_dir / "main.js").write_text("console.log('test');\n" * 100)  # Larger file
+        (js_dir / 'main.js').write_text(
+            "console.log('test');\n" * 100
+        )  # Larger file
 
-        images_dir = assets_dir / "images"
+        images_dir = assets_dir / 'images'
         images_dir.mkdir()
         logo_bytes = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-        (images_dir / "logo.png").write_bytes(logo_bytes)
-        (images_dir / "favicon.ico").write_bytes(logo_bytes)
+        (images_dir / 'logo.png').write_bytes(logo_bytes)
+        (images_dir / 'favicon.ico').write_bytes(logo_bytes)
 
-        common_dir = templates_dir / "common"
+        common_dir = templates_dir / 'common'
         common_dir.mkdir()
 
-        report_types_dir = templates_dir / "report_types"
+        report_types_dir = templates_dir / 'report_types'
         report_types_dir.mkdir()
 
-        uncertainty_dir = report_types_dir / "uncertainty"
+        uncertainty_dir = report_types_dir / 'uncertainty'
         uncertainty_dir.mkdir()
 
-        uncertainty_css = uncertainty_dir / "css"
+        uncertainty_css = uncertainty_dir / 'css'
         uncertainty_css.mkdir()
-        (uncertainty_css / "uncertainty.css").write_text(".test { color: blue; }\n" * 50)
+        (uncertainty_css / 'uncertainty.css').write_text(
+            '.test { color: blue; }\n' * 50
+        )
 
-        uncertainty_js = uncertainty_dir / "js"
+        uncertainty_js = uncertainty_dir / 'js'
         uncertainty_js.mkdir()
-        (uncertainty_js / "uncertainty.js").write_text("console.log('uncertainty');\n" * 50)
+        (uncertainty_js / 'uncertainty.js').write_text(
+            "console.log('uncertainty');\n" * 50
+        )
 
-        uncertainty_static = uncertainty_dir / "static"
+        uncertainty_static = uncertainty_dir / 'static'
         uncertainty_static.mkdir()
-        (uncertainty_static / "index.html").write_text("<html><body>Report</body></html>")
+        (uncertainty_static / 'index.html').write_text(
+            '<html><body>Report</body></html>'
+        )
 
         asset_manager = AssetManager(str(templates_dir))
         template_manager = TemplateManager(str(templates_dir))
@@ -301,7 +330,9 @@ class TestCachingPerformanceImprovement:
             """Simulate getting all assets for report generation."""
             css = asset_manager.get_combined_css_content('uncertainty')
             js = asset_manager.get_combined_js_content('uncertainty')
-            paths = template_manager.get_template_paths('uncertainty', 'static')
+            paths = template_manager.get_template_paths(
+                'uncertainty', 'static'
+            )
             template_path = template_manager.find_template(paths)
             return css, js, template_path
 
@@ -319,18 +350,23 @@ class TestCachingPerformanceImprovement:
         assert result1 == result2
 
         # Cached should be significantly faster
-        improvement_ratio = first_duration / cached_duration if cached_duration > 0 else float('inf')
+        improvement_ratio = (
+            first_duration / cached_duration
+            if cached_duration > 0
+            else float('inf')
+        )
 
-        print(f"\nPerformance Improvement:")
-        print(f"  First call:  {first_duration:.6f}s")
-        print(f"  Cached call: {cached_duration:.6f}s")
-        print(f"  Speedup:     {improvement_ratio:.2f}x faster")
+        print(f'\nPerformance Improvement:')
+        print(f'  First call:  {first_duration:.6f}s')
+        print(f'  Cached call: {cached_duration:.6f}s')
+        print(f'  Speedup:     {improvement_ratio:.2f}x faster')
 
         # Should be at least 2x faster (conservative estimate)
         # In practice, should be 10-50x faster depending on file I/O
-        assert cached_duration < first_duration * 0.5, \
-            f"Cached operations should be at least 2x faster (got {improvement_ratio:.2f}x)"
+        assert (
+            cached_duration < first_duration * 0.5
+        ), f'Cached operations should be at least 2x faster (got {improvement_ratio:.2f}x)'
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v', '-s'])

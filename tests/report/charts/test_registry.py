@@ -17,33 +17,37 @@ from deepbridge.core.experiment.report.charts import (
 # Mock Generators for Testing
 class MockLineChart(ChartGenerator):
     """Mock line chart generator."""
+
     def generate(self, data, **kwargs):
         return ChartResult(
             content='{"type": "line", "data": []}',
             format='plotly',
-            metadata={'title': kwargs.get('title', 'Line Chart')}
+            metadata={'title': kwargs.get('title', 'Line Chart')},
         )
 
 
 class MockBarChart(ChartGenerator):
     """Mock bar chart generator."""
+
     def generate(self, data, **kwargs):
         return ChartResult(
             content='{"type": "bar", "data": []}',
             format='plotly',
-            metadata={'title': kwargs.get('title', 'Bar Chart')}
+            metadata={'title': kwargs.get('title', 'Bar Chart')},
         )
 
 
 class FailingChart(ChartGenerator):
     """Chart generator that always fails."""
+
     def generate(self, data, **kwargs):
-        raise ValueError("Chart generation failed")
+        raise ValueError('Chart generation failed')
 
 
 # ==================================================================================
 # Tests
 # ==================================================================================
+
 
 class TestChartResult:
     """Tests for ChartResult dataclass."""
@@ -53,7 +57,7 @@ class TestChartResult:
         result = ChartResult(
             content='<div>chart</div>',
             format='html',
-            metadata={'title': 'Test Chart'}
+            metadata={'title': 'Test Chart'},
         )
 
         assert result.is_success
@@ -63,9 +67,7 @@ class TestChartResult:
     def test_error_result(self):
         """Test creating error result."""
         result = ChartResult(
-            content='',
-            format='plotly',
-            error='Generation failed'
+            content='', format='plotly', error='Generation failed'
         )
 
         assert not result.is_success
@@ -125,7 +127,7 @@ class TestChartRegistry:
     def test_register_invalid_type(self):
         """Test registering non-ChartGenerator raises error."""
         with pytest.raises(TypeError):
-            ChartRegistry.register('invalid', "not a generator")
+            ChartRegistry.register('invalid', 'not a generator')
 
     def test_register_duplicate_warns(self):
         """Test registering duplicate name overwrites."""
@@ -155,9 +157,7 @@ class TestChartRegistry:
         ChartRegistry.register('line_chart', MockLineChart())
 
         result = ChartRegistry.generate(
-            'line_chart',
-            data={'x': [1, 2], 'y': [3, 4]},
-            title='Test Chart'
+            'line_chart', data={'x': [1, 2], 'y': [3, 4]}, title='Test Chart'
         )
 
         assert result.is_success
@@ -247,6 +247,7 @@ class TestRegisterChartDecorator:
 
     def test_decorator_registers_class(self):
         """Test decorator automatically registers chart."""
+
         @register_chart('decorated_chart')
         class DecoratedChart(ChartGenerator):
             def generate(self, data, **kwargs):
@@ -256,13 +257,11 @@ class TestRegisterChartDecorator:
 
     def test_decorated_chart_generates(self):
         """Test decorated chart can generate."""
+
         @register_chart('test_chart')
         class TestChart(ChartGenerator):
             def generate(self, data, **kwargs):
-                return ChartResult(
-                    content='test_content',
-                    format='html'
-                )
+                return ChartResult(content='test_content', format='html')
 
         result = ChartRegistry.generate('test_chart', data={})
 
@@ -291,5 +290,5 @@ class TestChartGenerationErrors:
         assert 'Chart generation failed' in str(exc_info.value)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

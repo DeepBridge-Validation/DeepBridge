@@ -18,30 +18,31 @@ from deepbridge.core.experiment.report.transformers.pipeline import (
 # Test Implementations
 class MockValidator(Validator):
     """Mock validator for testing."""
+
     def validate(self, data):
         errors = []
         if 'required_field' not in data:
-            errors.append("Missing required_field")
+            errors.append('Missing required_field')
         return errors
 
 
 class FailingValidator(Validator):
     """Validator that always fails."""
+
     def validate(self, data):
-        return ["Always fails"]
+        return ['Always fails']
 
 
 class MockTransformer(Transformer):
     """Mock transformer for testing."""
+
     def transform(self, data):
-        return {
-            'transformed': True,
-            'original_keys': list(data.keys())
-        }
+        return {'transformed': True, 'original_keys': list(data.keys())}
 
 
 class MockEnricher(Enricher):
     """Mock enricher for testing."""
+
     def enrich(self, data):
         data['enriched'] = True
         data['summary'] = {'total_keys': len(data)}
@@ -50,6 +51,7 @@ class MockEnricher(Enricher):
 
 class TrackingStage(PipelineStage):
     """Stage that tracks execution order."""
+
     def __init__(self, name, execution_list):
         self.name = name
         self.execution_list = execution_list
@@ -62,6 +64,7 @@ class TrackingStage(PipelineStage):
 # ==================================================================================
 # Tests
 # ==================================================================================
+
 
 class TestPipelineStage:
     """Tests for PipelineStage base class."""
@@ -172,10 +175,12 @@ class TestTransformPipeline:
 
     def test_fluent_interface(self):
         """Test fluent interface for adding stages."""
-        pipeline = (TransformPipeline()
-                    .add_stage(MockValidator())
-                    .add_stage(MockTransformer())
-                    .add_stage(MockEnricher()))
+        pipeline = (
+            TransformPipeline()
+            .add_stage(MockValidator())
+            .add_stage(MockTransformer())
+            .add_stage(MockEnricher())
+        )
 
         assert len(pipeline) == 3
 
@@ -229,7 +234,7 @@ class TestTransformPipeline:
         pipeline = TransformPipeline()
 
         with pytest.raises(TypeError):
-            pipeline.add_stage("not a stage")
+            pipeline.add_stage('not a stage')
 
 
 class TestPipelineIntegration:
@@ -238,16 +243,18 @@ class TestPipelineIntegration:
     def test_complete_data_transformation(self):
         """Test complete transformation pipeline."""
         # Setup pipeline
-        pipeline = (TransformPipeline()
-                    .add_stage(MockValidator())
-                    .add_stage(MockTransformer())
-                    .add_stage(MockEnricher()))
+        pipeline = (
+            TransformPipeline()
+            .add_stage(MockValidator())
+            .add_stage(MockTransformer())
+            .add_stage(MockEnricher())
+        )
 
         # Input data
         input_data = {
             'required_field': 'present',
             'metric1': 0.92,
-            'metric2': 0.88
+            'metric2': 0.88,
         }
 
         # Execute
@@ -274,5 +281,5 @@ class TestPipelineIntegration:
         assert 'should_not_run' not in execution_order
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

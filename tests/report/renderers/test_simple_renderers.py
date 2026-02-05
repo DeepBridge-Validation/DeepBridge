@@ -21,14 +21,15 @@ import pytest
 # Fixtures
 # ==================================================================================
 
+
 @pytest.fixture
 def mock_template_manager():
     """Create mock TemplateManager."""
     manager = Mock()
     template = Mock()
     manager.load_template = Mock(return_value=template)
-    manager.render_template = Mock(return_value="<html>Mock Report</html>")
-    manager.find_template = Mock(return_value="mock_template_path")
+    manager.render_template = Mock(return_value='<html>Mock Report</html>')
+    manager.find_template = Mock(return_value='mock_template_path')
     return manager
 
 
@@ -36,15 +37,18 @@ def mock_template_manager():
 def mock_asset_manager(tmp_path):
     """Create mock AssetManager."""
     manager = Mock()
-    manager.get_css_content = Mock(return_value="body { margin: 0; }")
+    manager.get_css_content = Mock(return_value='body { margin: 0; }')
     manager.get_js_content = Mock(return_value="console.log('test');")
-    manager.get_logo_base64 = Mock(return_value="data:image/png;base64,mocklogo")
+    manager.get_logo_base64 = Mock(
+        return_value='data:image/png;base64,mocklogo'
+    )
     return manager
 
 
 # ==================================================================================
 # Tests for UncertaintyRendererSimple
 # ==================================================================================
+
 
 class TestUncertaintyRendererSimple:
     """Tests for UncertaintyRendererSimple."""
@@ -55,13 +59,17 @@ class TestUncertaintyRendererSimple:
             UncertaintyRendererSimple,
         )
 
-        renderer = UncertaintyRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = UncertaintyRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         assert renderer.template_manager is mock_template_manager
         assert renderer.asset_manager is mock_asset_manager
         assert hasattr(renderer, 'data_transformer')
 
-    def test_inherits_from_base_renderer(self, mock_template_manager, mock_asset_manager):
+    def test_inherits_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer inherits from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -70,16 +78,22 @@ class TestUncertaintyRendererSimple:
             UncertaintyRendererSimple,
         )
 
-        renderer = UncertaintyRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = UncertaintyRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
         assert isinstance(renderer, BaseRenderer)
 
-    def test_has_required_methods(self, mock_template_manager, mock_asset_manager):
+    def test_has_required_methods(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer has required methods from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.uncertainty_renderer_simple import (
             UncertaintyRendererSimple,
         )
 
-        renderer = UncertaintyRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = UncertaintyRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         # Renderer's own method
         assert hasattr(renderer, 'render')
@@ -97,6 +111,7 @@ class TestUncertaintyRendererSimple:
 # Tests for RobustnessRendererSimple
 # ==================================================================================
 
+
 class TestRobustnessRendererSimple:
     """Tests for RobustnessRendererSimple."""
 
@@ -106,13 +121,17 @@ class TestRobustnessRendererSimple:
             RobustnessRendererSimple,
         )
 
-        renderer = RobustnessRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = RobustnessRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         assert renderer.template_manager is mock_template_manager
         assert renderer.asset_manager is mock_asset_manager
         assert hasattr(renderer, 'data_transformer')
 
-    def test_inherits_from_base_renderer(self, mock_template_manager, mock_asset_manager):
+    def test_inherits_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer inherits from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -121,13 +140,16 @@ class TestRobustnessRendererSimple:
             RobustnessRendererSimple,
         )
 
-        renderer = RobustnessRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = RobustnessRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
         assert isinstance(renderer, BaseRenderer)
 
 
 # ==================================================================================
 # Tests for ResilienceRendererSimple
 # ==================================================================================
+
 
 class TestResilienceRendererSimple:
     """Tests for ResilienceRendererSimple."""
@@ -138,12 +160,16 @@ class TestResilienceRendererSimple:
             ResilienceRendererSimple,
         )
 
-        renderer = ResilienceRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = ResilienceRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         assert renderer.template_manager is mock_template_manager
         assert hasattr(renderer, 'data_transformer')
 
-    def test_inherits_from_base_renderer(self, mock_template_manager, mock_asset_manager):
+    def test_inherits_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer inherits from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -152,13 +178,16 @@ class TestResilienceRendererSimple:
             ResilienceRendererSimple,
         )
 
-        renderer = ResilienceRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = ResilienceRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
         assert isinstance(renderer, BaseRenderer)
 
 
 # ==================================================================================
 # Tests for FairnessRendererSimple
 # ==================================================================================
+
 
 class TestFairnessRendererSimple:
     """Tests for FairnessRendererSimple."""
@@ -169,12 +198,16 @@ class TestFairnessRendererSimple:
             FairnessRendererSimple,
         )
 
-        renderer = FairnessRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = FairnessRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         assert renderer.template_manager is mock_template_manager
         assert hasattr(renderer, 'data_transformer')
 
-    def test_inherits_from_base_renderer(self, mock_template_manager, mock_asset_manager):
+    def test_inherits_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer inherits from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -183,13 +216,16 @@ class TestFairnessRendererSimple:
             FairnessRendererSimple,
         )
 
-        renderer = FairnessRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = FairnessRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
         assert isinstance(renderer, BaseRenderer)
 
 
 # ==================================================================================
 # Tests for HyperparameterRenderer
 # ==================================================================================
+
 
 class TestHyperparameterRenderer:
     """Tests for HyperparameterRenderer."""
@@ -200,12 +236,16 @@ class TestHyperparameterRenderer:
             HyperparameterRenderer,
         )
 
-        renderer = HyperparameterRenderer(mock_template_manager, mock_asset_manager)
+        renderer = HyperparameterRenderer(
+            mock_template_manager, mock_asset_manager
+        )
 
         assert renderer.template_manager is mock_template_manager
         assert hasattr(renderer, 'data_transformer')
 
-    def test_inherits_from_base_renderer(self, mock_template_manager, mock_asset_manager):
+    def test_inherits_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Test that renderer inherits from BaseRenderer."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -214,7 +254,9 @@ class TestHyperparameterRenderer:
             HyperparameterRenderer,
         )
 
-        renderer = HyperparameterRenderer(mock_template_manager, mock_asset_manager)
+        renderer = HyperparameterRenderer(
+            mock_template_manager, mock_asset_manager
+        )
         assert isinstance(renderer, BaseRenderer)
 
 
@@ -222,11 +264,13 @@ class TestHyperparameterRenderer:
 # Integration Tests - Phase 2 Pattern Verification
 # ==================================================================================
 
+
 class TestSimpleRendererPhase2Pattern:
     """Integration tests verifying Phase 2 refactoring pattern."""
 
-    def test_all_renderers_inherit_from_base_renderer(self, mock_template_manager,
-                                                       mock_asset_manager):
+    def test_all_renderers_inherit_from_base_renderer(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Verify all simple renderers inherit from BaseRenderer (Phase 2 goal)."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -248,19 +292,27 @@ class TestSimpleRendererPhase2Pattern:
         )
 
         renderers = [
-            UncertaintyRendererSimple(mock_template_manager, mock_asset_manager),
-            RobustnessRendererSimple(mock_template_manager, mock_asset_manager),
-            ResilienceRendererSimple(mock_template_manager, mock_asset_manager),
+            UncertaintyRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
+            RobustnessRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
+            ResilienceRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
             FairnessRendererSimple(mock_template_manager, mock_asset_manager),
-            HyperparameterRenderer(mock_template_manager, mock_asset_manager)
+            HyperparameterRenderer(mock_template_manager, mock_asset_manager),
         ]
 
         for renderer in renderers:
-            assert isinstance(renderer, BaseRenderer), \
-                f"{renderer.__class__.__name__} does not inherit from BaseRenderer"
+            assert isinstance(
+                renderer, BaseRenderer
+            ), f'{renderer.__class__.__name__} does not inherit from BaseRenderer'
 
-    def test_all_renderers_have_consistent_interface(self, mock_template_manager,
-                                                      mock_asset_manager):
+    def test_all_renderers_have_consistent_interface(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Verify all simple renderers have consistent render() interface."""
         from deepbridge.core.experiment.report.renderers.fairness_renderer_simple import (
             FairnessRendererSimple,
@@ -279,32 +331,48 @@ class TestSimpleRendererPhase2Pattern:
         )
 
         renderers = [
-            UncertaintyRendererSimple(mock_template_manager, mock_asset_manager),
-            RobustnessRendererSimple(mock_template_manager, mock_asset_manager),
-            ResilienceRendererSimple(mock_template_manager, mock_asset_manager),
+            UncertaintyRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
+            RobustnessRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
+            ResilienceRendererSimple(
+                mock_template_manager, mock_asset_manager
+            ),
             FairnessRendererSimple(mock_template_manager, mock_asset_manager),
-            HyperparameterRenderer(mock_template_manager, mock_asset_manager)
+            HyperparameterRenderer(mock_template_manager, mock_asset_manager),
         ]
 
         for renderer in renderers:
             # All should have render method
-            assert hasattr(renderer, 'render'), \
-                f"{renderer.__class__.__name__} missing render() method"
-            assert callable(renderer.render), \
-                f"{renderer.__class__.__name__}.render is not callable"
+            assert hasattr(
+                renderer, 'render'
+            ), f'{renderer.__class__.__name__} missing render() method'
+            assert callable(
+                renderer.render
+            ), f'{renderer.__class__.__name__}.render is not callable'
 
             # All should have data_transformer
-            assert hasattr(renderer, 'data_transformer'), \
-                f"{renderer.__class__.__name__} missing data_transformer"
+            assert hasattr(
+                renderer, 'data_transformer'
+            ), f'{renderer.__class__.__name__} missing data_transformer'
 
             # All should inherit BaseRenderer template methods (Phase 2 pattern)
-            for method_name in ['_load_template', '_get_assets', '_create_base_context',
-                               '_render_template', '_write_html']:
-                assert hasattr(renderer, method_name), \
-                    f"{renderer.__class__.__name__} missing {method_name}"
+            for method_name in [
+                '_load_template',
+                '_get_assets',
+                '_create_base_context',
+                '_render_template',
+                '_write_html',
+            ]:
+                assert hasattr(
+                    renderer, method_name
+                ), f'{renderer.__class__.__name__} missing {method_name}'
 
-    def test_template_method_pattern_eliminates_duplication(self, mock_template_manager,
-                                                            mock_asset_manager):
+    def test_template_method_pattern_eliminates_duplication(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """
         Verify Phase 2 benefit: Template method pattern eliminates code duplication.
 
@@ -315,7 +383,9 @@ class TestSimpleRendererPhase2Pattern:
             UncertaintyRendererSimple,
         )
 
-        renderer = UncertaintyRendererSimple(mock_template_manager, mock_asset_manager)
+        renderer = UncertaintyRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         # These methods should be inherited, not redefined
         import inspect
@@ -324,11 +394,13 @@ class TestSimpleRendererPhase2Pattern:
         method = renderer._load_template
         defining_class = method.__qualname__.split('.')[0]
 
-        assert defining_class == 'BaseRenderer', \
-            "Method should be inherited from BaseRenderer, not redefined"
+        assert (
+            defining_class == 'BaseRenderer'
+        ), 'Method should be inherited from BaseRenderer, not redefined'
 
-    def test_renderers_use_composition_for_transformers(self, mock_template_manager,
-                                                        mock_asset_manager):
+    def test_renderers_use_composition_for_transformers(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Verify renderers use composition pattern for data transformers."""
         from deepbridge.core.experiment.report.renderers.robustness_renderer_simple import (
             RobustnessRendererSimple,
@@ -337,21 +409,36 @@ class TestSimpleRendererPhase2Pattern:
             UncertaintyRendererSimple,
         )
 
-        uncertainty_renderer = UncertaintyRendererSimple(mock_template_manager, mock_asset_manager)
-        robustness_renderer = RobustnessRendererSimple(mock_template_manager, mock_asset_manager)
+        uncertainty_renderer = UncertaintyRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
+        robustness_renderer = RobustnessRendererSimple(
+            mock_template_manager, mock_asset_manager
+        )
 
         # Each renderer should have its own transformer type
-        assert type(uncertainty_renderer.data_transformer).__name__ == 'UncertaintyDataTransformerSimple'
-        assert type(robustness_renderer.data_transformer).__name__ == 'RobustnessDataTransformerSimple'
+        assert (
+            type(uncertainty_renderer.data_transformer).__name__
+            == 'UncertaintyDataTransformerSimple'
+        )
+        assert (
+            type(robustness_renderer.data_transformer).__name__
+            == 'RobustnessDataTransformerSimple'
+        )
 
         # Transformers are different instances
-        assert uncertainty_renderer.data_transformer is not robustness_renderer.data_transformer
+        assert (
+            uncertainty_renderer.data_transformer
+            is not robustness_renderer.data_transformer
+        )
 
 
 class TestPhase2Metrics:
     """Tests documenting Phase 2 improvements."""
 
-    def test_code_reduction_metric(self, mock_template_manager, mock_asset_manager):
+    def test_code_reduction_metric(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """
         Phase 2 Goal: Reduce code duplication.
 
@@ -369,15 +456,21 @@ class TestPhase2Metrics:
         lines = source.split('\n')
 
         # Count non-empty, non-comment lines
-        code_lines = [line for line in lines
-                     if line.strip() and not line.strip().startswith('#')]
+        code_lines = [
+            line
+            for line in lines
+            if line.strip() and not line.strip().startswith('#')
+        ]
 
         # After Phase 2, simple renderers should be < 150 lines
         # (Before Phase 2: ~280 lines with duplicated helpers)
-        assert len(code_lines) < 150, \
-            f"Renderer has {len(code_lines)} lines, expected < 150 after Phase 2 refactoring"
+        assert (
+            len(code_lines) < 150
+        ), f'Renderer has {len(code_lines)} lines, expected < 150 after Phase 2 refactoring'
 
-    def test_five_renderers_refactored(self, mock_template_manager, mock_asset_manager):
+    def test_five_renderers_refactored(
+        self, mock_template_manager, mock_asset_manager
+    ):
         """Verify all 5 simple renderers were refactored in Phase 2."""
         from deepbridge.core.experiment.report.renderers.base_renderer import (
             BaseRenderer,
@@ -388,7 +481,7 @@ class TestPhase2Metrics:
             'RobustnessRendererSimple',
             'ResilienceRendererSimple',
             'FairnessRendererSimple',
-            'HyperparameterRenderer'
+            'HyperparameterRenderer',
         ]
 
         for class_name in renderer_classes:
@@ -396,32 +489,38 @@ class TestPhase2Metrics:
                 from deepbridge.core.experiment.report.renderers.uncertainty_renderer_simple import (
                     UncertaintyRendererSimple,
                 )
+
                 cls = UncertaintyRendererSimple
             elif class_name == 'RobustnessRendererSimple':
                 from deepbridge.core.experiment.report.renderers.robustness_renderer_simple import (
                     RobustnessRendererSimple,
                 )
+
                 cls = RobustnessRendererSimple
             elif class_name == 'ResilienceRendererSimple':
                 from deepbridge.core.experiment.report.renderers.resilience_renderer_simple import (
                     ResilienceRendererSimple,
                 )
+
                 cls = ResilienceRendererSimple
             elif class_name == 'FairnessRendererSimple':
                 from deepbridge.core.experiment.report.renderers.fairness_renderer_simple import (
                     FairnessRendererSimple,
                 )
+
                 cls = FairnessRendererSimple
             else:  # HyperparameterRenderer
                 from deepbridge.core.experiment.report.renderers.hyperparameter_renderer import (
                     HyperparameterRenderer,
                 )
+
                 cls = HyperparameterRenderer
 
             # Verify inheritance
-            assert issubclass(cls, BaseRenderer), \
-                f"{class_name} does not inherit from BaseRenderer"
+            assert issubclass(
+                cls, BaseRenderer
+            ), f'{class_name} does not inherit from BaseRenderer'
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

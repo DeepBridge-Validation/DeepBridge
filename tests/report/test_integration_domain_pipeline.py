@@ -44,45 +44,45 @@ REALISTIC_UNCERTAINTY_DATA = {
                     'overall_result': {
                         'coverage': 0.93,
                         'expected_coverage': 0.95,
-                        'mean_width': 0.125
+                        'mean_width': 0.125,
                     }
                 },
                 'alpha_0.10': {
                     'overall_result': {
                         'coverage': 0.88,
                         'expected_coverage': 0.90,
-                        'mean_width': 0.15
+                        'mean_width': 0.15,
                     }
                 },
                 'alpha_0.15': {
                     'overall_result': {
                         'coverage': 0.83,
                         'expected_coverage': 0.85,
-                        'mean_width': 0.175
+                        'mean_width': 0.175,
                     }
                 },
                 'alpha_0.20': {
                     'overall_result': {
                         'coverage': 0.78,
                         'expected_coverage': 0.80,
-                        'mean_width': 0.20
+                        'mean_width': 0.20,
                     }
                 },
                 'alpha_0.25': {
                     'overall_result': {
                         'coverage': 0.73,
                         'expected_coverage': 0.75,
-                        'mean_width': 0.225
+                        'mean_width': 0.225,
                     }
                 },
             }
-        }
+        },
     },
     'initial_model_evaluation': {
         'feature_importance': {
             f'feature_{i}': 1.0 / (i + 1) for i in range(10)
         }
-    }
+    },
 }
 
 REALISTIC_ROBUSTNESS_DATA = {
@@ -105,13 +105,13 @@ REALISTIC_ROBUSTNESS_DATA = {
                             'mean_score': 0.92 - level * 0.15,
                             'std_score': 0.03 + level * 0.02,
                             'impact': level * 0.15,
-                            'worst_score': 0.92 - level * 0.20
+                            'worst_score': 0.92 - level * 0.20,
                         }
                     }
                 }
                 for level in [0.1, 0.3, 0.5, 0.7, 1.0]
             }
-        }
+        },
     },
     'initial_model_evaluation': {
         'models': {
@@ -121,7 +121,7 @@ REALISTIC_ROBUSTNESS_DATA = {
                 }
             }
         }
-    }
+    },
 }
 
 REALISTIC_RESILIENCE_DATA = {
@@ -134,7 +134,7 @@ REALISTIC_RESILIENCE_DATA = {
             'worst_sample': 0.78,
             'worst_cluster': 0.80,
             'outer_sample': 0.76,
-            'hard_sample': 0.82
+            'hard_sample': 0.82,
         },
         'distance_metrics': ['euclidean', 'manhattan', 'cosine'],
         'alphas': [0.1, 0.2, 0.3],
@@ -147,12 +147,11 @@ REALISTIC_RESILIENCE_DATA = {
                     'metric': 'accuracy',
                     'performance_gap': 0.05 + alpha * 0.3,
                     'worst_metric': 0.70,
-                    'remaining_metric': 0.90
+                    'remaining_metric': 0.90,
                 }
-                for i, (alpha, metric) in enumerate(zip(
-                    [0.1, 0.2, 0.3],
-                    ['euclidean', 'manhattan', 'cosine']
-                ))
+                for i, (alpha, metric) in enumerate(
+                    zip([0.1, 0.2, 0.3], ['euclidean', 'manhattan', 'cosine'])
+                )
             ]
         },
         'worst_sample': {
@@ -165,7 +164,7 @@ REALISTIC_RESILIENCE_DATA = {
                     'worst_metric': 0.70,
                     'remaining_metric': 0.88,
                     'n_worst_samples': int(5000 * alpha),
-                    'n_remaining_samples': int(5000 * (1 - alpha))
+                    'n_remaining_samples': int(5000 * (1 - alpha)),
                 }
                 for alpha in [0.1, 0.2]
             ]
@@ -183,7 +182,7 @@ REALISTIC_RESILIENCE_DATA = {
                     'remaining_size': 4000,
                     'feature_contributions': {
                         f'feature_{i}': 0.1 * (5 - i) for i in range(5)
-                    }
+                    },
                 }
                 for k in [3, 5, 7]
             ]
@@ -198,7 +197,7 @@ REALISTIC_RESILIENCE_DATA = {
                     'outer_metric': 0.65,
                     'inner_metric': 0.92,
                     'n_outer_samples': 500,
-                    'n_inner_samples': 4500
+                    'n_inner_samples': 4500,
                 }
             ]
         },
@@ -214,11 +213,11 @@ REALISTIC_RESILIENCE_DATA = {
                     'n_easy_samples': 4200,
                     'model_disagreements': {
                         'model_A-model_B': 0.35,
-                        'model_A-model_C': 0.32
-                    }
+                        'model_A-model_C': 0.32,
+                    },
                 }
             ]
-        }
+        },
     },
     'initial_model_evaluation': {
         'models': {
@@ -228,7 +227,7 @@ REALISTIC_RESILIENCE_DATA = {
                 }
             }
         }
-    }
+    },
 }
 
 
@@ -241,21 +240,19 @@ class TestFullPipeline:
 
         # Step 1: Transform to domain model
         report = transformer.transform_to_model(
-            REALISTIC_UNCERTAINTY_DATA,
-            "E2E_Uncertainty_Model"
+            REALISTIC_UNCERTAINTY_DATA, 'E2E_Uncertainty_Model'
         )
 
         # Validate domain model
         assert isinstance(report, UncertaintyReportData)
-        assert report.model_name == "E2E_Uncertainty_Model"
+        assert report.model_name == 'E2E_Uncertainty_Model'
         assert report.metrics.uncertainty_score > 0.0
         assert report.has_calibration_results
         assert report.calibration_results.num_alpha_levels == 5
 
         # Step 2: Transform to dict (backward compatibility)
         report_dict = transformer.transform(
-            REALISTIC_UNCERTAINTY_DATA,
-            "E2E_Uncertainty_Model"
+            REALISTIC_UNCERTAINTY_DATA, 'E2E_Uncertainty_Model'
         )
 
         # Validate dict structure
@@ -266,7 +263,10 @@ class TestFullPipeline:
 
         # Step 3: Validate consistency between modes
         assert report.model_name == report_dict['model_name']
-        assert report.metrics.uncertainty_score == report_dict['uncertainty_score']
+        assert (
+            report.metrics.uncertainty_score
+            == report_dict['uncertainty_score']
+        )
 
     def test_robustness_full_pipeline(self):
         """Test Robustness: raw data → model → dict → validation."""
@@ -274,21 +274,19 @@ class TestFullPipeline:
 
         # Step 1: Transform to domain model
         report = transformer.transform_to_model(
-            REALISTIC_ROBUSTNESS_DATA,
-            "E2E_Robustness_Model"
+            REALISTIC_ROBUSTNESS_DATA, 'E2E_Robustness_Model'
         )
 
         # Validate domain model
         assert isinstance(report, RobustnessReportData)
-        assert report.model_name == "E2E_Robustness_Model"
+        assert report.model_name == 'E2E_Robustness_Model'
         assert report.metrics.robustness_score == 0.78
         assert report.has_perturbation_data
         assert report.num_perturbation_levels == 5
 
         # Step 2: Transform to dict
         report_dict = transformer.transform(
-            REALISTIC_ROBUSTNESS_DATA,
-            "E2E_Robustness_Model"
+            REALISTIC_ROBUSTNESS_DATA, 'E2E_Robustness_Model'
         )
 
         # Validate dict structure
@@ -299,7 +297,9 @@ class TestFullPipeline:
 
         # Step 3: Validate consistency
         assert report.model_name == report_dict['model_name']
-        assert report.metrics.robustness_score == report_dict['robustness_score']
+        assert (
+            report.metrics.robustness_score == report_dict['robustness_score']
+        )
 
     def test_resilience_full_pipeline(self):
         """Test Resilience: raw data → model → dict → validation."""
@@ -307,20 +307,18 @@ class TestFullPipeline:
 
         # Step 1: Transform to domain model
         report = transformer.transform_to_model(
-            REALISTIC_RESILIENCE_DATA,
-            "E2E_Resilience_Model"
+            REALISTIC_RESILIENCE_DATA, 'E2E_Resilience_Model'
         )
 
         # Validate domain model
         assert isinstance(report, ResilienceReportData)
-        assert report.model_name == "E2E_Resilience_Model"
+        assert report.model_name == 'E2E_Resilience_Model'
         assert report.metrics.resilience_score == 0.82
         assert report.num_test_types == 5
 
         # Step 2: Transform to dict
         report_dict = transformer.transform(
-            REALISTIC_RESILIENCE_DATA,
-            "E2E_Resilience_Model"
+            REALISTIC_RESILIENCE_DATA, 'E2E_Resilience_Model'
         )
 
         # Validate dict structure
@@ -331,7 +329,9 @@ class TestFullPipeline:
 
         # Step 3: Validate consistency
         assert report.model_name == report_dict['model_name']
-        assert report.metrics.resilience_score == report_dict['resilience_score']
+        assert (
+            report.metrics.resilience_score == report_dict['resilience_score']
+        )
 
 
 class TestCrossTransformerConsistency:
@@ -345,13 +345,13 @@ class TestCrossTransformerConsistency:
 
         # Transform all three
         uncertainty_report = uncertainty_transformer.transform_to_model(
-            REALISTIC_UNCERTAINTY_DATA, "Model_1"
+            REALISTIC_UNCERTAINTY_DATA, 'Model_1'
         )
         robustness_report = robustness_transformer.transform_to_model(
-            REALISTIC_ROBUSTNESS_DATA, "Model_1"
+            REALISTIC_ROBUSTNESS_DATA, 'Model_1'
         )
         resilience_report = resilience_transformer.transform_to_model(
-            REALISTIC_RESILIENCE_DATA, "Model_1"
+            REALISTIC_RESILIENCE_DATA, 'Model_1'
         )
 
         # All should be valid
@@ -360,9 +360,9 @@ class TestCrossTransformerConsistency:
         assert isinstance(resilience_report, ResilienceReportData)
 
         # All should have same model name
-        assert uncertainty_report.model_name == "Model_1"
-        assert robustness_report.model_name == "Model_1"
-        assert resilience_report.model_name == "Model_1"
+        assert uncertainty_report.model_name == 'Model_1'
+        assert robustness_report.model_name == 'Model_1'
+        assert resilience_report.model_name == 'Model_1'
 
     def test_all_transformers_have_backward_compatibility(self):
         """Test that all transformers maintain backward compatibility."""
@@ -374,8 +374,8 @@ class TestCrossTransformerConsistency:
 
         for transformer, data in transformers:
             # Both modes should work
-            model = transformer.transform_to_model(data, "Test")
-            dict_result = transformer.transform(data, "Test")
+            model = transformer.transform_to_model(data, 'Test')
+            dict_result = transformer.transform(data, 'Test')
 
             # Both should produce valid results
             assert model is not None
@@ -389,13 +389,13 @@ class TestCrossTransformerConsistency:
         resilience_transformer = ResilienceDomainTransformer()
 
         uncertainty_report = uncertainty_transformer.transform_to_model(
-            REALISTIC_UNCERTAINTY_DATA, "Model"
+            REALISTIC_UNCERTAINTY_DATA, 'Model'
         )
         robustness_report = robustness_transformer.transform_to_model(
-            REALISTIC_ROBUSTNESS_DATA, "Model"
+            REALISTIC_ROBUSTNESS_DATA, 'Model'
         )
         resilience_report = resilience_transformer.transform_to_model(
-            REALISTIC_RESILIENCE_DATA, "Model"
+            REALISTIC_RESILIENCE_DATA, 'Model'
         )
 
         # All should have feature data
@@ -419,13 +419,14 @@ class TestPerformance:
         start = time.time()
         for _ in range(100):
             report = transformer.transform_to_model(
-                REALISTIC_UNCERTAINTY_DATA,
-                "PerfTest"
+                REALISTIC_UNCERTAINTY_DATA, 'PerfTest'
             )
         duration = time.time() - start
 
         # Should complete 100 transformations in < 1 second
-        assert duration < 1.0, f"Too slow: {duration:.3f}s for 100 transformations"
+        assert (
+            duration < 1.0
+        ), f'Too slow: {duration:.3f}s for 100 transformations'
 
     def test_transformation_speed_robustness(self):
         """Test that Robustness transformation is fast enough."""
@@ -434,13 +435,14 @@ class TestPerformance:
         start = time.time()
         for _ in range(100):
             report = transformer.transform_to_model(
-                REALISTIC_ROBUSTNESS_DATA,
-                "PerfTest"
+                REALISTIC_ROBUSTNESS_DATA, 'PerfTest'
             )
         duration = time.time() - start
 
         # Should complete 100 transformations in < 1 second
-        assert duration < 1.0, f"Too slow: {duration:.3f}s for 100 transformations"
+        assert (
+            duration < 1.0
+        ), f'Too slow: {duration:.3f}s for 100 transformations'
 
     def test_transformation_speed_resilience(self):
         """Test that Resilience transformation is fast enough."""
@@ -449,13 +451,14 @@ class TestPerformance:
         start = time.time()
         for _ in range(100):
             report = transformer.transform_to_model(
-                REALISTIC_RESILIENCE_DATA,
-                "PerfTest"
+                REALISTIC_RESILIENCE_DATA, 'PerfTest'
             )
         duration = time.time() - start
 
         # Should complete 100 transformations in < 2 seconds (more complex)
-        assert duration < 2.0, f"Too slow: {duration:.3f}s for 100 transformations"
+        assert (
+            duration < 2.0
+        ), f'Too slow: {duration:.3f}s for 100 transformations'
 
     def test_no_memory_leaks(self):
         """Test that repeated transformations don't leak memory."""
@@ -469,8 +472,7 @@ class TestPerformance:
         # Create and discard many reports
         for _ in range(1000):
             report = transformer.transform_to_model(
-                REALISTIC_UNCERTAINTY_DATA,
-                "MemTest"
+                REALISTIC_UNCERTAINTY_DATA, 'MemTest'
             )
             # Report should be eligible for garbage collection immediately
             del report
@@ -491,18 +493,16 @@ class TestRealWorldScenarios:
         robustness_transformer = RobustnessDomainTransformer()
 
         # Simulate analyzing 3 different models
-        models = ["Model_A", "Model_B", "Model_C"]
+        models = ['Model_A', 'Model_B', 'Model_C']
         uncertainty_reports = []
         robustness_reports = []
 
         for model_name in models:
             u_report = uncertainty_transformer.transform_to_model(
-                REALISTIC_UNCERTAINTY_DATA,
-                model_name
+                REALISTIC_UNCERTAINTY_DATA, model_name
             )
             r_report = robustness_transformer.transform_to_model(
-                REALISTIC_ROBUSTNESS_DATA,
-                model_name
+                REALISTIC_ROBUSTNESS_DATA, model_name
             )
 
             uncertainty_reports.append(u_report)
@@ -528,18 +528,32 @@ class TestRealWorldScenarios:
         bad_model_data = copy.deepcopy(REALISTIC_UNCERTAINTY_DATA)
 
         # Make bad model very poorly calibrated (large errors across multiple alphas)
-        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.05']['overall_result']['coverage'] = 0.70
-        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.10']['overall_result']['coverage'] = 0.65
-        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.15']['overall_result']['coverage'] = 0.60
+        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.05'][
+            'overall_result'
+        ]['coverage'] = 0.70
+        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.10'][
+            'overall_result'
+        ]['coverage'] = 0.65
+        bad_model_data['primary_model']['crqr']['by_alpha']['alpha_0.15'][
+            'overall_result'
+        ]['coverage'] = 0.60
 
-        good_report = transformer.transform_to_model(good_model_data, "GoodModel")
-        bad_report = transformer.transform_to_model(bad_model_data, "BadModel")
+        good_report = transformer.transform_to_model(
+            good_model_data, 'GoodModel'
+        )
+        bad_report = transformer.transform_to_model(bad_model_data, 'BadModel')
 
         # Can easily compare using properties and metrics
         # Good model should have better uncertainty score
-        assert good_report.metrics.uncertainty_score > bad_report.metrics.uncertainty_score
+        assert (
+            good_report.metrics.uncertainty_score
+            > bad_report.metrics.uncertainty_score
+        )
         # Good model has smaller calibration error
-        assert good_report.metrics.calibration_error < bad_report.metrics.calibration_error
+        assert (
+            good_report.metrics.calibration_error
+            < bad_report.metrics.calibration_error
+        )
 
 
 class TestEdgeCasesIntegration:
@@ -554,14 +568,20 @@ class TestEdgeCasesIntegration:
         resilience_transformer = ResilienceDomainTransformer()
 
         # All should handle empty data without crashing
-        u_report = uncertainty_transformer.transform_to_model(empty_data, "Empty")
-        r_report = robustness_transformer.transform_to_model(empty_data, "Empty")
-        res_report = resilience_transformer.transform_to_model(empty_data, "Empty")
+        u_report = uncertainty_transformer.transform_to_model(
+            empty_data, 'Empty'
+        )
+        r_report = robustness_transformer.transform_to_model(
+            empty_data, 'Empty'
+        )
+        res_report = resilience_transformer.transform_to_model(
+            empty_data, 'Empty'
+        )
 
         # All should create valid (though empty) reports
-        assert u_report.model_name == "Empty"
-        assert r_report.model_name == "Empty"
-        assert res_report.model_name == "Empty"
+        assert u_report.model_name == 'Empty'
+        assert r_report.model_name == 'Empty'
+        assert res_report.model_name == 'Empty'
 
     def test_nan_validation_uncertainty(self):
         """Test that domain models properly reject NaN values via validation."""
@@ -570,31 +590,37 @@ class TestEdgeCasesIntegration:
         from pydantic import ValidationError
 
         data_with_nan = copy.deepcopy(REALISTIC_UNCERTAINTY_DATA)
-        data_with_nan['primary_model']['crqr']['by_alpha']['alpha_0.10']['overall_result']['coverage'] = float('nan')
+        data_with_nan['primary_model']['crqr']['by_alpha']['alpha_0.10'][
+            'overall_result'
+        ]['coverage'] = float('nan')
 
         transformer = UncertaintyDomainTransformer()
 
         # Domain models should reject NaN through validation (type safety!)
         # This is CORRECT behavior - invalid data should fail fast
         with pytest.raises(ValidationError):
-            report = transformer.transform_to_model(data_with_nan, "NaN_Test")
+            report = transformer.transform_to_model(data_with_nan, 'NaN_Test')
 
     def test_mixed_valid_invalid_data(self):
         """Test handling of partially valid data across transformers."""
         # Resilience with some valid and some invalid scenarios
         mixed_data = REALISTIC_RESILIENCE_DATA.copy()
-        mixed_data['primary_model']['distribution_shift']['all_results'].append({
-            'name': 'Invalid_Scenario',
-            'alpha': 0.5,
-            'distance_metric': 'euclidean',
-            'metric': 'accuracy',
-            'performance_gap': float('nan'),  # Invalid!
-            'worst_metric': 0.70,
-            'remaining_metric': 0.90
-        })
+        mixed_data['primary_model']['distribution_shift'][
+            'all_results'
+        ].append(
+            {
+                'name': 'Invalid_Scenario',
+                'alpha': 0.5,
+                'distance_metric': 'euclidean',
+                'metric': 'accuracy',
+                'performance_gap': float('nan'),  # Invalid!
+                'worst_metric': 0.70,
+                'remaining_metric': 0.90,
+            }
+        )
 
         transformer = ResilienceDomainTransformer()
-        report = transformer.transform_to_model(mixed_data, "MixedTest")
+        report = transformer.transform_to_model(mixed_data, 'MixedTest')
 
         # Should process valid scenarios and mark invalid ones
         assert report.has_distribution_shift
@@ -603,5 +629,5 @@ class TestEdgeCasesIntegration:
         assert any(not s.is_valid for s in scenarios)  # Some invalid
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v', '--tb=short'])

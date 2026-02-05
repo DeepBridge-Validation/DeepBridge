@@ -21,18 +21,19 @@ from deepbridge.core.experiment.report.cache import (
 # CacheEntry Tests
 # =============================================================================
 
+
 class TestCacheEntry:
     """Tests for CacheEntry."""
 
     def test_cache_entry_creation(self):
         """Test creating cache entry."""
         entry = CacheEntry(
-            value="test_value",
+            value='test_value',
             created_at=datetime.now(),
             ttl=3600,
         )
 
-        assert entry.value == "test_value"
+        assert entry.value == 'test_value'
         assert entry.ttl == 3600
         assert entry.hits == 0
 
@@ -40,7 +41,7 @@ class TestCacheEntry:
         """Test entry expiration."""
         # Not expired (1 hour TTL)
         entry = CacheEntry(
-            value="test",
+            value='test',
             created_at=datetime.now(),
             ttl=3600,
         )
@@ -48,7 +49,7 @@ class TestCacheEntry:
 
         # Expired (created 2 hours ago, 1 hour TTL)
         old_entry = CacheEntry(
-            value="test",
+            value='test',
             created_at=datetime.now() - timedelta(hours=2),
             ttl=3600,
         )
@@ -57,7 +58,7 @@ class TestCacheEntry:
     def test_cache_entry_no_expiration(self):
         """Test entry with no TTL never expires."""
         entry = CacheEntry(
-            value="test",
+            value='test',
             created_at=datetime.now() - timedelta(days=365),
             ttl=None,
         )
@@ -66,7 +67,7 @@ class TestCacheEntry:
     def test_cache_entry_age(self):
         """Test entry age calculation."""
         entry = CacheEntry(
-            value="test",
+            value='test',
             created_at=datetime.now() - timedelta(seconds=10),
             ttl=None,
         )
@@ -78,6 +79,7 @@ class TestCacheEntry:
 # =============================================================================
 # MemoryCache Tests
 # =============================================================================
+
 
 class TestMemoryCache:
     """Tests for MemoryCache."""
@@ -285,6 +287,7 @@ class TestMemoryCache:
 # NoOpCache Tests
 # =============================================================================
 
+
 class TestNoOpCache:
     """Tests for NoOpCache."""
 
@@ -335,6 +338,7 @@ class TestNoOpCache:
 # CacheManager Tests
 # =============================================================================
 
+
 class TestCacheManager:
     """Tests for CacheManager."""
 
@@ -358,7 +362,9 @@ class TestCacheManager:
         """Test chart cache key generation."""
         manager = CacheManager()
 
-        key = manager.make_chart_key('coverage', {'alphas': [0.1, 0.2], 'coverage': [0.9, 0.8]})
+        key = manager.make_chart_key(
+            'coverage', {'alphas': [0.1, 0.2], 'coverage': [0.9, 0.8]}
+        )
 
         assert key.startswith('chart:coverage:')
         assert len(key) > len('chart:coverage:')
@@ -389,12 +395,16 @@ class TestCacheManager:
             return {'generated': 'chart'}
 
         # First call generates
-        chart1 = manager.get_or_generate_chart('coverage', {'data': 'test'}, generator)
+        chart1 = manager.get_or_generate_chart(
+            'coverage', {'data': 'test'}, generator
+        )
         assert chart1 == {'generated': 'chart'}
         assert call_count[0] == 1
 
         # Second call uses cache
-        chart2 = manager.get_or_generate_chart('coverage', {'data': 'test'}, generator)
+        chart2 = manager.get_or_generate_chart(
+            'coverage', {'data': 'test'}, generator
+        )
         assert chart2 == {'generated': 'chart'}
         assert call_count[0] == 1  # Not called again
 
@@ -411,7 +421,7 @@ class TestCacheManager:
         manager = CacheManager()
 
         key = manager.make_template_key('/templates/report.html')
-        template = "compiled template"
+        template = 'compiled template'
 
         manager.cache_template(key, template)
         cached = manager.get_template(key)
@@ -502,6 +512,7 @@ class TestCacheManager:
 # Integration Tests
 # =============================================================================
 
+
 class TestCacheIntegration:
     """Integration tests for cache system."""
 
@@ -532,12 +543,16 @@ class TestCacheIntegration:
 
         # First call (not cached)
         start = time.time()
-        result1 = manager.get_or_generate_chart('test', {'data': 'test'}, expensive_operation)
+        result1 = manager.get_or_generate_chart(
+            'test', {'data': 'test'}, expensive_operation
+        )
         first_duration = time.time() - start
 
         # Second call (cached)
         start = time.time()
-        result2 = manager.get_or_generate_chart('test', {'data': 'test'}, expensive_operation)
+        result2 = manager.get_or_generate_chart(
+            'test', {'data': 'test'}, expensive_operation
+        )
         second_duration = time.time() - start
 
         # Cached call should be much faster
@@ -550,8 +565,7 @@ class TestCacheIntegration:
         template_cache = MemoryCache(max_size=25, default_ttl=3600)
 
         manager = CacheManager(
-            chart_cache=chart_cache,
-            template_cache=template_cache
+            chart_cache=chart_cache, template_cache=template_cache
         )
 
         # Use custom caches
@@ -562,5 +576,5 @@ class TestCacheIntegration:
         assert chart_cache.stats()['size'] == 1
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

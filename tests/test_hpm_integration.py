@@ -44,7 +44,7 @@ class TestHPMIntegration(unittest.TestCase):
             n_informative=15,
             n_redundant=5,
             n_clusters_per_class=2,
-            random_state=42
+            random_state=42,
         )
 
         # Split data
@@ -69,7 +69,9 @@ class TestHPMIntegration(unittest.TestCase):
         cls.dataset = DBDataset(
             X=pd.DataFrame(X_full),
             y=pd.Series(y_full),
-            probabilities=pd.DataFrame(probs_full, columns=['prob_0', 'prob_1'])
+            probabilities=pd.DataFrame(
+                probs_full, columns=['prob_0', 'prob_1']
+            ),
         )
 
         cls.X_train = X_train
@@ -80,11 +82,7 @@ class TestHPMIntegration(unittest.TestCase):
 
     def test_hpm_distiller_initialization(self):
         """Test HPM distiller initialization."""
-        config = HPMConfig(
-            max_configs=8,
-            n_trials=2,
-            verbose=False
-        )
+        config = HPMConfig(max_configs=8, n_trials=2, verbose=False)
 
         distiller = HPMDistiller(config=config)
 
@@ -102,7 +100,7 @@ class TestHPMIntegration(unittest.TestCase):
             dataset=self.dataset,
             method='hpm',
             n_trials=2,  # Minimal for testing
-            verbose=False
+            verbose=False,
         )
 
         self.assertEqual(distiller.method, 'hpm')
@@ -114,13 +112,11 @@ class TestHPMIntegration(unittest.TestCase):
         small_dataset = DBDataset(
             X=pd.DataFrame(np.random.randn(100, 10)),
             y=pd.Series(np.random.randint(0, 2, 100)),
-            probabilities=pd.DataFrame(np.random.rand(100, 2))
+            probabilities=pd.DataFrame(np.random.rand(100, 2)),
         )
 
         distiller_small = AutoDistiller(
-            dataset=small_dataset,
-            method='auto',
-            verbose=False
+            dataset=small_dataset, method='auto', verbose=False
         )
 
         self.assertEqual(distiller_small.method, 'legacy')
@@ -129,13 +125,11 @@ class TestHPMIntegration(unittest.TestCase):
         large_dataset = DBDataset(
             X=pd.DataFrame(np.random.randn(15000, 10)),
             y=pd.Series(np.random.randint(0, 2, 15000)),
-            probabilities=pd.DataFrame(np.random.rand(15000, 2))
+            probabilities=pd.DataFrame(np.random.rand(15000, 2)),
         )
 
         distiller_large = AutoDistiller(
-            dataset=large_dataset,
-            method='auto',
-            verbose=False
+            dataset=large_dataset, method='auto', verbose=False
         )
 
         self.assertEqual(distiller_large.method, 'hpm')
@@ -148,16 +142,14 @@ class TestHPMIntegration(unittest.TestCase):
             ModelType.LOGISTIC_REGRESSION,
             ModelType.DECISION_TREE,
             ModelType.GBM,
-            ModelType.XGB
+            ModelType.XGB,
         ]
         temperatures = [0.5, 1.0, 2.0, 3.0]
         alphas = [0.3, 0.5, 0.7, 0.9]
 
         # Total possible: 4 * 4 * 4 = 64
         configs = manager.select_promising_configs(
-            model_types=model_types,
-            temperatures=temperatures,
-            alphas=alphas
+            model_types=model_types, temperatures=temperatures, alphas=alphas
         )
 
         # Should reduce to max_configs
@@ -174,10 +166,10 @@ class TestHPMIntegration(unittest.TestCase):
         chain = ProgressiveDistillationChain(
             chain_order=[
                 ModelType.LOGISTIC_REGRESSION,
-                ModelType.DECISION_TREE
+                ModelType.DECISION_TREE,
             ],
             min_improvement=0.001,
-            random_state=42
+            random_state=42,
         )
 
         # Train chain
@@ -186,7 +178,7 @@ class TestHPMIntegration(unittest.TestCase):
             y_train=self.y_train,
             X_val=self.X_test,
             y_val=self.y_test,
-            teacher_probs=self.teacher_probs
+            teacher_probs=self.teacher_probs,
         )
 
         # Should have 2 stages
@@ -203,9 +195,7 @@ class TestHPMIntegration(unittest.TestCase):
 
     def test_multi_teacher_system(self):
         """Test multi-teacher ensemble system."""
-        multi_teacher = AttentionWeightedMultiTeacher(
-            attention_type='learned'
-        )
+        multi_teacher = AttentionWeightedMultiTeacher(attention_type='learned')
 
         # Create mock teachers
         for i in range(3):
@@ -216,8 +206,8 @@ class TestHPMIntegration(unittest.TestCase):
 
             multi_teacher.add_teacher(
                 model=mock_model,
-                model_type=f"teacher_{i}",
-                performance=0.8 + i * 0.05
+                model_type=f'teacher_{i}',
+                performance=0.8 + i * 0.05,
             )
 
         # Compute attention weights
@@ -240,18 +230,18 @@ class TestHPMIntegration(unittest.TestCase):
         pipeline = ParallelDistillationPipeline(
             n_workers=2,
             use_processes=False,  # Use threads for testing
-            timeout_per_config=10.0
+            timeout_per_config=10.0,
         )
 
         # Create workloads
         workloads = []
         for i in range(4):
             config = WorkloadConfig(
-                config_id=f"test_{i}",
+                config_id=f'test_{i}',
                 model_type=ModelType.LOGISTIC_REGRESSION,
                 temperature=1.0,
                 alpha=0.5,
-                hyperparams={'max_iter': 100}
+                hyperparams={'max_iter': 100},
             )
             workloads.append(config)
 
@@ -265,7 +255,7 @@ class TestHPMIntegration(unittest.TestCase):
             results = pipeline.train_batch_parallel(
                 configurations=workloads,
                 train_function=mock_train,
-                dataset={'X_train': self.X_train, 'y_train': self.y_train}
+                dataset={'X_train': self.X_train, 'y_train': self.y_train},
             )
 
         self.assertEqual(len(results), 4)
@@ -282,7 +272,7 @@ class TestHPMIntegration(unittest.TestCase):
             verbose=False,
             use_parallel=False,  # Disable for testing
             use_progressive=False,  # Simplify for testing
-            use_multi_teacher=False  # Simplify for testing
+            use_multi_teacher=False,  # Simplify for testing
         )
 
         distiller = HPMDistiller(config=config)
@@ -296,7 +286,7 @@ class TestHPMIntegration(unittest.TestCase):
             teacher_probs=self.teacher_probs,
             model_types=[ModelType.LOGISTIC_REGRESSION],
             temperatures=[1.0, 2.0],
-            alphas=[0.5]
+            alphas=[0.5],
         )
 
         self.assertTrue(distiller.is_fitted)
@@ -326,14 +316,14 @@ class TestHPMIntegration(unittest.TestCase):
         result1 = cache.get_or_compute(
             key={'test': 'key'},
             compute_fn=expensive_computation,
-            cache_type='teacher'
+            cache_type='teacher',
         )
 
         # Second call should use cache
         result2 = cache.get_or_compute(
             key={'test': 'key'},
             compute_fn=expensive_computation,
-            cache_type='teacher'
+            cache_type='teacher',
         )
 
         # Should only compute once
@@ -359,14 +349,14 @@ class TestHPMIntegration(unittest.TestCase):
             alpha=0.5,
             best_params={'max_depth': 5, 'n_estimators': 100},
             best_score=0.9,
-            n_trials=10
+            n_trials=10,
         )
 
         # Try to get similar config
         similar = memory.get_similar_configs(
             model_type=ModelType.XGB,
             temperature=2.1,  # Slightly different
-            alpha=0.5
+            alpha=0.5,
         )
 
         self.assertGreater(len(similar), 0)
@@ -377,7 +367,7 @@ class TestHPMIntegration(unittest.TestCase):
             temperature=2.0,
             alpha=0.5,
             similar_configs=similar,
-            n_trials=5
+            n_trials=5,
         )
 
         self.assertIsNotNone(study)
@@ -390,9 +380,7 @@ class TestHPMIntegration(unittest.TestCase):
         )
 
         scheduler = MetaTemperatureScheduler(
-            initial_temperature=3.0,
-            min_temperature=0.5,
-            max_temperature=5.0
+            initial_temperature=3.0, min_temperature=0.5, max_temperature=5.0
         )
 
         # Simulate training progress
@@ -403,7 +391,7 @@ class TestHPMIntegration(unittest.TestCase):
                 loss=2.0 * (1 - epoch / 20),
                 kl_divergence=1.0 * (1 - epoch / 20),
                 student_accuracy=0.5 + 0.4 * epoch / 20,
-                teacher_accuracy=0.9
+                teacher_accuracy=0.9,
             )
             temperatures.append(temp)
 
@@ -424,14 +412,14 @@ class TestHPMIntegration(unittest.TestCase):
             n_trials=1,
             use_parallel=True,
             parallel_workers=2,
-            verbose=False
+            verbose=False,
         )
 
         config_seq = HPMConfig(
             max_configs=4,
             n_trials=1,
             use_parallel=False,  # Sequential
-            verbose=False
+            verbose=False,
         )
 
         # Mock training time
@@ -461,14 +449,14 @@ class TestHPMIntegration(unittest.TestCase):
                 method='hpm',
                 output_dir=tmp_dir,
                 n_trials=2,
-                verbose=False
+                verbose=False,
             )
 
             # Customize configuration
             distiller.customize_config(
                 model_types=[ModelType.LOGISTIC_REGRESSION, ModelType.XGB],
                 temperatures=[1.0, 2.0],
-                alphas=[0.5]
+                alphas=[0.5],
             )
 
             # Run distillation (this would run actual distillation)
@@ -497,9 +485,7 @@ class TestHPMPerformance(unittest.TestCase):
 
         start = time.time()
         configs = manager.select_promising_configs(
-            model_types=model_types,
-            temperatures=temperatures,
-            alphas=alphas
+            model_types=model_types, temperatures=temperatures, alphas=alphas
         )
         elapsed = time.time() - start
 
@@ -507,7 +493,7 @@ class TestHPMPerformance(unittest.TestCase):
         self.assertEqual(len(configs), 16)
         self.assertLess(elapsed, 1.0)  # Should be fast
 
-        print(f"Reduced 450 → 16 configurations in {elapsed:.3f} seconds")
+        print(f'Reduced 450 → 16 configurations in {elapsed:.3f} seconds')
 
     def test_cache_memory_usage(self):
         """Test cache memory management."""
@@ -519,9 +505,7 @@ class TestHPMPerformance(unittest.TestCase):
         for i in range(100):
             data = np.random.randn(1000, 100)  # ~800KB each
             cache.get_or_compute(
-                key={'index': i},
-                compute_fn=lambda: data,
-                cache_type='teacher'
+                key={'index': i}, compute_fn=lambda: data, cache_type='teacher'
             )
 
         # Check memory usage
@@ -531,7 +515,7 @@ class TestHPMPerformance(unittest.TestCase):
         # Should respect memory limit (approximately)
         self.assertLess(total_mb, 15)  # Allow some overhead
 
-        print(f"Cache using {total_mb:.2f} MB (limit: 10 MB)")
+        print(f'Cache using {total_mb:.2f} MB (limit: 10 MB)')
 
     def test_parallel_speedup(self):
         """Test parallel processing speedup."""
@@ -542,39 +526,45 @@ class TestHPMPerformance(unittest.TestCase):
         # Test with different number of workers
         workloads = [
             WorkloadConfig(
-                config_id=f"test_{i}",
+                config_id=f'test_{i}',
                 model_type=ModelType.LOGISTIC_REGRESSION,
                 temperature=1.0,
                 alpha=0.5,
                 hyperparams={},
-                estimated_time=0.1
+                estimated_time=0.1,
             )
             for i in range(8)
         ]
 
-        def simulate_training(model_type, temperature, alpha, hyperparams, dataset):
+        def simulate_training(
+            model_type, temperature, alpha, hyperparams, dataset
+        ):
             time.sleep(0.05)  # Simulate work
             return Mock(), {'accuracy': 0.85}
 
         # Sequential (1 worker)
-        pipeline_seq = ParallelDistillationPipeline(n_workers=1, use_processes=False)
+        pipeline_seq = ParallelDistillationPipeline(
+            n_workers=1, use_processes=False
+        )
         with pipeline_seq:
             start = time.time()
             results_seq = pipeline_seq.train_batch_parallel(
                 configurations=workloads,
                 train_function=simulate_training,
-                dataset={}
+                dataset={},
             )
             time_seq = time.time() - start
 
         # Parallel (4 workers)
-        pipeline_par = ParallelDistillationPipeline(n_workers=4, use_processes=False)
+        pipeline_par = ParallelDistillationPipeline(
+            n_workers=4, use_processes=False
+        )
         with pipeline_par:
             start = time.time()
             results_par = pipeline_par.train_batch_parallel(
                 configurations=workloads,
                 train_function=simulate_training,
-                dataset={}
+                dataset={},
             )
             time_par = time.time() - start
 
@@ -582,7 +572,9 @@ class TestHPMPerformance(unittest.TestCase):
         speedup = time_seq / time_par
         self.assertGreater(speedup, 1.5)  # Should have some speedup
 
-        print(f"Parallel speedup: {speedup:.2f}x (Sequential: {time_seq:.3f}s, Parallel: {time_par:.3f}s)")
+        print(
+            f'Parallel speedup: {speedup:.2f}x (Sequential: {time_seq:.3f}s, Parallel: {time_par:.3f}s)'
+        )
 
 
 if __name__ == '__main__':

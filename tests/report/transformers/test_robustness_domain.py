@@ -34,7 +34,7 @@ SAMPLE_ROBUSTNESS_RESULTS = {
                             'mean_score': 0.80,
                             'std_score': 0.03,
                             'impact': 0.05,
-                            'worst_score': 0.75
+                            'worst_score': 0.75,
                         }
                     }
                 },
@@ -44,7 +44,7 @@ SAMPLE_ROBUSTNESS_RESULTS = {
                             'mean_score': 0.70,
                             'std_score': 0.05,
                             'impact': 0.15,
-                            'worst_score': 0.60
+                            'worst_score': 0.60,
                         }
                     }
                 },
@@ -54,12 +54,12 @@ SAMPLE_ROBUSTNESS_RESULTS = {
                             'mean_score': 0.60,
                             'std_score': 0.08,
                             'impact': 0.25,
-                            'worst_score': 0.45
+                            'worst_score': 0.45,
                         }
                     }
                 },
             }
-        }
+        },
     },
     'initial_model_evaluation': {
         'models': {
@@ -72,7 +72,7 @@ SAMPLE_ROBUSTNESS_RESULTS = {
                 }
             }
         }
-    }
+    },
 }
 
 
@@ -84,24 +84,22 @@ class TestRobustnessDomainTransformer:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Verify type
         assert isinstance(report, RobustnessReportData)
 
         # Verify basic fields
-        assert report.model_name == "TestModel"
-        assert report.model_type == "RandomForest"
+        assert report.model_name == 'TestModel'
+        assert report.model_type == 'RandomForest'
 
     def test_transform_to_model_calculates_metrics(self):
         """Test that metrics are calculated correctly."""
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Verify metrics exist
@@ -110,15 +108,14 @@ class TestRobustnessDomainTransformer:
         assert report.metrics.avg_raw_impact == 0.10
         assert report.metrics.avg_quantile_impact == 0.12
         assert report.metrics.avg_overall_impact > 0.0
-        assert report.metrics.metric == "AUC"
+        assert report.metrics.metric == 'AUC'
 
     def test_transform_to_model_creates_perturbation_levels(self):
         """Test that perturbation levels are created."""
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Should have 3 perturbation levels
@@ -139,8 +136,7 @@ class TestRobustnessDomainTransformer:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Should have features
@@ -157,10 +153,7 @@ class TestRobustnessDomainTransformer:
         """Test that transform() returns Dict for backward compatibility."""
         transformer = RobustnessDomainTransformer()
 
-        result = transformer.transform(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
-        )
+        result = transformer.transform(SAMPLE_ROBUSTNESS_RESULTS, 'TestModel')
 
         # Verify it's a dict
         assert isinstance(result, dict)
@@ -181,8 +174,7 @@ class TestRobustnessDomainTransformer:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Test is_robust property
@@ -212,8 +204,7 @@ class TestDomainModelBenefits:
 
         # NEW WAY: Type-safe model
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Type-safe access (IDE autocomplete works!)
@@ -230,8 +221,7 @@ class TestDomainModelBenefits:
 
         # OLD WAY: Dict with .get() calls
         result_dict = transformer.transform(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Verbose .get() calls
@@ -247,8 +237,7 @@ class TestDomainModelBenefits:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Before (Dict): Multiple .get() calls
@@ -274,8 +263,7 @@ class TestDomainModelBenefits:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Convenient properties instead of manual checks
@@ -297,17 +285,16 @@ class TestDomainModelBenefits:
         transformer = RobustnessDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_ROBUSTNESS_RESULTS,
-            "TestModel"
+            SAMPLE_ROBUSTNESS_RESULTS, 'TestModel'
         )
 
         # Get string representation
         str_repr = str(report)
 
         # Should include key info
-        assert "TestModel" in str_repr
-        assert "score=" in str_repr
-        assert "levels=" in str_repr
+        assert 'TestModel' in str_repr
+        assert 'score=' in str_repr
+        assert 'levels=' in str_repr
 
 
 class TestEdgeCases:
@@ -320,10 +307,10 @@ class TestEdgeCases:
         # Empty results
         empty_results = {'primary_model': {}, 'initial_model_evaluation': {}}
 
-        report = transformer.transform_to_model(empty_results, "EmptyModel")
+        report = transformer.transform_to_model(empty_results, 'EmptyModel')
 
         # Should create valid model with defaults
-        assert report.model_name == "EmptyModel"
+        assert report.model_name == 'EmptyModel'
         assert report.metrics.robustness_score == 0.0
         assert not report.has_perturbation_data
 
@@ -333,13 +320,12 @@ class TestEdgeCases:
 
         results_no_features = {
             'primary_model': SAMPLE_ROBUSTNESS_RESULTS['primary_model'].copy(),
-            'initial_model_evaluation': {}  # No features
+            'initial_model_evaluation': {},  # No features
         }
         results_no_features['primary_model']['feature_importance'] = {}
 
         report = transformer.transform_to_model(
-            results_no_features,
-            "NoFeaturesModel"
+            results_no_features, 'NoFeaturesModel'
         )
 
         # Should handle gracefully
@@ -351,19 +337,16 @@ class TestEdgeCases:
         transformer = RobustnessDomainTransformer()
 
         # Wrapped format
-        wrapped_results = {
-            'test_results': SAMPLE_ROBUSTNESS_RESULTS
-        }
+        wrapped_results = {'test_results': SAMPLE_ROBUSTNESS_RESULTS}
 
         report = transformer.transform_to_model(
-            wrapped_results,
-            "WrappedModel"
+            wrapped_results, 'WrappedModel'
         )
 
         # Should work the same
-        assert report.model_name == "WrappedModel"
+        assert report.model_name == 'WrappedModel'
         assert report.has_perturbation_data
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

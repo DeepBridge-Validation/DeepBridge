@@ -9,7 +9,7 @@ import importlib
 import pytest
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def reset_and_populate_chart_registry():
     """
     Reset and populate chart registry before each test.

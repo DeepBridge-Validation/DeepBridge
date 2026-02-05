@@ -17,17 +17,14 @@ SAMPLE_RESILIENCE_RESULTS = {
     'primary_model': {
         'model_type': 'RandomForest',
         'resilience_score': 0.85,
-        'metrics': {
-            'accuracy': 0.90
-        },
+        'metrics': {'accuracy': 0.90},
         'test_scores': {
             'distribution_shift': 0.88,
             'worst_sample': 0.82,
-            'worst_cluster': 0.85
+            'worst_cluster': 0.85,
         },
         'distance_metrics': ['euclidean', 'manhattan'],
         'alphas': [0.1, 0.2, 0.3],
-
         # Distribution shift results
         'distribution_shift': {
             'all_results': [
@@ -38,7 +35,7 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'metric': 'accuracy',
                     'performance_gap': 0.10,
                     'worst_metric': 0.80,
-                    'remaining_metric': 0.90
+                    'remaining_metric': 0.90,
                 },
                 {
                     'name': 'Scenario 2',
@@ -47,11 +44,10 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'metric': 'accuracy',
                     'performance_gap': 0.15,
                     'worst_metric': 0.75,
-                    'remaining_metric': 0.90
-                }
+                    'remaining_metric': 0.90,
+                },
             ]
         },
-
         # Worst sample results
         'worst_sample': {
             'all_results': [
@@ -63,11 +59,10 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'worst_metric': 0.75,
                     'remaining_metric': 0.87,
                     'n_worst_samples': 100,
-                    'n_remaining_samples': 400
+                    'n_remaining_samples': 400,
                 }
             ]
         },
-
         # Worst cluster results
         'worst_cluster': {
             'all_results': [
@@ -83,12 +78,11 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'feature_contributions': {
                         'feature1': 0.5,
                         'feature2': 0.3,
-                        'feature3': 0.2
-                    }
+                        'feature3': 0.2,
+                    },
                 }
             ]
         },
-
         # Outer sample results
         'outer_sample': {
             'all_results': [
@@ -100,11 +94,10 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'outer_metric': 0.65,
                     'inner_metric': 0.85,
                     'n_outer_samples': 50,
-                    'n_inner_samples': 450
+                    'n_inner_samples': 450,
                 }
             ]
         },
-
         # Hard sample results
         'hard_sample': {
             'all_results': [
@@ -118,11 +111,11 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'n_easy_samples': 420,
                     'model_disagreements': {
                         'model_A-model_B': 0.4,
-                        'model_A-model_C': 0.35
-                    }
+                        'model_A-model_C': 0.35,
+                    },
                 }
             ]
-        }
+        },
     },
     'initial_model_evaluation': {
         'models': {
@@ -131,11 +124,11 @@ SAMPLE_RESILIENCE_RESULTS = {
                     'feature1': 0.8,
                     'feature2': 0.6,
                     'feature3': 0.4,
-                    'feature4': 0.2
+                    'feature4': 0.2,
                 }
             }
         }
-    }
+    },
 }
 
 
@@ -147,24 +140,22 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Verify type
         assert isinstance(report, ResilienceReportData)
 
         # Verify basic fields
-        assert report.model_name == "TestModel"
-        assert report.model_type == "RandomForest"
+        assert report.model_name == 'TestModel'
+        assert report.model_type == 'RandomForest'
 
     def test_transform_to_model_calculates_metrics(self):
         """Test that metrics are calculated correctly."""
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Verify metrics exist
@@ -178,8 +169,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have distribution shift data
@@ -188,9 +178,9 @@ class TestResilienceDomainTransformer:
 
         # Check first scenario
         scenario = report.distribution_shift_scenarios[0]
-        assert scenario.name == "Scenario 1"
+        assert scenario.name == 'Scenario 1'
         assert scenario.alpha == 0.1
-        assert scenario.distance_metric == "euclidean"
+        assert scenario.distance_metric == 'euclidean'
         assert scenario.performance_gap == 0.10
 
     def test_transform_to_model_creates_worst_sample(self):
@@ -198,8 +188,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have worst-sample data
@@ -209,7 +198,7 @@ class TestResilienceDomainTransformer:
         # Check test data
         test = report.worst_sample_tests[0]
         assert test.alpha == 0.2
-        assert test.ranking_method == "loss"
+        assert test.ranking_method == 'loss'
         assert test.performance_gap == 0.12
 
     def test_transform_to_model_creates_worst_cluster(self):
@@ -217,8 +206,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have worst-cluster data
@@ -237,8 +225,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have outer-sample data
@@ -248,7 +235,7 @@ class TestResilienceDomainTransformer:
         # Check test data
         test = report.outer_sample_tests[0]
         assert test.alpha == 0.1
-        assert test.outlier_method == "isolation_forest"
+        assert test.outlier_method == 'isolation_forest'
         assert test.performance_gap == 0.20
 
     def test_transform_to_model_creates_hard_sample(self):
@@ -256,8 +243,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have hard-sample data
@@ -276,8 +262,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Should have features
@@ -294,10 +279,7 @@ class TestResilienceDomainTransformer:
         """Test that transform() returns Dict for backward compatibility."""
         transformer = ResilienceDomainTransformer()
 
-        result = transformer.transform(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
-        )
+        result = transformer.transform(SAMPLE_RESILIENCE_RESULTS, 'TestModel')
 
         # Verify it's a dict
         assert isinstance(result, dict)
@@ -319,8 +301,7 @@ class TestResilienceDomainTransformer:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Test is_resilient property
@@ -346,8 +327,7 @@ class TestDomainModelBenefits:
 
         # NEW WAY: Type-safe model
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Type-safe access (IDE autocomplete works!)
@@ -364,8 +344,7 @@ class TestDomainModelBenefits:
 
         # OLD WAY: Dict with .get() calls
         result_dict = transformer.transform(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Verbose .get() calls
@@ -381,8 +360,7 @@ class TestDomainModelBenefits:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Before (Dict): Multiple .get() calls with nested dicts
@@ -408,8 +386,7 @@ class TestDomainModelBenefits:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Convenient properties instead of manual checks
@@ -429,13 +406,12 @@ class TestDomainModelBenefits:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Direct access to nested data (no .get() chains!)
         first_scenario = report.distribution_shift_scenarios[0]
-        assert first_scenario.name == "Scenario 1"
+        assert first_scenario.name == 'Scenario 1'
         assert first_scenario.has_significant_gap is False  # 0.10 < 0.2
 
         # Access worst-cluster top features
@@ -449,17 +425,16 @@ class TestDomainModelBenefits:
         transformer = ResilienceDomainTransformer()
 
         report = transformer.transform_to_model(
-            SAMPLE_RESILIENCE_RESULTS,
-            "TestModel"
+            SAMPLE_RESILIENCE_RESULTS, 'TestModel'
         )
 
         # Get string representation
         str_repr = str(report)
 
         # Should include key info
-        assert "TestModel" in str_repr
-        assert "score=" in str_repr
-        assert "tests=" in str_repr
+        assert 'TestModel' in str_repr
+        assert 'score=' in str_repr
+        assert 'tests=' in str_repr
 
 
 class TestEdgeCases:
@@ -472,10 +447,10 @@ class TestEdgeCases:
         # Empty results
         empty_results = {'primary_model': {}, 'initial_model_evaluation': {}}
 
-        report = transformer.transform_to_model(empty_results, "EmptyModel")
+        report = transformer.transform_to_model(empty_results, 'EmptyModel')
 
         # Should create valid model with defaults
-        assert report.model_name == "EmptyModel"
+        assert report.model_name == 'EmptyModel'
         assert report.metrics.resilience_score == 1.0
         assert not report.has_distribution_shift
 
@@ -485,12 +460,11 @@ class TestEdgeCases:
 
         results_no_features = {
             'primary_model': SAMPLE_RESILIENCE_RESULTS['primary_model'],
-            'initial_model_evaluation': {}  # No features
+            'initial_model_evaluation': {},  # No features
         }
 
         report = transformer.transform_to_model(
-            results_no_features,
-            "NoFeaturesModel"
+            results_no_features, 'NoFeaturesModel'
         )
 
         # Should handle gracefully
@@ -514,18 +488,15 @@ class TestEdgeCases:
                             'metric': 'accuracy',
                             'performance_gap': float('nan'),  # NaN!
                             'worst_metric': 0.80,
-                            'remaining_metric': 0.90
+                            'remaining_metric': 0.90,
                         }
                     ]
-                }
+                },
             },
-            'initial_model_evaluation': {}
+            'initial_model_evaluation': {},
         }
 
-        report = transformer.transform_to_model(
-            results_with_nan,
-            "NaNModel"
-        )
+        report = transformer.transform_to_model(results_with_nan, 'NaNModel')
 
         # Should handle NaN gracefully
         scenario = report.distribution_shift_scenarios[0]
@@ -545,17 +516,16 @@ class TestEdgeCases:
                         {
                             # No hard_metric/easy_metric = skipped
                             'hard_metric': None,
-                            'easy_metric': None
+                            'easy_metric': None,
                         }
                     ]
-                }
+                },
             },
-            'initial_model_evaluation': {}
+            'initial_model_evaluation': {},
         }
 
         report = transformer.transform_to_model(
-            results_skipped,
-            "SkippedModel"
+            results_skipped, 'SkippedModel'
         )
 
         # Should handle skipped test
@@ -569,19 +539,16 @@ class TestEdgeCases:
         transformer = ResilienceDomainTransformer()
 
         # Wrapped format
-        wrapped_results = {
-            'test_results': SAMPLE_RESILIENCE_RESULTS
-        }
+        wrapped_results = {'test_results': SAMPLE_RESILIENCE_RESULTS}
 
         report = transformer.transform_to_model(
-            wrapped_results,
-            "WrappedModel"
+            wrapped_results, 'WrappedModel'
         )
 
         # Should work the same
-        assert report.model_name == "WrappedModel"
+        assert report.model_name == 'WrappedModel'
         assert report.has_distribution_shift
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

@@ -37,14 +37,14 @@ class TestSafeJSONEncoder:
         encoder = SafeJSONEncoder()
         dt = datetime.datetime(2025, 11, 5, 12, 0, 0)
         result = encoder.default(dt)
-        assert result == "2025-11-05T12:00:00"
+        assert result == '2025-11-05T12:00:00'
 
     def test_encode_date(self):
         """Test encoding date objects."""
         encoder = SafeJSONEncoder()
         d = datetime.date(2025, 11, 5)
         result = encoder.default(d)
-        assert result == "2025-11-05"
+        assert result == '2025-11-05'
 
     def test_encode_normal_float(self):
         """Test that normal floats are not modified."""
@@ -66,10 +66,7 @@ class TestSafeJSONDumps:
 
     def test_dumps_with_inf(self):
         """Test serialization with infinity values."""
-        data = {
-            'pos_inf': float('inf'),
-            'neg_inf': float('-inf')
-        }
+        data = {'pos_inf': float('inf'), 'neg_inf': float('-inf')}
         result = safe_json_dumps(data)
         parsed = json.loads(result)
         assert parsed['pos_inf'] is None
@@ -79,21 +76,18 @@ class TestSafeJSONDumps:
         """Test serialization with datetime objects."""
         data = {
             'timestamp': datetime.datetime(2025, 11, 5, 12, 0, 0),
-            'date': datetime.date(2025, 11, 5)
+            'date': datetime.date(2025, 11, 5),
         }
         result = safe_json_dumps(data)
         parsed = json.loads(result)
-        assert parsed['timestamp'] == "2025-11-05T12:00:00"
-        assert parsed['date'] == "2025-11-05"
+        assert parsed['timestamp'] == '2025-11-05T12:00:00'
+        assert parsed['date'] == '2025-11-05'
 
     def test_dumps_with_nested_structure(self):
         """Test serialization with nested dictionaries and lists."""
         data = {
-            'metrics': {
-                'accuracy': 0.95,
-                'loss': float('nan')
-            },
-            'scores': [1.0, 2.0, float('inf'), 4.0]
+            'metrics': {'accuracy': 0.95, 'loss': float('nan')},
+            'scores': [1.0, 2.0, float('inf'), 4.0],
         }
         result = safe_json_dumps(data)
         parsed = json.loads(result)
@@ -110,7 +104,7 @@ class TestSafeJSONDumps:
     def test_dumps_empty_dict(self):
         """Test serialization of empty dictionary."""
         result = safe_json_dumps({})
-        assert result == "{}"
+        assert result == '{}'
 
 
 class TestSafeJSONLoads:
@@ -155,11 +149,8 @@ class TestCleanForJSON:
         """Test cleaning nested structures."""
         data = {
             'level1': {
-                'level2': {
-                    'nan_value': float('nan'),
-                    'normal': 42
-                },
-                'list': [1, float('inf'), 3]
+                'level2': {'nan_value': float('nan'), 'normal': 42},
+                'list': [1, float('inf'), 3],
             }
         }
         result = clean_for_json(data)
@@ -174,7 +165,7 @@ class TestCleanForJSON:
             'int': 42,
             'float': 3.14,
             'bool': True,
-            'none': None
+            'none': None,
         }
         result = clean_for_json(data)
         assert result == data
@@ -201,12 +192,9 @@ class TestFormatForJavaScript:
     def test_format_complex_structure(self):
         """Test formatting complex nested structure."""
         data = {
-            'metrics': {
-                'accuracy': 0.95,
-                'loss': float('nan')
-            },
+            'metrics': {'accuracy': 0.95, 'loss': float('nan')},
             'scores': [1.0, float('inf'), 3.0],
-            'timestamp': datetime.datetime(2025, 11, 5)
+            'timestamp': datetime.datetime(2025, 11, 5),
         }
         result = format_for_javascript(data)
         parsed = json.loads(result)
@@ -219,8 +207,8 @@ class TestNumpySupport:
     """Tests for NumPy type support (if NumPy is available)."""
 
     @pytest.mark.skipif(
-        not pytest.importorskip("numpy", minversion=None),
-        reason="NumPy not available"
+        not pytest.importorskip('numpy', minversion=None),
+        reason='NumPy not available',
     )
     def test_numpy_types(self):
         """Test encoding NumPy types."""
@@ -230,7 +218,7 @@ class TestNumpySupport:
             'np_int': np.int64(42),
             'np_float': np.float64(3.14),
             'np_array': np.array([1, 2, 3]),
-            'np_nan': np.float64(np.nan)
+            'np_nan': np.float64(np.nan),
         }
 
         result = safe_json_dumps(data)
@@ -247,8 +235,8 @@ class TestEdgeCases:
 
     def test_empty_data(self):
         """Test handling of empty data."""
-        assert safe_json_dumps({}) == "{}"
-        assert safe_json_dumps([]) == "[]"
+        assert safe_json_dumps({}) == '{}'
+        assert safe_json_dumps([]) == '[]'
 
     def test_deeply_nested(self):
         """Test handling of deeply nested structures."""
@@ -267,7 +255,7 @@ class TestEdgeCases:
             'none': None,
             'nan': float('nan'),
             'list': [1, 'two', 3.0, None, float('inf')],
-            'dict': {'nested': float('nan')}
+            'dict': {'nested': float('nan')},
         }
         result = safe_json_dumps(data)
         parsed = json.loads(result)

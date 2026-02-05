@@ -16,7 +16,7 @@ def full_fairness_results(
     sample_confusion_matrix,
     sample_protected_attrs,
     sample_protected_attrs_distribution,
-    sample_target_distribution
+    sample_target_distribution,
 ):
     """Complete fairness results for testing."""
     return {
@@ -31,7 +31,7 @@ def full_fairness_results(
         'dataset_info': {
             'total_samples': 960,
             'target_distribution': sample_target_distribution,
-            'protected_attributes_distribution': sample_protected_attrs_distribution
+            'protected_attributes_distribution': sample_protected_attrs_distribution,
         },
         'config': {
             'name': 'medium',
@@ -39,9 +39,9 @@ def full_fairness_results(
             'include_pretrain': True,
             'include_confusion_matrix': True,
             'include_threshold_analysis': False,
-            'age_grouping': False
+            'age_grouping': False,
         },
-        'threshold_analysis': None
+        'threshold_analysis': None,
     }
 
 
@@ -51,11 +51,13 @@ class TestFairnessDataTransformer:
     def test_transform_with_complete_data(self, full_fairness_results):
         """Test transformation with complete fairness results."""
         transformer = FairnessDataTransformer()
-        result = transformer.transform(full_fairness_results, model_name="Test Model")
+        result = transformer.transform(
+            full_fairness_results, model_name='Test Model'
+        )
 
         # Check top-level structure
         assert 'model_name' in result
-        assert result['model_name'] == "Test Model"
+        assert result['model_name'] == 'Test Model'
         assert 'summary' in result
         assert 'protected_attributes' in result
         assert 'issues' in result
@@ -75,7 +77,10 @@ class TestFairnessDataTransformer:
         assert summary['total_critical'] == 1
         assert summary['total_attributes'] == 1
         # Config is now the full config dict, not just the name
-        assert isinstance(summary['config'], dict) or summary['config'] == 'medium'
+        assert (
+            isinstance(summary['config'], dict)
+            or summary['config'] == 'medium'
+        )
         assert 'assessment' in summary
 
     def test_protected_attributes_transformation(self, full_fairness_results):
@@ -104,7 +109,9 @@ class TestFairnessDataTransformer:
         assert 'Equal Opportunity' in main_metric_names
 
         # Check complementary metrics
-        comp_metric_names = [m['name'] for m in attr['posttrain_complementary']]
+        comp_metric_names = [
+            m['name'] for m in attr['posttrain_complementary']
+        ]
         assert 'Precision Difference' in comp_metric_names
         assert 'Accuracy Difference' in comp_metric_names
 
@@ -170,7 +177,7 @@ class TestFairnessDataTransformer:
             'posttrain_metrics': {},
             'warnings': [],
             'critical_issues': [],
-            'overall_fairness_score': 0.0
+            'overall_fairness_score': 0.0,
         }
 
         result = transformer.transform(minimal_results)
