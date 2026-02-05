@@ -197,3 +197,7 @@ pyrightconfig.json
 # Project specific directories
 test_distillation_output/
 test_real_output/
+
+# Research project folders (should not be in main repo)
+PROJETO/
+PROJETO_REFORMULADO/
