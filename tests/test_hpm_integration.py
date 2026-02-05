@@ -65,13 +65,23 @@ class TestHPMIntegration(unittest.TestCase):
         y_full = np.hstack([y_train, y_test])
         probs_full = np.vstack([probs_train, probs_test])
 
-        # Create DBDataset
+        # Create combined DataFrame with features, target, and probabilities
+        X_df = pd.DataFrame(
+            X_full, columns=[f'feature_{i}' for i in range(X_full.shape[1])]
+        )
+        y_series = pd.Series(y_full, name='target')
+        probs_df = pd.DataFrame(probs_full, columns=['prob_0', 'prob_1'])
+
+        # Combine into single DataFrame
+        full_data = pd.concat([X_df, y_series, probs_df], axis=1)
+
+        # Create DBDataset with proper format
         cls.dataset = DBDataset(
-            X=pd.DataFrame(X_full),
-            y=pd.Series(y_full),
-            probabilities=pd.DataFrame(
-                probs_full, columns=['prob_0', 'prob_1']
-            ),
+            data=full_data,
+            target_column='target',
+            prob_cols=['prob_0', 'prob_1'],
+            test_size=0.3,
+            random_state=42,
         )
 
         cls.X_train = X_train
@@ -109,10 +119,21 @@ class TestHPMIntegration(unittest.TestCase):
     def test_auto_distiller_auto_selection(self):
         """Test AutoDistiller automatic method selection."""
         # Small dataset should select legacy
+        small_X = pd.DataFrame(
+            np.random.randn(100, 10),
+            columns=[f'feature_{i}' for i in range(10)],
+        )
+        small_y = pd.Series(np.random.randint(0, 2, 100), name='target')
+        small_probs = pd.DataFrame(
+            np.random.rand(100, 2), columns=['prob_0', 'prob_1']
+        )
+        small_data = pd.concat([small_X, small_y, small_probs], axis=1)
+
         small_dataset = DBDataset(
-            X=pd.DataFrame(np.random.randn(100, 10)),
-            y=pd.Series(np.random.randint(0, 2, 100)),
-            probabilities=pd.DataFrame(np.random.rand(100, 2)),
+            data=small_data,
+            target_column='target',
+            prob_cols=['prob_0', 'prob_1'],
+            test_size=0.2,
         )
 
         distiller_small = AutoDistiller(
@@ -122,10 +143,21 @@ class TestHPMIntegration(unittest.TestCase):
         self.assertEqual(distiller_small.method, 'legacy')
 
         # Large dataset should select HPM
+        large_X = pd.DataFrame(
+            np.random.randn(15000, 10),
+            columns=[f'feature_{i}' for i in range(10)],
+        )
+        large_y = pd.Series(np.random.randint(0, 2, 15000), name='target')
+        large_probs = pd.DataFrame(
+            np.random.rand(15000, 2), columns=['prob_0', 'prob_1']
+        )
+        large_data = pd.concat([large_X, large_y, large_probs], axis=1)
+
         large_dataset = DBDataset(
-            X=pd.DataFrame(np.random.randn(15000, 10)),
-            y=pd.Series(np.random.randint(0, 2, 15000)),
-            probabilities=pd.DataFrame(np.random.rand(15000, 2)),
+            data=large_data,
+            target_column='target',
+            prob_cols=['prob_0', 'prob_1'],
+            test_size=0.2,
         )
 
         distiller_large = AutoDistiller(
