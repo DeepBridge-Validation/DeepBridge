@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/assets/logo.png" alt="DeepBridge Logo" width="500"/>
+  <img src="https://raw.githubusercontent.com/DeepBridge-Validation/DeepBridge/master/.github/assets/logo.png" alt="DeepBridge Logo" width="500"/>
 
   # DeepBridge
 
