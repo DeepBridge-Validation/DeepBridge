@@ -197,4 +197,3 @@ pyrightconfig.json
 # Project specific directories
 test_distillation_output/
 test_real_output/
-tests/
