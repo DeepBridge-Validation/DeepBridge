@@ -39,6 +39,7 @@ planejamento_fairness/
 planejamento_IA/
 planejamento_*
 desenvolvimento/
+!desenvolvimento/refatorar/
 papers/
 share/python-wheels/
 *.egg-info/
@@ -211,3 +212,6 @@ PROJETO_REFORMULADO/
 desenvolvimento/refatorar/logs/           # Logs de execução da refatoração
 desenvolvimento/refatorar/prompt_temp.txt # Prompt temporário gerado
 backups/before_refactor_*/                # Backups automáticos antes da refatoração
+
+# Virtual environment for refactoring
+/venv_refactor/
