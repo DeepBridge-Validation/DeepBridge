@@ -66,6 +66,15 @@ torchvision = "^0.24.0"
 pytest-asyncio = "^1.2.0"
 aif360 = "^0.6.1"
 fairlearn = "^0.13.0"
+mypy = "^1.19.1"
+ruff = "^0.15.0"
+pylint = "^4.0.4"
+pre-commit = "^4.5.1"
+radon = "^6.0.1"
+types-requests = "^2.32.4.20260107"
+types-setuptools = "^80.10.0.20260124"
+types-tabulate = "^0.9.0.20241207"
+types-jinja2 = "^2.11.9"
 
 
 [tool.poetry.group.doc.dependencies]
@@ -98,3 +107,144 @@ docs = "mkdocs serve"
 pre_test = "task lint"
 test = "pytest tests/ -s -x --cov=deepbridge -vv"
 post_test = "coverage html"
+format = "blue . && isort ."
+type-check = "mypy deepbridge/"
+lint-ruff = "ruff check deepbridge/"
+lint-pylint = "pylint deepbridge/"
+lint-all = "task lint && task lint-ruff"
+quality = "task format && task lint-all && task type-check && task test"
+metrics = "bash desenvolvimento/qualidade/scripts/show_metrics.sh"
+
+# MyPy Configuration
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+# Start with relaxed mode, will enable strict in Phase 2
+disallow_untyped_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+strict_equality = true
+
+# Ignore libraries without stubs
+[[tool.mypy.overrides]]
+module = [
+    "numpy.*",
+    "scipy.*",
+    "pandas.*",
+    "sklearn.*",
+    "xgboost.*",
+    "matplotlib.*",
+    "seaborn.*",
+    "plotly.*",
+    "statsmodels.*",
+    "dask.*",
+    "optuna.*",
+    "onnxruntime.*",
+    "weasyprint.*",
+    "aif360.*",
+    "fairlearn.*",
+    "joblib.*",
+    "torch.*",
+    "torchvision.*",
+]
+ignore_missing_imports = true
+
+# Coverage Configuration
+[tool.coverage.run]
+source = ["deepbridge"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/setup.py",
+]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 90
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.json]
+output = "coverage.json"
+
+# Ruff Configuration
+[tool.ruff]
+line-length = 79
+target-version = "py310"
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".pytest_cache",
+    ".mypy_cache",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by blue)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+"tests/*" = ["S101", "ARG001"]
+
+# Pylint Configuration
+[tool.pylint.main]
+py-version = "3.10"
+jobs = 0
+ignore-paths = [
+    "^tests/.*$",
+    "^.*/__pycache__/.*$",
+]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111",  # missing-docstring (will add in Phase 4)
+    "C0103",  # invalid-name
+    "R0913",  # too-many-arguments
+    "R0914",  # too-many-locals
+    "W0212",  # protected-access
+]
+
+[tool.pylint.format]
+max-line-length = 79
+
+[tool.pylint.design]
+max-args = 8
+max-attributes = 12
+max-branches = 15
+max-statements = 60

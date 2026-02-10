@@ -8,6 +8,9 @@ import pytest
 
 from deepbridge.core.experiment.report.transformers.pipeline import (
     Enricher,
+    ExampleEnricher,
+    ExampleTransformer,
+    ExampleValidator,
     PipelineStage,
     Transformer,
     TransformPipeline,
@@ -237,6 +240,93 @@ class TestTransformPipeline:
             pipeline.add_stage('not a stage')
 
 
+class TestExampleClasses:
+    """Tests for example classes."""
+
+    def test_example_validator_success(self):
+        """Test ExampleValidator with valid data."""
+        validator = ExampleValidator()
+        data = {'model_name': 'TestModel', 'test_results': {'acc': 0.95}}
+
+        errors = validator.validate(data)
+
+        assert errors == []
+
+    def test_example_validator_missing_model_name(self):
+        """Test ExampleValidator with missing model_name."""
+        validator = ExampleValidator()
+        data = {'test_results': {'acc': 0.95}}
+
+        errors = validator.validate(data)
+
+        assert len(errors) == 1
+        assert 'model_name' in errors[0]
+
+    def test_example_validator_missing_test_results(self):
+        """Test ExampleValidator with missing test_results."""
+        validator = ExampleValidator()
+        data = {'model_name': 'TestModel'}
+
+        errors = validator.validate(data)
+
+        assert len(errors) == 1
+        assert 'test_results' in errors[0]
+
+    def test_example_validator_missing_both_fields(self):
+        """Test ExampleValidator with both fields missing."""
+        validator = ExampleValidator()
+        data = {}
+
+        errors = validator.validate(data)
+
+        assert len(errors) == 2
+
+    def test_example_transformer(self):
+        """Test ExampleTransformer transforms data."""
+        transformer = ExampleTransformer()
+        data = {'model_name': 'TestModel', 'test_results': {'acc': 0.95}}
+
+        result = transformer.transform(data)
+
+        assert result['model'] == 'TestModel'
+        assert result['results'] == {'acc': 0.95}
+        assert result['metadata']['source'] == 'experiment'
+        assert result['metadata']['processed'] is True
+
+    def test_example_transformer_with_missing_fields(self):
+        """Test ExampleTransformer with missing fields uses defaults."""
+        transformer = ExampleTransformer()
+        data = {}
+
+        result = transformer.transform(data)
+
+        assert result['model'] == 'Unknown'
+        assert result['results'] == {}
+
+    def test_example_enricher(self):
+        """Test ExampleEnricher adds summary and quality score."""
+        enricher = ExampleEnricher()
+        data = {'model': 'TestModel', 'results': {'test1': {}, 'test2': {}}}
+
+        result = enricher.enrich(data)
+
+        assert 'summary' in result
+        assert result['summary']['total_tests'] == 2
+        assert result['summary']['model_name'] == 'TestModel'
+        assert result['quality_score'] == 0.85
+
+    def test_example_enricher_with_empty_results(self):
+        """Test ExampleEnricher with empty results."""
+        enricher = ExampleEnricher()
+        data = {}
+
+        result = enricher.enrich(data)
+
+        assert result['summary']['total_tests'] == 0
+        assert result['summary']['model_name'] == 'Unknown'
+        assert result['quality_score'] == 0.85
+
+
 class TestPipelineIntegration:
     """Integration tests for complete pipelines."""
 
@@ -279,6 +369,26 @@ class TestPipelineIntegration:
 
         # Verify downstream stage never executed
         assert 'should_not_run' not in execution_order
+
+    def test_example_pipeline_integration(self):
+        """Test pipeline with example classes."""
+        pipeline = (
+            TransformPipeline()
+            .add_stage(ExampleValidator())
+            .add_stage(ExampleTransformer())
+            .add_stage(ExampleEnricher())
+        )
+
+        input_data = {
+            'model_name': 'MyModel',
+            'test_results': {'test1': {}, 'test2': {}, 'test3': {}},
+        }
+
+        result = pipeline.execute(input_data)
+
+        assert result['model'] == 'MyModel'
+        assert result['summary']['total_tests'] == 3
+        assert result['quality_score'] == 0.85
 
 
 if __name__ == '__main__':

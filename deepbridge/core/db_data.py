@@ -75,11 +75,18 @@ class DBDataset:
 
         # Initialize feature manager and process features
         self._feature_manager = FeatureManager(self._data, self._features)
-        self._categorical_features = (
-            self._feature_manager.infer_categorical_features(max_categories)
-            if categorical_features is None
-            else self._validate_categorical_features(categorical_features)
-        )
+
+        # Determine categorical features
+        if categorical_features is None:
+            self._categorical_features = (
+                self._feature_manager.infer_categorical_features(max_categories)
+            )
+        else:
+            self._categorical_features = self._validate_categorical_features(
+                categorical_features
+            )
+            # Set the validated categorical features in the feature manager
+            self._feature_manager._categorical_features = self._categorical_features
 
         # Handle model, model_path, or probabilities (only one of them should be provided at this point)
         if model_path is not None:
@@ -104,8 +111,45 @@ class DBDataset:
                         data_dict['test'] = self._test_data
 
                     # Generate predictions using the provided model
-                    self._model_handler.generate_predictions(
-                        data_dict, self._features
+                    # Note: We need to generate them manually to store train/test separately
+                    if self._train_data is not None:
+                        train_proba = model.predict_proba(
+                            self._train_data[self._features]
+                        )
+                        train_cols = [
+                            f'prob_class_{i}' for i in range(train_proba.shape[1])
+                        ]
+                        self._train_predictions = pd.DataFrame(
+                            train_proba,
+                            columns=train_cols,
+                            index=self._train_data.index,
+                        )
+
+                    if self._test_data is not None:
+                        test_proba = model.predict_proba(
+                            self._test_data[self._features]
+                        )
+                        test_cols = [
+                            f'prob_class_{i}' for i in range(test_proba.shape[1])
+                        ]
+                        self._test_predictions = pd.DataFrame(
+                            test_proba,
+                            columns=test_cols,
+                            index=self._test_data.index,
+                        )
+
+                    # Also set in model handler for compatibility
+                    prob_cols = (
+                        train_cols
+                        if self._train_data is not None
+                        else test_cols
+                    )
+                    self._model_handler.set_predictions(
+                        self._train_data,
+                        self._test_data,
+                        self._train_predictions,
+                        self._test_predictions,
+                        prob_cols,
                     )
                 except Exception as e:
                     print(
@@ -411,14 +455,45 @@ class DBDataset:
             # Generate predictions if possible
             if self._train_data is not None or self._test_data is not None:
                 try:
-                    data_dict = {}
+                    # Generate predictions manually to store train/test separately
                     if self._train_data is not None:
-                        data_dict['train'] = self._train_data
-                    if self._test_data is not None:
-                        data_dict['test'] = self._test_data
+                        train_proba = model_or_path.predict_proba(
+                            self._train_data[self._features]
+                        )
+                        train_cols = [
+                            f'prob_class_{i}' for i in range(train_proba.shape[1])
+                        ]
+                        self._train_predictions = pd.DataFrame(
+                            train_proba,
+                            columns=train_cols,
+                            index=self._train_data.index,
+                        )
 
-                    self._model_handler.generate_predictions(
-                        data_dict, self._features
+                    if self._test_data is not None:
+                        test_proba = model_or_path.predict_proba(
+                            self._test_data[self._features]
+                        )
+                        test_cols = [
+                            f'prob_class_{i}' for i in range(test_proba.shape[1])
+                        ]
+                        self._test_predictions = pd.DataFrame(
+                            test_proba,
+                            columns=test_cols,
+                            index=self._test_data.index,
+                        )
+
+                    # Also set in model handler for compatibility
+                    prob_cols = (
+                        train_cols
+                        if self._train_data is not None
+                        else test_cols
+                    )
+                    self._model_handler.set_predictions(
+                        self._train_data,
+                        self._test_data,
+                        self._train_predictions,
+                        self._test_predictions,
+                        prob_cols,
                     )
                 except Exception as e:
                     print(

@@ -7,6 +7,11 @@
   [![CI](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/DeepBridge-Validation/DeepBridge/actions/workflows/pipeline.yaml)
   [![PyPI version](https://badge.fury.io/py/deepbridge.svg)](https://badge.fury.io/py/deepbridge)
   [![PyPI Downloads](https://static.pepy.tech/badge/deepbridge)](https://pepy.tech/projects/deepbridge)
+  [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Development Status](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/DeepBridge-Validation/DeepBridge)
+  [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+  [![codecov](https://codecov.io/gh/DeepBridge-Validation/DeepBridge/branch/master/graph/badge.svg?token=3cdc73fd-4db4-442c-86f8-5650e2fc114a)](https://codecov.io/gh/DeepBridge-Validation/DeepBridge)
 </div>
 
 DeepBridge is a comprehensive Python library for advanced machine learning model validation, distillation, and performance analysis. It provides powerful tools to manage experiments, validate models, create more efficient model versions, and conduct in-depth performance evaluations.

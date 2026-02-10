@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.metrics import roc_auc_score
+from scipy.special import softmax
 
 
 class TemperatureScaling(BaseEstimator, ClassifierMixin):
@@ -27,7 +29,12 @@ class TemperatureScaling(BaseEstimator, ClassifierMixin):
         """
         logits = self.base_model.decision_function(X)
         scaled_logits = logits / self.temperature
-        return softmax(scaled_logits)
+
+        # Handle 1D logits for binary classification
+        if scaled_logits.ndim == 1:
+            scaled_logits = np.column_stack([-scaled_logits, scaled_logits])
+
+        return softmax(scaled_logits, axis=1)
 
     def predict(self, X):
         """

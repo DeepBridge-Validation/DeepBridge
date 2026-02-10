@@ -90,6 +90,27 @@ class TestFindCssFiles:
         files = file_utils.find_css_files(str(tmp_path))
         assert files == {}
 
+    def test_nonexistent_directory_css(self):
+        """Test finding CSS in non-existent directory."""
+        files = file_utils.find_css_files('/nonexistent/css/path')
+        assert files == {}
+
+    def test_additional_css_files_in_root(self, tmp_path):
+        """Test finding additional CSS files in root directory."""
+        # Create main CSS
+        (tmp_path / 'main.css').write_text('body {}')
+        # Create additional CSS files (not in main candidates)
+        (tmp_path / 'theme.css').write_text('.theme {}')
+        (tmp_path / 'layout.css').write_text('.layout {}')
+
+        files = file_utils.find_css_files(str(tmp_path))
+
+        assert 'main' in files
+        assert 'theme' in files
+        assert files['theme'] == 'theme.css'
+        assert 'layout' in files
+        assert files['layout'] == 'layout.css'
+
 
 class TestFindJsFiles:
     """Tests for find_js_files()."""
@@ -129,6 +150,27 @@ class TestFindJsFiles:
         assert 'charts_line' in files
         assert files['charts_line'] == 'charts/line.js'
         assert 'charts_bar' in files
+
+    def test_nonexistent_directory_js(self):
+        """Test finding JS in non-existent directory."""
+        files = file_utils.find_js_files('/nonexistent/js/path')
+        assert files == {}
+
+    def test_additional_js_files_in_root(self, tmp_path):
+        """Test finding additional JS files in root directory."""
+        # Create main JS
+        (tmp_path / 'main.js').write_text('console.log("main")')
+        # Create additional JS files (not in special files)
+        (tmp_path / 'config.js').write_text('// config')
+        (tmp_path / 'helpers.js').write_text('// helpers')
+
+        files = file_utils.find_js_files(str(tmp_path))
+
+        assert 'main' in files
+        assert 'config' in files
+        assert files['config'] == 'config.js'
+        assert 'helpers' in files
+        assert files['helpers'] == 'helpers.js'
 
 
 class TestFindAssetPath:
@@ -195,6 +237,26 @@ class TestReadHtmlFiles:
         files = file_utils.read_html_files(str(tmp_path))
         assert files == {}
 
+    def test_nonexistent_directory_html(self):
+        """Test reading HTML from non-existent directory."""
+        files = file_utils.read_html_files('/nonexistent/html/path')
+        assert files == {}
+
+    def test_error_reading_html_file(self, tmp_path):
+        """Test handling of error when reading HTML file."""
+        # Create a file with restricted permissions
+        html_file = tmp_path / 'restricted.html'
+        html_file.write_text('<html></html>')
+        html_file.chmod(0o000)  # No permissions
+
+        try:
+            files = file_utils.read_html_files(str(tmp_path))
+            # The file should be skipped due to read error
+            assert 'restricted.html' not in files or files == {}
+        finally:
+            # Restore permissions for cleanup
+            html_file.chmod(0o644)
+
 
 class TestCombineTextFiles:
     """Tests for combine_text_files()."""
@@ -232,6 +294,24 @@ class TestCombineTextFiles:
         """Test combining empty file list."""
         combined = file_utils.combine_text_files([])
         assert combined == ''
+
+    def test_error_reading_file_in_combine(self, tmp_path):
+        """Test handling of error when reading file in combine."""
+        file1 = tmp_path / 'good.txt'
+        file2 = tmp_path / 'bad.txt'
+
+        file1.write_text('Good content')
+        file2.write_text('Bad content')
+        file2.chmod(0o000)  # No permissions
+
+        try:
+            # Should skip the bad file and continue
+            combined = file_utils.combine_text_files([str(file1), str(file2)])
+            # Should contain content from good file
+            assert 'Good content' in combined
+        finally:
+            # Restore permissions for cleanup
+            file2.chmod(0o644)
 
 
 if __name__ == '__main__':

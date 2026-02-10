@@ -153,6 +153,26 @@ class TestMetric:
 
         assert metric.unit == 'seconds'
 
+    def test_formatted_value_invalid_format_string(self):
+        """Test metric with invalid format string falls back to default."""
+        metric = Metric(name='score', value=0.123, format_string='invalid_format!@#')
+
+        # Should fall through exception and use default float formatting
+        assert metric.formatted_value == '0.1230'
+
+    def test_formatted_value_generic_float(self):
+        """Test default float formatting for non-percentage, non-count floats."""
+        metric = Metric(name='score', value=0.987654321, type=MetricType.SCALAR)
+
+        assert metric.formatted_value == '0.9877'
+
+    def test_formatted_value_percentage_non_numeric(self):
+        """Test percentage formatting with non-numeric value falls back to str."""
+        metric = Metric(name='value', value='not_a_number', type=MetricType.PERCENTAGE)
+
+        # Should fall through to return str(self.value)
+        assert metric.formatted_value == 'not_a_number'
+
 
 # ==================================================================================
 # ChartSpec Tests
