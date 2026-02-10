@@ -599,3 +599,23 @@ class TestEdgeCases:
             result = safe_round(3.14159, 2)
             # Should return 0.0 when exception occurs
             assert result == 0.0
+
+    def test_safe_float_with_unsupported_type(self, template_manager):
+        """Test safe_float filter with unsupported type (list, dict, object)"""
+        safe_float = template_manager.jinja_env.filters['safe_float']
+
+        # Test with list (line 93 - return default for non-supported types)
+        result = safe_float([1, 2, 3])
+        assert result == 0.0
+
+        # Test with dict
+        result = safe_float({'key': 'value'})
+        assert result == 0.0
+
+        # Test with object
+        result = safe_float(object())
+        assert result == 0.0
+
+        # Test with custom default
+        result = safe_float([1, 2, 3], default=99.9)
+        assert result == 99.9
