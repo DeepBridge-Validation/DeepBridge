@@ -149,6 +149,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv_refactor/  # Virtual environment para refatoração
 
 # Spyder project settings
 .spyderproject
@@ -205,3 +206,8 @@ test_real_output/
 # Research project folders (should not be in main repo)
 PROJETO/
 PROJETO_REFORMULADO/
+
+# Refactoring related files
+desenvolvimento/refatorar/logs/           # Logs de execução da refatoração
+desenvolvimento/refatorar/prompt_temp.txt # Prompt temporário gerado
+backups/before_refactor_*/                # Backups automáticos antes da refatoração
