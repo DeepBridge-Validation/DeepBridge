@@ -287,7 +287,7 @@ class DBDataset:
                     )
                 else:
                     # Try to convert any other object to DataFrame
-                    train_data = pd.DataFrame(train_data)
+                    train_data = pd.DataFrame(train_data, columns=features)
             except Exception as e:
                 raise ValueError(
                     f'Could not convert training data to DataFrame: {str(e)}'
@@ -314,7 +314,7 @@ class DBDataset:
                     )
                 else:
                     # Try to convert any other object to DataFrame
-                    test_data = pd.DataFrame(test_data)
+                    test_data = pd.DataFrame(test_data, columns=features)
             except Exception as e:
                 raise ValueError(
                     f'Could not convert test data to DataFrame: {str(e)}'

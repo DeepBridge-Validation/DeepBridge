@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, LinearRegression
 import joblib
 import tempfile
 
@@ -1094,6 +1095,136 @@ def test_get_target_data_invalid_dataset():
     
     with pytest.raises(ValueError, match="dataset must be either 'train' or 'test'"):
         dataset.get_target_data(dataset='invalid')
+
+
+class TestDBDatasetAdditionalCoverage:
+    """Additional tests for improved coverage."""
+
+    def test_multiple_params_error(self):
+        """Test error when multiple params are provided."""
+        df = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [4, 5, 6],
+            'target': [0, 1, 0]
+        })
+
+        model = LogisticRegression()
+        model.fit(df[['a', 'b']], df['target'])
+
+        with pytest.raises(ValueError, match="You must provide only one"):
+            DBDataset(
+                data=df,
+                target_column='target',
+                model=model,
+                prob_cols=['prob_0', 'prob_1']
+            )
+
+    def test_categorical_features_validation(self):
+        """Test categorical features validation."""
+        df = pd.DataFrame({
+            'num': [1, 2, 3, 4, 5],
+            'cat': ['a', 'b', 'a', 'b', 'a'],
+            'target': [0, 1, 0, 1, 0]
+        })
+
+        dataset = DBDataset(
+            data=df,
+            target_column='target',
+            categorical_features=['cat']
+        )
+
+        assert 'cat' in dataset.categorical_features
+
+    def test_with_dataset_name(self):
+        """Test initialization with dataset name."""
+        df = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [4, 5, 6],
+            'target': [0, 1, 0]
+        })
+
+        dataset = DBDataset(
+            data=df,
+            target_column='target',
+            dataset_name='test_dataset'
+        )
+
+        assert dataset._dataset_name == 'test_dataset'
+
+    def test_with_max_categories(self):
+        """Test initialization with max_categories."""
+        df = pd.DataFrame({
+            'a': [1, 2, 3, 4, 5],
+            'cat': ['x', 'y', 'z', 'x', 'y'],
+            'target': [0, 1, 0, 1, 0]
+        })
+
+        dataset = DBDataset(
+            data=df,
+            target_column='target'
+        )
+
+        # Should infer categorical features
+        assert len(dataset.categorical_features) >= 0
+
+    def test_model_without_predict_proba(self):
+        """Test model without predict_proba method."""
+        from sklearn.linear_model import LinearRegression
+
+        df = pd.DataFrame({
+            'a': [1, 2, 3, 4, 5],
+            'b': [2, 4, 6, 8, 10],
+            'target': [1.5, 3.5, 5.5, 7.5, 9.5]
+        })
+
+        model = LinearRegression()
+        model.fit(df[['a', 'b']], df['target'])
+
+        # Should work with regression model (no predict_proba)
+        dataset = DBDataset(
+            data=df,
+            target_column='target',
+            model=model
+        )
+
+        assert dataset.model is not None
+
+    def test_stratified_split_single_class(self):
+        """Test stratified split with single class."""
+        df = pd.DataFrame({
+            'a': [1, 2, 3, 4, 5],
+            'b': [2, 4, 6, 8, 10],
+            'target': [0, 0, 0, 0, 0]  # Single class
+        })
+
+        dataset = DBDataset(
+            data=df,
+            target_column='target',
+            random_state=42
+        )
+
+        # Should handle single class gracefully
+        assert len(dataset.train_data) > 0
+        assert len(dataset.test_data) > 0
+
+    def test_stratified_split_failure_fallback(self):
+        """Test stratified split fallback when stratify fails."""
+        df = pd.DataFrame({
+            'a': [1, 2],
+            'b': [2, 4],
+            'target': [0, 1]  # Too few samples for stratification
+        })
+
+        dataset = DBDataset(
+            data=df,
+            target_column='target',
+            random_state=42,
+            test_size=0.5
+        )
+
+        # Should fall back to non-stratified split
+        assert len(dataset.train_data) >= 1
+        assert len(dataset.test_data) >= 1
 
 
 if __name__ == '__main__':

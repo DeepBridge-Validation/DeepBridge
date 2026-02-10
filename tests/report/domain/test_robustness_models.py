@@ -70,6 +70,12 @@ class TestRobustnessMetrics:
 
         assert metrics.degradation_rate == pytest.approx(0.20, abs=1e-6)
 
+    def test_degradation_rate_with_zero_base_score(self):
+        """Test degradation_rate property when base_score is 0."""
+        metrics = RobustnessMetrics(base_score=0.0, avg_overall_impact=0.16)
+
+        assert metrics.degradation_rate == 0.0
+
 
 class TestPerturbationLevelData:
     """Tests for PerturbationLevelData model."""
@@ -242,6 +248,16 @@ class TestRobustnessReportData:
         assert worst is not None
         assert worst.level == 0.5
         assert worst.impact == 0.25
+
+    def test_property_worst_perturbation_level_empty(self):
+        """Test worst_perturbation_level property with no perturbation levels."""
+        report = RobustnessReportData(
+            model_name='Test',
+            perturbation_levels=[],
+        )
+
+        worst = report.worst_perturbation_level
+        assert worst is None
 
     def test_get_summary_stats(self):
         """Test get_summary_stats method."""
