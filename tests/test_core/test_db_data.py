@@ -404,6 +404,51 @@ class TestDBDatasetWithModel:
         dataset.set_model(trained_model)
         assert dataset.model is not None
 
+    def test_set_model_from_path(self, sample_dataframe, trained_model, tmp_path):
+        """Test set_model with path to model file (line 446)."""
+        import joblib
+
+        # Save model to temporary file
+        model_path = tmp_path / "test_model.pkl"
+        joblib.dump(trained_model, model_path)
+
+        dataset = DBDataset(
+            data=sample_dataframe,
+            target_column='target'
+        )
+
+        # Set model from path (should trigger line 446)
+        dataset.set_model(str(model_path))
+        assert dataset.model is not None
+
+    def test_set_model_prediction_exception(self, sample_dataframe):
+        """Test set_model exception handler when prediction fails (lines 498-499)."""
+        from unittest.mock import Mock, patch
+
+        dataset = DBDataset(
+            data=sample_dataframe,
+            target_column='target'
+        )
+
+        # Create a mock model that raises exception on predict
+        bad_model = Mock()
+        bad_model.predict.side_effect = Exception("Prediction failed")
+        bad_model.predict_proba = Mock(side_effect=Exception("Predict proba failed"))
+
+        # Capture print output
+        import io
+        import sys
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+
+        try:
+            # Should catch exception and print warning (lines 498-499)
+            dataset.set_model(bad_model)
+            output = captured_output.getvalue()
+            assert "Warning: Could not generate predictions" in output
+        finally:
+            sys.stdout = sys.__stdout__
+
 
 # ============================================================================
 # Testes com Predições
@@ -961,6 +1006,36 @@ class TestDBDatasetSklearnBunch:
         )
 
         assert len(dataset.test_data) == 2
+
+    def test_test_bunch_with_feature_names(self):
+        """Test test_data as Bunch with feature_names (line 303)."""
+        import numpy as np
+        from sklearn.utils import Bunch
+
+        train_df = pd.DataFrame({
+            "f1": [1, 2, 3],
+            "f2": [4, 5, 6],
+            "target": [0, 1, 0]
+        })
+
+        # Create test_data as Bunch with feature_names
+        test_bunch = Bunch(
+            data=np.array([[7, 8], [9, 10]]),
+            target=np.array([1, 0]),
+            feature_names=["f1", "f2"]
+        )
+
+        # Don't pass features - should use test_bunch.feature_names (line 303)
+        dataset = DBDataset(
+            train_data=train_df,
+            test_data=test_bunch,
+            target_column="target"
+        )
+
+        assert len(dataset.test_data) == 2
+        assert "f1" in dataset.test_data.columns
+        assert "f2" in dataset.test_data.columns
+        assert "target" in dataset.test_data.columns
 
     def test_invalid_train_data_conversion_raises_error(self):
         """Test that invalid train data raises ValueError."""
