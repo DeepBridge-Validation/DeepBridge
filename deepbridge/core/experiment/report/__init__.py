@@ -2,8 +2,43 @@
 Report generation package for experiment results.
 Provides functionality for generating HTML reports from experiment results.
 
-Phase 4 includes multi-format adapters (PDF, Markdown) and async batch generation.
+**NEW (Recommended):** Use the unified `ReportGenerator` API for all report types.
+See MIGRATION_GUIDE_REPORT_GENERATION.md for migration instructions.
+
+Example:
+    >>> from deepbridge.core.experiment.report import ReportGenerator, RenderConfig
+    >>> generator = ReportGenerator()
+    >>> generator.generate_robustness_report(results, output_path=Path("report.html"))
+
+**OLD (Deprecated):** Individual renderer classes (RobustnessRenderer, etc.) are deprecated
+and will be removed in a future version.
 """
+
+# ==============================================================================
+# NEW UNIFIED API (✅ Recommended)
+# ==============================================================================
+from .api import ReportGenerator
+from .config import OutputFormat, RenderConfig, ReportStyle, get_preset_config
+
+# New data layer (type-safe dataclasses)
+from .data.base import DataTransformer as BaseDataTransformer
+from .data.base import MetricValue, ModelResult, ReportData
+from .data.fairness import FairnessDataTransformer, FairnessReportData
+from .data.resilience import ResilienceDataTransformer, ResilienceReportData
+from .data.robustness import RobustnessDataTransformer, RobustnessReportData
+from .data.uncertainty import UncertaintyDataTransformer, UncertaintyReportData
+
+# New renderers
+from .renderers.html import HTMLRenderer, HTMLRendererWithAssets
+from .renderers.json import JSONLinesRenderer, JSONRenderer
+
+# Template engine
+from .templates import TemplateEngine
+
+# ==============================================================================
+# OLD API (⚠️ Deprecated - will be removed in future versions)
+# ==============================================================================
+import warnings
 
 from .asset_manager import AssetManager
 from .asset_processor import AssetProcessor
@@ -26,16 +61,19 @@ from .report_manager import ReportManager
 from .template_manager import TemplateManager
 from .transformers import (
     HyperparameterDataTransformer,
-    ResilienceDataTransformer,
-    RobustnessDataTransformer,
-    UncertaintyDataTransformer,
+    ResilienceDataTransformer as OldResilienceDataTransformer,
+    RobustnessDataTransformer as OldRobustnessDataTransformer,
+    UncertaintyDataTransformer as OldUncertaintyDataTransformer,
 )
 
 
-# Factory function to get the appropriate transformer for a report type
+# Factory function to get the appropriate transformer for a report type (OLD API)
 def get_transformer(report_type):
     """
     Get the appropriate data transformer for a specific report type.
+
+    **DEPRECATED:** This function uses the old transformer API.
+    Use the new ReportGenerator API instead.
 
     Parameters:
     -----------
@@ -50,10 +88,16 @@ def get_transformer(report_type):
     -------
     ValueError : If an unsupported report type is requested
     """
+    warnings.warn(
+        "get_transformer() is deprecated. Use ReportGenerator API instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     transformers = {
-        'robustness': RobustnessDataTransformer,
-        'uncertainty': UncertaintyDataTransformer,
-        'resilience': ResilienceDataTransformer,
+        'robustness': OldRobustnessDataTransformer,
+        'uncertainty': OldUncertaintyDataTransformer,
+        'resilience': OldResilienceDataTransformer,
         'hyperparameter': HyperparameterDataTransformer,
     }
 
@@ -67,10 +111,41 @@ def get_transformer(report_type):
 
 
 __all__ = [
-    'DataTransformer',
+    # ==============================================================================
+    # NEW UNIFIED API (✅ Recommended)
+    # ==============================================================================
+    'ReportGenerator',
+    'RenderConfig',
+    'ReportStyle',
+    'OutputFormat',
+    'get_preset_config',
+    # New data layer
+    'BaseDataTransformer',
+    'ReportData',
+    'ModelResult',
+    'MetricValue',
     'RobustnessDataTransformer',
-    'UncertaintyDataTransformer',
+    'RobustnessReportData',
     'ResilienceDataTransformer',
+    'ResilienceReportData',
+    'UncertaintyDataTransformer',
+    'UncertaintyReportData',
+    'FairnessDataTransformer',
+    'FairnessReportData',
+    # New renderers
+    'HTMLRenderer',
+    'HTMLRendererWithAssets',
+    'JSONRenderer',
+    'JSONLinesRenderer',
+    # Template engine
+    'TemplateEngine',
+    # ==============================================================================
+    # OLD API (⚠️ Deprecated - will be removed in future versions)
+    # ==============================================================================
+    'DataTransformer',
+    'OldRobustnessDataTransformer',
+    'OldUncertaintyDataTransformer',
+    'OldResilienceDataTransformer',
     'HyperparameterDataTransformer',
     'ReportManager',
     'AssetManager',
