@@ -26,11 +26,12 @@ Execute as seguintes tarefas em ordem, marcando cada uma como concluída conform
 
 ### Tarefa 1: Verificar pré-requisitos
 - Verificar que backup da Fase 1 existe em `/tmp/deepbridge-migration/`
-- Criar diretório de trabalho `/home/guhaase/projetos/deepbridge-v2`
+- Criar diretório de trabalho `/home/guhaase/projetos/deepbridge_toolkit`
 
 ### Tarefa 2: Clonar repositórios
-- Clonar `https://github.com/DeepBridge-Validation/deepbridge-distillation.git`
-- Clonar `https://github.com/DeepBridge-Validation/deepbridge-synthetic.git`
+- Clonar `https://github.com/DeepBridge-Validation/deepbridge-distillation.git` em `deepbridge_toolkit/`
+- Clonar `https://github.com/DeepBridge-Validation/deepbridge-synthetic.git` em `deepbridge_toolkit/`
+- Resultado: todos os 3 repos (DeepBridge, deepbridge-distillation, deepbridge-synthetic) no mesmo nível
 
 ### Tarefa 3: Configurar deepbridge-distillation
 - Criar estrutura de diretórios
@@ -104,11 +105,20 @@ Para detalhes completos, consulte:
 
 ### Pré-requisitos
 - [ ] Backup da Fase 1 existe em `/tmp/deepbridge-migration/`
-- [ ] Diretório `/home/guhaase/projetos/deepbridge-v2/` criado
+- [ ] Diretório `/home/guhaase/projetos/deepbridge_toolkit/` criado
 - [ ] Repositórios GitHub criados (deepbridge-distillation, deepbridge-synthetic)
 
+### Estrutura de Diretórios
+- [ ] Estrutura criada:
+  ```
+  /home/guhaase/projetos/deepbridge_toolkit/
+  ├── DeepBridge/                    (repo atual - já existe)
+  ├── deepbridge-distillation/       (será clonado)
+  └── deepbridge-synthetic/          (será clonado)
+  ```
+
 ### deepbridge-distillation
-- [ ] Repositório clonado em `/home/guhaase/projetos/deepbridge-v2/deepbridge-distillation/`
+- [ ] Repositório clonado em `/home/guhaase/projetos/deepbridge_toolkit/deepbridge-distillation/`
 - [ ] Estrutura de diretórios criada (deepbridge_distillation/, tests/, examples/, docs/)
 - [ ] Código copiado de `/tmp/deepbridge-migration/distillation/`
 - [ ] Testes copiados de `/tmp/deepbridge-migration/tests/test_distillation/`
@@ -125,7 +135,7 @@ Para detalhes completos, consulte:
   - [ ] `import deepbridge` (deve funcionar como dependência)
 
 ### deepbridge-synthetic
-- [ ] Repositório clonado em `/home/guhaase/projetos/deepbridge-v2/deepbridge-synthetic/`
+- [ ] Repositório clonado em `/home/guhaase/projetos/deepbridge_toolkit/deepbridge-synthetic/`
 - [ ] Estrutura de diretórios criada (deepbridge_synthetic/, tests/, examples/, docs/)
 - [ ] Código copiado de `/tmp/deepbridge-migration/synthetic/`
 - [ ] Testes copiados de `/tmp/deepbridge-migration/tests/test_synthetic/`
