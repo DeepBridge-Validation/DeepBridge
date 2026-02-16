@@ -11,7 +11,7 @@ Migration Guide: https://github.com/DeepBridge-Validation/DeepBridge/blob/master
 """
 
 # Version information
-__version__ = '2.0.0-alpha.1'
+__version__ = '2.0.0-rc.1'
 __author__ = 'Team DeepBridge'
 
 # Core components
