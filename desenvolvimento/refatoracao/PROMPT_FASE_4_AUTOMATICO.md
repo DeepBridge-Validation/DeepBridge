@@ -182,8 +182,9 @@ Para detalhes completos, consulte:
 
 ### Commits
 - [x] Commit do core com mensagem descritiva
-- [x] Commit do distillation com mensagem descritiva (não havia mudanças)
+- [x] Commit do distillation com mensagem descritiva
 - [x] Commit do synthetic com mensagem descritiva
+- [x] Commits adicionais para correções de exemplos e bugs
 - [x] Todos os commits pushed para GitHub
 - [x] Histórico git limpo e organizado
 
@@ -200,12 +201,17 @@ Para detalhes completos, consulte:
 
 **Resumo da Execução:**
 - ✅ README.md do deepbridge (core) já estava atualizado com banner v2.0
-- ✅ Exemplos de robustness e fairness já existiam (corrigidos para API atual)
+- ✅ Exemplos de robustness e fairness já existiam (corrigidos para API v2.0)
 - ✅ CHANGELOG.md do deepbridge já estava completo
 - ✅ Migration guide já estava completo e detalhado
 - ✅ README.md, exemplos e CHANGELOG.md do deepbridge-distillation já estavam completos
 - ✅ README.md, exemplos e CHANGELOG.md do deepbridge-synthetic já estavam completos
-- ✅ Exemplos corrigidos para funcionar com API atual
+- ✅ Exemplos corrigidos para funcionar com API v2.0:
+  - robustness_example.py: Atualizado para usar run_tests() e save_html()
+  - fairness_example.py: Atualizado para usar run_tests() e save_html(), corrigido para incluir protected attributes
+  - basic_distillation.py: Corrigido para acessar DataFrame retornado pelo AutoDistiller
+- ✅ Bug corrigido: experiment.run_tests() agora passa protected_attributes para test_runner
+- ✅ Todos os exemplos testados e funcionando
 - ✅ Commits realizados e pushed para GitHub
 
 ---
