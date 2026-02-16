@@ -204,7 +204,10 @@ Para detalhes completos, consulte:
 - [x] Lista de contatos mantida
 - [x] SLA definido (ex: resposta < 24h)
 
-### Configuração de Labels (⚠️ Manual no GitHub)
+### Configuração de Labels (⚠️ Requer execução do script)
+- [x] Script criado: `scripts/create_github_labels.sh`
+- [x] Instruções criadas: `refatoracao/INSTRUCOES_LABELS_GITHUB.md`
+- [ ] **AÇÃO NECESSÁRIA:** Executar `./scripts/create_github_labels.sh` após fazer `gh auth login`
 - [ ] Labels criados no GitHub (deepbridge):
   - [ ] bug (vermelho)
   - [ ] enhancement (verde)
