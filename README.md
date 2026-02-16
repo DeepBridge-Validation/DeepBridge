@@ -62,7 +62,7 @@ pip install -e .
   - Advanced metric tracking
   - Model versioning support
 
-- **Model Distillation**
+- **Model Distillation** → Moved to [`deepbridge-distillation`](https://github.com/DeepBridge-Validation/deepbridge-distillation)
   - Knowledge distillation across multiple model types
   - Automated distillation with hyperparameter optimization
   - Support for GBM, XGBoost, and neural networks
@@ -74,11 +74,11 @@ pip install -e .
   - Detailed performance metrics and analysis
   - Multi-model comparison capabilities
 
-- **Synthetic Data Generation**
+- **Synthetic Data Generation** → Moved to [`deepbridge-synthetic`](https://github.com/DeepBridge-Validation/deepbridge-synthetic)
   - Gaussian Copula method
   - Privacy-preserving data synthesis
   - Quality metrics and validation
-  - Integration with validation pipeline
+  - Standalone package (no dependencies on deepbridge)
 
 ## Quick Start
 
@@ -110,9 +110,16 @@ experiment.generate_report('robustness', output_dir='./reports')
 ```
 
 ### Model Distillation
+
+> **Note:** Distillation has moved to [`deepbridge-distillation`](https://github.com/DeepBridge-Validation/deepbridge-distillation)
+>
+> ```bash
+> pip install deepbridge-distillation
+> ```
+
 ```python
-from deepbridge.distillation import AutoDistiller
-from deepbridge.db_data import DBDataset
+from deepbridge import DBDataset
+from deepbridge_distillation import AutoDistiller
 
 # Create dataset with predictions
 dataset = DBDataset(
@@ -172,10 +179,10 @@ deepbridge validate --dataset data.csv --model model.pkl --tests all
 # Generate reports
 deepbridge report --results ./results --output ./reports --format interactive
 
-# Train distilled model
+# Train distilled model (requires deepbridge-distillation)
 deepbridge distill train gbm predictions.csv features.csv -s ./models
 
-# Generate synthetic data
+# Generate synthetic data (requires deepbridge-synthetic)
 deepbridge synthetic generate --data original.csv --method gaussian_copula --samples 10000
 ```
 
