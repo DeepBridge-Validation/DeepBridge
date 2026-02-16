@@ -188,8 +188,8 @@ Por favor, responda A, B ou C para prosseguir.
 - [x] Bug corrigido: ReportManager instantiation error fixed
 
 ### Test PyPI (⚠️ Requer configuração manual)
-- [ ] Repositório Test PyPI configurado: `poetry config repositories.testpypi ...`
-- [ ] Token Test PyPI configurado: `poetry config pypi-token.testpypi ...`
+- [x] Repositório Test PyPI configurado: `poetry config repositories.testpypi ...`
+- [ ] Token Test PyPI configurado: `poetry config pypi-token.testpypi ...` (⚠️ executar script publicar_pypi.sh)
 - [ ] deepbridge publicado no Test PyPI
 - [ ] deepbridge-distillation publicado no Test PyPI
 - [ ] deepbridge-synthetic publicado no Test PyPI
@@ -269,7 +269,22 @@ Por favor, responda A, B ou C para prosseguir.
 ## 📊 RESUMO DA EXECUÇÃO AUTOMÁTICA
 
 **DATA**: 2026-02-16
-**ÚLTIMA ATUALIZAÇÃO**: 2026-02-16 17:43
+**ÚLTIMA ATUALIZAÇÃO**: 2026-02-16 (Sessão atual)
+
+### 🆕 ATUALIZAÇÃO DESTA SESSÃO (2026-02-16)
+
+**Configurações realizadas**:
+- ✅ Repositório Test PyPI configurado no Poetry
+- ✅ Testado dry-run da publicação (funciona!)
+
+**Ferramentas criadas para você**:
+- ✅ **`publicar_pypi.sh`** - Script interativo principal que marca checkboxes automaticamente
+- ✅ **`GUIA_RAPIDO.md`** - Guia visual de 5 minutos
+- ✅ **`RELATORIO_PENDENCIAS.md`** - Relatório detalhado com status de todos os checkboxes
+
+**Status**: ✅ Tudo pronto para você executar `./publicar_pypi.sh`
+
+---
 
 ### ✅ Completado Automaticamente
 
@@ -454,7 +469,7 @@ else:
 
 ### Checkboxes Completados: 58/82 (71%)
 
-**✅ Completados (58)**:
+**✅ Completados (58)** - Executados automaticamente:
 - Preparação Release Candidate (7/7)
 - Build dos Pacotes (6/6)
 - Testes de Instalação Local (9/9)
@@ -463,22 +478,71 @@ else:
 - Deprecação v1.x - Código (5/6)
 - Anúncios - Templates (4/4)
 
-**⚠️ Pendentes (24)** - Requerem autenticação:
-- Test PyPI (6/6) - Requer token
-- Testes de Instalação Test PyPI (9/9) - Depende do anterior
-- PyPI Oficial (4/4) - Requer token
-- Deprecação v1.x - Publicação (1/1) - Requer token
-- Verificações Finais (4/4) - Depende do PyPI
+**⚠️ Pendentes (24)** - Requerem autenticação (Execute: `./publicar_pypi.sh`):
+- Test PyPI (6 checkboxes) - Requer token Test PyPI
+- Testes de Instalação Test PyPI (9 checkboxes) - Automático após publicação
+- PyPI Oficial (4 checkboxes) - Requer token PyPI oficial
+- Deprecação v1.x - Publicação (1 checkbox) - Requer token PyPI oficial
+- Verificações Finais (4 checkboxes) - Automático após publicação
+
+### 🎯 AÇÃO NECESSÁRIA DO USUÁRIO
+
+Para completar os 24 checkboxes pendentes:
+
+1. **Obtenha tokens PyPI** (5-10 minutos):
+   - Test PyPI: https://test.pypi.org/manage/account/token/
+   - PyPI oficial: https://pypi.org/manage/account/token/
+
+2. **Execute o script interativo** (15-20 minutos):
+   ```bash
+   ./publicar_pypi.sh
+   ```
+   O script irá:
+   - ✓ Solicitar os tokens de forma interativa
+   - ✓ Publicar os 3 pacotes
+   - ✓ Testar as instalações
+   - ✓ **Marcar automaticamente os 24 checkboxes pendentes**
+   - ✓ Criar GitHub Releases
+
+3. **Documentação criada para você**:
+   - 📖 `GUIA_RAPIDO.md` - Leia isto primeiro! (5 min)
+   - 📊 `RELATORIO_PENDENCIAS.md` - Detalhes completos
+   - ⚙️ `publicar_pypi.sh` - Script principal (marca checkboxes automaticamente)
 
 ---
 
 ## 🎯 PRÓXIMA AÇÃO RECOMENDADA
 
-1. **Configure os tokens PyPI** seguindo as instruções em `INSTRUCOES_PUBLICACAO_MANUAL.md`
-2. **Publique no Test PyPI** primeiro para validar
-3. **Teste a instalação** do Test PyPI
-4. **Publique no PyPI oficial** após validação
-5. **Crie os GitHub Releases** usando `gh` CLI
-6. **Verifique as páginas PyPI** para confirmar
+### ✅ NOVO SCRIPT INTERATIVO CRIADO! (2026-02-16)
+
+**RECOMENDADO**: Execute o novo script que irá guiá-lo por todas as etapas e **marcar automaticamente os checkboxes** neste documento:
+
+```bash
+cd /home/guhaase/projetos/DeepBridge/desenvolvimento/refatoracao
+./publicar_pypi.sh
+```
+
+O script oferece:
+1. ✓ Publicar no Test PyPI (recomendado testar primeiro)
+2. ✓ Publicar no PyPI oficial (produção)
+3. ✓ Publicar v1.63.0 (deprecação)
+4. ✓ Criar GitHub Releases
+5. ✓ Executar tudo em sequência
+6. ✓ **Marca checkboxes automaticamente neste arquivo**
+
+O script solicita os tokens de forma interativa, configura o Poetry, publica os pacotes, testa as instalações e marca todos os checkboxes conforme você completa as tarefas.
+
+📊 **VEJA RELATÓRIO DETALHADO**: `RELATORIO_PENDENCIAS.md`
+
+### Script Alternativo:
+
+```bash
+cd /home/guhaase/projetos/DeepBridge/desenvolvimento/refatoracao
+./SCRIPT_PUBLICACAO_INTERATIVO.sh
+```
+
+### Alternativa Manual:
+
+Consulte: `INSTRUCOES_PUBLICACAO_MANUAL.md`
 
 ---
