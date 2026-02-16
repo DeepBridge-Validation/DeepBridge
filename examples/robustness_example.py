@@ -37,6 +37,7 @@ model.fit(X_train, y_train)
 # Create dataset with model
 test_df = X_test.copy()
 test_df['target'] = y_test
+test_df = test_df.reset_index(drop=True)  # Reset indices for consistency
 
 dataset = DBDataset(
     data=test_df,
@@ -46,9 +47,9 @@ dataset = DBDataset(
 
 # Create experiment
 experiment = Experiment(
-    name='robustness_test',
     dataset=dataset,
-    models={'rf_model': model}
+    experiment_type='binary_classification',
+    tests=['robustness']
 )
 
 # Run robustness test
@@ -56,8 +57,12 @@ print("Running robustness test...")
 result = experiment.run_test('robustness', config='medium')
 
 print(f"\n✅ Test completed!")
-print(f"Weak spots found: {len(result.weakspots)}")
+if isinstance(result, dict):
+    print(f"Result keys: {list(result.keys())}")
+else:
+    print(f"Weak spots found: {len(result.weakspots)}")
 
 # Generate report
+print("\n📊 Generating report...")
 report_path = experiment.generate_report('robustness', output_dir='./reports')
-print(f"\n📊 Report saved to: {report_path}")
+print(f"Report saved to: {report_path}")

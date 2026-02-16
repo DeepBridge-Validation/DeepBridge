@@ -42,7 +42,6 @@ dataset = DBDataset(
 
 # Create experiment with protected attributes
 experiment = Experiment(
-    name='fairness_test',
     dataset=dataset,
     experiment_type='binary_classification',
     tests=['fairness'],
@@ -53,10 +52,15 @@ experiment = Experiment(
 print("Running fairness test...")
 result = experiment.run_test('fairness', config='full')
 
-print(f"\n✅ Fairness score: {result.overall_fairness_score:.3f}")
-print(f"Critical issues: {len(result.critical_issues)}")
-print(f"EEOC compliant: {result.overall_fairness_score >= 0.80}")
+print(f"\n✅ Test completed!")
+if isinstance(result, dict):
+    print(f"Result keys: {list(result.keys())}")
+else:
+    print(f"Fairness score: {result.overall_fairness_score:.3f}")
+    print(f"Critical issues: {len(result.critical_issues)}")
+    print(f"EEOC compliant: {result.overall_fairness_score >= 0.80}")
 
 # Generate report
+print("\n📊 Generating report...")
 report_path = experiment.generate_report('fairness', output_dir='./reports')
-print(f"\n📊 Report saved to: {report_path}")
+print(f"Report saved to: {report_path}")
