@@ -40,6 +40,7 @@ planejamento_IA/
 planejamento_*
 desenvolvimento/
 !desenvolvimento/refatorar/
+!desenvolvimento/refatoracao/
 papers/
 share/python-wheels/
 *.egg-info/
