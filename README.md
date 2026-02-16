@@ -14,7 +14,17 @@
   [![codecov](https://codecov.io/gh/DeepBridge-Validation/DeepBridge/branch/master/graph/badge.svg?token=3cdc73fd-4db4-442c-86f8-5650e2fc114a)](https://codecov.io/gh/DeepBridge-Validation/DeepBridge)
 </div>
 
-DeepBridge is a comprehensive Python library for advanced machine learning model validation, distillation, and performance analysis. It provides powerful tools to manage experiments, validate models, create more efficient model versions, and conduct in-depth performance evaluations.
+> **⚠️ BREAKING CHANGES - DeepBridge v2.0**
+>
+> DeepBridge v2.0 has been refactored to focus on **Model Validation**.
+>
+> **Moved to separate packages:**
+> - 📦 **Distillation** → [`deepbridge-distillation`](https://github.com/DeepBridge-Validation/deepbridge-distillation)
+> - 📦 **Synthetic Data** → [`deepbridge-synthetic`](https://github.com/DeepBridge-Validation/deepbridge-synthetic)
+>
+> See [Migration Guide](desenvolvimento/refatoracao/GUIA_RAPIDO_MIGRACAO.md) for details.
+
+DeepBridge is a comprehensive Python library for machine learning model validation and performance analysis. It provides powerful tools to manage experiments, validate models, and conduct in-depth performance evaluations.
 
 ## Installation
 
