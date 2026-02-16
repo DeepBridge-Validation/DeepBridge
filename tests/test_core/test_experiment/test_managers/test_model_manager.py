@@ -356,6 +356,7 @@ class TestCreateDistillationModel:
 # ==================== _create_model_from_probabilities Tests ====================
 
 
+@pytest.mark.skip(reason="Distillation functionality moved to deepbridge-distillation package")
 class TestCreateModelFromProbabilities:
     """Tests for _create_model_from_probabilities method"""
 
@@ -453,6 +454,7 @@ class TestCreateModelFromProbabilities:
 # ==================== _create_model_from_teacher Tests ====================
 
 
+@pytest.mark.skip(reason="Distillation functionality moved to deepbridge-distillation package")
 class TestCreateModelFromTeacher:
     """Tests for _create_model_from_teacher method"""
 
@@ -581,6 +583,7 @@ class TestIntegration:
             # Should be dict
             assert isinstance(result, dict)
 
+    @pytest.mark.skip(reason="Distillation functionality moved to deepbridge-distillation package")
     def test_full_distillation_workflow_with_probabilities(self, model_manager):
         """Test complete distillation workflow using probabilities"""
         with patch('deepbridge.distillation.techniques.surrogate.SurrogateModel') as mock_surrogate:
@@ -600,6 +603,7 @@ class TestIntegration:
 
             assert result == mock_instance
 
+    @pytest.mark.skip(reason="Distillation functionality moved to deepbridge-distillation package")
     def test_full_distillation_workflow_with_teacher(self, model_manager):
         """Test complete distillation workflow using teacher model"""
         with patch('deepbridge.distillation.techniques.knowledge_distillation.KnowledgeDistillation') as mock_kd:
