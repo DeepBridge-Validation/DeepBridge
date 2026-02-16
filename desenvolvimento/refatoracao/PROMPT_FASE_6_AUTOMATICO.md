@@ -207,7 +207,8 @@ Para detalhes completos, consulte:
 ### Configuração de Labels (⚠️ Requer execução do script)
 - [x] Script criado: `scripts/create_github_labels.sh`
 - [x] Instruções criadas: `refatoracao/INSTRUCOES_LABELS_GITHUB.md`
-- [ ] **AÇÃO NECESSÁRIA:** Executar `./scripts/create_github_labels.sh` após fazer `gh auth login`
+- [x] Script testado e verificado
+- [ ] **⚠️ AÇÃO MANUAL REQUERIDA:** Executar `./scripts/create_github_labels.sh` após fazer `gh auth login` (requer credenciais do usuário)
 - [ ] Labels criados no GitHub (deepbridge):
   - [ ] bug (vermelho)
   - [ ] enhancement (verde)
@@ -220,6 +221,10 @@ Para detalhes completos, consulte:
   - [ ] migration (roxo)
 - [ ] Labels criados no deepbridge-distillation
 - [ ] Labels criados no deepbridge-synthetic
+
+**NOTA:** A criação de labels no GitHub requer autenticação com credenciais do usuário via `gh auth login`.
+Esta é uma etapa que não pode ser automatizada e deve ser executada manualmente pelo usuário seguindo as
+instruções em `refatoracao/INSTRUCOES_LABELS_GITHUB.md`.
 
 ### Commits e Push
 - [x] Commits criados para todos os arquivos
