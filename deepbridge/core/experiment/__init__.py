@@ -36,7 +36,12 @@ base_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 templates_dir = os.path.join(base_dir, 'templates')
-report_manager = ReportManager(templates_dir=templates_dir)
+
+# Only instantiate report_manager if ReportManager was successfully imported
+if ReportManager is not None:
+    report_manager = ReportManager(templates_dir=templates_dir)
+else:
+    report_manager = None
 
 
 # Try to import new interfaces and implementations
