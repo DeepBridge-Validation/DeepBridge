@@ -24,7 +24,7 @@ df = pd.DataFrame({
     'approved': np.random.randint(0, 2, n_samples),
 })
 
-# Train model
+# Train model (only on non-protected features)
 features = ['age', 'income', 'credit_score']
 X = df[features]
 y = df['approved']
@@ -32,11 +32,12 @@ y = df['approved']
 model = RandomForestClassifier(random_state=42)
 model.fit(X, y)
 
-# Create dataset
+# Create dataset - DBDataset will automatically use all columns in the dataframe
+# The model was trained only on non-protected features, ensuring fairness
+# But we need all features available for fairness testing
 dataset = DBDataset(
-    data=df,
+    data=df,  # Full dataframe including protected attributes
     target_column='approved',
-    features=features,
     model=model
 )
 
@@ -50,17 +51,10 @@ experiment = Experiment(
 
 # Run fairness test
 print("Running fairness test...")
-result = experiment.run_test('fairness', config='full')
-
-print(f"\n✅ Test completed!")
-if isinstance(result, dict):
-    print(f"Result keys: {list(result.keys())}")
-else:
-    print(f"Fairness score: {result.overall_fairness_score:.3f}")
-    print(f"Critical issues: {len(result.critical_issues)}")
-    print(f"EEOC compliant: {result.overall_fairness_score >= 0.80}")
+results = experiment.run_tests(config_name='full')
+print(f"✅ Fairness test completed!")
 
 # Generate report
 print("\n📊 Generating report...")
-report_path = experiment.generate_report('fairness', output_dir='./reports')
+report_path = experiment.save_html('fairness', './reports/fairness_report.html')
 print(f"Report saved to: {report_path}")

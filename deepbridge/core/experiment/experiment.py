@@ -660,6 +660,9 @@ class Experiment(IExperiment):
         # Run the requested tests - pass self as experiment to allow access to surrogate model
         test_kwargs = kwargs.copy()
         test_kwargs['experiment'] = self
+        # Pass protected_attributes to test_runner for fairness tests
+        if hasattr(self, 'protected_attributes') and self.protected_attributes:
+            test_kwargs['protected_attributes'] = self.protected_attributes
         test_results = self.test_runner.run_tests(config_name, **test_kwargs)
         self._test_results.update(test_results)
 

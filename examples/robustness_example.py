@@ -54,15 +54,10 @@ experiment = Experiment(
 
 # Run robustness test
 print("Running robustness test...")
-result = experiment.run_test('robustness', config='medium')
-
-print(f"\n✅ Test completed!")
-if isinstance(result, dict):
-    print(f"Result keys: {list(result.keys())}")
-else:
-    print(f"Weak spots found: {len(result.weakspots)}")
+results = experiment.run_tests(config_name='medium')
+print(f"✅ Robustness test completed!")
 
 # Generate report
 print("\n📊 Generating report...")
-report_path = experiment.generate_report('robustness', output_dir='./reports')
+report_path = experiment.save_html('robustness', './reports/robustness_report.html')
 print(f"Report saved to: {report_path}")
