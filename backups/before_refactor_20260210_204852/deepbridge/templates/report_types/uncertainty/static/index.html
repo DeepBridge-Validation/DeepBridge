@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ test_type|capitalize }} Report: {{ model_name }}</title>
+    
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+    
+    <style>
+        {{ css_content|safe }}
+
+        /* CSS Variables */
+        :root {
+            /* Brand colors */
+            --primary-color: #1b78de;       /* Bright blue */
+            --primary-light: #4287f5;       /* Lighter blue for gradients */
+            --primary-color-dark: #1a5fb4;  /* Darker blue for hover states */
+            --secondary-color: #2c3e50;     /* Dark slate */
+
+            /* Semantic colors */
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+
+            /* UI colors */
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --text-color: #333333;
+            --text-secondary: #555555;
+            --text-muted: #6c757d;
+            --border-color: #dddddd;
+            --background-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8f9fa;
+
+            /* Gradients */
+            --header-bg: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+            --primary-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+
+            /* Border radius */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+
+            /* Box shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Base styles */
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header styles */
+        .report-header {
+            color: white;
+            padding: 0;
+            margin-bottom: var(--spacing-xl);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: var(--header-bg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            border-radius: var(--border-radius-md);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 1.5rem;
+        }
+
+        .header-logo {
+            flex: 0 0 auto;
+        }
+
+        .header-logo img {
+            max-height: 60px;
+            max-width: 120px;
+        }
+
+        .header-info {
+            flex: 1;
+        }
+
+        .header-info h1 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .report-subtitle {
+            margin: 0 0 0.75rem 0;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .report-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .metadata-item {
+            padding-right: 1rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .metadata-item:last-child {
+            border-right: none;
+        }
+
+        .metadata-item strong {
+            font-weight: 600;
+        }
+
+        /* Report container */
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+            width: 100%;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: var(--spacing-xl);
+            background-color: var(--bg-card);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-card);
+        }
+
+        .section-title {
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        /* Summary section styles */
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem auto;
+            max-width: 1200px;
+            padding: 0;
+        }
+
+        .summary-card-wrapper {
+            flex: 1 1 300px;
+            min-width: 250px;
+        }
+
+        .score-card {
+            text-align: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .score-label {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .score-gauge {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        .gauge-svg circle {
+            transition: stroke-dasharray 0.5s ease-in-out;
+        }
+
+        .score-metrics {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            width: 100%;
+        }
+
+        .metric-item {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .score-desc {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .score-badge {
+            font-weight: bold;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .excellent {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .good {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .moderate {
+            background-color: var(--warning-color);
+            color: var(--dark-color);
+        }
+
+        .needs-improvement {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .info-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100%;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table td:first-child {
+            width: 50%;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Charts and tables */
+        .chart-container {
+            margin: 1.5rem 0;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-container h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .chart-image-container {
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .chart-image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .full-width-chart {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .no-data-message {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            background-color: var(--light-color);
+            border-radius: var(--border-radius-sm);
+            border: 1px dashed var(--border-color);
+        }
+
+        .table-container {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            background: white;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 1rem;
+        }
+
+        .table-container h3 {
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .table-container table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+        }
+
+        .table-container th {
+            background-color: var(--light-color);
+            color: var(--secondary-color);
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-light);
+            position: relative;
+        }
+
+        .table-container th:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 25%;
+            height: 50%;
+            width: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container td {
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.15s ease;
+        }
+
+        .table-container tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-container tr:hover td {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Alternate row styling */
+        .table-container tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        /* Table heading for specific types */
+        .table-container table.feature-table th:first-child,
+        .table-container table.model-table th:first-child {
+            width: 30%;
+        }
+
+        /* Numeric value styling */
+        .table-container td.numeric {
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            padding: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            background-color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .header-logo {
+                margin-bottom: 1rem;
+            }
+
+            .report-metadata {
+                justify-content: center;
+            }
+
+            .summary-card-wrapper {
+                flex: 1 1 100%;
+            }
+
+            .report-container {
+                padding: var(--spacing-md);
+            }
+
+            .section {
+                padding: var(--spacing-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container for the entire content with consistent margins -->
+    <div class="page-container" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--spacing-lg);">
+        <header class="report-header">
+            <div class="header-container">
+                <div class="header-content">
+                    <div class="header-logo">
+                        <img src="data:image/png;base64, {{ logo|default('') }}" alt="Logo" class="logo">
+                    </div>
+                    <div class="header-info">
+                        <h1>Model Validation Report</h1>
+                        <p class="report-subtitle">Uncertainty Analysis Report</p>
+                        <div class="report-metadata">
+                            <div class="metadata-item"><strong>Model:</strong> {{ model_name|default('Unknown') }}</div>
+                            <div class="metadata-item"><strong>Date:</strong> {{ timestamp|default('') }}</div>
+                            {% if model_type %}<div class="metadata-item"><strong>Type:</strong> {{ model_type }}</div>{% endif %}
+                            <div class="metadata-item"><strong>Report:</strong> {{ test_type|title }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Stats Section -->
+        <div class="summary-stats">
+            <!-- Uncertainty Score Card -->
+            <div class="summary-card-wrapper">
+                <div class="score-card">
+                    <div class="score-label">Uncertainty Score</div>
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 120 120" class="gauge-svg">
+                            <!-- Gauge background -->
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#e6e6e6" stroke-width="10"></circle>
+
+                            <!-- Colored gauge arc based on score -->
+                            <circle
+                                cx="60"
+                                cy="60"
+                                r="50"
+                                fill="none"
+                                {% if (uncertainty_score|default(0)) > 0.9 %}
+                                    stroke="#28a745"
+                                {% elif (uncertainty_score|default(0)) > 0.7 %}
+                                    stroke="#ffc107"
+                                {% elif (uncertainty_score|default(0)) > 0.5 %}
+                                    stroke="#fd7e14"
+                                {% else %}
+                                    stroke="#dc3545"
+                                {% endif %}
+                                stroke-width="10"
+                                stroke-dasharray="{{ (uncertainty_score|default(0) * 314) }} 314"
+                                transform="rotate(-90 60 60)"
+                            ></circle>
+
+                            <!-- Center value -->
+                            <text x="60" y="65" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">
+                                {{ ((uncertainty_score if uncertainty_score is not none else 0) * 100) | round(1) }}%
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="score-metrics">
+                        <div class="metric-item">
+                            <span class="metric-value">{{ (coverage if coverage is not none else 0) | round(3) }}</span>
+                            <span class="metric-label">Coverage</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value">{{ (mean_width if mean_width is not none else 0) | round(3) }}</span>
+                            <span class="metric-label">Mean Width</span>
+                        </div>
+                    </div>
+                    <div class="score-desc">
+                        {% if (uncertainty_score|default(0)) > 0.9 %}
+                            <span class="score-badge excellent">Excellent</span> uncertainty quantification
+                        {% elif (uncertainty_score|default(0)) > 0.7 %}
+                            <span class="score-badge good">Good</span> uncertainty quantification
+                        {% elif (uncertainty_score|default(0)) > 0.5 %}
+                            <span class="score-badge moderate">Moderate</span> uncertainty quantification
+                        {% else %}
+                            <span class="score-badge needs-improvement">Needs improvement</span> in uncertainty quantification
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Information Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Model Information</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Type:</strong></td>
+                            <td>{{ model_type|default('Unknown') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Features:</strong></td>
+                            <td>{{ features|length|default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Primary Metric:</strong></td>
+                            <td>{{ metric|default('Accuracy')|upper }}</td>
+                        </tr>
+                        {% if sensitive_features %}
+                        <tr>
+                            <td><strong>Sensitive Features:</strong></td>
+                            <td>{{ sensitive_features|length|default(0) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if report_data and report_data.alternative_models %}
+                        <tr>
+                            <td><strong>Alternative Models:</strong></td>
+                            <td>{{ report_data.alternative_models|length|default(0) }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Test Summary Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Test Summary</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Uncertainty Score:</strong></td>
+                            <td>{{ (uncertainty_score if uncertainty_score is not none else 0)|round(4) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Coverage:</strong></td>
+                            <td>{{ (coverage if coverage is not none else 0)|round(4) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mean Width:</strong></td>
+                            <td>{{ (mean_width if mean_width is not none else 0)|round(4) }}</td>
+                        </tr>
+                        {% if cal_size %}
+                        <tr>
+                            <td><strong>Calibration Size:</strong></td>
+                            <td>{{ cal_size }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Test Information Section -->
+        <div class="section">
+            <h2 class="section-title">Test Information</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Test Type</h3>
+                    <div class="metric-value">{{ test_type|capitalize }}</div>
+                    <div class="metric-label">Static report</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Model Type</h3>
+                    <div class="metric-value">{{ model_type }}</div>
+                    <div class="metric-label">Algorithm</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Features</h3>
+                    <div class="metric-value">{{ features|length }}</div>
+                    <div class="metric-label">Total features</div>
+                </div>
+
+                {% if sensitive_features %}
+                <div class="metrics-card">
+                    <h3>Sensitive Features</h3>
+                    <div class="metric-value">{{ sensitive_features|length }}</div>
+                    <div class="metric-label">For resilience analysis</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="table-container">
+                <h3>Test Configuration</h3>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Generation Time</th>
+                            <td>{{ timestamp }}</td>
+                        </tr>
+                        {% if sensitive_features %}
+                        <tr>
+                            <th>Sensitive Features</th>
+                            <td>{{ sensitive_features|join(', ') }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Metric</th>
+                            <td>{{ metric|default('Accuracy') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Report Type</th>
+                            <td>Static (non-interactive)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Metrics Section -->
+        <div class="section">
+            <h2 class="section-title">Uncertainty Metrics</h2>
+
+            <div class="table-container">
+                <h3>Uncertainty Quantification Metrics</h3>
+                <table class="model-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Uncertainty Score</th>
+                            <th>Coverage</th>
+                            <th>Mean Width</th>
+                            {% if metrics %}
+                                {% for metric_name in metrics|sort %}
+                                    {% if metric_name not in ['uncertainty_score', 'coverage', 'mean_width'] %}
+                                    <th>{{ metric_name|title }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Primary model -->
+                        <tr>
+                            <td><strong>{{ model_name }}</strong></td>
+                            <td class="numeric">{{ "%.4f"|format(uncertainty_score if uncertainty_score is not none else 0) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(coverage if coverage is not none else 0) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(mean_width if mean_width is not none else 0) }}</td>
+                            {% if metrics %}
+                                {% for metric_name, metric_value in metrics.items() %}
+                                    {% if metric_name not in ['uncertainty_score', 'coverage', 'mean_width'] %}
+                                    <td class="numeric">{{ "%.4f"|format(metric_value if metric_value is not none else 0) }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+
+                        <!-- Alternative models -->
+                        {% if report_data.alternative_models %}
+                            {% for alt_model_name, alt_model_data in report_data.alternative_models.items() %}
+                                <tr>
+                                    <td>{{ alt_model_name }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(alt_model_data.uncertainty_score if alt_model_data.uncertainty_score is not none else 0) }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(alt_model_data.coverage if alt_model_data.coverage is not none else 0) }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(alt_model_data.mean_width if alt_model_data.mean_width is not none else 0) }}</td>
+                                    {% if alt_model_data.metrics %}
+                                        {% for metric_name, metric_value in alt_model_data.metrics.items() %}
+                                            {% if metric_name not in ['uncertainty_score', 'coverage', 'mean_width'] %}
+                                            <td class="numeric">{{ "%.4f"|format(metric_value if metric_value is not none else 0) }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Model Comparison Chart -->
+            {% if charts.model_comparison %}
+            <div class="chart-container">
+                <h3>Model Comparison</h3>
+                <p class="chart-description">Compares uncertainty metrics across different models or model configurations.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_comparison }}" alt="Model comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Overview Section -->
+        <div class="section">
+            <h2 class="section-title">Overview</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Uncertainty Score</h3>
+                    <div class="metric-value">{{ "%.4f"|format(uncertainty_score if uncertainty_score is not none else 0) }}</div>
+                    <div class="metric-label">Higher is better</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Coverage</h3>
+                    <div class="metric-value">{{ "%.4f"|format(coverage if coverage is not none else 0) }}</div>
+                    <div class="metric-label">Target: Expected coverage</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Mean Width</h3>
+                    <div class="metric-value">{{ "%.4f"|format(mean_width if mean_width is not none else 0) }}</div>
+                    <div class="metric-label">Lower is better</div>
+                </div>
+
+                {% if cal_size %}
+                <div class="metrics-card">
+                    <h3>Calibration Size</h3>
+                    <div class="metric-value">{{ cal_size }}</div>
+                    <div class="metric-label">Samples used for calibration</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Coverage vs Expected Chart -->
+            <div class="chart-container">
+                <h3>Coverage vs Expected Coverage</h3>
+                <p class="chart-description">Compares actual coverage with expected coverage at different alpha (confidence) levels. Closer to the diagonal line indicates better calibration.</p>
+                {% if charts.coverage_vs_expected %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.coverage_vs_expected }}" alt="Coverage vs Expected Coverage" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No coverage data available for visualization.</p>
+                {% endif %}
+            </div>
+
+            <!-- Width vs Coverage Chart -->
+            <div class="chart-container">
+                <h3>Interval Width vs Coverage</h3>
+                <p class="chart-description">Shows the relationship between interval width and coverage. Efficient uncertainty estimates achieve higher coverage with narrower intervals.</p>
+                {% if charts.width_vs_coverage %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.width_vs_coverage }}" alt="Width vs Coverage" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No width vs coverage data available for visualization.</p>
+                {% endif %}
+            </div>
+
+            <!-- Performance Gap By Alpha Chart -->
+            <div class="chart-container">
+                <h3>Performance Gap by Alpha Level</h3>
+                <p class="chart-description">Shows gaps between expected and actual coverage at different alpha levels. Values close to zero indicate well-calibrated uncertainty.</p>
+                {% if charts.performance_gap_by_alpha %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.performance_gap_by_alpha }}" alt="Performance Gap by Alpha" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No performance gap data available for visualization.</p>
+                {% endif %}
+            </div>
+
+            <!-- Uncertainty Metrics Chart -->
+            <div class="chart-container">
+                <h3>Uncertainty Metrics Overview</h3>
+                <p class="chart-description">Shows key uncertainty metrics for the model, including uncertainty score, coverage, and mean width.</p>
+                {% if charts.uncertainty_metrics %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.uncertainty_metrics }}" alt="Uncertainty metrics overview" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No uncertainty metrics data available for visualization.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Feature Analysis Section -->
+        <div class="section">
+            <h2 class="section-title">Feature Analysis</h2>
+
+            <!-- Feature Importance Chart -->
+            {% if charts.feature_importance %}
+            <div class="chart-container">
+                <h3>Feature Importance for Uncertainty</h3>
+                <p class="chart-description">Shows the most important features affecting model uncertainty. Features with higher importance have greater impact on prediction intervals.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_importance }}" alt="Feature importance for uncertainty" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Reliability Chart -->
+            {% if charts.feature_reliability %}
+            <div class="chart-container">
+                <h3>Feature Reliability Analysis</h3>
+                <p class="chart-description">Shows feature reliability scores, indicating which features are most consistent in their impact on uncertainty quantification.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_reliability }}" alt="Feature reliability analysis" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Reliability Bandwidth (Calibration) Chart -->
+            {% if charts.reliability_bandwidth %}
+            <div class="chart-container">
+                <h3>Reliability Bandwidth (Calibration)</h3>
+                <p class="chart-description">Shows how well calibrated the model's predicted probabilities are by comparing predicted probabilities with actual observed frequencies. The diagonal line represents perfect calibration. Bands show confidence intervals.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.reliability_bandwidth }}" alt="Reliability bandwidth calibration" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Reliability Performance Chart -->
+            {% if charts.reliability_performance %}
+            <div class="chart-container">
+                <h3>Reliability Performance by Confidence Level</h3>
+                <p class="chart-description">Shows how model performance varies with prediction confidence levels. This helps identify regions where the model is more or less reliable. Higher confidence should correlate with better performance.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.reliability_performance }}" alt="Reliability performance by confidence" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Interval Widths Distribution -->
+            {% if charts.interval_widths_comparison %}
+            <div class="chart-container">
+                <h3>Interval Widths Distribution</h3>
+                <p class="chart-description">Shows the distribution of prediction interval widths across the dataset. Narrower intervals with proper coverage indicate more efficient uncertainty quantification.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.interval_widths_comparison }}" alt="Interval widths distribution" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ========== NEW CUSTOM DEEPBRIDGE CHARTS ========== -->
+
+            <!-- Interval Boxplot Chart -->
+            {% if charts.interval_boxplot %}
+            <div class="chart-container">
+                <h3>Interval Width Boxplot Comparison</h3>
+                <p class="chart-description">Compares the distribution of prediction interval widths across different confidence levels (alpha values). Shows both boxplot and violin plot representations for detailed analysis of interval width distributions.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.interval_boxplot }}" alt="Interval width boxplot comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- PSI Analysis Chart -->
+            {% if charts.psi_analysis %}
+            <div class="chart-container">
+                <h3>Population Stability Index (PSI) Analysis</h3>
+                <p class="chart-description">Shows the PSI values for each feature, indicating distribution shifts between reliable and unreliable predictions. Features with PSI ≥ 0.25 show significant distribution changes that may impact model reliability.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.psi_analysis }}" alt="PSI analysis" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Top Features Distribution Chart -->
+            {% if charts.top_features_distribution %}
+            <div class="chart-container">
+                <h3>Top Features Distribution Comparison</h3>
+                <p class="chart-description">Compares the distributions of features with highest PSI values between reliable and unreliable predictions. Shows histograms with KDE overlays to visualize how these critical features differ between the two groups.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.top_features_distribution }}" alt="Top features distribution comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature PSI Scores -->
+            {% if report_data.psi_scores %}
+            <div class="table-container">
+                <h3>Feature PSI Scores</h3>
+                <p class="chart-description">Population Stability Index (PSI) scores measure the stability of feature distributions between calibration and test sets.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>PSI Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feature, psi in report_data.psi_scores|dictsort(by='value', reverse=true) %}
+                        <tr>
+                            <td>{{ feature }}</td>
+                            <td class="numeric">{{ "%.4f"|format(psi) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Feature Importance Table -->
+            {% if feature_importance %}
+            <div class="table-container">
+                <h3>Feature Importance for Uncertainty</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feature, importance in feature_importance|dictsort(by='value', reverse=true) %}
+                        <tr>
+                            <td>{{ feature }}</td>
+                            <td class="numeric">{{ "%.4f"|format(importance) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Residual Analysis Section -->
+        {% if charts.residual_distribution or charts.feature_residual_correlation %}
+        <div class="section">
+            <h2 class="section-title">Residual Analysis</h2>
+
+            <!-- Residual Distribution Chart -->
+            {% if charts.residual_distribution %}
+            <div class="chart-container">
+                <h3>Model Residual Distribution</h3>
+                <p class="chart-description">Shows the distribution of residuals (prediction errors) across different datasets, helping identify biases under stress conditions.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.residual_distribution }}" alt="Residual distribution" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature-Residual Correlation Chart -->
+            {% if charts.feature_residual_correlation %}
+            <div class="chart-container">
+                <h3>Feature-Residual Correlation</h3>
+                <p class="chart-description">Shows which features are most correlated with model errors, helping identify potential areas for model improvement.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_residual_correlation }}" alt="Feature-residual correlation" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Distribution Metrics Section -->
+        {% if charts.distance_metrics_comparison or charts.feature_distance_heatmap %}
+        <div class="section">
+            <h2 class="section-title">Distribution Metrics Analysis</h2>
+
+            <!-- Distance Metrics Comparison Chart -->
+            {% if charts.distance_metrics_comparison %}
+            <div class="chart-container">
+                <h3>Distance Metrics Comparison by Alpha</h3>
+                <p class="chart-description">Compares different distance metrics (PSI, WD1, KS, etc.) across alpha levels, showing how distribution shift is captured by different metrics.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.distance_metrics_comparison }}" alt="Distance metrics comparison by alpha" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Distance Heatmap -->
+            {% if charts.feature_distance_heatmap %}
+            <div class="chart-container">
+                <h3>Feature Distance Heatmap by Metric</h3>
+                <p class="chart-description">Shows the distribution shift of each feature as measured by different metrics, visualizing which features are most affected by different types of distribution shifts.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_distance_heatmap }}" alt="Feature distance heatmap by metric" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Model Comparison Section -->
+        {% if charts.model_comparison_chart or charts.model_resilience_scores %}
+        <div class="section">
+            <h2 class="section-title">Model Comparison</h2>
+
+            {% if charts.model_comparison_chart %}
+            <div class="chart-container">
+                <h3>Model Resilience Comparison</h3>
+                <p class="chart-description">Compares resilience performance across different models under increasing stress levels. Models with more gradual decline are more resilient.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_comparison_chart }}" alt="Model resilience comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.model_resilience_scores %}
+            <div class="chart-container">
+                <h3>Resilience Scores by Model</h3>
+                <p class="chart-description">Compares the overall resilience score for each model. Higher scores indicate better performance under distribution shifts.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_resilience_scores }}" alt="Model resilience scores" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.distance_metrics_comparison %}
+            <div class="chart-container">
+                <h3>Distance Metrics Comparison by Alpha</h3>
+                <p class="chart-description">Compares different distance metrics (PSI, WD1, KS, etc.) across alpha levels, showing how distribution shift is captured by different metrics.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.distance_metrics_comparison }}" alt="Distance metrics comparison by alpha" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>Generated by DeepBridge © {{ current_year }}</p>
+        </div>
+    </div>
+</body>
+</html>

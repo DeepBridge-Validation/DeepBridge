@@ -1,0 +1,1019 @@
+<!-- Trade-off Analysis Tab Content -->
+<div class="tradeoff-analysis-container">
+    <!-- Trade-off Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-trophy"></i> Pareto Optimal
+                </div>
+                <div class="metric-value">
+                    {{ report_data.pareto_models|default(7) }}
+                </div>
+                <div class="metric-change positive">
+                    Models on frontier
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-balance-scale-left"></i> Best Trade-off
+                </div>
+                <div class="metric-value">
+                    Model #{{ report_data.best_tradeoff_id|default(3) }}
+                </div>
+                <div class="metric-change positive">
+                    Balanced solution
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-percentage"></i> Efficiency Gain
+                </div>
+                <div class="metric-value">
+                    {{ report_data.efficiency_gain|default("82") }}%
+                </div>
+                <div class="metric-change positive">
+                    vs baseline
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-chart-line"></i> Accuracy Loss
+                </div>
+                <div class="metric-value">
+                    {{ report_data.accuracy_loss|default("2.1") }}%
+                </div>
+                <div class="metric-change positive">
+                    Acceptable range
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objective Weight Controls -->
+    <div class="filter-container mb-4">
+        <h5><i class="fas fa-sliders-h"></i> Multi-Objective Weight Configuration</h5>
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <label class="filter-label">Accuracy Weight</label>
+                <input type="range" id="accuracy-weight" class="form-range" min="0" max="100" value="40">
+                <span class="badge bg-primary"><span id="accuracy-weight-value">40</span>%</span>
+            </div>
+            <div class="col-md-3">
+                <label class="filter-label">Speed Weight</label>
+                <input type="range" id="speed-weight" class="form-range" min="0" max="100" value="30">
+                <span class="badge bg-primary"><span id="speed-weight-value">30</span>%</span>
+            </div>
+            <div class="col-md-3">
+                <label class="filter-label">Size Weight</label>
+                <input type="range" id="size-weight" class="form-range" min="0" max="100" value="20">
+                <span class="badge bg-primary"><span id="size-weight-value">20</span>%</span>
+            </div>
+            <div class="col-md-3">
+                <label class="filter-label">Memory Weight</label>
+                <input type="range" id="memory-weight" class="form-range" min="0" max="100" value="10">
+                <span class="badge bg-primary"><span id="memory-weight-value">10</span>%</span>
+            </div>
+        </div>
+        <div class="mt-3">
+            <div class="alert alert-info mb-2">
+                <i class="fas fa-info-circle"></i> Total Weight: <strong id="total-weight">100%</strong>
+                <span id="weight-warning" class="text-warning ms-2" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Weights should sum to 100%
+                </span>
+            </div>
+            <button class="btn-primary" onclick="updateTradeoffAnalysis()">
+                <i class="fas fa-calculator"></i> Recalculate Optimal
+            </button>
+            <button class="btn btn-secondary ms-2" onclick="resetWeights()">
+                <i class="fas fa-undo"></i> Reset Weights
+            </button>
+            <button class="btn btn-info ms-2" onclick="autoBalance()">
+                <i class="fas fa-magic"></i> Auto-Balance
+            </button>
+        </div>
+    </div>
+
+    <!-- 2D Pareto Frontier -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-scatter"></i> Accuracy vs Speed Trade-off</h3>
+                <div id="accuracy-speed-pareto" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-scatter"></i> Accuracy vs Size Trade-off</h3>
+                <div id="accuracy-size-pareto" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Pareto Surface -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-cube"></i> 3D Trade-off Surface: Accuracy vs Speed vs Size</h3>
+        <div id="pareto-3d-surface" style="min-height: 500px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parallel Trade-off Visualization -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-project-diagram"></i> Multi-Dimensional Trade-off Analysis</h3>
+        <div id="tradeoff-parallel" style="min-height: 500px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Efficiency Score Matrix -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-th"></i> Efficiency Score Matrix</h3>
+                <div id="efficiency-matrix" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-radar"></i> Trade-off Radar</h3>
+                <div id="tradeoff-radar" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pareto Optimal Models Table -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-star"></i> Pareto Optimal Models</h3>
+        <div class="table-responsive">
+            <table class="data-table" id="pareto-models-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortParetoTable(0)">Rank <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(1)">Model Config <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(2)">Accuracy <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(3)">Speed (ms) <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(4)">Size (MB) <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(5)">Memory (MB) <i class="fas fa-sort"></i></th>
+                        <th onclick="sortParetoTable(6)">Weighted Score <i class="fas fa-sort"></i></th>
+                        <th>Dominance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pareto-tbody">
+                    <!-- Dynamic content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Trade-off Recommendations -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-lightbulb"></i> Trade-off Recommendations</h3>
+        <div class="row" id="tradeoff-recommendations">
+            <div class="col-md-4">
+                <div class="recommendation-card">
+                    <div class="recommendation-header bg-success text-white">
+                        <i class="fas fa-tachometer-alt"></i> For Speed Priority
+                    </div>
+                    <div class="recommendation-body">
+                        <h5>Model #5</h5>
+                        <ul>
+                            <li>Inference: 12ms (4.2x faster)</li>
+                            <li>Accuracy: 91.2% (-4% loss)</li>
+                            <li>Size: 85MB (78% smaller)</li>
+                        </ul>
+                        <button class="btn btn-sm btn-success" onclick="selectModel(5)">
+                            Select This Model
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="recommendation-card">
+                    <div class="recommendation-header bg-primary text-white">
+                        <i class="fas fa-balance-scale"></i> For Balance
+                    </div>
+                    <div class="recommendation-body">
+                        <h5>Model #3</h5>
+                        <ul>
+                            <li>Inference: 20ms (2.5x faster)</li>
+                            <li>Accuracy: 93.5% (-1.7% loss)</li>
+                            <li>Size: 120MB (70% smaller)</li>
+                        </ul>
+                        <button class="btn btn-sm btn-primary" onclick="selectModel(3)">
+                            Select This Model
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="recommendation-card">
+                    <div class="recommendation-header bg-info text-white">
+                        <i class="fas fa-bullseye"></i> For Accuracy Priority
+                    </div>
+                    <div class="recommendation-body">
+                        <h5>Model #1</h5>
+                        <ul>
+                            <li>Inference: 35ms (1.4x faster)</li>
+                            <li>Accuracy: 94.8% (-0.4% loss)</li>
+                            <li>Size: 180MB (55% smaller)</li>
+                        </ul>
+                        <button class="btn btn-sm btn-info" onclick="selectModel(1)">
+                            Select This Model
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Decision Matrix -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-chess-board"></i> Interactive Decision Matrix</h3>
+        <div id="decision-matrix" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.recommendation-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.recommendation-header {
+    padding: 1rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.recommendation-body {
+    padding: 1rem;
+}
+
+.recommendation-body ul {
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.btn-info {
+    background: var(--info-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-info:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+}
+
+#pareto-models-table th {
+    cursor: pointer;
+    user-select: none;
+}
+
+#pareto-models-table th:hover {
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.dominance-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.dominance-strong {
+    background: var(--success-color);
+    color: white;
+}
+
+.dominance-weak {
+    background: var(--warning-color);
+    color: white;
+}
+
+.dominance-none {
+    background: var(--secondary-color);
+    color: white;
+}
+</style>
+
+<script>
+// Initialize Trade-off Analysis Tab
+function initializeTradeoffTab() {
+    console.log('Initializing Trade-off Analysis Tab');
+
+    // Setup weight sliders
+    setupWeightSliders();
+
+    // Load Pareto models
+    loadParetoModels();
+
+    // Initialize all charts
+    setTimeout(() => {
+        createAccuracySpeedPareto();
+        createAccuracySizePareto();
+        create3DParetoSurface();
+        createTradeoffParallel();
+        createEfficiencyMatrix();
+        createTradeoffRadar();
+        createDecisionMatrix();
+    }, 100);
+}
+
+// Setup weight sliders
+function setupWeightSliders() {
+    const sliders = [
+        'accuracy-weight',
+        'speed-weight',
+        'size-weight',
+        'memory-weight'
+    ];
+
+    sliders.forEach(sliderId => {
+        const slider = document.getElementById(sliderId);
+        const valueSpan = document.getElementById(sliderId + '-value');
+
+        if (slider && valueSpan) {
+            slider.addEventListener('input', function() {
+                valueSpan.textContent = this.value;
+                updateTotalWeight();
+            });
+        }
+    });
+}
+
+// Update total weight display
+function updateTotalWeight() {
+    const weights = [
+        parseInt(document.getElementById('accuracy-weight').value),
+        parseInt(document.getElementById('speed-weight').value),
+        parseInt(document.getElementById('size-weight').value),
+        parseInt(document.getElementById('memory-weight').value)
+    ];
+
+    const total = weights.reduce((a, b) => a + b, 0);
+    document.getElementById('total-weight').textContent = total + '%';
+
+    const warning = document.getElementById('weight-warning');
+    if (total !== 100) {
+        warning.style.display = 'inline';
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+// Create Accuracy vs Speed Pareto frontier
+function createAccuracySpeedPareto() {
+    const chartDiv = document.getElementById('accuracy-speed-pareto');
+    if (!chartDiv) return;
+
+    // Generate sample Pareto frontier
+    const models = Array.from({length: 30}, (_, i) => ({
+        accuracy: 0.85 + Math.random() * 0.1,
+        speed: 10 + Math.random() * 40,
+        pareto: Math.random() > 0.7
+    }));
+
+    const paretoModels = models.filter(m => m.pareto);
+    const dominatedModels = models.filter(m => !m.pareto);
+
+    const trace1 = {
+        x: dominatedModels.map(m => m.speed),
+        y: dominatedModels.map(m => m.accuracy),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Dominated',
+        marker: {
+            size: 8,
+            color: '#94a3b8',
+            symbol: 'circle'
+        }
+    };
+
+    const trace2 = {
+        x: paretoModels.map(m => m.speed),
+        y: paretoModels.map(m => m.accuracy),
+        mode: 'markers+lines',
+        type: 'scatter',
+        name: 'Pareto Frontier',
+        marker: {
+            size: 12,
+            color: '#ef4444',
+            symbol: 'star'
+        },
+        line: {
+            color: '#ef4444',
+            width: 2,
+            dash: 'dash'
+        }
+    };
+
+    // Add best trade-off point
+    const trace3 = {
+        x: [25],
+        y: [0.92],
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Best Trade-off',
+        marker: {
+            size: 16,
+            color: '#10b981',
+            symbol: 'diamond',
+            line: {
+                color: '#064e3b',
+                width: 2
+            }
+        }
+    };
+
+    const layout = {
+        title: 'Pareto Frontier: Accuracy vs Inference Speed',
+        xaxis: {
+            title: 'Inference Time (ms)',
+            range: [5, 55]
+        },
+        yaxis: {
+            title: 'Accuracy',
+            range: [0.84, 0.96]
+        },
+        height: 400,
+        hovermode: 'closest',
+        annotations: [{
+            x: 25,
+            y: 0.92,
+            text: 'Recommended',
+            showarrow: true,
+            arrowhead: 2,
+            ax: 40,
+            ay: -40
+        }]
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create Accuracy vs Size Pareto frontier
+function createAccuracySizePareto() {
+    const chartDiv = document.getElementById('accuracy-size-pareto');
+    if (!chartDiv) return;
+
+    const models = Array.from({length: 30}, (_, i) => ({
+        accuracy: 0.85 + Math.random() * 0.1,
+        size: 50 + Math.random() * 350,
+        pareto: Math.random() > 0.7
+    }));
+
+    const paretoModels = models.filter(m => m.pareto);
+    const dominatedModels = models.filter(m => !m.pareto);
+
+    const trace1 = {
+        x: dominatedModels.map(m => m.size),
+        y: dominatedModels.map(m => m.accuracy),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Dominated',
+        marker: {
+            size: 8,
+            color: '#94a3b8'
+        }
+    };
+
+    const trace2 = {
+        x: paretoModels.map(m => m.size),
+        y: paretoModels.map(m => m.accuracy),
+        mode: 'markers+lines',
+        type: 'scatter',
+        name: 'Pareto Frontier',
+        marker: {
+            size: 12,
+            color: '#3b82f6',
+            symbol: 'star'
+        },
+        line: {
+            color: '#3b82f6',
+            width: 2,
+            dash: 'dash'
+        }
+    };
+
+    const layout = {
+        title: 'Pareto Frontier: Accuracy vs Model Size',
+        xaxis: {
+            title: 'Model Size (MB)',
+            range: [0, 450]
+        },
+        yaxis: {
+            title: 'Accuracy',
+            range: [0.84, 0.96]
+        },
+        height: 400,
+        hovermode: 'closest'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Create 3D Pareto surface
+function create3DParetoSurface() {
+    const chartDiv = document.getElementById('pareto-3d-surface');
+    if (!chartDiv) return;
+
+    // Generate 3D points
+    const points = Array.from({length: 50}, () => ({
+        accuracy: 0.85 + Math.random() * 0.1,
+        speed: 10 + Math.random() * 40,
+        size: 50 + Math.random() * 350,
+        pareto: Math.random() > 0.6
+    }));
+
+    const paretoPoints = points.filter(p => p.pareto);
+    const dominatedPoints = points.filter(p => !p.pareto);
+
+    const trace1 = {
+        x: dominatedPoints.map(p => p.speed),
+        y: dominatedPoints.map(p => p.size),
+        z: dominatedPoints.map(p => p.accuracy),
+        mode: 'markers',
+        type: 'scatter3d',
+        name: 'Dominated',
+        marker: {
+            size: 4,
+            color: '#94a3b8',
+            opacity: 0.5
+        }
+    };
+
+    const trace2 = {
+        x: paretoPoints.map(p => p.speed),
+        y: paretoPoints.map(p => p.size),
+        z: paretoPoints.map(p => p.accuracy),
+        mode: 'markers',
+        type: 'scatter3d',
+        name: 'Pareto Optimal',
+        marker: {
+            size: 8,
+            color: paretoPoints.map(p => p.accuracy),
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+                title: 'Accuracy'
+            }
+        }
+    };
+
+    const layout = {
+        title: '3D Pareto Frontier',
+        scene: {
+            xaxis: { title: 'Speed (ms)' },
+            yaxis: { title: 'Size (MB)' },
+            zaxis: { title: 'Accuracy' },
+            camera: {
+                eye: {x: 1.5, y: 1.5, z: 1.5}
+            }
+        },
+        height: 500
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Create parallel coordinates for trade-off
+function createTradeoffParallel() {
+    const chartDiv = document.getElementById('tradeoff-parallel');
+    if (!chartDiv) return;
+
+    // Generate sample configurations
+    const configs = Array.from({length: 40}, (_, i) => ({
+        accuracy: 0.85 + Math.random() * 0.1,
+        speed: 10 + Math.random() * 40,
+        size: 50 + Math.random() * 350,
+        memory: 100 + Math.random() * 900,
+        compression: 2 + Math.random() * 8,
+        score: 0.5 + Math.random() * 0.5
+    }));
+
+    const trace = {
+        type: 'parcoords',
+        line: {
+            color: configs.map(c => c.score),
+            colorscale: 'Viridis',
+            showscale: true,
+            cmin: 0.5,
+            cmax: 1.0
+        },
+        dimensions: [
+            {
+                label: 'Accuracy',
+                values: configs.map(c => c.accuracy),
+                range: [0.85, 0.95]
+            },
+            {
+                label: 'Speed (ms)',
+                values: configs.map(c => c.speed),
+                range: [10, 50]
+            },
+            {
+                label: 'Size (MB)',
+                values: configs.map(c => c.size),
+                range: [50, 400]
+            },
+            {
+                label: 'Memory (MB)',
+                values: configs.map(c => c.memory),
+                range: [100, 1000]
+            },
+            {
+                label: 'Compression',
+                values: configs.map(c => c.compression),
+                range: [2, 10]
+            },
+            {
+                label: 'Overall Score',
+                values: configs.map(c => c.score),
+                range: [0.5, 1.0]
+            }
+        ]
+    };
+
+    const layout = {
+        title: 'Multi-Dimensional Trade-off Space',
+        height: 500,
+        margin: { t: 50, l: 100, r: 100, b: 50 }
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create efficiency matrix
+function createEfficiencyMatrix() {
+    const chartDiv = document.getElementById('efficiency-matrix');
+    if (!chartDiv) return;
+
+    const models = ['Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5'];
+    const metrics = ['Accuracy', 'Speed', 'Size', 'Memory', 'Overall'];
+
+    // Generate efficiency scores (normalized 0-1)
+    const scores = models.map(() =>
+        metrics.map(() => 0.5 + Math.random() * 0.5)
+    );
+
+    const trace = {
+        z: scores,
+        x: metrics,
+        y: models,
+        type: 'heatmap',
+        colorscale: 'RdYlGn',
+        showscale: true,
+        colorbar: {
+            title: 'Efficiency'
+        }
+    };
+
+    const layout = {
+        title: 'Model Efficiency Scores',
+        height: 400,
+        xaxis: { title: '' },
+        yaxis: { title: '' }
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create trade-off radar chart
+function createTradeoffRadar() {
+    const chartDiv = document.getElementById('tradeoff-radar');
+    if (!chartDiv) return;
+
+    const categories = ['Accuracy', 'Speed', 'Compression', 'Memory', 'Efficiency'];
+
+    const trace1 = {
+        type: 'scatterpolar',
+        r: [95, 80, 75, 70, 85],
+        theta: categories,
+        fill: 'toself',
+        name: 'Best Trade-off',
+        line: { color: '#10b981' }
+    };
+
+    const trace2 = {
+        type: 'scatterpolar',
+        r: [98, 40, 30, 20, 50],
+        theta: categories,
+        fill: 'toself',
+        name: 'Teacher Model',
+        line: { color: '#3b82f6' }
+    };
+
+    const trace3 = {
+        type: 'scatterpolar',
+        r: [88, 95, 90, 92, 88],
+        theta: categories,
+        fill: 'toself',
+        name: 'Speed Optimized',
+        line: { color: '#ef4444' }
+    };
+
+    const layout = {
+        title: 'Trade-off Profiles',
+        polar: {
+            radialaxis: {
+                visible: true,
+                range: [0, 100]
+            }
+        },
+        height: 400,
+        showlegend: true
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create interactive decision matrix
+function createDecisionMatrix() {
+    const chartDiv = document.getElementById('decision-matrix');
+    if (!chartDiv) return;
+
+    // Create grid data for decision boundaries
+    const gridSize = 20;
+    const x = Array.from({length: gridSize}, (_, i) => i * 5);
+    const y = Array.from({length: gridSize}, (_, i) => i * 5);
+    const z = [];
+
+    for (let i = 0; i < gridSize; i++) {
+        const row = [];
+        for (let j = 0; j < gridSize; j++) {
+            // Calculate utility based on position
+            const accuracy = 0.85 + (j / gridSize) * 0.1;
+            const speed = 10 + (i / gridSize) * 40;
+            const utility = accuracy * 0.6 - (speed / 50) * 0.4;
+            row.push(utility);
+        }
+        z.push(row);
+    }
+
+    const trace1 = {
+        x: x,
+        y: y,
+        z: z,
+        type: 'contour',
+        colorscale: 'Viridis',
+        showscale: true,
+        colorbar: {
+            title: 'Utility Score'
+        },
+        contours: {
+            coloring: 'heatmap'
+        }
+    };
+
+    // Add decision points
+    const trace2 = {
+        x: [15, 25, 35, 20, 30],
+        y: [18, 15, 8, 22, 12],
+        mode: 'markers+text',
+        type: 'scatter',
+        text: ['M1', 'M2', 'M3', 'M4', 'M5'],
+        textposition: 'top',
+        marker: {
+            size: 12,
+            color: '#fff',
+            line: {
+                color: '#000',
+                width: 2
+            }
+        }
+    };
+
+    const layout = {
+        title: 'Decision Space: Utility Contours',
+        xaxis: { title: 'Speed Improvement (%)' },
+        yaxis: { title: 'Accuracy Retention (%)' },
+        height: 400,
+        showlegend: false
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Load Pareto models table
+function loadParetoModels() {
+    const tbody = document.getElementById('pareto-tbody');
+    if (!tbody) return;
+
+    const models = [];
+    for (let i = 0; i < 10; i++) {
+        models.push({
+            rank: i + 1,
+            config: `T=${(3 + Math.random() * 2).toFixed(1)}, α=${(0.6 + Math.random() * 0.3).toFixed(2)}`,
+            accuracy: (0.95 - i * 0.008 + Math.random() * 0.005).toFixed(4),
+            speed: (15 + i * 3 + Math.random() * 5).toFixed(1),
+            size: (100 - i * 8 + Math.random() * 10).toFixed(0),
+            memory: (256 - i * 20 + Math.random() * 15).toFixed(0),
+            score: (0.95 - i * 0.05 + Math.random() * 0.02).toFixed(3),
+            dominance: i < 3 ? 'strong' : i < 7 ? 'weak' : 'none'
+        });
+    }
+
+    tbody.innerHTML = models.map(m => `
+        <tr>
+            <td>${m.rank}</td>
+            <td>${m.config}</td>
+            <td><strong>${m.accuracy}</strong></td>
+            <td>${m.speed} ms</td>
+            <td>${m.size} MB</td>
+            <td>${m.memory} MB</td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${m.score * 100}%"></div>
+                </div>
+                ${m.score}
+            </td>
+            <td>
+                <span class="dominance-badge dominance-${m.dominance}">
+                    ${m.dominance.toUpperCase()}
+                </span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="analyzeModel(${m.rank})">
+                    <i class="fas fa-search"></i> Analyze
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Update trade-off analysis
+function updateTradeoffAnalysis() {
+    const weights = {
+        accuracy: parseInt(document.getElementById('accuracy-weight').value),
+        speed: parseInt(document.getElementById('speed-weight').value),
+        size: parseInt(document.getElementById('size-weight').value),
+        memory: parseInt(document.getElementById('memory-weight').value)
+    };
+
+    console.log('Updating analysis with weights:', weights);
+
+    // Show loading
+    document.querySelectorAll('.loading').forEach(el => el.style.display = 'flex');
+
+    // Simulate recalculation
+    setTimeout(() => {
+        // Refresh charts with new weights
+        createAccuracySpeedPareto();
+        createTradeoffRadar();
+        loadParetoModels();
+
+        document.querySelectorAll('.loading').forEach(el => el.style.display = 'none');
+
+        // Show notification
+        showTradeoffNotification('Trade-off analysis updated with new weights', 'success');
+    }, 1000);
+}
+
+// Reset weights to default
+function resetWeights() {
+    document.getElementById('accuracy-weight').value = 40;
+    document.getElementById('speed-weight').value = 30;
+    document.getElementById('size-weight').value = 20;
+    document.getElementById('memory-weight').value = 10;
+
+    ['accuracy', 'speed', 'size', 'memory'].forEach(type => {
+        document.getElementById(`${type}-weight-value`).textContent =
+            document.getElementById(`${type}-weight`).value;
+    });
+
+    updateTotalWeight();
+    updateTradeoffAnalysis();
+}
+
+// Auto-balance weights
+function autoBalance() {
+    const weights = ['accuracy-weight', 'speed-weight', 'size-weight', 'memory-weight'];
+    weights.forEach(w => {
+        document.getElementById(w).value = 25;
+        document.getElementById(w + '-value').textContent = 25;
+    });
+
+    updateTotalWeight();
+    updateTradeoffAnalysis();
+}
+
+// Select model
+function selectModel(modelId) {
+    console.log(`Selected model ${modelId}`);
+    showTradeoffNotification(`Model #${modelId} selected for deployment`, 'info');
+}
+
+// Analyze model
+function analyzeModel(rank) {
+    console.log(`Analyzing model rank ${rank}`);
+    showTradeoffNotification(`Detailed analysis for Model #${rank} opened`, 'info');
+}
+
+// Sort Pareto table
+function sortParetoTable(columnIndex) {
+    const table = document.getElementById('pareto-models-table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    const isAscending = table.dataset.sortColumn != columnIndex || table.dataset.sortOrder !== 'asc';
+    table.dataset.sortColumn = columnIndex;
+    table.dataset.sortOrder = isAscending ? 'asc' : 'desc';
+
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+
+        const aNum = parseFloat(aValue);
+        const bNum = parseFloat(bValue);
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return isAscending ? aNum - bNum : bNum - aNum;
+        }
+
+        return isAscending ?
+            aValue.localeCompare(bValue) :
+            bValue.localeCompare(aValue);
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Show notification
+function showTradeoffNotification(message, type = 'info') {
+    const alertClass = `alert-${type}`;
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    const container = document.querySelector('.tradeoff-analysis-container');
+    const alertDiv = document.createElement('div');
+    alertDiv.innerHTML = alertHtml;
+    container.insertBefore(alertDiv.firstChild, container.firstChild);
+
+    setTimeout(() => {
+        alertDiv.firstChild.remove();
+    }, 3000);
+}
+
+// Auto-initialize if tab is active
+if (document.querySelector('#tradeoff-analysis.active')) {
+    document.addEventListener('DOMContentLoaded', initializeTradeoffTab);
+}
+</script>

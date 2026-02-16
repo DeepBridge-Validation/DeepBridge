@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ report_type|capitalize }} Report: {{ report_data.model_name|default(model_name) }}</title>
+
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+
+    <!-- External dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+
+    <!-- CSS content from renderer -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container {{ report_type }}-report">
+        <!-- Header -->
+        {% include 'common/header.html' %}
+
+        <!-- Summary section -->
+        {% include 'report_types/distillation/partials/summary.html' %}
+
+        <div class="report-content">
+            <!-- Tab navigation -->
+            {% with
+                tabs=[
+                    {'id': 'overview', 'title': 'Overview'},
+                    {'id': 'model-comparison', 'title': 'Model Comparison'},
+                    {'id': 'hyperparameter-analysis', 'title': 'Hyperparameter Analysis'},
+                    {'id': 'performance-metrics', 'title': 'Performance Metrics'},
+                    {'id': 'tradeoff-analysis', 'title': 'Trade-off Analysis'},
+                    {'id': 'ks-statistic', 'title': 'KS Distribution'},
+                    {'id': 'frequency-distribution', 'title': 'Frequency Distribution'}
+                ]
+            %}
+            {% include 'common/navigation.html' %}
+            {% endwith %}
+
+            <!-- Tab content -->
+            <div id="overview" class="tab-content active">
+                {% include 'report_types/distillation/partials/overview.html' %}
+            </div>
+
+            <div id="model-comparison" class="tab-content">
+                {% include 'report_types/distillation/partials/model_comparison.html' %}
+            </div>
+
+            <div id="hyperparameter-analysis" class="tab-content">
+                {% include 'report_types/distillation/partials/hyperparameter_analysis.html' %}
+            </div>
+
+            <div id="performance-metrics" class="tab-content">
+                {% include 'report_types/distillation/partials/performance_metrics.html' %}
+            </div>
+
+            <div id="tradeoff-analysis" class="tab-content">
+                {% include 'report_types/distillation/partials/tradeoff_analysis.html' %}
+            </div>
+
+            <div id="ks-statistic" class="tab-content">
+                {% include 'report_types/distillation/partials/ks_statistic.html' %}
+            </div>
+
+            <div id="frequency-distribution" class="tab-content">
+                {% include 'report_types/distillation/partials/frequency_distribution.html' %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        {% include 'common/footer.html' %}
+    </div>
+
+    <!-- Report data initialization -->
+    <script>
+        // Make report data available to all components
+        window.reportData = {{ report_data_json|safe }};
+
+        // Parse chart data if available
+        if (window.reportData && window.reportData.chart_data_json) {
+            try {
+                // Clean JSON data before parsing
+                const jsonStr = window.reportData.chart_data_json;
+                let cleanJson = jsonStr;
+
+                // Fix trailing commas
+                cleanJson = cleanJson.replace(/,(\s*})/g, '$1');
+                cleanJson = cleanJson.replace(/,(\s*\])/g, '$1');
+
+                // Handle special values
+                cleanJson = cleanJson.replace(/\bNaN\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bInfinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\b-Infinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bundefined\b/g, 'null');
+
+                // Parse the cleaned JSON
+                window.chartData = JSON.parse(cleanJson);
+                console.log("Chart data loaded successfully");
+            } catch (e) {
+                console.error("Error parsing chart data:", e);
+                window.chartData = {};
+            }
+        } else if (window.reportData) {
+            window.chartData = window.reportData.chart_data || {};
+        } else {
+            window.chartData = {};
+        }
+
+        // Initialize charts when tab changes
+        document.addEventListener('tabchange', function(event) {
+            const tabId = event.detail.tabId;
+
+            // Initialize specific charts based on the tab
+            switch(tabId) {
+                case 'overview':
+                    if (typeof initializeOverviewCharts === 'function') {
+                        initializeOverviewCharts();
+                    }
+                    break;
+                case 'model-comparison':
+                    if (typeof initializeComparisonCharts === 'function') {
+                        initializeComparisonCharts();
+                    }
+                    break;
+                case 'hyperparameter-analysis':
+                    if (typeof initializeHyperparameterCharts === 'function') {
+                        initializeHyperparameterCharts();
+                    }
+                    break;
+                case 'performance-metrics':
+                    if (typeof initializePerformanceCharts === 'function') {
+                        initializePerformanceCharts();
+                    }
+                    break;
+                case 'tradeoff-analysis':
+                    if (typeof initializeTradeoffCharts === 'function') {
+                        initializeTradeoffCharts();
+                    }
+                    break;
+                case 'ks-statistic':
+                    if (typeof initializeKSStatisticCharts === 'function') {
+                        initializeKSStatisticCharts();
+                    }
+                    break;
+                case 'frequency-distribution':
+                    if (typeof initializeFrequencyDistributionCharts === 'function') {
+                        initializeFrequencyDistributionCharts();
+                    }
+                    break;
+            }
+        });
+
+        // Initialize the first tab's charts
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeOverviewCharts === 'function') {
+                initializeOverviewCharts();
+            }
+        });
+    </script>
+
+    <!-- JavaScript content from renderer -->
+    <script>
+        {{ js_content }}
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<div class="section">
+    <h2 class="section-title">CRQR Detailed Analysis</h2>
+    <p>Detailed analysis of prediction intervals, coverage, and calibration quality for each alpha level.</p>
+
+    <!-- Coverage Summary Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Coverage Analysis by Alpha Level</h3>
+        <div id="coverage-summary" class="grid gap-4">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading coverage analysis...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interval Width Analysis Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Prediction Interval Width Analysis</h3>
+        <div id="width-analysis" class="grid gap-4">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading interval width analysis...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Predictions Section -->
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">Sample Predictions with Intervals</h3>
+        <div id="sample-predictions">
+            <!-- Will be populated by CRQRDetailsController -->
+            <div class="loading-indicator">
+                <p>Loading sample predictions...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize CRQR Details when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            if (typeof CRQRDetailsController !== 'undefined' &&
+                typeof DetailsController !== 'undefined') {
+                console.log("Initializing CRQR Details...");
+                DetailsController.init();
+            } else {
+                console.error('CRQR Details components not found');
+
+                // Show error message
+                const containers = ['coverage-summary', 'width-analysis', 'sample-predictions'];
+                const errorMsg = '<div class="bg-red-50 border-l-4 border-red-400 p-4"><p class="text-sm text-red-700">Error: CRQR components not loaded</p></div>';
+
+                containers.forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) container.innerHTML = errorMsg;
+                });
+            }
+        }, 300);
+    });
+</script>

@@ -1,0 +1,338 @@
+/* =========================================
+   MODEL VALIDATION LIBRARY - MAIN STYLES
+   ========================================= */
+
+/* --------------------------------------
+   CSS VARIABLES
+   -------------------------------------- */
+:root {
+    /* Brand colors */
+    --primary-color: #1b78de;       /* Bright blue */
+    --primary-light: #4287f5;       /* Lighter blue for gradients */
+    --primary-color-dark: #1a5fb4;  /* Darker blue for hover states */
+    --secondary-color: #2c3e50;     /* Dark slate */
+    
+    /* Semantic colors */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #f39c12;
+    --info-color: #17a2b8;
+    
+    /* UI colors */
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-color: #333333;
+    --text-secondary: #555555;
+    --text-muted: #6c757d;
+    --border-color: #dddddd;
+    --background-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-alt: #f8f9fa;
+    
+    /* Gradients */
+    --header-bg: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+    --primary-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Border radius */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    
+    /* Box shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* --------------------------------------
+   RESET AND BASE STYLES
+   -------------------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--primary-color-dark);
+    text-decoration: underline;
+}
+
+/* Fix for tab display */
+.tab-content {
+    display: none !important;
+}
+
+.tab-content.active {
+    display: block !important;
+}
+
+/* Header styling */
+.report-header {
+    background: var(--header-bg);
+    color: white;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    width: 100%;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.header-logo {
+    flex: 0 0 auto;
+}
+
+.header-logo .logo {
+    max-width: 120px;
+    max-height: 60px;
+}
+
+.header-info {
+    flex: 1;
+}
+
+.header-info h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+}
+
+.report-subtitle {
+    margin: 0 0 0.75rem 0;
+    opacity: 0.9;
+}
+
+.report-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.metadata-item {
+    padding-right: 1rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.metadata-item:last-child {
+    border-right: none;
+}
+
+/* Report container */
+.report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+    width: 100%;
+}
+
+/* Content containers */
+.report-content {
+    padding: 0;
+    width: 100%;
+}
+
+/* --------------------------------------
+   LAYOUT CONTAINERS
+   -------------------------------------- */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+.section {
+    margin-bottom: var(--spacing-xl);
+    background-color: var(--bg-card);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+.section-title {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--secondary-color);
+    font-size: 1.5rem;
+}
+
+/* --------------------------------------
+   GRID SYSTEM
+   -------------------------------------- */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col {
+    flex-basis: 0;
+    flex-grow: 1;
+    max-width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-8 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* Import component styles */
+@import url('components/buttons.css');
+@import url('components/cards.css');
+@import url('components/charts.css');
+@import url('components/messages.css');
+@import url('components/tables.css');
+@import url('components/tabs.css');
+@import url('components/typography.css');
+@import url('components/utilities.css');
+
+/* --------------------------------------
+   RESPONSIVE MEDIA QUERIES
+   -------------------------------------- */
+@media (max-width: 992px) {
+    .col-lg-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .col-lg-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-logo {
+        margin-bottom: 1rem;
+    }
+    
+    .report-metadata {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .col-md-6, .col-6, .col-4, .col-8, .col-3 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .main-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    .report-header {
+        padding: 1rem;
+    }
+    
+    .section {
+        padding: 1rem;
+    }
+    
+    .report-container {
+        padding: var(--spacing-md);
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .report-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .report-metadata {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .metadata-item {
+        border-right: none;
+        padding-right: 0;
+    }
+}

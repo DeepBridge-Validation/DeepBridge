@@ -1,0 +1,706 @@
+/*
+ * DeepBridge Reports - Component Library
+ *
+ * Layer 2: Shared UI components for all reports
+ * Contains: Layouts, cards, tabs, tables, charts, buttons
+ *
+ * Version: 1.0
+ * Date: 2025-10-29
+ */
+
+/* ============================================================================
+   1. REPORT CONTAINER & LAYOUT
+   ============================================================================ */
+
+.report-container {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0;
+    background-color: var(--background-color);
+    min-height: 100vh;
+}
+
+.report-content {
+    padding: var(--spacing-lg);
+}
+
+/* ============================================================================
+   2. REPORT HEADER
+   ============================================================================ */
+
+.report-header {
+    background: var(--header-bg);
+    color: white;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.report-header__title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-sm);
+    color: white;
+}
+
+.report-header__subtitle {
+    font-size: var(--font-size-lg);
+    opacity: 0.95;
+    margin-bottom: var(--spacing-md);
+    color: white;
+}
+
+.report-header__metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+.report-header__metadata-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.report-header__metadata-label {
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ============================================================================
+   3. METRIC CARDS
+   ============================================================================ */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.metric-card {
+    background: var(--card-bg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+    border: 1px solid var(--border-color);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-card__label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: var(--font-weight-medium);
+}
+
+.metric-card__value {
+    display: block;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    line-height: var(--line-height-tight);
+}
+
+.metric-card__value--success {
+    color: var(--success-color);
+}
+
+.metric-card__value--danger {
+    color: var(--danger-color);
+}
+
+.metric-card__value--warning {
+    color: var(--warning-color);
+}
+
+.metric-card__description {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+/* ============================================================================
+   4. TAB NAVIGATION
+   ============================================================================ */
+
+.tab-navigation {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-xl);
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: stretch;
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    color: var(--primary-color);
+    background-color: rgba(27, 120, 222, 0.05);
+}
+
+.tab-button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: var(--font-weight-semibold);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn var(--transition-base);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================================
+   5. SECTIONS & CARDS
+   ============================================================================ */
+
+.section {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--light-color);
+}
+
+.section__title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.section__subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.section__body {
+    padding: 0;
+}
+
+.section--highlight {
+    border-left: 4px solid var(--primary-color);
+}
+
+/* ============================================================================
+   6. CHART CONTAINERS
+   ============================================================================ */
+
+.chart-container {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    min-height: 400px;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+.chart-container__header {
+    margin-bottom: var(--spacing-md);
+}
+
+.chart-container__title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--secondary-color);
+    margin-bottom: var(--spacing-xs);
+}
+
+.chart-container__description {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.chart-container__body {
+    min-height: 350px;
+    position: relative;
+}
+
+/* Chart Grid for multiple charts side by side */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.chart-grid .chart-container {
+    margin-bottom: 0;
+}
+
+/* Plotly specific sizing */
+.chart-container .plotly,
+.chart-container .js-plotly-plot {
+    width: 100% !important;
+    height: auto !important;
+}
+
+.chart-container .plotly .plot-container,
+.chart-container .js-plotly-plot .plot-container {
+    max-width: 100%;
+}
+
+/* Chart Loading State */
+.chart-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    color: var(--text-muted);
+}
+
+.chart-loading__spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--light-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.chart-loading__text {
+    margin-top: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+/* Chart Error State */
+.chart-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    color: var(--danger-color);
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.chart-error__icon {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.chart-error__title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-sm);
+}
+
+.chart-error__message {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+/* ============================================================================
+   7. DATA TABLES
+   ============================================================================ */
+
+.data-table-container {
+    overflow-x: auto;
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    font-size: var(--font-size-sm);
+    color: #333 !important;
+}
+
+.data-table thead {
+    background-color: var(--table-header-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    color: var(--secondary-color);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--light-color);
+    color: #333 !important;
+}
+
+.data-table tbody tr {
+    transition: background-color var(--transition-fast);
+    color: #333 !important;
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(27, 120, 222, 0.05);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Table Cell Types */
+.data-table__cell--number {
+    text-align: right;
+    font-family: var(--font-family-mono);
+}
+
+.data-table__cell--status {
+    font-weight: var(--font-weight-medium);
+}
+
+.data-table__cell--status.success {
+    color: var(--success-color);
+}
+
+.data-table__cell--status.danger {
+    color: var(--danger-color);
+}
+
+.data-table__cell--status.warning {
+    color: var(--warning-color);
+}
+
+/* ============================================================================
+   8. BUTTONS
+   ============================================================================ */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-tight);
+    text-align: center;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Button Variants */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #1a252f;
+    text-decoration: none;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-ghost {
+    background-color: transparent;
+    color: var(--primary-color);
+    border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+    background-color: rgba(27, 120, 222, 0.1);
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-lg);
+}
+
+/* ============================================================================
+   9. BADGES & LABELS
+   ============================================================================ */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-primary {
+    background-color: rgba(27, 120, 222, 0.15);
+    color: var(--primary-color);
+}
+
+.badge-success {
+    background-color: rgba(40, 167, 69, 0.15);
+    color: var(--success-color);
+}
+
+.badge-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: var(--danger-color);
+}
+
+.badge-warning {
+    background-color: rgba(243, 156, 18, 0.15);
+    color: var(--warning-color);
+}
+
+.badge-info {
+    background-color: rgba(23, 162, 184, 0.15);
+    color: var(--info-color);
+}
+
+/* ============================================================================
+   10. ALERTS & MESSAGES
+   ============================================================================ */
+
+.alert {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    border-left: 4px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+}
+
+.alert__icon {
+    flex-shrink: 0;
+    font-size: var(--font-size-xl);
+}
+
+.alert__content {
+    flex: 1;
+}
+
+.alert__title {
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-xs);
+}
+
+.alert__message {
+    font-size: var(--font-size-sm);
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-left-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.alert-warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    border-left-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.alert-info {
+    background-color: rgba(23, 162, 184, 0.1);
+    border-left-color: var(--info-color);
+    color: var(--info-color);
+}
+
+/* ============================================================================
+   11. PROGRESS BARS
+   ============================================================================ */
+
+.progress {
+    height: 8px;
+    background-color: var(--light-color);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress__bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-base);
+}
+
+.progress__bar--success {
+    background-color: var(--success-color);
+}
+
+.progress__bar--danger {
+    background-color: var(--danger-color);
+}
+
+.progress__bar--warning {
+    background-color: var(--warning-color);
+}
+
+/* ============================================================================
+   12. RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .report-content {
+        padding: var(--spacing-md);
+    }
+
+    .report-header {
+        padding: var(--spacing-md);
+    }
+
+    .report-header__title {
+        font-size: var(--font-size-2xl);
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tab-navigation {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .section {
+        padding: var(--spacing-md);
+    }
+
+    .chart-container {
+        padding: var(--spacing-md);
+    }
+
+    .data-table {
+        font-size: var(--font-size-xs);
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: var(--spacing-sm);
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}

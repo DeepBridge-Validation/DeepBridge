@@ -1,0 +1,85 @@
+/* Estilos específicos para cards de robustez */
+
+/* Robustness score card styles */
+.robustness-score-card {
+    background: linear-gradient(135deg, #1a5fb4, #3584e4);
+    color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.robustness-score-title {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.robustness-score-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.robustness-score-description {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Metrics summary styles */
+.metrics-summary {
+    background-color: var(--light-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.metrics-summary-title {
+    font-size: 1rem;
+    margin: 0 0 0.75rem 0;
+    font-weight: 600;
+}
+
+.metrics-summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.metrics-summary-label {
+    color: #495057;
+}
+
+.metrics-summary-value {
+    font-weight: 600;
+}
+
+/* Model info styles */
+.model-info {
+    background-color: var(--light-color);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.model-info-title {
+    font-size: 1rem;
+    margin: 0 0 0.75rem 0;
+    font-weight: 600;
+}
+
+.model-info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.model-info-label {
+    color: #495057;
+}
+
+.model-info-value {
+    font-weight: 600;
+}

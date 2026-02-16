@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Uncertainty Report (Simple) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="summary">
+        <h2>Summary</h2>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Uncertainty Score</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.uncertainty_score >= 0.7 else 'metric-bad' }}">
+                        {{ data.metrics.uncertainty_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Avg Coverage</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.avg_coverage >= 0.9 else 'metric-bad' }}">
+                        {{ data.metrics.avg_coverage | format_percentage(2) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Avg Width</h5>
+                    <p class="metric-value">
+                        {{ data.metrics.avg_width | format_number(4) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Num Alphas</h5>
+                    <p class="metric-value">
+                        {{ data.metrics.num_alphas }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Key Findings</h3>
+            <ul>
+                <li>
+                    <strong>Overall Uncertainty Quantification:</strong>
+                    {% if data.metrics.uncertainty_score >= 0.8 %}
+                        Excellent ({{ data.metrics.uncertainty_score | format_percentage }})
+                    {% elif data.metrics.uncertainty_score >= 0.6 %}
+                        Good ({{ data.metrics.uncertainty_score | format_percentage }})
+                    {% else %}
+                        Needs Improvement ({{ data.metrics.uncertainty_score | format_percentage }})
+                    {% endif %}
+                </li>
+                <li>
+                    <strong>Coverage Rate:</strong> {{ data.metrics.avg_coverage | format_percentage }}
+                    {% if data.metrics.avg_coverage >= 0.9 %}
+                        - Excellent calibration achieved
+                    {% elif data.metrics.avg_coverage >= 0.8 %}
+                        - Good calibration
+                    {% else %}
+                        - Coverage is below target
+                    {% endif %}
+                </li>
+                <li>
+                    <strong>Average Interval Width:</strong> {{ data.metrics.avg_width | format_number(4) }}
+                    {% if data.metrics.avg_width < 0.2 %}
+                        - Highly efficient intervals
+                    {% elif data.metrics.avg_width < 0.5 %}
+                        - Reasonable interval width
+                    {% else %}
+                        - Intervals are quite wide
+                    {% endif %}
+                </li>
+                <li>
+                    <strong>Total Alpha Levels Tested:</strong> {{ data.metrics.num_alphas }}
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="best-alpha">
+        <h2>Best Alpha Recommendation</h2>
+
+        <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
+            {% if data.crqr_results %}
+                {% set best_alpha = data.crqr_results | selectattr('actual_coverage', 'ge', 0.89) | first %}
+                {% if best_alpha %}
+                    <p style="margin: 0;">
+                        <strong>Recommended Alpha:</strong> {{ best_alpha.alpha | format_number(3) }}
+                    </p>
+                    <p>
+                        This alpha level achieves an actual coverage of
+                        <strong>{{ best_alpha.actual_coverage | format_percentage(2) }}</strong>,
+                        with a mean interval width of
+                        <strong>{{ best_alpha.mean_width | format_number(4) }}</strong>.
+                    </p>
+                {% else %}
+                    <p style="margin: 0;">
+                        Review coverage-width trade-off in detailed results below to select appropriate alpha level.
+                    </p>
+                {% endif %}
+            {% else %}
+                <p style="margin: 0;">No CRQR results available for recommendation.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section id="top-findings">
+        <h2>Top Findings</h2>
+
+        <div style="padding: 15px; background: #e7f3ff; border-left: 4px solid #0066cc; border-radius: 4px;">
+            {% if data.metrics.avg_coverage >= 0.9 and data.metrics.uncertainty_score >= 0.7 %}
+                <ul>
+                    <li>Prediction intervals are well-calibrated and reliable</li>
+                    <li>Both coverage and interval width are balanced appropriately</li>
+                    <li>Model uncertainty estimates can be trusted for decision-making</li>
+                    <li>Suitable for production deployment with confidence intervals</li>
+                </ul>
+            {% elif data.metrics.avg_coverage >= 0.8 %}
+                <ul>
+                    <li>Prediction intervals provide reasonable coverage</li>
+                    <li>Some tuning of alpha levels may improve calibration</li>
+                    <li>Monitor interval width for computational efficiency</li>
+                    <li>Consider ensemble methods or improved calibration techniques</li>
+                </ul>
+            {% else %}
+                <ul>
+                    <li>Coverage is below expected levels - intervals may be unreliable</li>
+                    <li>Uncertainty quantification method may need adjustment</li>
+                    <li>Review training data quality and feature importance</li>
+                    <li>Consider alternative uncertainty quantification methods</li>
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if data.crqr_results %}
+        <section id="alpha-summary">
+            <h2>Coverage Summary by Alpha</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alpha</th>
+                        <th>Expected Coverage</th>
+                        <th>Actual Coverage</th>
+                        <th>Gap</th>
+                        <th>Mean Width</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in data.crqr_results[:5] %}
+                        <tr>
+                            <td>{{ result.alpha | format_number(3) }}</td>
+                            <td>{{ result.expected_coverage | format_percentage(2) }}</td>
+                            <td class="{{ 'metric-good' if (result.actual_coverage - (1 - result.alpha)) | abs <= 0.05 else 'metric-bad' }}">
+                                {{ result.actual_coverage | format_percentage(2) }}
+                            </td>
+                            <td>{{ ((result.actual_coverage - (1 - result.alpha)) | abs) | format_percentage(2) }}</td>
+                            <td>{{ result.mean_width | format_number(4) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <section id="recommendations">
+        <h2>Recommendations</h2>
+        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+            {% if data.metrics.uncertainty_score >= 0.8 %}
+                <p><strong>✓ Excellent uncertainty quantification</strong> - Ready for production</p>
+                <p>The model provides reliable and well-calibrated prediction intervals. Proceed with confidence interval-based decision making.</p>
+            {% elif data.metrics.uncertainty_score >= 0.6 %}
+                <p><strong>⚠ Good uncertainty quantification</strong> - Monitor and optimize</p>
+                <p>The model provides acceptable prediction intervals. Consider:</p>
+                <ul>
+                    <li>Fine-tuning alpha selection for your application</li>
+                    <li>Validating on held-out test set for stability</li>
+                    <li>Evaluating alternative quantile regression methods</li>
+                    <li>Analyzing failure cases with wide intervals</li>
+                </ul>
+            {% else %}
+                <p><strong>✗ Low uncertainty quantification</strong> - Improvement needed</p>
+                <p>The model's prediction intervals need improvement. Recommended actions:</p>
+                <ul>
+                    <li>Review data quality and preprocessing</li>
+                    <li>Try different quantile regression approaches</li>
+                    <li>Increase training data size if possible</li>
+                    <li>Use ensemble methods for better calibration</li>
+                    <li>Consider separate models for upper/lower bounds</li>
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content|safe }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Metric:</strong> {{ metric }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Levels:</strong> {{ total_levels }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Features:</strong> {{ total_features }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Base Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(base_score) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Robustness Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(robustness_score) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Impact</span>
+                <span class="metric-card__value">{{ "%.4f"|format(avg_impact) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Perturbation Levels</span>
+                <span class="metric-card__value">{{ total_levels }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Features Tested</span>
+                <span class="metric-card__value">{{ total_features }}</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="by-level">By Level</button>
+            <button class="tab-button" data-tab="features">Features</button>
+            {% if has_weakspot_analysis %}
+            <button class="tab-button" data-tab="weakspots">WeakSpots</button>
+            {% endif %}
+            {% if has_overfitting_analysis %}
+            <button class="tab-button" data-tab="overfitting">Overfitting</button>
+            {% endif %}
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Robustness Overview</h2>
+                <p>This chart shows how the model performs under different perturbation levels.</p>
+                <div class="chart-container">
+                    <div id="chart-overview"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Score Distribution</h2>
+                <p>Distribution of scores across iterations for each perturbation level.</p>
+                <div class="chart-container">
+                    <div id="chart-distribution"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="by-level" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Impact by Perturbation Level</h2>
+                <p>Performance degradation at each perturbation level.</p>
+                <div class="chart-container">
+                    <div id="chart-by-level"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Detailed Results</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Mean Score</th>
+                                <th>Worst Score</th>
+                                <th>Std Dev</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="levels-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="features" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Feature Importance</h2>
+                <p>Top features ranked by their importance to the model.</p>
+                <div class="chart-container">
+                    <div id="chart-features"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Feature Details</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Importance</th>
+                                <th>Robustness Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="features-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if has_weakspot_analysis %}
+        <div id="weakspots" class="tab-content">
+            <div class="section">
+                <h2 class="section__title" style="color: #333 !important;">WeakSpot Detection</h2>
+                <p style="color: #333 !important;">Identifies regions in the feature space where the model's performance significantly degrades.</p>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Total WeakSpots</span>
+                        <span class="metric-card__value" id="weakspot-total" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Critical WeakSpots</span>
+                        <span class="metric-card__value" id="weakspot-critical" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Max Severity</span>
+                        <span class="metric-card__value" id="weakspot-severity" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Features Analyzed</span>
+                        <span class="metric-card__value" id="weakspot-features" style="color: #333 !important;">-</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section__title" style="color: #333 !important;">Top WeakSpots</h3>
+                    <div class="data-table-container">
+                        <table class="data-table" style="color: #333 !important;">
+                            <thead>
+                                <tr style="color: #333 !important;">
+                                    <th style="color: #333 !important;">Feature</th>
+                                    <th style="color: #333 !important;">Range</th>
+                                    <th style="color: #333 !important;">Samples</th>
+                                    <th style="color: #333 !important;">Mean Residual</th>
+                                    <th style="color: #333 !important;">Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weakspots-table-body" style="color: #333 !important;">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_overfitting_analysis %}
+        <div id="overfitting" class="tab-content">
+            <div class="section">
+                <h2 class="section__title" style="color: #333 !important;">Localized Overfitting Analysis</h2>
+                <p style="color: #333 !important;">Detects regions where the model shows significant train-test performance gaps.</p>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Features Analyzed</span>
+                        <span class="metric-card__value" id="overfit-features" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Features with Overfitting</span>
+                        <span class="metric-card__value" id="overfit-count" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Max Gap</span>
+                        <span class="metric-card__value" id="overfit-max-gap" style="color: #333 !important;">-</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-card__label" style="color: #666 !important;">Worst Feature</span>
+                        <span class="metric-card__value" id="overfit-worst" style="color: #333 !important;">-</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section__title" style="color: #333 !important;">Features with Overfitting</h3>
+                    <div class="data-table-container">
+                        <table class="data-table" style="color: #333 !important;">
+                            <thead>
+                                <tr style="color: #333 !important;">
+                                    <th style="color: #333 !important;">Feature</th>
+                                    <th style="color: #333 !important;">Max Gap</th>
+                                    <th style="color: #333 !important;">Overfit Slices</th>
+                                    <th style="color: #333 !important;">Total Slices</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overfitting-table-body" style="color: #333 !important;">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Report Data -->
+    <script>
+        window.reportData = {{ report_data_json|safe }};
+        console.log('Report data loaded:', window.reportData);
+    </script>
+
+    <!-- Tab Navigation JS -->
+    <script>
+        {{ js_content|safe }}
+    </script>
+
+    <!-- Charts Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const data = window.reportData;
+
+                // Render Overview Chart
+                if (data.charts && data.charts.overview) {
+                    const overviewData = JSON.parse(data.charts.overview);
+                    Plotly.newPlot('chart-overview', overviewData.data, overviewData.layout, {responsive: true});
+                }
+
+                // Render By Level Chart
+                if (data.charts && data.charts.by_level) {
+                    const byLevelData = JSON.parse(data.charts.by_level);
+                    Plotly.newPlot('chart-by-level', byLevelData.data, byLevelData.layout, {responsive: true});
+                }
+
+                // Render Feature Importance Chart
+                if (data.charts && data.charts.feature_importance) {
+                    const featuresData = JSON.parse(data.charts.feature_importance);
+                    Plotly.newPlot('chart-features', featuresData.data, featuresData.layout, {responsive: true});
+                }
+
+                // Render Score Distribution Chart
+                if (data.charts && data.charts.score_distribution) {
+                    const distData = JSON.parse(data.charts.score_distribution);
+                    Plotly.newPlot('chart-distribution', distData.data, distData.layout, {responsive: true});
+                }
+
+                // Populate Levels Table
+                if (data.levels && data.levels.length > 0) {
+                    const tbody = document.getElementById('levels-table-body');
+                    data.levels.forEach(level => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${level.level_display}</td>
+                            <td style="color: #333 !important;">${level.mean_score.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${level.worst_score.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${level.std_score.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${level.impact.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Populate Features Table
+                if (data.features && data.features.length > 0) {
+                    const tbody = document.getElementById('features-table-body');
+                    data.features.forEach(feature => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${feature.name}</td>
+                            <td style="color: #333 !important;">${feature.importance.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${feature.robustness_impact.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Render WeakSpot Analysis
+                {% if has_weakspot_analysis %}
+                try {
+                    const weakspotData = {{ weakspot_analysis_json|safe }};
+                    if (weakspotData && weakspotData.summary) {
+                        // Update metrics
+                        document.getElementById('weakspot-total').textContent = weakspotData.summary.total_weakspots || 0;
+                        document.getElementById('weakspot-critical').textContent = weakspotData.summary.critical_weakspots || 0;
+                        document.getElementById('weakspot-severity').textContent =
+                            ((weakspotData.summary.max_severity || 0) * 100).toFixed(1) + '%';
+                        document.getElementById('weakspot-features').textContent = weakspotData.summary.features_analyzed || 0;
+
+                        // Populate weakspots table (top 10)
+                        const tbody = document.getElementById('weakspots-table-body');
+                        if (weakspotData.weakspots && weakspotData.weakspots.length > 0) {
+                            weakspotData.weakspots.slice(0, 10).forEach(ws => {
+                                const row = document.createElement('tr');
+                                row.style.color = '#333';
+                                row.innerHTML = `
+                                    <td style="color: #333 !important;">${ws.feature}</td>
+                                    <td style="color: #333 !important;">${ws.range_str || '-'}</td>
+                                    <td style="color: #333 !important;">${ws.n_samples}</td>
+                                    <td style="color: #333 !important;">${ws.mean_residual.toFixed(4)}</td>
+                                    <td style="color: #333 !important; ${ws.severity > 0.5 ? 'color: red !important; font-weight: bold;' : ''}">${(ws.severity * 100).toFixed(1)}%</td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        } else {
+                            // No weakspots found - show informative message
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td colspan="5" style="color: #28a745 !important; text-align: center; padding: 20px; font-weight: bold;">
+                                    ✅ Nenhum WeakSpot detectado! O modelo apresenta performance consistente em todas as regiões analisadas.
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        }
+                    }
+                    console.log('WeakSpot analysis rendered');
+                } catch (error) {
+                    console.error('Error rendering WeakSpot analysis:', error);
+                }
+                {% endif %}
+
+                // Render Overfitting Analysis
+                {% if has_overfitting_analysis %}
+                try {
+                    const overfitData = {{ overfitting_analysis_json|safe }};
+                    if (overfitData) {
+                        // Check if multi-feature or single-feature result
+                        if (overfitData.features) {
+                            // Multi-feature result
+                            document.getElementById('overfit-features').textContent = overfitData.summary.total_features || 0;
+                            document.getElementById('overfit-count').textContent = overfitData.summary.features_with_overfitting || 0;
+                            document.getElementById('overfit-max-gap').textContent =
+                                (overfitData.summary.global_max_gap || 0).toFixed(3);
+                            document.getElementById('overfit-worst').textContent = overfitData.worst_feature || '-';
+
+                            // Populate table with features that have overfitting
+                            const tbody = document.getElementById('overfitting-table-body');
+                            let hasOverfitting = false;
+                            Object.entries(overfitData.features).forEach(([featureName, featureData]) => {
+                                if (featureData.summary && featureData.summary.overfit_slices_count > 0) {
+                                    hasOverfitting = true;
+                                    const row = document.createElement('tr');
+                                    row.style.color = '#333';
+                                    row.innerHTML = `
+                                        <td style="color: #333 !important;">${featureName}</td>
+                                        <td style="color: #333 !important;">${featureData.max_gap.toFixed(3)}</td>
+                                        <td style="color: #333 !important;">${featureData.summary.overfit_slices_count}</td>
+                                        <td style="color: #333 !important;">${featureData.summary.total_slices}</td>
+                                    `;
+                                    tbody.appendChild(row);
+                                }
+                            });
+
+                            // Show message if no overfitting detected
+                            if (!hasOverfitting) {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td colspan="4" style="color: #28a745 !important; text-align: center; padding: 20px; font-weight: bold;">
+                                        ✅ Nenhuma feature com overfitting localizado detectado! O modelo generaliza bem em todas as regiões.
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            }
+                        } else {
+                            // Single-feature result
+                            document.getElementById('overfit-features').textContent = 1;
+                            document.getElementById('overfit-count').textContent =
+                                overfitData.summary.overfit_slices_count > 0 ? 1 : 0;
+                            document.getElementById('overfit-max-gap').textContent =
+                                (overfitData.max_gap || 0).toFixed(3);
+                            document.getElementById('overfit-worst').textContent = overfitData.feature || '-';
+
+                            // Populate table with single feature
+                            const tbody = document.getElementById('overfitting-table-body');
+                            if (overfitData.summary.overfit_slices_count > 0) {
+                                const row = document.createElement('tr');
+                                row.style.color = '#333';
+                                row.innerHTML = `
+                                    <td style="color: #333 !important;">${overfitData.feature}</td>
+                                    <td style="color: #333 !important;">${overfitData.max_gap.toFixed(3)}</td>
+                                    <td style="color: #333 !important;">${overfitData.summary.overfit_slices_count}</td>
+                                    <td style="color: #333 !important;">${overfitData.summary.total_slices}</td>
+                                `;
+                                tbody.appendChild(row);
+                            } else {
+                                // No overfitting detected
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td colspan="4" style="color: #28a745 !important; text-align: center; padding: 20px; font-weight: bold;">
+                                        ✅ Nenhuma feature com overfitting localizado detectado! O modelo generaliza bem em todas as regiões.
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            }
+                        }
+                    }
+                    console.log('Overfitting analysis rendered');
+                } catch (error) {
+                    console.error('Error rendering Overfitting analysis:', error);
+                }
+                {% endif %}
+
+                console.log('All charts and tables rendered successfully');
+            } catch (error) {
+                console.error('Error rendering charts:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* Charts CSS for static uncertainty report */
+.chart-container {
+    width: 100%;
+    margin: 2rem 0;
+    overflow: hidden;
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.chart-container:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chart-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+}
+
+.chart-description {
+    font-size: 0.9rem;
+    text-align: center;
+    color: #666;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.25rem;
+    padding: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 6px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem 1rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+}
+
+.legend-label {
+    font-size: 0.875rem;
+    color: #555;
+}
+
+/* Specific styles for interval widths comparison chart */
+.interval-widths-comparison {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+/* Enhanced chart container for the comparison visualization */
+.chart-container:has(img[alt="Interval widths comparison"]) {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Ensure the chart has enough space to breathe */
+img[alt="Interval widths comparison"],
+img[alt="Coverage analysis"],
+img[alt="Model performance comparison"],
+img[alt="Feature importance for uncertainty"] {
+    margin: 1rem auto;
+    max-height: 600px;
+    object-fit: contain;
+}
+
+/* Styles for the Performance Analysis section */
+.section:has(h2.section-title:contains("Performance Analysis")) .chart-container {
+    margin: 2.5rem 0;
+}
+
+/* Styles for the heatmap charts */
+img[alt="Calibration error heatmap"],
+img[alt="Model metrics comparison"] {
+    max-height: 400px;
+    margin: 1.5rem auto;
+}
+
+/* Styles for tradeoff charts */
+img[alt="Coverage vs width tradeoff"] {
+    max-height: 500px;
+    border: 1px solid #eaeaea;
+    padding: 0.5rem;
+}
+
+/* No data message styling */
+.no-data-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    color: #777;
+    font-style: italic;
+    border: 1px dashed #ddd;
+}
+
+/* Chart image container spacing */
+.chart-image-container {
+    margin: 1.5rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .chart-description {
+        font-size: 0.85rem;
+    }
+}

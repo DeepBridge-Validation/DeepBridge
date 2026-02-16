@@ -1,0 +1,18 @@
+<!-- Static Resilience Report Header -->
+<div class="report-header">
+    <div class="header-content">
+        <div class="header-logo">
+            <img src="data:image/png;base64, {{ logo|default('') }}" alt="Logo" class="logo">
+        </div>
+        <div class="header-info">
+            <h1>Model Validation Report</h1>
+            <p class="report-subtitle">Resilience Analysis Report</p>
+            <div class="report-metadata">
+                <div class="metadata-item"><strong>Model:</strong> {{ model_name|default('Unknown') }}</div>
+                <div class="metadata-item"><strong>Date:</strong> {{ timestamp|default('') }}</div>
+                {% if model_type %}<div class="metadata-item"><strong>Type:</strong> {{ model_type }}</div>{% endif %}
+                <div class="metadata-item"><strong>Report:</strong> {{ test_type|title }}</div>
+            </div>
+        </div>
+    </div>
+</div>

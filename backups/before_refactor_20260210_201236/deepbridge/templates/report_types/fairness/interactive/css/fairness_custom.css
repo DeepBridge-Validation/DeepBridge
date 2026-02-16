@@ -1,0 +1,346 @@
+/*
+ * DeepBridge Reports - Fairness Custom Styles
+ *
+ * Layer 3: Report-specific overrides for Fairness reports
+ * Modern dark design with rounded borders (same as other modules)
+ *
+ * Version: 2.0
+ * Date: 2025-11-03
+ */
+
+/* ============================================================================
+   MODERN DARK DESIGN - FAIRNESS
+   ============================================================================ */
+
+/* Light background */
+body {
+    background: #ffffff;
+    min-height: 100vh;
+    padding: var(--spacing-xl);
+}
+
+/* Light container */
+.report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    padding: var(--spacing-2xl);
+    color: #333;
+}
+
+/* Modern header - mantém as cores do header original */
+.report-header {
+    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+}
+
+/* Header container - flex layout for logo and content side by side */
+.report-header__container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+}
+
+/* Logo section - left side */
+.report-header__logo-section {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.header-logo {
+    max-height: 80px;
+    max-width: 200px;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Content section - right side */
+.report-header__content {
+    flex: 1;
+    text-align: center;
+}
+
+.report-header__title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: white;
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-header__subtitle {
+    font-size: var(--font-size-lg);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.report-header__metadata {
+    margin-top: var(--spacing-md);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Metric cards - tema claro */
+.metric-card {
+    border-left: 4px solid #4287f5;
+}
+
+/* Status-specific border colors */
+.metric-card.status-ok {
+    border-left-color: #52be80;
+}
+
+.metric-card.status-warning {
+    border-left-color: #f39c12;
+}
+
+.metric-card.status-critical {
+    border-left-color: #e74c3c;
+}
+
+/* Chart containers - tema claro */
+.chart-container {
+    margin: var(--spacing-xl) 0;
+    background: #FFFFFF !important;
+}
+
+/* Force white background for Plotly charts */
+.chart-container .plotly,
+.chart-container .js-plotly-plot,
+.chart-container .plot-container,
+.chart-container .svg-container {
+    background: #FFFFFF !important;
+}
+
+/* Override any inline background styles */
+.chart-container [style*="background"] {
+    background: #FFFFFF !important;
+}
+
+/* Fairness Score Display */
+.fairness-score {
+    font-size: 4em;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+}
+
+/* Dynamic colors based on score */
+.fairness-score.excellent {
+    color: #52be80;
+}
+
+.fairness-score.good {
+    color: #27ae60;
+}
+
+.fairness-score.moderate {
+    color: #f39c12;
+}
+
+.fairness-score.critical {
+    color: #e74c3c;
+}
+
+/* Issues Section */
+.issue-list {
+    list-style: none;
+    padding: 0;
+}
+
+.issue-item {
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border-left: 4px solid #ddd;
+}
+
+.issue-item.warning {
+    background: #fff3cd;
+    border-left-color: #f39c12;
+    color: #856404;
+}
+
+.issue-item.critical {
+    background: #f8d7da;
+    border-left-color: #e74c3c;
+    color: #721c24;
+}
+
+/* Metrics Grid with fairness colors */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    margin: var(--spacing-xl) 0;
+}
+
+
+
+/* Chart divs should occupy full width */
+[id^="chart-"] {
+    width: 100% !important;
+    min-height: 400px;
+}
+
+/* Ensure Plotly charts use full container width */
+.plotly {
+    width: 100% !important;
+}
+
+.js-plotly-plot {
+    width: 100% !important;
+}
+
+.js-plotly-plot .plotly {
+    width: 100% !important;
+}
+
+.js-plotly-plot .plot-container {
+    width: 100% !important;
+}
+
+.js-plotly-plot .svg-container {
+    width: 100% !important;
+}
+
+/* Chart container should have no max-width */
+.chart-container {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.chart-container > div {
+    width: 100% !important;
+}
+
+/* Increase report container max-width for better chart display */
+.report-container {
+    max-width: 1400px !important;
+}
+
+/* Force all chart-related divs to be 100% width */
+#pretrain-metrics-overview,
+#posttrain-metrics-overview,
+#complementary-metrics,
+#distributions-charts {
+    width: 100% !important;
+}
+
+#pretrain-metrics-overview .chart-container,
+#posttrain-metrics-overview .chart-container,
+#complementary-metrics .chart-container,
+#distributions-charts .chart-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Force Plotly responsive mode */
+.chart-container .modebar {
+    right: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: var(--spacing-md);
+    }
+
+    .report-container {
+        padding: var(--spacing-lg);
+        border-radius: 16px;
+    }
+
+    .fairness-score {
+        font-size: 3em;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   INFO BOXES & CALLOUTS
+   ============================================================================ */
+
+.info-box {
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid #3498db;
+    padding: 20px;
+    margin: 30px 0;
+    border-radius: 8px;
+}
+
+.info-box strong {
+    color: #3498db;
+    display: block;
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.info-box ul {
+    margin: 12px 0 0 24px;
+    list-style-type: disc;
+}
+
+.info-box li {
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+.info-box p {
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+/* ============================================================================
+   BADGES (SPRINT 2)
+   ============================================================================ */
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0 8px;
+}
+
+.badge-success {
+    background: #27ae60;
+    color: white;
+}
+
+.badge-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.badge-critical {
+    background: #e74c3c;
+    color: white;
+}
+
+/* ============================================================================
+   LEGEND BOX (SPRINT 2)
+   ============================================================================ */
+
+.legend-box {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-box strong {
+    display: block;
+    margin-bottom: 12px;
+    color: white;
+    font-weight: 600;
+}
+

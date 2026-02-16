@@ -1,0 +1,47 @@
+<div class="section">
+    <h2 class="section-title">Uncertainty Quantification Overview</h2>
+    <p>This section shows the CRQR (Conformal Quantile Regression) uncertainty quantification results for the model.</p>
+
+    <!-- Summary cards container -->
+    <div id="overview-summary" class="mt-4">
+        <!-- Will be populated by CRQROverviewController -->
+        <div class="loading-indicator">
+            <p>Loading uncertainty summary...</p>
+        </div>
+    </div>
+
+    <!-- Main overview chart -->
+    <div class="mt-6">
+        <div id="overview-chart" class="chart-container">
+            <!-- Will be populated by CRQROverviewChartManager -->
+            <div class="loading-indicator">
+                <p>Loading CRQR overview chart...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize CRQR Overview when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit to ensure all dependencies are loaded
+        setTimeout(function() {
+            if (typeof CRQROverviewController !== 'undefined' &&
+                typeof OverviewController !== 'undefined') {
+                console.log("Initializing CRQR Overview...");
+                OverviewController.init();
+            } else {
+                console.error('CRQR Overview components not found');
+
+                // Show error message in containers
+                const summaryContainer = document.getElementById('overview-summary');
+                const chartContainer = document.getElementById('overview-chart');
+
+                const errorMsg = '<div class="bg-red-50 border-l-4 border-red-400 p-4"><p class="text-sm text-red-700">Error: CRQR components not loaded</p></div>';
+
+                if (summaryContainer) summaryContainer.innerHTML = errorMsg;
+                if (chartContainer) chartContainer.innerHTML = errorMsg;
+            }
+        }, 300);
+    });
+</script>

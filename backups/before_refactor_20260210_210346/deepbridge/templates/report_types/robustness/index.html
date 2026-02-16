@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ report_type|capitalize }} Report: {{ report_data.model_name }}</title>
+    
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+    
+    <!-- External dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    
+    <!-- CSS content from renderer -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container {{ report_type }}-report">
+        <!-- Header -->
+        {% include 'common/header.html' %}
+
+        <!-- Summary section -->
+        {% include 'report_types/' + report_type + '/partials/summary.html' %}
+
+        <div class="report-content">
+            <!-- Tab navigation -->
+            {% with 
+                tabs=[
+                    {'id': 'overview', 'title': 'Overview'},
+                    {'id': 'details', 'title': 'Details'},
+                    {'id': 'boxplot', 'title': 'Box Plot'},
+                    {'id': 'feature_impact', 'title': 'Feature Importance'},
+                    {'id': 'importance_comparison', 'title': 'Importance Comparison'}
+                ]
+            %}
+            {% include 'common/navigation.html' %}
+            {% endwith %}
+
+            <!-- Tab content -->
+            <div id="overview" class="tab-content active">
+                {% include 'report_types/' + report_type + '/partials/overview.html' %}
+            </div>
+            
+            <div id="details" class="tab-content">
+                {% include 'report_types/' + report_type + '/partials/details.html' %}
+            </div>
+            
+            <div id="boxplot" class="tab-content">
+                {% include 'report_types/' + report_type + '/partials/boxplot.html' %}
+            </div>
+            
+            <div id="feature_impact" class="tab-content">
+                {% include 'report_types/' + report_type + '/partials/features.html' %}
+            </div>
+            
+            <div id="importance_comparison" class="tab-content">
+                {% include 'report_types/' + report_type + '/partials/importance_comparison_fixed.html' %}
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        {% include 'common/footer.html' %}
+    </div>
+
+    <!-- Report data initialization -->
+    <script>
+        // Make report data available to all components
+        window.reportData = {{ report_data_json|safe }};
+        
+        // Parse chart data if available
+        if (window.reportData && window.reportData.chart_data_json) {
+            try {
+                // Clean JSON data before parsing
+                const jsonStr = window.reportData.chart_data_json;
+                let cleanJson = jsonStr;
+                
+                // Fix trailing commas
+                cleanJson = cleanJson.replace(/,(\s*})/g, '$1');
+                cleanJson = cleanJson.replace(/,(\s*\])/g, '$1');
+                
+                // Handle special values
+                cleanJson = cleanJson.replace(/\bNaN\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bInfinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\b-Infinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bundefined\b/g, 'null');
+                
+                // Parse the cleaned JSON
+                window.chartData = JSON.parse(cleanJson);
+                console.log("Chart data loaded successfully");
+            } catch (e) {
+                console.error("Error parsing chart data:", e);
+                window.chartData = {
+                    perturbation_levels: [],
+                    feature_importance: {},
+                    model_feature_importance: {},
+                    boxplot_data: { models: [] }
+                };
+            }
+        }
+        
+        // Basic report configuration
+        window.reportConfig = {
+            reportType: '{{ report_type }}',
+            modelName: '{{ report_data.model_name }}',
+            feature_importance: {{ report_data.feature_importance|tojson|default('{}') }},
+            model_feature_importance: {{ report_data.model_feature_importance|tojson|default('{}') }},
+            feature_subset: {{ report_data.feature_subset|tojson|default('[]') }}
+        };
+    </script>
+    
+    <!-- All scripts combined from renderer -->
+    <script>
+        {{ js_content }}
+    </script>
+    
+    <!-- Inline boxplot code -->
+    <script>
+        {{ inline_boxplot_js }}
+    </script>
+</body>
+</html>

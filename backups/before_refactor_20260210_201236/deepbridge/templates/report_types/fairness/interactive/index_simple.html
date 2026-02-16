@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fairness Analysis Report - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content|safe }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">Fairness Analysis Report</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Protected Attributes:</strong> {{ total_attributes }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Fairness Score -->
+        <div class="section fairness-score-section" style="text-align: center; padding: 30px; border-radius: 8px; margin: 20px 0;">
+            <h2 class="fairness-score-title" style="margin-bottom: 10px;">Overall Fairness Score</h2>
+            <div class="fairness-score {% if overall_fairness_score >= 0.9 %}excellent{% elif overall_fairness_score >= 0.8 %}good{% elif overall_fairness_score >= 0.6 %}moderate{% else %}critical{% endif %}">
+                {{ "%.3f"|format(overall_fairness_score) }}
+            </div>
+            <p class="fairness-score-assessment" style="font-size: 1.2em; margin: 10px 0;">{{ assessment }}</p>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Overall Score</span>
+                <span class="metric-card__value">{{ "%.3f"|format(overall_fairness_score) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Protected Attributes</span>
+                <span class="metric-card__value">{{ total_attributes }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Warnings</span>
+                <span class="metric-card__value" style="color: #f39c12;">{{ total_warnings }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Critical Issues</span>
+                <span class="metric-card__value" style="color: #e74c3c;">{{ total_critical }}</span>
+            </div>
+        </div>
+
+        <!-- Issues Section (if any) -->
+        {% if total_critical > 0 or total_warnings > 0 %}
+        <div class="section" style="margin: 30px 0;">
+            <h2 class="section__title">Issues Found</h2>
+
+            {% if critical_issues %}
+            <div style="margin: 20px 0;">
+                <h3 style="color: #e74c3c;">Critical Issues ({{ total_critical }})</h3>
+                <ul class="issue-list">
+                    {% for issue in critical_issues %}
+                    <li class="issue-item critical">{{ issue }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if warnings %}
+            <div style="margin: 20px 0;">
+                <h3 style="color: #f39c12;">Warnings ({{ total_warnings }})</h3>
+                <ul class="issue-list">
+                    {% for warning in warnings %}
+                    <li class="issue-item warning">{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="pretrain">Pre-Training</button>
+            <button class="tab-button" data-tab="posttrain">Post-Training</button>
+            <button class="tab-button" data-tab="complementary">Complementary</button>
+        </div>
+
+        <!-- Tab Content -->
+        <!-- OVERVIEW TAB -->
+        <div id="overview" class="tab-content active">
+            <!-- Dataset Overview Section -->
+            <div class="section" style="margin-bottom: 30px;">
+                <h2 class="section__title" style="color: #2c3e50; margin-bottom: 20px;">📊 Dataset Overview</h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                        <h3 style="color: #34495e; margin-bottom: 10px; font-size: 0.9em; text-transform: uppercase;">Sample Size</h3>
+                        <p style="font-size: 2em; font-weight: bold; color: #3498db; margin: 0;">{{ dataset_info.total_samples|default(0)|int|format_number }}</p>
+                        <p style="color: #7f8c8d; margin: 5px 0 0 0; font-size: 0.9em;">total observations</p>
+                    </div>
+
+                    <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                        <h3 style="color: #34495e; margin-bottom: 10px; font-size: 0.9em; text-transform: uppercase;">Target Distribution</h3>
+                        {% if dataset_info.target_distribution %}
+                            {% for class_label, class_data in dataset_info.target_distribution.items() %}
+                            <p style="margin: 5px 0; color: #2c3e50;">
+                                <strong style="color: #34495e;">Class {{ class_label }}:</strong>
+                                <span style="color: #2c3e50;">{{ class_data.count|format_number }}</span>
+                                <span style="color: #3498db; font-weight: bold;">({{ "%.1f"|format(class_data.percentage) }}%)</span>
+                            </p>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: #95a5a6;">No target distribution available</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Target Distribution Chart -->
+                {% if dataset_info.target_distribution %}
+                <div class="chart-container" style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid #e0e0e0;">
+                    <div id="chart-target-distribution"></div>
+                </div>
+                {% endif %}
+
+                <!-- Protected Attributes Summary -->
+                <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid #e0e0e0;">
+                    <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.2em;">Protected Attributes Distribution</h3>
+                    {% if dataset_info.protected_attributes_distribution %}
+                        {% for attr_name, attr_data in dataset_info.protected_attributes_distribution.items() %}
+                        <div style="margin-bottom: 20px; padding-bottom: 20px; {% if not loop.last %}border-bottom: 2px solid #e0e0e0;{% endif %}">
+                            <h4 style="color: #2c3e50; margin-bottom: 10px; font-weight: bold; font-size: 1.1em;">{{ attr_name|capitalize|replace('_', ' ')|title }}</h4>
+                            <p style="color: #34495e; margin-bottom: 12px;">
+                                <strong style="color: #2c3e50;">Unique Values:</strong>
+                                <span style="background: #3498db; padding: 3px 10px; border-radius: 12px; color: #ffffff; font-weight: bold; font-size: 0.9em;">{{ attr_data.unique_values }}</span>
+                            </p>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+                                {% for value, value_data in attr_data.distribution.items() %}
+                                <div style="padding: 12px 15px; background: #ffffff; border: 2px solid #3498db; border-radius: 6px; box-shadow: 0 2px 4px rgba(52,152,219,0.1);">
+                                    <div style="color: #2c3e50; font-weight: bold; margin-bottom: 5px; font-size: 1em;">{{ value }}</div>
+                                    <div style="color: #34495e; font-size: 0.95em;">
+                                        <span style="color: #2c3e50; font-weight: 600;">{{ value_data.count|format_number }}</span>
+                                        <span style="color: #3498db; font-weight: bold;">({{ "%.1f"|format(value_data.percentage) }}%)</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: #95a5a6;">No protected attributes distribution available</p>
+                    {% endif %}
+                </div>
+
+                <!-- Protected Attributes Distribution Chart -->
+                <div class="chart-container" style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                    <div id="chart-protected-attrs-distribution"></div>
+                </div>
+            </div>
+
+            <!-- Test Configuration Section -->
+            <div class="section" style="margin-bottom: 30px;">
+                <h2 class="section__title" style="color: #2c3e50; margin-bottom: 20px;">⚙️ Test Configuration</h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div style="background: #ffffff; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #e67e22;">
+                        <h4 style="color: #34495e; margin-bottom: 10px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px;">Configuration Profile</h4>
+                        <p style="font-size: 1.6em; font-weight: bold; color: #e67e22; margin: 0;">{{ test_config.config_name|upper|default('CUSTOM') }}</p>
+                    </div>
+
+                    <div style="background: #ffffff; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #3498db;">
+                        <h4 style="color: #34495e; margin-bottom: 10px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px;">Metrics Tested</h4>
+                        <p style="font-size: 1.6em; font-weight: bold; color: #3498db; margin: 0;">{{ test_config.metrics_tested|length|default(0) }}</p>
+                        <p style="color: #7f8c8d; margin: 5px 0 0 0; font-size: 0.9em;">metrics</p>
+                    </div>
+
+                    <div style="background: #ffffff; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #27ae60;">
+                        <h4 style="color: #34495e; margin-bottom: 10px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px;">Features Enabled</h4>
+                        <p style="margin: 5px 0; font-size: 0.95em; color: {% if test_config.pretrain_enabled %}#27ae60{% else %}#95a5a6{% endif %}; font-weight: {% if test_config.pretrain_enabled %}bold{% else %}normal{% endif %};">
+                            <span style="font-size: 1.2em;">{{ '✓' if test_config.pretrain_enabled else '✗' }}</span> Pre-training Metrics
+                        </p>
+                        <p style="margin: 5px 0; font-size: 0.95em; color: {% if test_config.confusion_matrix_enabled %}#27ae60{% else %}#95a5a6{% endif %}; font-weight: {% if test_config.confusion_matrix_enabled %}bold{% else %}normal{% endif %};">
+                            <span style="font-size: 1.2em;">{{ '✓' if test_config.confusion_matrix_enabled else '✗' }}</span> Confusion Matrix
+                        </p>
+                        <p style="margin: 5px 0; font-size: 0.95em; color: {% if test_config.threshold_analysis_enabled %}#27ae60{% else %}#95a5a6{% endif %}; font-weight: {% if test_config.threshold_analysis_enabled %}bold{% else %}normal{% endif %};">
+                            <span style="font-size: 1.2em;">{{ '✓' if test_config.threshold_analysis_enabled else '✗' }}</span> Threshold Analysis
+                        </p>
+                    </div>
+                </div>
+
+                {% if test_config.age_grouping_enabled %}
+                <div style="background: #ffffff; padding: 18px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; font-weight: bold;">📅 Age Grouping Configuration</h4>
+                    <p style="margin-bottom: 15px; color: #2c3e50;">
+                        <strong style="color: #34495e;">Strategy:</strong>
+                        <span style="background: #3498db; padding: 5px 12px; border-radius: 4px; color: #ffffff; font-weight: bold;">{{ test_config.age_grouping_strategy|upper }}</span>
+                    </p>
+
+                    {% if test_config.age_grouping_details %}
+                        {% for detail in test_config.age_grouping_details %}
+                        <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
+                            <p style="margin: 8px 0; color: #2c3e50;">
+                                <strong style="color: #34495e;">Attribute:</strong>
+                                <code style="background: #e74c3c; padding: 3px 8px; border-radius: 3px; color: #ffffff; font-weight: bold;">{{ detail.attribute }}</code>
+                            </p>
+                            <p style="margin: 8px 0; color: #2c3e50;">
+                                <strong style="color: #34495e;">Original Range:</strong>
+                                <span style="color: #34495e; font-weight: 600;">{{ detail.original_range }}</span>
+                            </p>
+                            <p style="margin: 8px 0 5px 0; color: #2c3e50; font-weight: bold;">Groups Created:</p>
+                            <ul style="margin: 5px 0; padding-left: 25px; list-style-type: none;">
+                                {% for group in detail.groups %}
+                                <li style="margin: 8px 0; padding: 8px 12px; background: #ffffff; border-radius: 4px; border-left: 4px solid #27ae60; color: #2c3e50; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    <span style="color: #27ae60; font-weight: bold;">▸</span> {{ group }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div style="background: #ffffff; padding: 18px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; font-weight: bold;">📋 Metrics Breakdown</h4>
+                    <div style="columns: 2; column-gap: 25px;">
+                        {% for metric in test_config.metrics_tested %}
+                        <p style="margin: 6px 0; padding: 6px 0; break-inside: avoid; color: #2c3e50; font-weight: 500;">
+                            <span style="color: #3498db; font-weight: bold; font-size: 1.1em;">•</span> {{ metric|replace('_', ' ')|title }}
+                        </p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRE-TRAINING TAB -->
+        <div id="pretrain" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Pre-Training Metrics (Model-Independent)</h2>
+                <p>These metrics evaluate bias in the data <strong>before training</strong>. They don't depend on the model, only on data and protected attributes.</p>
+
+                <div style="margin: 30px 0;">
+                    <h3 style="color: #2c3e50;">4 Implemented Metrics:</h3>
+                    <ul style="font-size: 1.05em; line-height: 1.8; color: #34495e;">
+                        <li><strong>Class Balance (BCL)</strong> - Sample imbalance between groups</li>
+                        <li><strong>Concept Balance (BCO)</strong> - Difference in positive class rate</li>
+                        <li><strong>KL Divergence</strong> - Difference in label distributions</li>
+                        <li><strong>JS Divergence</strong> - Symmetric version of KL Divergence</li>
+                    </ul>
+                </div>
+
+                <!-- FASE 2: Pre-Training Visualizations -->
+
+                <!-- 1. Pre-Training Metrics Overview -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-pretrain-metrics-overview"></div>
+                </div>
+
+                <!-- 2. Group Size Distribution -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-pretrain-group-sizes"></div>
+                </div>
+
+                <!-- 3. Concept Balance - Positive Class Rate -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-pretrain-concept-balance"></div>
+                </div>
+
+                <!-- Detailed Metrics by Attribute -->
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                    <h3 style="color: white; margin-bottom: 20px;">📋 Detailed Metrics by Protected Attribute</h3>
+                </div>
+
+                {% for attr in protected_attributes %}
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 {{ attr.name|capitalize }}</h3>
+
+                    {% if attr.pretrain_metrics %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; margin-top: 15px;">
+                        {% for metric in attr.pretrain_metrics %}
+                        <div class="metric-card status-{{ metric.status }}">
+                            <div class="metric-name">{{ metric.name }}</div>
+                            <div class="metric-value">{{ "%.4f"|format(metric.value) }}</div>
+                            <div class="metric-interpretation">{{ metric.interpretation }}</div>
+                            {% if metric.groups %}
+                            <div style="margin-top: 10px; font-size: 0.9em; color: #7f8c8d;">
+                                <strong>Groups:</strong>
+                                {% for group_name, group_info in metric.groups.items() %}
+                                <div style="margin: 5px 0;">
+                                    {{ group_name }}: {{ group_info.count }} ({{ "%.1f"|format(group_info.percentage) }}%)
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="color: #7f8c8d; font-style: italic;">Nenhuma métrica pré-processamento disponível para este atributo.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- POST-TRAINING TAB (Main 5 Metrics) -->
+        <div id="posttrain" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Main Post-Training Metrics (Compliance-Critical)</h2>
+                <p>The <strong>5 most critical metrics</strong> for legal and regulatory compliance. All include minimum representativity filter (MIN_REPRESENTATION_PCT = 2.0%).</p>
+
+                <div style="margin: 30px 0; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                    <h3 style="color: #856404; margin-top: 0;">⚖️ 5 Critical Compliance Metrics:</h3>
+                    <ol style="font-size: 1.05em; line-height: 1.8; color: #856404;">
+                        <li><strong>Statistical Parity</strong> - Equal positive prediction rate (EEOC 80% rule)</li>
+                        <li><strong>Equal Opportunity</strong> - Equal TPR between groups (fair benefit)</li>
+                        <li><strong>Equalized Odds</strong> - Equal TPR and FPR (more restrictive)</li>
+                        <li><strong>Disparate Impact ⚖️</strong> - <span style="color: #e74c3c;">LEGAL CRITICAL</span> - Ratio ≥ 0.8 (EEOC)</li>
+                        <li><strong>False Negative Rate Difference</strong> - Miss rate between groups</li>
+                    </ol>
+                </div>
+
+                <!-- FASE 1: Post-Training Visualizations -->
+
+                <!-- 1. Disparate Impact Gauge (CRITICAL) -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-posttrain-disparate-impact"></div>
+                </div>
+
+                <!-- 2. Compliance Status Matrix -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-posttrain-status-matrix"></div>
+                </div>
+
+                <!-- 3. Statistical Parity Disparity Comparison -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-posttrain-disparity-comparison"></div>
+                </div>
+
+                <!-- Detailed Metrics by Attribute -->
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                    <h3 style="color: white; margin-bottom: 20px;">📋 Detailed Metrics by Protected Attribute</h3>
+                </div>
+
+                {% for attr in protected_attributes %}
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 {{ attr.name|capitalize }}</h3>
+
+                    {% if attr.posttrain_main %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; margin-top: 15px;">
+                        {% for metric in attr.posttrain_main %}
+                        <div class="metric-card status-{{ metric.status }}">
+                            <div class="metric-name">
+                                {{ metric.name }}
+                                {% if 'disparate_impact' in metric.name.lower() %}
+                                <span style="color: #e74c3c; font-size: 0.8em;">⚖️ LEGAL</span>
+                                {% endif %}
+                            </div>
+                            <div class="metric-value">
+                                {% if metric.disparity is defined and metric.disparity is not none %}
+                                Disparity: {{ "%.4f"|format(metric.disparity) }}<br>
+                                {% endif %}
+                                {% if metric.ratio is defined and metric.ratio is not none %}
+                                Ratio: {{ "%.4f"|format(metric.ratio) }}
+                                {% endif %}
+                                {% if metric.value is defined and metric.value is not none and metric.disparity is not defined %}
+                                Value: {{ "%.4f"|format(metric.value) }}
+                                {% endif %}
+                            </div>
+                            <div class="metric-interpretation">{{ metric.interpretation }}</div>
+                            {% if metric.testable_groups %}
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ecf0f1; font-size: 0.9em;">
+                                <strong>Testable Groups (≥ {{ metric.min_representation_pct }}%):</strong> {{ metric.testable_groups|length }}
+                                {% if metric.excluded_groups %}
+                                <br><strong style="color: #e67e22;">Excluded Groups (< {{ metric.min_representation_pct }}%):</strong> {{ metric.excluded_groups|length }}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="color: #7f8c8d; font-style: italic;">No main post-training metrics available for this attribute.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- COMPLEMENTARY TAB (6 Additional Metrics) -->
+        <div id="complementary" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Complementary Metrics</h2>
+                <p>6 additional metrics for in-depth fairness analysis. Complement the main metrics.</p>
+
+                <div style="margin: 30px 0;">
+                    <h3 style="color: #2c3e50;">6 Complementary Metrics:</h3>
+                    <ul style="font-size: 1.05em; line-height: 1.8; color: #34495e;">
+                        <li><strong>Conditional Acceptance</strong> - Precision/PPV by group</li>
+                        <li><strong>Conditional Rejection</strong> - NPV by group</li>
+                        <li><strong>Precision Difference</strong> - Precision difference between groups</li>
+                        <li><strong>Accuracy Difference</strong> - Accuracy difference between groups</li>
+                        <li><strong>Treatment Equality</strong> - Balance FN/FP ratio</li>
+                        <li><strong>Entropy Index</strong> - Individual fairness (doesn't use sensitive attributes)</li>
+                    </ul>
+                </div>
+
+                <!-- FASE 3: Complementary Visualizations -->
+
+                <!-- 1. Complementary Metrics Radar -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-complementary-radar"></div>
+                </div>
+
+                <!-- 2. Precision & Accuracy Comparison -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-complementary-precision-accuracy"></div>
+                </div>
+
+                <!-- 3. Treatment Equality Scatter -->
+                <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div id="chart-complementary-treatment-equality"></div>
+                </div>
+
+                <!-- Detailed Metrics by Attribute -->
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                    <h3 style="color: white; margin-bottom: 20px;">📋 Detailed Metrics by Protected Attribute</h3>
+                </div>
+
+                {% for attr in protected_attributes %}
+                <div class="attribute-section">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 {{ attr.name|capitalize }}</h3>
+
+                    {% if attr.posttrain_complementary %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; margin-top: 15px;">
+                        {% for metric in attr.posttrain_complementary %}
+                        <div class="metric-card status-{{ metric.status }}">
+                            <div class="metric-name">{{ metric.name }}</div>
+                            <div class="metric-value">
+                                {% if metric.value is defined and metric.value is not none %}
+                                {{ "%.4f"|format(metric.value) }}
+                                {% elif metric.disparity is defined and metric.disparity is not none %}
+                                Disparity: {{ "%.4f"|format(metric.disparity) }}
+                                {% elif metric.ratio is defined and metric.ratio is not none %}
+                                Ratio: {{ "%.4f"|format(metric.ratio) }}
+                                {% endif %}
+                            </div>
+                            <div class="metric-interpretation">{{ metric.interpretation }}</div>
+                            {% if metric.testable_groups %}
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ecf0f1; font-size: 0.9em;">
+                                <strong>Testable Groups:</strong> {{ metric.testable_groups|length }}
+                                {% if metric.excluded_groups %}
+                                <br><strong style="color: #e67e22;">Excluded:</strong> {{ metric.excluded_groups|length }}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="color: #7f8c8d; font-style: italic;">No complementary metrics available for this attribute.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {% if has_confusion_matrix %}
+                <div class="section" style="margin-top: 40px;">
+                    <h2 class="section__title">Confusion Matrices by Group</h2>
+                    <p>Detailed breakdown of prediction outcomes for each demographic group.</p>
+                    <div class="chart-container">
+                        <div id="chart-confusion-matrices"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated by DeepBridge Fairness Suite</p>
+            <p>Report follows EEOC and ECOA fairness standards</p>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript -->
+    <script>
+        {{ js_content|safe }}
+
+        // Parse report data
+        const reportData = {{ report_data_json|safe }};
+        console.log('Report data loaded:', reportData);
+
+        // Helper function to render Plotly charts with full width
+        function renderPlotlyChart(elementId, chartJson) {
+            try {
+                const chartData = JSON.parse(chartJson);
+
+                // Debug for Treatment Equality chart
+                if (elementId === 'chart-complementary-treatment-equality') {
+                    console.log('🎨 Rendering Treatment Equality Chart:');
+                    console.log('  - Element:', document.getElementById(elementId));
+                    console.log('  - Chart data traces:', chartData.data?.length);
+                    console.log('  - Layout title:', chartData.layout?.title);
+                }
+
+                // Ensure layout uses autosize and full width
+                if (!chartData.layout) {
+                    chartData.layout = {};
+                }
+                chartData.layout.autosize = true;
+
+                // Remove any fixed width
+                delete chartData.layout.width;
+
+                // Add margin if not present
+                if (!chartData.layout.margin) {
+                    chartData.layout.margin = { l: 60, r: 40, t: 80, b: 60 };
+                }
+
+                // Render with responsive config
+                Plotly.newPlot(elementId, chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false
+                }).then(function() {
+                    if (elementId === 'chart-complementary-treatment-equality') {
+                        console.log('  ✓ Plotly.newPlot completed successfully');
+                    }
+                    // Force autoscale after render to fill container width
+                    setTimeout(function() {
+                        Plotly.Plots.resize(elementId);
+                        if (elementId === 'chart-complementary-treatment-equality') {
+                            console.log('  ✓ Plotly.Plots.resize completed');
+                        }
+                    }, 100);
+                }).catch(function(err) {
+                    if (elementId === 'chart-complementary-treatment-equality') {
+                        console.error('  ❌ Error in Plotly.newPlot:', err);
+                    }
+                });
+            } catch (e) {
+                console.error(`Error rendering chart ${elementId}:`, e);
+                if (elementId === 'chart-complementary-treatment-equality') {
+                    console.error('  Stack trace:', e.stack);
+                }
+            }
+        }
+
+        // Render charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Metrics Comparison Chart
+            if (reportData.charts && reportData.charts.metrics_comparison) {
+                renderPlotlyChart('chart-metrics-comparison', reportData.charts.metrics_comparison);
+            }
+
+            // Fairness Radar Chart
+            if (reportData.charts && reportData.charts.fairness_radar) {
+                renderPlotlyChart('chart-fairness-radar', reportData.charts.fairness_radar);
+            }
+
+            // Threshold Analysis Chart
+            if (reportData.charts && reportData.charts.threshold_analysis) {
+                renderPlotlyChart('chart-threshold-analysis', reportData.charts.threshold_analysis);
+            }
+
+            // Confusion Matrices Chart
+            if (reportData.charts && reportData.charts.confusion_matrices) {
+                renderPlotlyChart('chart-confusion-matrices', reportData.charts.confusion_matrices);
+            }
+
+            // Target Distribution Chart (NEW)
+            if (reportData.charts && reportData.charts.target_distribution) {
+                renderPlotlyChart('chart-target-distribution', reportData.charts.target_distribution);
+            }
+
+            // Protected Attributes Distribution Chart (NEW)
+            if (reportData.charts && reportData.charts.protected_attributes_distribution) {
+                renderPlotlyChart('chart-protected-attrs-distribution', reportData.charts.protected_attributes_distribution);
+            }
+
+            // FASE 1: Post-Training Charts (NEW)
+
+            // 1. Disparate Impact Gauge (CRITICAL)
+            if (reportData.charts && reportData.charts.posttrain_disparate_impact_gauge) {
+                renderPlotlyChart('chart-posttrain-disparate-impact', reportData.charts.posttrain_disparate_impact_gauge);
+            }
+
+            // 2. Compliance Status Matrix
+            if (reportData.charts && reportData.charts.posttrain_status_matrix) {
+                renderPlotlyChart('chart-posttrain-status-matrix', reportData.charts.posttrain_status_matrix);
+            }
+
+            // 3. Statistical Parity Disparity Comparison
+            if (reportData.charts && reportData.charts.posttrain_disparity_comparison) {
+                renderPlotlyChart('chart-posttrain-disparity-comparison', reportData.charts.posttrain_disparity_comparison);
+            }
+
+            // FASE 2: Pre-Training Charts (NEW)
+
+            // 1. Pre-Training Metrics Overview
+            if (reportData.charts && reportData.charts.pretrain_metrics_overview) {
+                renderPlotlyChart('chart-pretrain-metrics-overview', reportData.charts.pretrain_metrics_overview);
+            }
+
+            // 2. Group Size Distribution
+            if (reportData.charts && reportData.charts.pretrain_group_sizes) {
+                renderPlotlyChart('chart-pretrain-group-sizes', reportData.charts.pretrain_group_sizes);
+            }
+
+            // 3. Concept Balance Chart
+            if (reportData.charts && reportData.charts.pretrain_concept_balance) {
+                renderPlotlyChart('chart-pretrain-concept-balance', reportData.charts.pretrain_concept_balance);
+            }
+
+            // FASE 3: Complementary Charts (NEW)
+
+            // 1. Complementary Metrics Radar
+            if (reportData.charts && reportData.charts.complementary_radar) {
+                renderPlotlyChart('chart-complementary-radar', reportData.charts.complementary_radar);
+            }
+
+            // 2. Precision & Accuracy Comparison
+            if (reportData.charts && reportData.charts.complementary_precision_accuracy) {
+                renderPlotlyChart('chart-complementary-precision-accuracy', reportData.charts.complementary_precision_accuracy);
+            }
+
+            // 3. Treatment Equality Scatter
+            if (reportData.charts && reportData.charts.complementary_treatment_equality) {
+                console.log('🔍 DEBUG Treatment Equality Chart:');
+                console.log('  - Chart ID: chart-complementary-treatment-equality');
+                console.log('  - Chart data length:', reportData.charts.complementary_treatment_equality.length);
+                console.log('  - Div element exists:', document.getElementById('chart-complementary-treatment-equality') !== null);
+
+                try {
+                    const chartData = JSON.parse(reportData.charts.complementary_treatment_equality);
+                    console.log('  - Number of traces:', chartData.data?.length);
+                    chartData.data?.forEach((trace, i) => {
+                        if (trace.type === 'scatter' && trace.name !== 'Perfect Balance (FN=FP)') {
+                            console.log(`  - Trace ${i} (${trace.name}): ${trace.x?.length || 0} points`);
+                        }
+                    });
+                } catch (e) {
+                    console.error('  - Error parsing chart JSON:', e);
+                }
+
+                renderPlotlyChart('chart-complementary-treatment-equality', reportData.charts.complementary_treatment_equality);
+                console.log('  ✓ renderPlotlyChart called');
+            } else {
+                console.warn('❌ Treatment Equality chart data not found in reportData');
+            }
+        });
+
+        // Tab functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show selected tab content
+                document.getElementById(tabName).classList.add('active');
+
+                // Add active class to clicked button
+                this.classList.add('active');
+
+                // Resize all Plotly charts in the newly visible tab
+                setTimeout(function() {
+                    const activeTab = document.getElementById(tabName);
+                    if (activeTab) {
+                        const charts = activeTab.querySelectorAll('[id^="chart-"]');
+                        charts.forEach(function(chartDiv) {
+                            if (chartDiv.id && window.Plotly) {
+                                try {
+                                    Plotly.Plots.resize(chartDiv.id);
+                                } catch (e) {
+                                    console.log('Could not resize chart:', chartDiv.id);
+                                }
+                            }
+                        });
+                    }
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

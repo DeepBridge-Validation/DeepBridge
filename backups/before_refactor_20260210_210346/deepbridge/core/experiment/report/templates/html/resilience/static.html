@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Resilience Report (Static) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Overview</h2>
+
+        <div id="metrics-overview">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Resilience Score</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.resilience_score >= 0.7 else 'metric-bad' }}">
+                            {{ data.metrics.resilience_score | format_number(3) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Base Score</h5>
+                        <p class="metric-value">
+                            {{ data.metrics.base_score | format_number(3) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Avg Distribution Shift</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.avg_distribution_shift <= 0.1 else 'metric-bad' }}">
+                            {{ data.metrics.avg_distribution_shift | format_number(3) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Max Performance Gap</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.max_performance_gap <= 0.1 else 'metric-bad' }}">
+                            {{ data.metrics.max_performance_gap | format_percentage(2) }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="summary">
+        <h2>Summary</h2>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0;">Test Configuration</h3>
+            <ul>
+                <li><strong>Distance Metrics:</strong> {{ data.distance_metrics | join(', ') }}</li>
+                <li><strong>Alpha Levels:</strong> {{ data.alphas | join(', ') }}</li>
+                <li><strong>Total Scenarios:</strong> {{ data.shift_results | length }}</li>
+                <li><strong>Metric:</strong> {{ data.metric_name }}</li>
+            </ul>
+
+            <h3>Performance</h3>
+            <ul>
+                <li><strong>Average Performance Gap:</strong> {{ data.metrics.avg_performance_gap | format_percentage(2) }}</li>
+                {% if data.metrics.most_affected_feature %}
+                <li><strong>Most Affected Feature:</strong> {{ data.metrics.most_affected_feature }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </section>
+
+    {% if data.feature_importance and data.feature_importance | length > 0 %}
+        <section id="feature-importance">
+            <h2>Feature Importance (Top 10)</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Feature Name</th>
+                        <th>Importance</th>
+                        <th style="width: 40%;">Visual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feature in data.feature_importance[:10] %}
+                        <tr>
+                            <td>{{ feature.rank }}</td>
+                            <td>{{ feature.feature_name }}</td>
+                            <td>{{ feature.importance | format_number(4) }}</td>
+                            <td>
+                                <div style="background: #e0e0e0; width: 100%; height: 20px; border-radius: 3px; overflow: hidden;">
+                                    <div style="background: #3498db; height: 100%; width: {{ (feature.importance / data.feature_importance[0].importance * 100) | round(1) }}%;"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <section id="detailed-results">
+        <h2>Distribution Shift Results by Distance Metric</h2>
+
+        {% for metric in data.distance_metrics %}
+            <h3>{{ metric }}</h3>
+
+            {% set metric_results = data.shift_results | selectattr('distance_metric', 'equalto', metric) | list %}
+
+            {% if metric_results %}
+                <table style="margin-bottom: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Alpha</th>
+                            <th>Feature</th>
+                            <th>Baseline Score</th>
+                            <th>Shifted Score</th>
+                            <th>Performance Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in metric_results %}
+                            <tr>
+                                <td>{{ result.alpha | format_number(2) }}</td>
+                                <td>{{ result.feature_name }}</td>
+                                <td>{{ result.baseline_score | format_number(4) }}</td>
+                                <td>{{ result.shifted_score | format_number(4) }}</td>
+                                <td class="{{ 'metric-good' if result.performance_gap | abs <= 0.05 else 'metric-bad' }}">
+                                    {{ result.performance_gap | format_percentage(2) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p><em>No results for this distance metric.</em></p>
+            {% endif %}
+        {% endfor %}
+    </section>
+{% endblock %}

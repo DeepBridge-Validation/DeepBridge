@@ -1,0 +1,68 @@
+/* Message container styles */
+.message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+/* Loading message */
+.loading-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+}
+
+/* Message icon */
+.message-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+/* Error message */
+.error-message {
+    padding: 15px;
+    text-align: center;
+    color: var(--danger-color);
+    background-color: #fef2f2;
+    border-radius: 4px;
+}
+
+/* No data message */
+.no-data-message {
+    padding: 20px;
+    background-color: var(--light-color);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.no-data-message p {
+    margin: 8px 0;
+    color: #6c757d;
+}
+
+.no-data-message strong {
+    color: #495057;
+}
+
+/* Data unavailable */
+.data-unavailable {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 300px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.data-message {
+    text-align: center;
+    padding: 20px;
+}

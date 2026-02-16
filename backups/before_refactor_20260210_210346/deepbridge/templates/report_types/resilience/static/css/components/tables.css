@@ -1,0 +1,143 @@
+/* Table styles for static resilience report */
+
+.table-container {
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    background: white;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 1rem;
+}
+
+.table-container h3 {
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+}
+
+.table-container th {
+    background-color: var(--light-color);
+    color: var(--secondary-color);
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-light);
+    position: relative;
+}
+
+.table-container th:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.table-container td {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.table-container tr:last-child td {
+    border-bottom: none;
+}
+
+.table-container tr:hover td {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Alternate row styling */
+.table-container tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+/* Table heading for specific types */
+.table-container table.feature-table th:first-child,
+.table-container table.model-table th:first-child {
+    width: 30%;
+}
+
+/* Numeric value styling */
+.table-container td.numeric {
+    text-align: right;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+/* Positive/negative values */
+.positive-value {
+    color: var(--success-color);
+}
+
+.negative-value {
+    color: var(--danger-color);
+}
+
+/* Feature impact table styles */
+.feature-impact-table .impact-high {
+    color: var(--danger-color);
+    font-weight: 500;
+}
+
+.feature-impact-table .impact-medium {
+    color: var(--warning-color);
+    font-weight: 500;
+}
+
+.feature-impact-table .impact-low {
+    color: var(--info-color);
+    font-weight: 500;
+}
+
+/* Progress bars in tables */
+.progress-bar-cell {
+    width: 100px;
+    position: relative;
+}
+
+.progress-bar {
+    height: 6px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+}
+
+.progress-bar-value {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+    .table-container {
+        margin: 1rem 0;
+        padding: 0.75rem;
+    }
+    
+    .table-container th,
+    .table-container td {
+        padding: 0.75rem 1rem;
+    }
+}

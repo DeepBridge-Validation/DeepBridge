@@ -1,0 +1,101 @@
+/*
+ * DeepBridge Reports - Uncertainty Custom Styles
+ *
+ * Layer 3: Report-specific overrides for Uncertainty reports
+ * Modern dark design with rounded borders
+ *
+ * Version: 3.0 (Modern Dark Design)
+ * Date: 2025-10-30
+ */
+
+/* ============================================================================
+   MODERN DARK DESIGN - UNCERTAINTY
+   ============================================================================ */
+
+/* Light background */
+body {
+    background: #ffffff;
+    min-height: 100vh;
+    padding: var(--spacing-xl);
+}
+
+/* Light container */
+.report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    padding: var(--spacing-2xl);
+    color: #333;
+}
+
+/* Modern header - mantém as cores do header original */
+.report-header {
+    text-align: center;
+    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+}
+
+.report-header__title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: white;
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-header__subtitle {
+    font-size: var(--font-size-lg);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.report-header__metadata {
+    margin-top: var(--spacing-md);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Metric cards - tema claro */
+.metric-card {
+    border-left: 4px solid #4287f5;
+}
+
+/* Chart containers - tema claro */
+.chart-container {
+    margin: var(--spacing-xl) 0;
+    width: 100%;
+}
+
+/* Ensure all chart divs take full width */
+.chart-container > div {
+    width: 100% !important;
+}
+
+#chart-overview,
+#chart-coverage,
+#chart-tradeoff,
+#chart-features,
+#chart-calibration,
+#chart-width-distribution {
+    width: 100% !important;
+}
+
+/* Plotly specific - ensure full width */
+.chart-container .plotly,
+.chart-container .js-plotly-plot,
+.chart-container .plot-container,
+.chart-container .svg-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: var(--spacing-md);
+    }
+
+    .report-container {
+        padding: var(--spacing-lg);
+        border-radius: 16px;
+    }
+}

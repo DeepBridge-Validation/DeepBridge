@@ -1,0 +1,730 @@
+<!-- Model Comparison Tab Content -->
+<div class="model-comparison-container">
+    <!-- Model Selector -->
+    <div class="filter-container mb-4">
+        <div class="filter-group">
+            <label class="filter-label">Select Models to Compare:</label>
+            <select id="teacher-selector" class="filter-select">
+                <option value="original">Original Model</option>
+                {% if report_data and report_data.all_models %}
+                {% for model in report_data.all_models %}
+                <option value="{{ loop.index0|default(0) }}">{{ model.config_string|default('Model ' ~ loop.index) }}</option>
+                {% endfor %}
+                {% endif %}
+            </select>
+            <span class="mx-2">vs</span>
+            <select id="student-selector" class="filter-select">
+                <option value="best" selected>Best Student Model</option>
+                {% if report_data and report_data.all_models %}
+                {% for model in report_data.all_models %}
+                <option value="{{ loop.index0|default(0) }}">{{ model.config_string|default('Model ' ~ loop.index) }}</option>
+                {% endfor %}
+                {% endif %}
+            </select>
+            <button class="btn-primary ms-3" onclick="updateComparison()">
+                <i class="fas fa-sync"></i> Update Comparison
+            </button>
+        </div>
+    </div>
+
+    <!-- Architecture Comparison Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-container">
+                <h3><i class="fas fa-microchip"></i> Architecture Comparison</h3>
+                <div class="table-responsive">
+                    <table class="data-table" id="architecture-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Attribute</th>
+                                <th id="teacher-column-header">Teacher Model</th>
+                                <th id="student-column-header">Student Model</th>
+                                <th>Difference</th>
+                            </tr>
+                        </thead>
+                        <tbody id="architecture-tbody">
+                            <tr>
+                                <td><strong>Model Type</strong></td>
+                                <td id="teacher-type">{{ report_data.original_model.model_type|default("Original") }}</td>
+                                <td id="student-type">{{ report_data.best_model.model_type|default("Distilled") }}</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Parameters</strong></td>
+                                <td id="teacher-params">{{ report_data.original_model.parameters|default("100M") }}</td>
+                                <td id="student-params">{{ report_data.best_model.parameters|default("25M") }}</td>
+                                <td class="text-success">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span id="params-reduction">75%</span> reduction
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Model Size (MB)</strong></td>
+                                <td id="teacher-size">{{ report_data.original_model.size_mb|default("400") }}</td>
+                                <td id="student-size">{{ report_data.best_model.size_mb|default("100") }}</td>
+                                <td class="text-success">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span id="size-reduction">300 MB</span> saved
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Inference Time (ms)</strong></td>
+                                <td id="teacher-inference">{{ report_data.original_model.inference_time|default("50") }}</td>
+                                <td id="student-inference">{{ report_data.best_model.inference_time|default("15") }}</td>
+                                <td class="text-success">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span id="speed-improvement">3.3x</span> faster
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Memory Usage (MB)</strong></td>
+                                <td id="teacher-memory">{{ report_data.original_model.memory_usage|default("1024") }}</td>
+                                <td id="student-memory">{{ report_data.best_model.memory_usage|default("256") }}</td>
+                                <td class="text-success">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span id="memory-reduction">75%</span> less
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics Comparison -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-bar"></i> Metrics Comparison</h3>
+                <div id="metrics-bar-chart" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-radar"></i> Performance Radar</h3>
+                <div id="performance-radar-chart" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Metrics Table -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-table"></i> Detailed Metrics Comparison</h3>
+        <div class="table-responsive">
+            <table class="data-table" id="metrics-comparison-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th id="teacher-metrics-header">Teacher Model</th>
+                        <th id="student-metrics-header">Student Model</th>
+                        <th>Difference (%)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="metrics-tbody">
+                    <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td id="teacher-accuracy">{{ "%.2f"|format(report_data.original_model.test_metrics.accuracy|default(0) * 100) }}%</td>
+                        <td id="student-accuracy">{{ "%.2f"|format(report_data.best_model.metrics.test_accuracy|default(0) * 100) }}%</td>
+                        <td id="accuracy-diff">-2.5%</td>
+                        <td><span class="badge bg-success">Acceptable</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Precision</strong></td>
+                        <td id="teacher-precision">{{ "%.2f"|format(report_data.original_model.test_metrics.precision|default(0) * 100) }}%</td>
+                        <td id="student-precision">{{ "%.2f"|format(report_data.best_model.metrics.test_precision|default(0) * 100) }}%</td>
+                        <td id="precision-diff">-1.8%</td>
+                        <td><span class="badge bg-success">Acceptable</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recall</strong></td>
+                        <td id="teacher-recall">{{ "%.2f"|format(report_data.original_model.test_metrics.recall|default(0) * 100) }}%</td>
+                        <td id="student-recall">{{ "%.2f"|format(report_data.best_model.metrics.test_recall|default(0) * 100) }}%</td>
+                        <td id="recall-diff">-2.1%</td>
+                        <td><span class="badge bg-success">Acceptable</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>F1 Score</strong></td>
+                        <td id="teacher-f1">{{ "%.2f"|format(report_data.original_model.test_metrics.f1_score|default(0) * 100) }}%</td>
+                        <td id="student-f1">{{ "%.2f"|format(report_data.best_model.metrics.test_f1_score|default(0) * 100) }}%</td>
+                        <td id="f1-diff">-2.0%</td>
+                        <td><span class="badge bg-success">Acceptable</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>AUC-ROC</strong></td>
+                        <td id="teacher-auc">{{ "%.3f"|format(report_data.original_model.test_metrics.auc_roc|default(0)) }}</td>
+                        <td id="student-auc">{{ "%.3f"|format(report_data.best_model.metrics.test_auc_roc|default(0)) }}</td>
+                        <td id="auc-diff">-1.5%</td>
+                        <td><span class="badge bg-success">Acceptable</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Heatmap Comparison -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-th"></i> Performance Difference Heatmap</h3>
+        <div id="difference-heatmap" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline Comparison -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-history"></i> Training Progress Comparison</h3>
+        <div id="training-timeline-chart" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Selection History -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-list-ul"></i> All Models Ranking</h3>
+        <div class="table-responsive">
+            <table class="data-table" id="all-models-ranking">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Model Configuration</th>
+                        <th>Accuracy</th>
+                        <th>F1 Score</th>
+                        <th>Compression Rate</th>
+                        <th>Speed-up</th>
+                        <th>Overall Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if report_data and report_data.all_models %}
+                    {% for model in report_data.all_models[:10] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ model.config_string|default('Model ' ~ loop.index) }}</td>
+                        <td>{{ "%.2f"|format((model.metrics.test_accuracy|default(0)) * 100) }}%</td>
+                        <td>{{ "%.3f"|format(model.metrics.test_f1_score|default(0)) }}</td>
+                        <td>{{ "%.1f"|format(model.compression_rate|default(1)) }}x</td>
+                        <td>{{ "%.1f"|format(model.speedup|default(1)) }}x</td>
+                        <td>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: {{ model.overall_score|default(50) }}%"></div>
+                            </div>
+                            <small>{{ "%.1f"|format(model.overall_score|default(50)) }}%</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="compareWithModel({{ loop.index0|default(0) }})">
+                                <i class="fas fa-exchange-alt"></i> Compare
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">No models available for comparison</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    background: transparent;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+#all-models-ranking tbody tr {
+    cursor: pointer;
+}
+
+#all-models-ranking tbody tr:hover {
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+</style>
+
+<script>
+// Initialize Model Comparison Tab
+function initializeModelComparisonTab() {
+    console.log('Initializing Model Comparison Tab');
+
+    // Initialize all charts
+    setTimeout(() => {
+        createMetricsBarChart();
+        createPerformanceRadarChart();
+        createDifferenceHeatmap();
+        createTrainingTimeline();
+    }, 100);
+
+    // Setup event listeners
+    setupComparisonListeners();
+}
+
+// Create metrics bar chart
+function createMetricsBarChart() {
+    const chartDiv = document.getElementById('metrics-bar-chart');
+    if (!chartDiv) return;
+
+    const data = window.chartData?.model_comparison || {};
+
+    // Default data if not available
+    const metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC'];
+    const teacherValues = [0.95, 0.93, 0.94, 0.935, 0.98];
+    const studentValues = [0.92, 0.91, 0.92, 0.915, 0.96];
+
+    const trace1 = {
+        x: metrics,
+        y: teacherValues,
+        name: 'Teacher Model',
+        type: 'bar',
+        marker: { color: '#3498db' }
+    };
+
+    const trace2 = {
+        x: metrics,
+        y: studentValues,
+        name: 'Student Model',
+        type: 'bar',
+        marker: { color: '#2ecc71' }
+    };
+
+    const layout = {
+        title: 'Performance Metrics Comparison',
+        barmode: 'group',
+        yaxis: {
+            title: 'Score',
+            range: [0, 1]
+        },
+        xaxis: {
+            title: 'Metrics'
+        },
+        height: 400,
+        showlegend: true,
+        legend: {
+            x: 0,
+            y: 1
+        }
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Create performance radar chart
+function createPerformanceRadarChart() {
+    const chartDiv = document.getElementById('performance-radar-chart');
+    if (!chartDiv) return;
+
+    const categories = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'Speed', 'Compression'];
+
+    const trace1 = {
+        type: 'scatterpolar',
+        r: [95, 93, 94, 93.5, 20, 10],
+        theta: categories,
+        fill: 'toself',
+        name: 'Teacher Model',
+        line: { color: '#3498db' }
+    };
+
+    const trace2 = {
+        type: 'scatterpolar',
+        r: [92, 91, 92, 91.5, 95, 90],
+        theta: categories,
+        fill: 'toself',
+        name: 'Student Model',
+        line: { color: '#2ecc71' }
+    };
+
+    const layout = {
+        title: 'Multi-Metric Performance Comparison',
+        polar: {
+            radialaxis: {
+                visible: true,
+                range: [0, 100]
+            }
+        },
+        height: 400,
+        showlegend: true
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Create difference heatmap
+function createDifferenceHeatmap() {
+    const chartDiv = document.getElementById('difference-heatmap');
+    if (!chartDiv) return;
+
+    const data = window.chartData?.model_comparison?.heatmap || generateMockHeatmapData();
+
+    const trace = {
+        z: data.data || [
+            [0.95, 0.93, 0.94, 0.935, 0.98],
+            [0.92, 0.91, 0.92, 0.915, 0.96],
+            [0.88, 0.87, 0.89, 0.88, 0.93],
+            [0.90, 0.89, 0.91, 0.90, 0.95],
+            [0.91, 0.90, 0.92, 0.91, 0.94]
+        ],
+        x: data.metrics || ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC'],
+        y: data.models || ['Teacher', 'Best Student', 'Student 2', 'Student 3', 'Student 4'],
+        type: 'heatmap',
+        colorscale: 'RdYlGn',
+        reversescale: false,
+        showscale: true,
+        colorbar: {
+            title: 'Score'
+        }
+    };
+
+    const layout = {
+        title: 'Model Performance Heatmap',
+        xaxis: { title: 'Metrics' },
+        yaxis: { title: 'Models' },
+        height: 400
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create training timeline comparison
+function createTrainingTimeline() {
+    const chartDiv = document.getElementById('training-timeline-chart');
+    if (!chartDiv) return;
+
+    const epochs = Array.from({length: 100}, (_, i) => i + 1);
+
+    const trace1 = {
+        x: epochs,
+        y: epochs.map(e => 0.5 + 0.45 * (1 - Math.exp(-e/20))),
+        name: 'Teacher Model',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3498db', width: 2 }
+    };
+
+    const trace2 = {
+        x: epochs,
+        y: epochs.map(e => 0.4 + 0.52 * (1 - Math.exp(-e/15))),
+        name: 'Student Model',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#2ecc71', width: 2 }
+    };
+
+    const trace3 = {
+        x: epochs,
+        y: epochs.map(e => 0.35 + 0.50 * (1 - Math.exp(-e/18))),
+        name: 'Student Model 2',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#e74c3c', width: 2, dash: 'dash' }
+    };
+
+    const layout = {
+        title: 'Training Progress Over Time',
+        xaxis: { title: 'Epoch' },
+        yaxis: { title: 'Accuracy', range: [0, 1] },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Update comparison when models are selected
+function updateComparison() {
+    console.log('Update Comparison clicked');
+
+    try {
+        const teacherSelect = document.getElementById('teacher-selector');
+        const studentSelect = document.getElementById('student-selector');
+
+        if (!teacherSelect || !studentSelect) {
+            console.error('Selectors not found');
+            return;
+        }
+
+        const teacherIdx = teacherSelect.value;
+        const studentIdx = studentSelect.value;
+
+        console.log(`Comparing Teacher: ${teacherIdx} vs Student: ${studentIdx}`);
+
+        // Update table headers
+        const teacherHeader = document.getElementById('teacher-column-header');
+        const studentHeader = document.getElementById('student-column-header');
+
+        if (teacherHeader) {
+            teacherHeader.textContent = teacherSelect.options[teacherSelect.selectedIndex].text;
+        }
+
+        if (studentHeader) {
+            studentHeader.textContent = studentSelect.options[studentSelect.selectedIndex].text;
+        }
+
+        // Update table data
+        updateArchitectureTable(teacherIdx, studentIdx);
+
+        // Trigger chart updates
+        updateChartsWithNewSelection(teacherIdx, studentIdx);
+
+        // Show loading state
+        showLoadingState();
+
+        // Simulate data loading and update
+        setTimeout(() => {
+            hideLoadingState();
+            updateMetricsDisplay(teacherIdx, studentIdx);
+
+            // Show success notification
+            showNotification('Comparison updated successfully!', 'success');
+        }, 500);
+    } catch (error) {
+        console.error('Error in updateComparison:', error);
+        showNotification('Error updating comparison', 'error');
+    }
+}
+
+// Compare with specific model
+function compareWithModel(modelIndex) {
+    const studentSelect = document.getElementById('student-selector');
+    studentSelect.value = modelIndex;
+    updateComparison();
+}
+
+// Update charts with new selection
+function updateChartsWithNewSelection(teacherIdx, studentIdx) {
+    // Re-render charts with new data
+    createMetricsBarChart();
+    createPerformanceRadarChart();
+    createDifferenceHeatmap();
+    createTrainingTimeline();
+}
+
+// Update metrics display
+function updateMetricsDisplay(teacherIdx, studentIdx) {
+    // This would fetch actual data based on selection
+    console.log(`Updating metrics for ${teacherIdx} vs ${studentIdx}`);
+
+    // Calculate differences and update badges
+    const rows = document.querySelectorAll('#metrics-tbody tr');
+    rows.forEach(row => {
+        const diff = row.querySelector('td:nth-child(4)');
+        const status = row.querySelector('td:nth-child(5) span');
+
+        if (diff && status) {
+            const diffValue = parseFloat(diff.textContent);
+            if (Math.abs(diffValue) < 3) {
+                status.className = 'badge bg-success';
+                status.textContent = 'Acceptable';
+            } else if (Math.abs(diffValue) < 5) {
+                status.className = 'badge bg-warning';
+                status.textContent = 'Marginal';
+            } else {
+                status.className = 'badge bg-danger';
+                status.textContent = 'Significant';
+            }
+        }
+    });
+}
+
+// Setup event listeners
+function setupComparisonListeners() {
+    // Add sorting to tables
+    const tables = document.querySelectorAll('.data-table');
+    tables.forEach(table => {
+        const headers = table.querySelectorAll('thead th');
+        headers.forEach((header, index) => {
+            if (index > 0) { // Skip first column
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => sortTable(table, index));
+            }
+        });
+    });
+}
+
+// Sort table function
+function sortTable(table, columnIndex) {
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    const isAscending = table.dataset.sortOrder !== 'asc';
+    table.dataset.sortOrder = isAscending ? 'asc' : 'desc';
+
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+
+        const aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
+        const bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return isAscending ? aNum - bNum : bNum - aNum;
+        }
+
+        return isAscending ?
+            aValue.localeCompare(bValue) :
+            bValue.localeCompare(aValue);
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Loading states
+function showLoadingState() {
+    document.querySelectorAll('.loading').forEach(el => {
+        el.style.display = 'flex';
+    });
+}
+
+function hideLoadingState() {
+    document.querySelectorAll('.loading').forEach(el => {
+        el.style.display = 'none';
+    });
+}
+
+// Update architecture table with new comparison
+function updateArchitectureTable(teacherIdx, studentIdx) {
+    console.log('Updating architecture table');
+
+    // Update table rows with mock data
+    const tableBody = document.querySelector('.architecture-table tbody');
+    if (!tableBody) return;
+
+    // Mock data for demonstration
+    const architectures = {
+        0: { layers: 12, params: '110M', size: '420MB' },
+        1: { layers: 6, params: '65M', size: '250MB' },
+        2: { layers: 4, params: '42M', size: '160MB' }
+    };
+
+    const teacher = architectures[teacherIdx] || architectures[0];
+    const student = architectures[studentIdx] || architectures[1];
+
+    // Update Layers row
+    const layersRow = tableBody.querySelector('tr:nth-child(1)');
+    if (layersRow) {
+        layersRow.children[1].textContent = teacher.layers;
+        layersRow.children[2].textContent = student.layers;
+        const layerDiff = ((student.layers - teacher.layers) / teacher.layers * 100).toFixed(1);
+        const badgeClass = layerDiff < 0 ? 'success' : 'warning';
+        layersRow.children[3].innerHTML = `<span class="badge bg-${badgeClass}">${layerDiff}%</span>`;
+    }
+
+    // Update Parameters row
+    const paramsRow = tableBody.querySelector('tr:nth-child(2)');
+    if (paramsRow) {
+        paramsRow.children[1].textContent = teacher.params;
+        paramsRow.children[2].textContent = student.params;
+    }
+
+    // Update Model Size row
+    const sizeRow = tableBody.querySelector('tr:nth-child(3)');
+    if (sizeRow) {
+        sizeRow.children[1].textContent = teacher.size;
+        sizeRow.children[2].textContent = student.size;
+    }
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.style.zIndex = '9999';
+    let iconClass = 'fas fa-info-circle';
+    if (type === 'success') {
+        iconClass = 'fas fa-check-circle';
+    } else if (type === 'error') {
+        iconClass = 'fas fa-exclamation-circle';
+    }
+
+    notification.innerHTML = `
+        <i class="${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Mock data generator
+function generateMockHeatmapData() {
+    const models = ['Teacher', 'Best Student', 'Student 2', 'Student 3', 'Student 4'];
+    const metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC'];
+    const data = models.map((_, i) =>
+        metrics.map(() => Math.random() * 0.2 + 0.75 - i * 0.02)
+    );
+
+    return { data, models, metrics };
+}
+
+// Expose functions globally for onclick handlers
+window.updateComparison = updateComparison;
+window.initializeModelComparisonTab = initializeModelComparisonTab;
+
+// Auto-initialize if tab is active
+if (document.querySelector('#model-comparison.active')) {
+    document.addEventListener('DOMContentLoaded', initializeModelComparisonTab);
+}
+</script>

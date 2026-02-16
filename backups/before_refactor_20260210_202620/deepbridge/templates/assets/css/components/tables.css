@@ -1,0 +1,87 @@
+/* Table container */
+.table-container {
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Data table */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+.data-table th {
+    background-color: #f5f7fa;
+    color: var(--secondary-color);
+    text-align: left;
+    padding: 12px 15px;
+    font-weight: 600;
+    border-bottom: 2px solid #eaeef2;
+}
+
+.data-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eaeef2;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover td {
+    background-color: #f9fbfd;
+}
+
+/* Striped table */
+.striped-table tr:nth-child(even) td {
+    background-color: #f5f7fa;
+}
+
+.striped-table tr:hover td {
+    background-color: #eef2f7;
+}
+
+/* Table status colors */
+.positive {
+    color: var(--success-color);
+}
+
+.negative {
+    color: var(--danger-color);
+}
+
+.warning {
+    color: var(--warning-color);
+}
+
+/* Table filter */
+.table-filter {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.filter-input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+}

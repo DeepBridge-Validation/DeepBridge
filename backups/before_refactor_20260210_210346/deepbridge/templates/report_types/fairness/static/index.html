@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content|safe }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Assessment:</strong> {{ assessment }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Protected Attributes:</strong> {{ total_attributes }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Warnings:</strong> {{ total_warnings }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Fairness Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(overall_fairness_score|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Protected Attributes</span>
+                <span class="metric-card__value">{{ total_attributes }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Warnings</span>
+                <span class="metric-card__value">{{ total_warnings }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Critical Issues</span>
+                <span class="metric-card__value">{{ total_critical }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Assessment</span>
+                <span class="metric-card__value" style="font-size: 1.2rem;">{{ assessment }}</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="metrics">Fairness Metrics</button>
+            <button class="tab-button" data-tab="groups">Group Analysis</button>
+            {% if has_threshold_analysis %}
+            <button class="tab-button" data-tab="thresholds">Thresholds</button>
+            {% endif %}
+            {% if warnings|length > 0 or critical_issues|length > 0 %}
+            <button class="tab-button" data-tab="issues">Issues</button>
+            {% endif %}
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Fairness Assessment Overview</h2>
+                <p>This report analyzes model fairness across different demographic groups.</p>
+                <div class="chart-container">
+                    <div id="chart-overview"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Protected Attributes</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Attribute</th>
+                                <th>Groups</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attributes-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Fairness Metrics by Group</h2>
+                <p>Comparison of fairness metrics across demographic groups.</p>
+                <div class="chart-container">
+                    <div id="chart-metrics"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Metric Details</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Group</th>
+                                <th>Demographic Parity</th>
+                                <th>Equal Opportunity</th>
+                                <th>Predictive Equality</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="groups" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Group Performance Comparison</h2>
+                <p>Model performance across different demographic groups.</p>
+                <div class="chart-container">
+                    <div id="chart-groups"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Confusion Matrix by Group</h2>
+                <div class="chart-container">
+                    <div id="chart-confusion"></div>
+                </div>
+            </div>
+        </div>
+
+        {% if has_threshold_analysis %}
+        <div id="thresholds" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Threshold Analysis</h2>
+                <p>Impact of decision thresholds on fairness metrics.</p>
+                <div class="chart-container">
+                    <div id="chart-thresholds"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if warnings|length > 0 or critical_issues|length > 0 %}
+        <div id="issues" class="tab-content">
+            {% if critical_issues|length > 0 %}
+            <div class="section">
+                <h2 class="section__title" style="color: #dc3545;">Critical Issues</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Issue</th>
+                                <th>Severity</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="critical-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if warnings|length > 0 %}
+            <div class="section">
+                <h2 class="section__title" style="color: #f39c12;">Warnings</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Warning</th>
+                                <th>Severity</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="warnings-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Report Data -->
+    <script>
+        window.reportData = {{ report_data_json|safe }};
+        console.log('Fairness report data loaded:', window.reportData);
+    </script>
+
+    <!-- Tab Navigation JS -->
+    <script>
+        {{ js_content|safe }}
+    </script>
+
+    <!-- Charts Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const data = window.reportData;
+
+                // Render Overview Chart
+                if (data.charts && data.charts.overview) {
+                    const overviewData = JSON.parse(data.charts.overview);
+                    Plotly.newPlot('chart-overview', overviewData.data, overviewData.layout, {responsive: true});
+                }
+
+                // Render Metrics Chart
+                if (data.charts && data.charts.metrics) {
+                    const metricsData = JSON.parse(data.charts.metrics);
+                    Plotly.newPlot('chart-metrics', metricsData.data, metricsData.layout, {responsive: true});
+                }
+
+                // Render Groups Chart
+                if (data.charts && data.charts.groups) {
+                    const groupsData = JSON.parse(data.charts.groups);
+                    Plotly.newPlot('chart-groups', groupsData.data, groupsData.layout, {responsive: true});
+                }
+
+                // Render Confusion Matrix
+                if (data.charts && data.charts.confusion) {
+                    const confusionData = JSON.parse(data.charts.confusion);
+                    Plotly.newPlot('chart-confusion', confusionData.data, confusionData.layout, {responsive: true});
+                }
+
+                // Render Threshold Analysis
+                if (data.charts && data.charts.thresholds) {
+                    const thresholdsData = JSON.parse(data.charts.thresholds);
+                    Plotly.newPlot('chart-thresholds', thresholdsData.data, thresholdsData.layout, {responsive: true});
+                }
+
+                // Populate Protected Attributes Table
+                if (data.protected_attributes && data.protected_attributes.length > 0) {
+                    const tbody = document.getElementById('attributes-table-body');
+                    data.protected_attributes.forEach(attr => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${attr.name}</td>
+                            <td style="color: #333 !important;">${attr.groups ? attr.groups.join(', ') : 'N/A'}</td>
+                            <td style="color: #333 !important;">${attr.status || 'Analyzed'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Populate Metrics Table (if available)
+                if (data.group_metrics && data.group_metrics.length > 0) {
+                    const tbody = document.getElementById('metrics-table-body');
+                    data.group_metrics.forEach(metric => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${metric.group}</td>
+                            <td style="color: #333 !important;">${metric.demographic_parity ? metric.demographic_parity.toFixed(4) : 'N/A'}</td>
+                            <td style="color: #333 !important;">${metric.equal_opportunity ? metric.equal_opportunity.toFixed(4) : 'N/A'}</td>
+                            <td style="color: #333 !important;">${metric.predictive_equality ? metric.predictive_equality.toFixed(4) : 'N/A'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Populate Critical Issues Table
+                if (data.issues && data.issues.critical && data.issues.critical.length > 0) {
+                    const tbody = document.getElementById('critical-table-body');
+                    data.issues.critical.forEach(issue => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${issue.issue || issue.name}</td>
+                            <td style="color: #dc3545 !important; font-weight: bold;">${issue.severity || 'Critical'}</td>
+                            <td style="color: #333 !important;">${issue.description || issue.message}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Populate Warnings Table
+                if (data.issues && data.issues.warnings && data.issues.warnings.length > 0) {
+                    const tbody = document.getElementById('warnings-table-body');
+                    data.issues.warnings.forEach(warning => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${warning.warning || warning.name}</td>
+                            <td style="color: #f39c12 !important; font-weight: bold;">${warning.severity || 'Warning'}</td>
+                            <td style="color: #333 !important;">${warning.description || warning.message}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                console.log('All fairness charts and tables rendered successfully');
+            } catch (error) {
+                console.error('Error rendering fairness report:', error);
+            }
+        });
+    </script>
+</body>
+</html>

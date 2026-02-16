@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ test_type|capitalize }} Report: {{ model_name }}</title>
+    
+    <!-- Favicon -->
+    {% if favicon %}
+    <link rel="icon" type="image/x-icon" href="{{ favicon }}">
+    {% endif %}
+    
+    <style>
+        {{ css_content }}
+
+        /* CSS Variables */
+        :root {
+            /* Brand colors */
+            --primary-color: #1b78de;       /* Bright blue */
+            --primary-light: #4287f5;       /* Lighter blue for gradients */
+            --primary-color-dark: #1a5fb4;  /* Darker blue for hover states */
+            --secondary-color: #2c3e50;     /* Dark slate */
+
+            /* Semantic colors */
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+
+            /* UI colors */
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --text-color: #333333;
+            --text-secondary: #555555;
+            --text-muted: #6c757d;
+            --border-color: #dddddd;
+            --background-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8f9fa;
+
+            /* Gradients */
+            --header-bg: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+            --primary-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+
+            /* Border radius */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+
+            /* Box shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Base styles */
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header styles */
+        .report-header {
+            color: white;
+            padding: 0;
+            margin-bottom: var(--spacing-xl);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: var(--header-bg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            border-radius: var(--border-radius-md);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 1.5rem;
+        }
+
+        .header-logo {
+            flex: 0 0 auto;
+        }
+
+        .header-logo img {
+            max-height: 60px;
+            max-width: 120px;
+        }
+
+        .header-info {
+            flex: 1;
+        }
+
+        .header-info h1 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .report-subtitle {
+            margin: 0 0 0.75rem 0;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .report-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .metadata-item {
+            padding-right: 1rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .metadata-item:last-child {
+            border-right: none;
+        }
+
+        .metadata-item strong {
+            font-weight: 600;
+        }
+
+        /* Report container */
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+            width: 100%;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: var(--spacing-xl);
+            background-color: var(--bg-card);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-card);
+        }
+
+        .section-title {
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        /* Summary section styles */
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem auto;
+            max-width: 1200px;
+            padding: 0;
+        }
+
+        .summary-card-wrapper {
+            flex: 1 1 300px;
+            min-width: 250px;
+        }
+
+        .score-card {
+            text-align: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .score-label {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .score-gauge {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        .gauge-svg circle {
+            transition: stroke-dasharray 0.5s ease-in-out;
+        }
+
+        .score-metrics {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            width: 100%;
+        }
+
+        .metric-item {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .score-desc {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .score-badge {
+            font-weight: bold;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .excellent {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .good {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .moderate {
+            background-color: var(--warning-color);
+            color: var(--dark-color);
+        }
+
+        .needs-improvement {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .info-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100%;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table td:first-child {
+            width: 50%;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Charts and tables */
+        .chart-container {
+            margin: 1.5rem 0;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-container h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .chart-image-container {
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .chart-image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .full-width-chart {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .no-data-message {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            background-color: var(--light-color);
+            border-radius: var(--border-radius-sm);
+            border: 1px dashed var(--border-color);
+        }
+
+        .table-container {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            background: white;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 1rem;
+        }
+
+        .table-container h3 {
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .table-container table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+        }
+
+        .table-container th {
+            background-color: var(--light-color);
+            color: var(--secondary-color);
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-light);
+            position: relative;
+        }
+
+        .table-container th:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 25%;
+            height: 50%;
+            width: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container td {
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.15s ease;
+        }
+
+        .table-container tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-container tr:hover td {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Alternate row styling */
+        .table-container tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        /* Table heading for specific types */
+        .table-container table.feature-table th:first-child,
+        .table-container table.model-table th:first-child {
+            width: 30%;
+        }
+
+        /* Numeric value styling */
+        .table-container td.numeric {
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            padding: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            background-color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .header-logo {
+                margin-bottom: 1rem;
+            }
+
+            .report-metadata {
+                justify-content: center;
+            }
+
+            .summary-card-wrapper {
+                flex: 1 1 100%;
+            }
+
+            .report-container {
+                padding: var(--spacing-md);
+            }
+
+            .section {
+                padding: var(--spacing-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container for the entire content with consistent margins -->
+    <div class="page-container" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--spacing-lg);">
+        <header class="report-header">
+            <div class="header-container">
+                <div class="header-content">
+                    {% if logo %}
+                    <div class="header-logo">
+                        <img src="{{ logo }}" alt="DeepBridge Logo" class="logo">
+                    </div>
+                    {% endif %}
+                    <div class="header-info">
+                        <h1>Model Validation Report</h1>
+                        <p class="report-subtitle">Performance Analysis Report</p>
+                        <div class="report-metadata">
+                            <div class="metadata-item"><strong>Model:</strong> {{ model_name|default('Unknown') }}</div>
+                            <div class="metadata-item"><strong>Date:</strong> {{ timestamp|default('') }}</div>
+                            {% if model_type %}<div class="metadata-item"><strong>Type:</strong> {{ model_type }}</div>{% endif %}
+                            <div class="metadata-item"><strong>Report:</strong> {{ test_type|title }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Stats Section -->
+        <div class="summary-stats">
+            <!-- Robustness Score Card -->
+            <div class="summary-card-wrapper">
+                <div class="score-card">
+                    <div class="score-label">Robustness Score</div>
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 120 120" class="gauge-svg">
+                            <!-- Gauge background -->
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#e6e6e6" stroke-width="10"></circle>
+
+                            <!-- Colored gauge arc based on score -->
+                            <circle
+                                cx="60"
+                                cy="60"
+                                r="50"
+                                fill="none"
+                                {% if (robustness_score|default(0)) > 0.9 %}
+                                    stroke="#28a745"
+                                {% elif (robustness_score|default(0)) > 0.7 %}
+                                    stroke="#ffc107"
+                                {% elif (robustness_score|default(0)) > 0.5 %}
+                                    stroke="#fd7e14"
+                                {% else %}
+                                    stroke="#dc3545"
+                                {% endif %}
+                                stroke-width="10"
+                                stroke-dasharray="{{ (robustness_score|default(0) * 314) }} 314"
+                                transform="rotate(-90 60 60)"
+                            ></circle>
+
+                            <!-- Center value -->
+                            <text x="60" y="65" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">
+                                {{ robustness_score|default(0)|safe_multiply(100)|safe_round(1) }}%
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="score-metrics">
+                        <div class="metric-item">
+                            <span class="metric-value">{{ base_score|default(0)|safe_multiply(100)|safe_round(1) }}%</span>
+                            <span class="metric-label">Base Score</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value">{{ raw_impact|default(0)|safe_multiply(100)|safe_round(2) }}%</span>
+                            <span class="metric-label">Impact</span>
+                        </div>
+                    </div>
+                    <div class="score-desc">
+                        {% if (robustness_score|default(0)) > 0.9 %}
+                            <span class="score-badge excellent">Excellent</span> resistance to perturbations
+                        {% elif (robustness_score|default(0)) > 0.7 %}
+                            <span class="score-badge good">Good</span> resistance to perturbations
+                        {% elif (robustness_score|default(0)) > 0.5 %}
+                            <span class="score-badge moderate">Moderate</span> resistance to perturbations
+                        {% else %}
+                            <span class="score-badge needs-improvement">Needs improvement</span> in robustness
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Information Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Model Information</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Type:</strong></td>
+                            <td>{{ model_type|default('Unknown') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Features:</strong></td>
+                            <td>{{ features|length|default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Primary Metric:</strong></td>
+                            <td>{{ metric|default('Score')|upper }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Critical Features:</strong></td>
+                            <td>{{ feature_subset|length|default(0) }}</td>
+                        </tr>
+                        {% if report_data and report_data.alternative_models %}
+                        <tr>
+                            <td><strong>Alternative Models:</strong></td>
+                            <td>{{ report_data.alternative_models|length|default(0) }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Test Summary Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Test Summary</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Perturbation Levels:</strong></td>
+                            <td>{% if report_data and report_data.raw and report_data.raw.by_level %}{{ report_data.raw.by_level|length }}{% else %}0{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Iterations Per Level:</strong></td>
+                            <td>{{ iterations|default(10) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Max Impact Level:</strong></td>
+                            <td>
+                                {% set max_level = {'level': '0', 'impact': 0} %}
+                                {% if report_data and report_data.raw and report_data.raw.by_level %}
+                                    {% for level, level_data in report_data.raw.by_level.items() %}
+                                        {% if level_data.overall_result and level_data.overall_result.all_features and level_data.overall_result.all_features.impact and level_data.overall_result.all_features.impact > max_level.impact %}
+                                            {% set _ = max_level.update({'level': level, 'impact': level_data.overall_result.all_features.impact}) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                {{ max_level.impact|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ max_level.level|default('N/A') }}
+                            </td>
+                        </tr>
+                        {% if feature_subset %}
+                        <tr>
+                            <td><strong>Feature Subset Impact:</strong></td>
+                            <td>
+                                <!-- First try to use pre-computed max impact -->
+                                {% if report_data and report_data.feature_subset_max_impact and report_data.feature_subset_max_impact.value > 0 %}
+                                    {{ report_data.feature_subset_max_impact.value|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ report_data.feature_subset_max_impact.level|default('N/A') }}
+                                <!-- If not available, calculate in template -->
+                                {% else %}
+                                    {% set max_subset_impact = {'level': '0', 'impact': 0} %}
+                                    {% if report_data and report_data.raw and report_data.raw.by_level %}
+                                        {% for level, level_data in report_data.raw.by_level.items() %}
+                                            {% if level_data.overall_result and level_data.overall_result.feature_subset and level_data.overall_result.feature_subset.impact and level_data.overall_result.feature_subset.impact > max_subset_impact.impact %}
+                                                {% set _ = max_subset_impact.update({'level': level, 'impact': level_data.overall_result.feature_subset.impact}) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    {% if max_subset_impact.impact > 0 %}
+                                        {{ max_subset_impact.impact|default(0)|safe_multiply(100)|safe_round(2) }}% at {{ max_subset_impact.level|default('N/A') }}
+                                    {% else %}
+                                        0.00%
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Test Information Section -->
+        <div class="section">
+            <h2 class="section-title">Test Information</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Test Type</h3>
+                    <div class="metric-value">{{ test_type|capitalize }}</div>
+                    <div class="metric-label">Static report</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Model Type</h3>
+                    <div class="metric-value">{{ model_type }}</div>
+                    <div class="metric-label">Algorithm</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Features</h3>
+                    <div class="metric-value">{{ features|length }}</div>
+                    <div class="metric-label">Total features</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Iterations</h3>
+                    <div class="metric-value">{{ iterations|default(10) }}</div>
+                    <div class="metric-label">Per perturbation</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h3>Test Configuration</h3>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Generation Time</th>
+                            <td>{{ timestamp }}</td>
+                        </tr>
+                        <tr>
+                            <th>Feature Subset</th>
+                            <td>{{ feature_subset_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Metric</th>
+                            <td>{{ metric }}</td>
+                        </tr>
+                        <tr>
+                            <th>Report Type</th>
+                            <td>Static (non-interactive)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Metrics Section -->
+        <div class="section">
+            <h2 class="section-title">Performance Metrics</h2>
+
+            <div class="table-container">
+                <h3>Model Metrics Comparison</h3>
+                <table class="model-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Base {{ metric|capitalize }}</th>
+                            <th>Robustness Score</th>
+                            <th>Avg. Impact</th>
+                            {% if report_data.metrics_details %}
+                                {% for metric_name in report_data.metrics_details|sort %}
+                                    <th>{{ metric_name|title }}</th>
+                                {% endfor %}
+                            {% else %}
+                                {% set primary_metrics = report_data.metrics %}
+                                {% if primary_metrics %}
+                                    {% for metric_name, metric_value in primary_metrics.items() %}
+                                        {% if metric_name != "base_score" and metric_name != "robustness_score" %}
+                                            <th>{{ metric_name|title }}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Primary model -->
+                        <tr>
+                            <td><strong>{{ model_name }}</strong></td>
+                            <td class="numeric">{{ "%.4f"|format(base_score) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(robustness_score) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(raw_impact) }}</td>
+
+                            {% if report_data.metrics_details %}
+                                {% for metric_name in report_data.metrics_details|sort %}
+                                    <td class="numeric">{{ "%.4f"|format(report_data.metrics_details[metric_name]|default(0)) }}</td>
+                                {% endfor %}
+                            {% else %}
+                                {% set primary_metrics = report_data.metrics %}
+                                {% if primary_metrics %}
+                                    {% for metric_name, metric_value in primary_metrics.items() %}
+                                        {% if metric_name != "base_score" and metric_name != "robustness_score" %}
+                                            <td class="numeric">{{ "%.4f"|format(metric_value|default(0)) }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endif %}
+                        </tr>
+
+                        <!-- Alternative models -->
+                        {% if report_data and report_data.alternative_models %}
+                            {% for model_name, model_data in report_data.alternative_models|dictsort %}
+                                <tr>
+                                    <td>{{ model_name }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(model_data.base_score|default(0)) }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(model_data.get('robustness_score', 1.0 - model_data.get('raw_impact', 0))) }}</td>
+                                    <td class="numeric">{{ "%.4f"|format(model_data.get('raw_impact', 0)) }}</td>
+
+                                    {% if report_data.metrics_details %}
+                                        {% for metric_name in report_data.metrics_details|sort %}
+                                            <td class="numeric">
+                                                {% if model_data.metrics_details and metric_name in model_data.metrics_details %}
+                                                    {{ "%.4f"|format(model_data.metrics_details[metric_name]|default(0)) }}
+                                                {% elif model_data.metrics and metric_name in model_data.metrics %}
+                                                    {{ "%.4f"|format(model_data.metrics[metric_name]|default(0)) }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% set primary_metrics = report_data.metrics %}
+                                        {% if primary_metrics %}
+                                            {% for metric_name, metric_value in primary_metrics.items() %}
+                                                {% if metric_name != "base_score" and metric_name != "robustness_score" %}
+                                                    <td class="numeric">
+                                                        {% if model_data.metrics and metric_name in model_data.metrics %}
+                                                            {{ "%.4f"|format(model_data.metrics[metric_name]|default(0)) }}
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="section">
+            <h2 class="section-title">Overview</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Robustness Score</h3>
+                    <div class="metric-value">{{ "%.4f"|format(robustness_score) }}</div>
+                    <div class="metric-label">Higher is better</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Base {{ metric|capitalize }}</h3>
+                    <div class="metric-value">{{ "%.4f"|format(base_score) }}</div>
+                    <div class="metric-label">Without perturbation</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Average Impact</h3>
+                    <div class="metric-value">{{ "%.4f"|format(raw_impact) }}</div>
+                    <div class="metric-label">Lower is better</div>
+                </div>
+
+                {% if report_data and report_data.alternative_models %}
+                <div class="metrics-card">
+                    <h3>Models Compared</h3>
+                    <div class="metric-value">{{ report_data.alternative_models|length + 1 }}</div>
+                    <div class="metric-label">Including primary model</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Robustness Overview Chart -->
+            <div class="chart-container">
+                <h3>Performance by Perturbation Level</h3>
+                <p class="chart-description">Shows the model's average performance at different perturbation levels. The red dotted line represents the base score without perturbations.</p>
+                {% if charts.overview_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.overview_chart }}" alt="Model performance by perturbation level" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No perturbation data available for visualization.</p>
+                {% endif %}
+
+                {% if charts.feature_subset_chart %}
+                    <h4>Feature Subset Performance</h4>
+                    <p class="chart-description">Comparison between the impact of perturbation on all features versus only on the subset of critical features.</p>
+                    <div class="chart-image-container">
+                        <img src="{{ charts.feature_subset_chart }}" alt="Feature subset performance by perturbation level" class="full-width-chart">
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Worst Performance Chart -->
+            <div class="chart-container">
+                <h3>Worst Performance by Perturbation Level</h3>
+                <p class="chart-description">Visualizes the worst-case performance at each perturbation level, showing the most adverse scenarios for the model.</p>
+                {% if charts.worst_performance_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.worst_performance_chart }}" alt="Worst model performance by perturbation level" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No worst performance data available for visualization.</p>
+                {% endif %}
+            </div>
+            
+            {% if report_data and report_data.alternative_models %}
+            <!-- Model Comparison Chart -->
+            <div class="chart-container">
+                <h3>Model Comparison</h3>
+                <p class="chart-description">Compares the performance of different models across perturbation levels, helping to identify which model is more robust.</p>
+                {% if charts.comparison_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.comparison_chart }}" alt="Model comparison across perturbation levels" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No comparison data available for visualization.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Feature Importance Section -->
+        {% if has_model_feature_importance or feature_importance %}
+        <div class="section">
+            <h2 class="section-title">Feature Importance</h2>
+
+            {% if has_model_feature_importance %}
+            <div class="chart-container">
+                <h3>Feature Importance Comparison</h3>
+                <p class="chart-description">Compares the feature importance declared by the model with the importance based on robustness analysis, highlighting discrepancies.</p>
+                {% if charts.feature_comparison_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.feature_comparison_chart }}" alt="Comparison of model-defined vs. robustness-based feature importance" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No feature comparison data available for visualization.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Feature Importance Table -->
+            {% if feature_importance %}
+            <div class="table-container">
+                <h3>Feature Importance Details</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Robustness Impact</th>
+                            {% if has_model_feature_importance %}
+                            <th>Model Importance</th>
+                            <th>Difference</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feature, importance in feature_importance|dictsort(by='value', reverse=true) %}
+                        <tr>
+                            <td>{{ feature }}</td>
+                            <td>{{ "%.4f"|format(importance) }}</td>
+                            {% if has_model_feature_importance %}
+                            <td>{{ "%.4f"|format(model_feature_importance.get(feature, 0)|float) }}</td>
+                            {% if model_feature_importance.get(feature) is not none %}
+                            {% set diff = (importance|float - model_feature_importance.get(feature, 0)|float) %}
+                            <td>{{ "%.4f"|format((diff|abs_value)) }}</td>
+                            {% else %}
+                            <td>N/A</td>
+                            {% endif %}
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Performance Distribution Section -->
+        <div class="section">
+            <h2 class="section-title">Performance Distribution</h2>
+            
+            <div class="chart-container">
+                <h3>Score Distribution</h3>
+                <p class="chart-description">Shows the complete distribution of performance scores using violin plots (density), boxplots (quartiles), and individual points. The red diamond indicates the base score.</p>
+                {% if charts.boxplot_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.boxplot_chart }}" alt="Distribution visualization of model performance scores" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No distribution data available for visualization. Run tests with multiple iterations to generate this chart.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Perturbation Level Details -->
+            {% if report_data and report_data.raw and report_data.raw.by_level %}
+            <div class="table-container">
+                <h3>Performance by Perturbation Level</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Perturbation Level</th>
+                            <th>Average {{ metric|capitalize }}</th>
+                            <th>Worst {{ metric|capitalize }}</th>
+                            <th>Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for level, level_data in report_data.raw.by_level|dictsort %}
+                        {% if level_data.overall_result and level_data.overall_result.all_features %}
+                        <tr>
+                            <td>{{ level }}</td>
+                            <td>{{ "%.4f"|format(level_data.overall_result.all_features.mean_score) }}</td>
+                            <td>{{ "%.4f"|format(level_data.overall_result.all_features.worst_score) }}</td>
+                            <td>{{ "%.4f"|format(base_score - level_data.overall_result.all_features.mean_score) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if report_data and report_data.alternative_models %}
+        <!-- Alternative Models Section -->
+        <div class="section">
+            <h2 class="section-title">Alternative Models</h2>
+            
+            <div class="table-container">
+                <h3>Model Comparison</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Base {{ metric|capitalize }}</th>
+                            <th>Robustness Score</th>
+                            <th>Average Impact</th>
+                            <th>Model Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Primary model -->
+                        <tr>
+                            <td><strong>{{ model_name }}</strong></td>
+                            <td>{{ "%.4f"|format(base_score) }}</td>
+                            <td>{{ "%.4f"|format(robustness_score) }}</td>
+                            <td>{{ "%.4f"|format(raw_impact) }}</td>
+                            <td>{{ model_type }}</td>
+                        </tr>
+                        
+                        <!-- Alternative models -->
+                        {% for model_name, model_data in report_data.alternative_models|dictsort %}
+                        <tr>
+                            <td>{{ model_name }}</td>
+                            <td>{{ "%.4f"|format(model_data.base_score) }}</td>
+                            <td>{{ "%.4f"|format(model_data.get('robustness_score', 1.0 - model_data.get('raw_impact', 0))) }}</td>
+                            <td>{{ "%.4f"|format(model_data.get('raw_impact', 0)) }}</td>
+                            <td>{{ model_data.get('model_type', 'Unknown') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        <div class="footer">
+            <p>Generated by DeepBridge © {{ current_year }}</p>
+        </div>
+    </div>
+</body>
+</html>

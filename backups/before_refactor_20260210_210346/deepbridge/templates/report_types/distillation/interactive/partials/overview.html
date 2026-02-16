@@ -1,0 +1,359 @@
+<!-- Overview Tab Content -->
+<div class="overview-container">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-compress"></i> Compression Rate
+                </div>
+                <div class="metric-value" id="compression-rate">
+                    {{ report_data.compression_rate|default("0.0") }}x
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>{{ report_data.compression_improvement|default("0.0") }}% smaller</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-bullseye"></i> Student Accuracy
+                </div>
+                <div class="metric-value" id="student-accuracy">
+                    {{ report_data.student_accuracy|default("0.0") }}%
+                </div>
+                <div class="metric-change {% if report_data.accuracy_drop|default(0) < 5 %}positive{% else %}negative{% endif %}">
+                    <i class="fas fa-arrow-{% if report_data.accuracy_drop|default(0) < 5 %}up{% else %}down{% endif %}"></i>
+                    <span>{{ report_data.accuracy_drop|default("0.0") }}% vs teacher</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-rocket"></i> Speed-up Factor
+                </div>
+                <div class="metric-value" id="speedup-factor">
+                    {{ report_data.speedup_factor|default("0.0") }}x
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>{{ report_data.inference_time_reduction|default("0.0") }}% faster</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-memory"></i> Memory Saved
+                </div>
+                <div class="metric-value" id="memory-saved">
+                    {{ report_data.memory_saved|default("0.0") }} MB
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>{{ report_data.memory_reduction|default("0.0") }}% reduction</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distillation Process Timeline -->
+    <div class="chart-container">
+        <h3><i class="fas fa-clock"></i> Distillation Process Timeline</h3>
+        <div id="timeline-chart" style="min-height: 300px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Summary -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-cog"></i> Configuration Summary</h3>
+                <table class="data-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Distillation Method</strong></td>
+                            <td>{{ report_data.distillation_method|default("Knowledge Distillation") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Teacher Model</strong></td>
+                            <td>{{ report_data.teacher_model|default("Not specified") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Student Architecture</strong></td>
+                            <td>{{ report_data.student_architecture|default("Not specified") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Temperature</strong></td>
+                            <td>{{ report_data.temperature|default("3.0") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Alpha (KD Loss Weight)</strong></td>
+                            <td>{{ report_data.alpha|default("0.7") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Training Epochs</strong></td>
+                            <td>{{ report_data.epochs|default("100") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Batch Size</strong></td>
+                            <td>{{ report_data.batch_size|default("32") }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Learning Rate</strong></td>
+                            <td>{{ report_data.learning_rate|default("0.001") }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-pie"></i> Model Size Comparison</h3>
+                <div id="model-size-chart" style="min-height: 300px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Progress -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-chart-line"></i> Training Progress</h3>
+        <div id="training-progress-chart" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Insights -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-lightbulb"></i> Quick Insights</h3>
+        <div class="row">
+            <div class="col-md-12">
+                {% if report_data.insights %}
+                    {% for insight in report_data.insights %}
+                    <div class="alert alert-{{ insight.type|default('info') }}">
+                        <i class="fas fa-{{ insight.icon|default('info-circle') }}"></i>
+                        {{ insight.message }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    The distillation process successfully compressed the model by {{ report_data.compression_rate|default("N/A") }}x
+                    while maintaining {{ report_data.accuracy_retention|default("N/A") }}% of the original accuracy.
+                </div>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    The student model achieves {{ report_data.speedup_factor|default("N/A") }}x faster inference time
+                    with {{ report_data.memory_saved|default("N/A") }} MB memory reduction.
+                </div>
+                {% if report_data.warnings %}
+                    {% for warning in report_data.warnings %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ warning }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function initializeOverviewTab() {
+    console.log('Initializing Overview Tab');
+
+    // Timeline Chart
+    setTimeout(() => {
+        const timelineData = window.chartData.timeline || generateMockTimelineData();
+        if (timelineData && document.getElementById('timeline-chart')) {
+            createTimelineChart('timeline-chart', timelineData);
+        }
+    }, 100);
+
+    // Model Size Comparison Pie Chart
+    setTimeout(() => {
+        const sizeData = window.chartData.model_sizes || generateMockSizeData();
+        if (sizeData && document.getElementById('model-size-chart')) {
+            createModelSizeChart('model-size-chart', sizeData);
+        }
+    }, 200);
+
+    // Training Progress Chart
+    setTimeout(() => {
+        const progressData = window.chartData.training_progress || generateMockProgressData();
+        if (progressData && document.getElementById('training-progress-chart')) {
+            createTrainingProgressChart('training-progress-chart', progressData);
+        }
+    }, 300);
+}
+
+function createTimelineChart(elementId, data) {
+    const trace = {
+        x: data.timestamps || [],
+        y: data.stages || [],
+        text: data.details || [],
+        mode: 'markers+lines',
+        type: 'scatter',
+        marker: {
+            size: 12,
+            color: data.durations || [],
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+                title: 'Duration (min)'
+            }
+        },
+        line: {
+            color: '#2563eb',
+            width: 2
+        }
+    };
+
+    const layout = {
+        title: 'Distillation Process Timeline',
+        xaxis: {
+            title: 'Time',
+            type: 'date'
+        },
+        yaxis: {
+            title: 'Stage',
+            type: 'category'
+        },
+        height: 300
+    };
+
+    ChartUtils.createResponsiveChart(elementId, [trace], layout);
+}
+
+function createModelSizeChart(elementId, data) {
+    const trace = {
+        labels: data.labels || ['Teacher Model', 'Student Model'],
+        values: data.values || [100, 25],
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: ['#ef4444', '#10b981']
+        },
+        textinfo: 'label+percent',
+        textposition: 'outside'
+    };
+
+    const layout = {
+        title: 'Model Size Distribution',
+        height: 300,
+        showlegend: true
+    };
+
+    ChartUtils.createResponsiveChart(elementId, [trace], layout);
+}
+
+function createTrainingProgressChart(elementId, data) {
+    const traces = [];
+
+    // Training Loss
+    if (data.train_loss) {
+        traces.push({
+            x: data.epochs || [],
+            y: data.train_loss,
+            name: 'Training Loss',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#2563eb', width: 2 }
+        });
+    }
+
+    // Validation Loss
+    if (data.val_loss) {
+        traces.push({
+            x: data.epochs || [],
+            y: data.val_loss,
+            name: 'Validation Loss',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#ef4444', width: 2 }
+        });
+    }
+
+    // Student Accuracy
+    if (data.student_accuracy) {
+        traces.push({
+            x: data.epochs || [],
+            y: data.student_accuracy,
+            name: 'Student Accuracy',
+            type: 'scatter',
+            mode: 'lines',
+            yaxis: 'y2',
+            line: { color: '#10b981', width: 2 }
+        });
+    }
+
+    const layout = {
+        title: 'Training Progress Over Epochs',
+        xaxis: { title: 'Epoch' },
+        yaxis: { title: 'Loss' },
+        yaxis2: {
+            title: 'Accuracy (%)',
+            overlaying: 'y',
+            side: 'right'
+        },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(elementId, traces, layout);
+}
+
+// Mock data generators for testing
+function generateMockTimelineData() {
+    const stages = ['Data Preparation', 'Teacher Training', 'Student Init', 'Distillation', 'Fine-tuning', 'Evaluation'];
+    const now = new Date();
+    const timestamps = stages.map((_, i) => new Date(now.getTime() - (stages.length - i) * 3600000));
+
+    return {
+        timestamps: timestamps.map(t => t.toISOString()),
+        stages: stages,
+        durations: stages.map(() => Math.random() * 60 + 10),
+        details: stages.map(s => `${s} completed successfully`)
+    };
+}
+
+function generateMockSizeData() {
+    return {
+        labels: ['Teacher Model', 'Student Model', 'Compression'],
+        values: [75, 20, 5]
+    };
+}
+
+function generateMockProgressData() {
+    const epochs = Array.from({length: 100}, (_, i) => i + 1);
+    return {
+        epochs: epochs,
+        train_loss: epochs.map(e => 2 * Math.exp(-e/20) + 0.1 + Math.random() * 0.05),
+        val_loss: epochs.map(e => 2.2 * Math.exp(-e/18) + 0.15 + Math.random() * 0.08),
+        student_accuracy: epochs.map(e => 95 * (1 - Math.exp(-e/15)) + Math.random() * 2)
+    };
+}
+
+// Auto-initialize if tab is already active
+if (document.querySelector('#overview.active')) {
+    document.addEventListener('DOMContentLoaded', initializeOverviewTab);
+}
+</script>

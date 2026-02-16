@@ -1,0 +1,247 @@
+<div class="section">
+    <h2 class="section-title">Model vs Robustness Importance Comparison</h2>
+    <p>Comparison between model feature importance and robustness impact.</p>
+    
+    <div id="importance-comparison-chart-plot" class="chart-plot" style="min-height: 500px; min-width: 100%; display: block;">
+        <!-- Importance comparison chart will be rendered here -->
+        <div class="chart-loading-message">
+            Carregando gráfico de comparação de importância...
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos para garantir que o gráfico seja exibido corretamente */
+    #importance-comparison-chart-plot {
+        min-height: 500px;
+        width: 100%;
+        display: block !important;
+        position: relative;
+        margin-bottom: 30px;
+        background-color: #f9f9fa;
+        border: 1px solid #eaeaea;
+        border-radius: 5px;
+    }
+    
+    .chart-loading-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 5px;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Script de inicialização do gráfico de comparação de importância carregado");
+        
+        // Função para renderizar o gráfico
+        function renderImportanceComparisonChart() {
+            console.log("Tentando renderizar o gráfico de comparação de importância");
+            
+            var container = document.getElementById('importance-comparison-chart-plot');
+            if (!container) {
+                console.error("Container do gráfico não encontrado");
+                return;
+            }
+            
+            console.log("Container encontrado:", container.id);
+            
+            // Verificar os dados disponíveis
+            if (!window.reportData || 
+                !window.reportData.feature_importance || 
+                !window.reportData.model_feature_importance) {
+                
+                console.error("Dados de importância não encontrados no reportData");
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; background-color: #f8f9fa; border-radius: 8px; margin: 20px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                        <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Dados não disponíveis</h3>
+                        <p style="color: #666; font-size: 16px; line-height: 1.4;">
+                            Os dados de importância do modelo e robustez não estão disponíveis.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Preparar dados para o gráfico - com verificações de segurança adicionais
+            var featureImportance = window.reportData.feature_importance || {};
+            var modelImportance = window.reportData.model_feature_importance || {};
+            
+            // Normalizar as keys para garantir que estamos comparando da mesma forma
+            var normalizedFeatureImportance = {};
+            var normalizedModelImportance = {};
+            
+            // Função para normalizar o nome da feature (remover espaços, converter para minúsculas)
+            function normalizeFeatureName(name) {
+                return String(name).trim().toLowerCase();
+            }
+            
+            // Normalizar os dados de importância de features
+            Object.keys(featureImportance).forEach(function(key) {
+                normalizedFeatureImportance[normalizeFeatureName(key)] = featureImportance[key];
+            });
+            
+            // Normalizar os dados de importância do modelo
+            Object.keys(modelImportance).forEach(function(key) {
+                normalizedModelImportance[normalizeFeatureName(key)] = modelImportance[key];
+            });
+            
+            // Coletar features que estão em ambos os conjuntos
+            var commonFeatures = [];
+            Object.keys(normalizedFeatureImportance).forEach(function(normalizedKey) {
+                if (normalizedKey in normalizedModelImportance && 
+                    normalizedFeatureImportance[normalizedKey] !== null && 
+                    normalizedModelImportance[normalizedKey] !== null) {
+                    
+                    // Encontrar a key original para exibição
+                    var originalKey = Object.keys(featureImportance).find(function(key) {
+                        return normalizeFeatureName(key) === normalizedKey;
+                    }) || normalizedKey;
+                    
+                    commonFeatures.push({
+                        name: originalKey,
+                        robustness: parseFloat(normalizedFeatureImportance[normalizedKey]) || 0,
+                        model: parseFloat(normalizedModelImportance[normalizedKey]) || 0
+                    });
+                }
+            });
+            
+            // Verificar se temos features comuns
+            if (commonFeatures.length === 0) {
+                console.error("Não foram encontradas features comuns entre robustez e importância do modelo");
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; background-color: #f8f9fa; border-radius: 8px; margin: 20px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                        <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Dados não disponíveis</h3>
+                        <p style="color: #666; font-size: 16px; line-height: 1.4;">
+                            Não foram encontradas features comuns entre os dados de robustez e importância do modelo.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Ordenar por importância de robustez (absoluta)
+            commonFeatures.sort(function(a, b) {
+                return Math.abs(b.robustness) - Math.abs(a.robustness);
+            });
+            
+            // Limitar para as 15 features mais importantes
+            var topFeatures = commonFeatures.slice(0, 15);
+            
+            // Preparar dados para Plotly
+            var featureNames = topFeatures.map(function(f) { return f.name; });
+            var robustnessValues = topFeatures.map(function(f) { return f.robustness; });
+            var modelValues = topFeatures.map(function(f) { return f.model; });
+            
+            // Criar o gráfico de barras
+            if (typeof Plotly === 'undefined') {
+                console.error("Plotly não está disponível");
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: red;">
+                        Biblioteca Plotly não está disponível. O gráfico não pode ser exibido.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Confirmar que temos dados válidos
+            if (featureNames.length === 0 || !robustnessValues.length || !modelValues.length) {
+                console.error("Dados insuficientes para criar o gráfico");
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: orange;">
+                        Dados insuficientes para criar o gráfico de comparação de importância.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Criar traços de gráfico com verificações de segurança
+            var trace1 = {
+                x: featureNames,
+                y: robustnessValues,
+                name: 'Robustness Impact',
+                type: 'bar',
+                marker: {
+                    color: '#8884d8'
+                }
+            };
+            
+            var trace2 = {
+                x: featureNames,
+                y: modelValues,
+                name: 'Model Importance',
+                type: 'bar',
+                marker: {
+                    color: '#82ca9d'
+                }
+            };
+            
+            // Definir array de dados - com verificação extra
+            var plotData = [trace1];
+            
+            // Só adicionar o segundo trace se tivermos dados de importância do modelo
+            if (modelValues && modelValues.length > 0) {
+                plotData.push(trace2);
+            }
+            
+            var layout = {
+                title: 'Top Features: Model vs Robustness Importance',
+                xaxis: {
+                    title: 'Features',
+                    tickangle: 45
+                },
+                yaxis: {
+                    title: 'Importance Score'
+                },
+                barmode: 'group',
+                margin: {
+                    l: 50,
+                    r: 20,
+                    t: 60,
+                    b: 150  // Espaço extra para os nomes das features
+                },
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'bottom',
+                    y: 1.02,
+                    xanchor: 'right',
+                    x: 1
+                }
+            };
+            
+            try {
+                // Usar o array plotData definido anteriormente em vez de 'data'
+                Plotly.newPlot(container, plotData, layout, {responsive: true});
+                console.log("Gráfico de comparação de importância renderizado com sucesso");
+            } catch (error) {
+                console.error("Erro ao renderizar o gráfico de comparação:", error);
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: red;">
+                        Erro ao renderizar o gráfico: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Verificar se a aba de importância de comparação está ativa e renderizar o gráfico
+        var comparisonTab = document.getElementById('importance_comparison');
+        if (comparisonTab && comparisonTab.classList.contains('active')) {
+            setTimeout(renderImportanceComparisonChart, 500);
+        }
+        
+        // Adicionar listener para quando a aba for clicada
+        var comparisonTabBtn = document.querySelector('[data-tab="importance_comparison"]');
+        if (comparisonTabBtn) {
+            comparisonTabBtn.addEventListener('click', function() {
+                setTimeout(renderImportanceComparisonChart, 500);
+            });
+        }
+    });
+</script>

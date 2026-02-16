@@ -1,0 +1,95 @@
+<div class="section">
+    <h2 class="section-title">Detailed Performance Analysis</h2>
+    <p>Detailed analysis of the model's performance under different perturbation types and levels.</p>
+
+    <!-- Details Sub-tabs Navigation -->
+    <div class="details-tabs-container">
+        <div class="details-tabs">
+            <button class="details-tab active" data-subtab="model-metrics">Model Metrics Overview</button>
+            <button class="details-tab" data-subtab="models-comparison">Models Comparison</button>
+            <button class="details-tab" data-subtab="perturbation-analysis">Perturbation Analysis</button>
+        </div>
+    </div>
+
+    <!-- Model Metrics Overview Tab -->
+    <div id="model-metrics" class="subtab-content active">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Model Metrics Overview</h3>
+                <p class="card-subtitle">Comparative view of model metrics</p>
+            </div>
+            <div class="card-body">
+                <!-- Model Info Cards -->
+                <div class="model-info">
+                    <div class="info-cards-grid">
+                        <div class="info-card">
+                            <h4>Dataset Info</h4>
+                            <ul>
+                                <li>Samples: <span id="n-samples">-</span></li>
+                                <li>Features: <span id="n-features">-</span></li>
+                                <li>Test Size: <span id="test-size">-</span></li>
+                            </ul>
+                        </div>
+                        <div class="info-card">
+                            <h4>Test Configuration</h4>
+                            <ul>
+                                <li>Tests: <span id="tests-list">-</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Models Comparison Tab -->
+    <div id="models-comparison" class="subtab-content">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Models Comparison</h3>
+                <p class="card-subtitle">Performance metrics for all models</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="models-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="name">Model Name</th>
+                                <th class="sortable" data-sort="type">Type</th>
+                                <th class="sortable" data-sort="accuracy">Accuracy</th>
+                                <th class="sortable" data-sort="roc_auc">ROC AUC</th>
+                                <th class="sortable" data-sort="f1">F1 Score</th>
+                                <th class="sortable" data-sort="precision">Precision</th>
+                                <th class="sortable" data-sort="recall">Recall</th>
+                            </tr>
+                        </thead>
+                        <tbody id="models-table-body">
+                            <!-- Table rows will be populated by JavaScript -->
+                            <tr>
+                                <td colspan="7" class="empty-table-message">Loading model data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Perturbation Analysis Tab -->
+    <div id="perturbation-analysis" class="subtab-content">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Perturbation Analysis</h3>
+                <p class="card-subtitle">Detailed analysis of the model's performance under different perturbation types and levels</p>
+            </div>
+            <div class="card-body">
+                <div id="perturbation-results-container" class="mt-4">
+                    <!-- This container will be populated by DetailsController -->
+                    <div class="loading-indicator">
+                        <p>Loading perturbation details...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

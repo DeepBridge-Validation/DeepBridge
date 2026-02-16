@@ -1,0 +1,239 @@
+/* Summary Section Styling */
+.summary-stats {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+    width: 100%;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: var(--spacing-lg);
+}
+
+/* Estrutura de card */
+.summary-card-wrapper {
+    flex: 1;
+    min-width: 0; /* Permite que os cards diminuam abaixo de seu conteúdo mínimo */
+}
+
+/* Removendo o wrapper aninhado de info-cards */
+.info-cards-wrapper {
+    display: none; /* Removemos este wrapper */
+}
+
+/* Wrapper para cada card - cada um com espaço exato */
+.summary-card-wrapper {
+    display: flex;
+    margin-bottom: 0;
+}
+
+/* Card de pontuação */
+.score-card {
+    width: 100%;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    background: var(--primary-gradient);
+    color: white;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.score-label {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Medidor gauge circular */
+.score-gauge {
+    width: 100%;
+    max-width: 120px;
+    margin: 0.25rem auto;
+}
+
+.gauge-svg {
+    width: 100%;
+    height: auto;
+}
+
+/* Métricas adicionais no card de score */
+.score-metrics {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 180px;
+    gap: 10px;
+    margin: var(--spacing-sm) auto;
+}
+
+.score-metrics .metric-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #ffffff;
+    border-radius: 4px;
+    padding: 5px;
+    width: 70px;
+}
+
+.score-metrics .metric-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.score-metrics .metric-label {
+    font-size: 0.65rem;
+    opacity: 0.8;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Badges de classificação */
+.score-badge {
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-right: 3px;
+    font-size: 0.9rem;
+}
+
+.score-badge.excellent {
+    background-color: rgba(40, 167, 69, 0.8);
+}
+
+.score-badge.good {
+    background-color: rgba(255, 193, 7, 0.8);
+    color: rgba(0, 0, 0, 0.9);
+}
+
+.score-badge.moderate {
+    background-color: rgba(253, 126, 20, 0.8);
+}
+
+.score-badge.needs-improvement {
+    background-color: rgba(220, 53, 69, 0.8);
+}
+
+.score-desc {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding: 0 var(--spacing-sm);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+/* Cards de informação */
+.info-card {
+    width: 100%;
+    height: 100%;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    background-color: var(--bg-card-alt);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+}
+
+.info-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: var(--spacing-sm);
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    flex-grow: 1;
+}
+
+.info-table td {
+    padding: var(--spacing-sm) 0;
+    font-size: 0.95rem;
+}
+
+.info-table td:first-child {
+    color: var(--text-secondary);
+    width: 50%;
+}
+
+.info-table td:last-child {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+/* Conteiner do sumário */
+.report-summary {
+    margin-bottom: var(--spacing-lg);
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .summary-stats {
+        padding: var(--spacing-md);
+    }
+    
+    .score-card, .info-card {
+        padding: var(--spacing-md);
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-stats {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .summary-card-wrapper {
+        width: 100%;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .summary-card-wrapper:last-child {
+        margin-bottom: 0;
+    }
+    
+    .score-gauge {
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 576px) {
+    .summary-stats {
+        padding: var(--spacing-sm);
+    }
+    
+    .score-metrics {
+        max-width: 160px;
+        gap: 5px;
+    }
+    
+    .score-metrics .metric-item {
+        width: 65px;
+        padding: 4px;
+    }
+    
+    .info-card, .score-card {
+        padding: var(--spacing-sm);
+    }
+}

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Fairness Report - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Overview</h2>
+
+        <div id="metrics-overview">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Fairness Score</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.fairness_score >= 0.7 else 'metric-bad' }}">
+                            {{ data.metrics.fairness_score | format_number(3) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Worst Group</h5>
+                        <p class="metric-value">
+                            {{ data.metrics.worst_group }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Best Group</h5>
+                        <p class="metric-value">
+                            {{ data.metrics.best_group }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Group Count</h5>
+                        <p class="metric-value">
+                            {{ data.group_results | length if data.group_results else 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+            <p style="margin: 0;">
+                <strong>Interpretation:</strong>
+                {% if data.metrics.fairness_score >= 0.8 %}
+                    Excellent fairness! The model provides equitable performance across demographic groups.
+                {% elif data.metrics.fairness_score >= 0.6 %}
+                    Good fairness. The model shows reasonable fairness across groups with some disparities.
+                {% else %}
+                    Low fairness. The model exhibits significant disparities across demographic groups and requires improvement.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    {% if data.protected_attributes and data.protected_attributes | length > 0 %}
+        <section id="protected-attributes">
+            <h2>Protected Attributes</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+                {% for attr in data.protected_attributes %}
+                    <span style="background: #e8f4f8; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #3498db;">
+                        {{ attr }}
+                    </span>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    {% if include_charts %}
+        <section id="group-performance">
+            <h2>Group Performance Comparison</h2>
+
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="group-performance-chart"></canvas>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3>Analysis</h3>
+                <ul>
+                    <li><strong>Metrics Compared:</strong> Accuracy, Precision, Recall by demographic group</li>
+                    <li><strong>Best Performing Group:</strong> {{ data.metrics.best_group }}</li>
+                    <li><strong>Worst Performing Group:</strong> {{ data.metrics.worst_group }}</li>
+                    <li><strong>Total Groups Evaluated:</strong> {{ data.group_results | length if data.group_results else 'N/A' }}</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="fairness-metrics">
+            <h2>Fairness Metrics Comparison</h2>
+
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="fairness-metrics-chart"></canvas>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3>Metrics Overview</h3>
+                <ul>
+                    <li><strong>Demographic Parity:</strong> Measures if groups have equal positive prediction rates</li>
+                    <li><strong>Equalized Odds:</strong> Ensures groups have equal true positive and false positive rates</li>
+                    <li><strong>Target:</strong> Values closer to 0 indicate better fairness</li>
+                </ul>
+            </div>
+        </section>
+    {% endif %}
+
+    <section id="group-results">
+        <h2>Group Performance Results</h2>
+
+        {% if data.group_results and data.group_results | length > 0 %}
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Size</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1 Score</th>
+                            {% if data.group_results[0].get('demographic_parity') %}
+                                <th>Demographic Parity</th>
+                            {% endif %}
+                            {% if data.group_results[0].get('equalized_odds') %}
+                                <th>Equalized Odds</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in data.group_results %}
+                            <tr>
+                                <td><strong>{{ group.group_name }}</strong></td>
+                                <td>{{ group.size if group.get('size') else 'N/A' }}</td>
+                                <td>{{ group.accuracy | format_percentage(2) if group.get('accuracy') else 'N/A' }}</td>
+                                <td>{{ group.precision | format_percentage(2) if group.get('precision') else 'N/A' }}</td>
+                                <td>{{ group.recall | format_percentage(2) if group.get('recall') else 'N/A' }}</td>
+                                <td>{{ group.f1_score | format_percentage(2) if group.get('f1_score') else 'N/A' }}</td>
+                                {% if data.group_results[0].get('demographic_parity') %}
+                                    <td class="{{ 'metric-good' if group.get('demographic_parity') | abs <= 0.1 else 'metric-bad' }}">
+                                        {{ group.demographic_parity | format_number(3) if group.get('demographic_parity') is not none else 'N/A' }}
+                                    </td>
+                                {% endif %}
+                                {% if data.group_results[0].get('equalized_odds') %}
+                                    <td class="{{ 'metric-good' if group.get('equalized_odds') | abs <= 0.1 else 'metric-bad' }}">
+                                        {{ group.equalized_odds | format_number(3) if group.get('equalized_odds') is not none else 'N/A' }}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: #7f8c8d; font-style: italic;">No group results available.</p>
+        {% endif %}
+    </section>
+
+    {% if data.fairness_metrics and data.fairness_metrics | length > 0 %}
+        <section id="fairness-metrics-table">
+            <h2>Fairness Metrics Details</h2>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric Name</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metric in data.fairness_metrics %}
+                            <tr>
+                                <td><strong>{{ metric.name | replace('_', ' ') | title }}</strong></td>
+                                <td>{{ metric.value | format_number(4) if metric.value is number else metric.value }}</td>
+                                <td>
+                                    {% if metric.get('status') %}
+                                        <span class="metric-{{ metric.status | lower }}">{{ metric.status }}</span>
+                                    {% elif metric.value is number %}
+                                        <span class="{{ 'metric-good' if metric.value | abs <= 0.1 else 'metric-bad' }}">
+                                            {{ 'Pass' if metric.value | abs <= 0.1 else 'Fail' }}
+                                        </span>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ metric.description if metric.get('description') else 'N/A' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if data.test_config %}
+        <section id="test-configuration">
+            <h2>Test Configuration</h2>
+            <table>
+                <tbody>
+                    {% for key, value in data.test_config.items() %}
+                        <tr>
+                            <th>{{ key | replace('_', ' ') | title }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    {% if include_charts %}
+        <script src="/assets/js/chart-utils.js"></script>
+        <script>
+            const reportData = {{ data | tojson | safe }};
+
+            // Group Performance Chart
+            if (reportData.group_results && reportData.group_results.length > 0) {
+                const ctx = document.getElementById('group-performance-chart');
+                if (ctx) {
+                    const groupNames = reportData.group_results.map(g => g.group_name);
+                    const accuracies = reportData.group_results.map(g => g.accuracy || 0);
+                    const precisions = reportData.group_results.map(g => g.precision || 0);
+                    const recalls = reportData.group_results.map(g => g.recall || 0);
+
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: groupNames,
+                            datasets: [
+                                {
+                                    label: 'Accuracy',
+                                    data: accuracies,
+                                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                                    borderColor: 'rgba(52, 152, 219, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Precision',
+                                    data: precisions,
+                                    backgroundColor: 'rgba(46, 204, 113, 0.6)',
+                                    borderColor: 'rgba(46, 204, 113, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Recall',
+                                    data: recalls,
+                                    backgroundColor: 'rgba(241, 196, 15, 0.6)',
+                                    borderColor: 'rgba(241, 196, 15, 1)',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Performance Metrics by Group'
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 1,
+                                    title: {
+                                        display: true,
+                                        text: 'Score'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Fairness Metrics Chart
+            if (reportData.fairness_metrics && reportData.fairness_metrics.length > 0) {
+                const ctx = document.getElementById('fairness-metrics-chart');
+                if (ctx) {
+                    const metricNames = reportData.fairness_metrics.map(m => m.name.replace(/_/g, ' '));
+                    const metricValues = reportData.fairness_metrics.map(m => m.value || 0);
+
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: metricNames,
+                            datasets: [{
+                                label: 'Fairness Metric Value',
+                                data: metricValues,
+                                backgroundColor: metricValues.map(v => v <= 0.1 ? 'rgba(46, 204, 113, 0.6)' : 'rgba(231, 76, 60, 0.6)'),
+                                borderColor: metricValues.map(v => v <= 0.1 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)'),
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Fairness Metrics Values (Lower is Better)'
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Disparity Value'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        </script>
+    {% endif %}
+{% endblock %}

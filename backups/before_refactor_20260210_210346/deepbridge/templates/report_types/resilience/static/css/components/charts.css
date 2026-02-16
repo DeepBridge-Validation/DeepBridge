@@ -1,0 +1,133 @@
+/* Chart styles for static resilience report */
+
+.chart-container {
+    margin: 1.5rem 0;
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.chart-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.chart-image-container {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.chart-image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.full-width-chart {
+    width: 100%;
+    max-width: 1000px;
+}
+
+.no-data-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    background-color: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    border: 1px dashed var(--border-color);
+}
+
+/* Specific chart styles */
+.feature-importance-chart .chart-image-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.comparison-chart img {
+    max-height: 500px;
+    width: auto;
+    max-width: 100%;
+}
+
+.distribution-chart img {
+    max-height: 400px;
+    width: auto;
+    max-width: 100%;
+}
+
+/* Legend styles */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+    display: inline-block;
+}
+
+/* Resilience-specific chart styles */
+.resilience-chart .metric-highlight {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.performance-gap-chart .worst-samples {
+    color: var(--danger-color);
+    font-weight: 500;
+}
+
+.performance-gap-chart .remaining-samples {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.feature-distribution-chart .feature-bar {
+    height: 20px;
+    background-color: var(--primary-light);
+    border-radius: 3px;
+    margin-bottom: 5px;
+}
+
+.feature-distribution-chart .feature-name {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    display: block;
+}
+
+.feature-distribution-chart .feature-value {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    display: block;
+    text-align: right;
+}

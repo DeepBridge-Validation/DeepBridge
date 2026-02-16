@@ -1,0 +1,165 @@
+/* Main CSS for static resilience report */
+
+/* Import components */
+@import url('components/cards.css');
+@import url('components/charts.css');
+@import url('components/tables.css');
+@import url('components/summary.css');
+
+:root {
+    /* Brand colors */
+    --primary-color: #1b78de;       /* Bright blue */
+    --primary-light: #4287f5;       /* Lighter blue for gradients */
+    --primary-color-dark: #1a5fb4;  /* Darker blue for hover states */
+    --secondary-color: #2c3e50;     /* Dark slate */
+
+    /* Semantic colors */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #f39c12;
+    --info-color: #17a2b8;
+
+    /* UI colors */
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-color: #333333;
+    --text-secondary: #555555;
+    --text-muted: #6c757d;
+    --border-color: #dddddd;
+    --background-color: #f5f7fa;
+    --card-bg: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-alt: #f8f9fa;
+
+    /* Gradients */
+    --header-bg: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+    --primary-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Border radius */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+
+    /* Box shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Base styles */
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+}
+
+/* Report container */
+.report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* Header styles */
+.report-header {
+    background: var(--header-bg);
+    color: white;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.report-header h1 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 1.75rem;
+}
+
+.report-subtitle {
+    margin: 0 0 var(--spacing-md) 0;
+    opacity: 0.9;
+}
+
+.report-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.metadata-item {
+    padding-right: 1rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.metadata-item:last-child {
+    border-right: none;
+}
+
+.metadata-item strong {
+    font-weight: 600;
+}
+
+/* Section styles */
+.section {
+    margin-bottom: var(--spacing-xl);
+    background-color: var(--bg-card);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+.section-title {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--secondary-color);
+    font-size: 1.5rem;
+}
+
+/* Footer */
+.footer {
+    margin-top: 2rem;
+    text-align: center;
+    padding: 1.5rem 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border-color);
+    background-color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .report-container {
+        padding: var(--spacing-md);
+    }
+    
+    .section {
+        padding: var(--spacing-md);
+    }
+    
+    .report-metadata {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .metadata-item {
+        border-right: none;
+        padding-right: 0;
+    }
+}

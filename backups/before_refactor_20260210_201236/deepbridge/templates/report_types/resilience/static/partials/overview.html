@@ -1,0 +1,56 @@
+<!-- Static Resilience Report Overview -->
+<div class="overview-section">
+    <div class="metrics-grid">
+        <div class="metrics-card">
+            <h3>Resilience Score</h3>
+            <div class="metric-value">{{ "%.4f"|format(resilience_score) }}</div>
+            <div class="metric-label">Higher is better</div>
+        </div>
+
+        <div class="metrics-card">
+            <h3>Performance Gap</h3>
+            <div class="metric-value">{{ "%.4f"|format(avg_performance_gap) }}</div>
+            <div class="metric-label">Lower is better</div>
+        </div>
+
+        <div class="metrics-card">
+            <h3>Distribution Shift</h3>
+            <div class="metric-value">{{ "%.4f"|format(dist_shift|default(0)) }}</div>
+            <div class="metric-label">Feature distribution change</div>
+        </div>
+
+        {% if most_affected_scenario %}
+        <div class="metrics-card">
+            <h3>Most Affected Scenario</h3>
+            <div class="metric-value">{{ most_affected_scenario }}</div>
+            <div class="metric-label">Worst performing</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Resilience Score Chart -->
+    <div class="chart-container">
+        <h3>Resilience Metrics Overview</h3>
+        <p class="chart-description">Shows the key resilience metrics for the model, including resilience score and performance gap.</p>
+        {% if charts.resilience_score_chart %}
+            <div class="chart-image-container">
+                <img src="{{ charts.resilience_score_chart }}" alt="Resilience metrics overview" class="full-width-chart">
+            </div>
+        {% else %}
+            <p class="no-data-message">No resilience metrics data available for visualization.</p>
+        {% endif %}
+    </div>
+
+    <!-- Performance Gap Chart -->
+    <div class="chart-container">
+        <h3>Performance Comparison: Worst vs Remaining Samples</h3>
+        <p class="chart-description">Compares model performance on the worst-affected samples vs. the remaining dataset. A smaller gap indicates better resilience.</p>
+        {% if charts.performance_gap_chart %}
+            <div class="chart-image-container">
+                <img src="{{ charts.performance_gap_chart }}" alt="Performance gap analysis" class="full-width-chart">
+            </div>
+        {% else %}
+            <p class="no-data-message">No performance gap data available for visualization.</p>
+        {% endif %}
+    </div>
+</div>

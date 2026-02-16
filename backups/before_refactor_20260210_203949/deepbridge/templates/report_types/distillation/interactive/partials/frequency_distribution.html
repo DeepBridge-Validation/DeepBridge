@@ -1,0 +1,1198 @@
+<!-- Frequency Distribution Analysis Tab -->
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="fw-bold mb-3">
+                <i class="bi bi-bar-chart-line me-2"></i>Frequency Distribution Analysis
+            </h3>
+            <p class="text-muted">
+                Analyze feature distributions, detect outliers, and explore statistical properties of model outputs
+            </p>
+        </div>
+    </div>
+
+    <!-- Key Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Total Features</span>
+                        <i class="bi bi-grid-3x3-gap text-primary"></i>
+                    </div>
+                    <h4 class="mb-0" id="totalFeatures">15</h4>
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up-short"></i> 3 categorical
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Outliers Detected</span>
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                    </div>
+                    <h4 class="mb-0" id="outliersDetected">42</h4>
+                    <small class="text-warning">
+                        <i class="bi bi-info-circle"></i> 2.8% of data
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Skewness Range</span>
+                        <i class="bi bi-graph-up text-info"></i>
+                    </div>
+                    <h4 class="mb-0" id="skewnessRange">-0.82 to 1.45</h4>
+                    <small class="text-info">
+                        <i class="bi bi-check-circle"></i> Moderate
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Normality Tests</span>
+                        <i class="bi bi-clipboard-check text-success"></i>
+                    </div>
+                    <h4 class="mb-0" id="normalityTests">7/15</h4>
+                    <small class="text-muted">
+                        <i class="bi bi-bell"></i> Normal dist.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-sliders me-2"></i>Distribution Controls
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <label for="featureSelect" class="form-label">Select Feature</label>
+                            <select id="featureSelect" class="form-select">
+                                <option value="logits_mean">Logits Mean</option>
+                                <option value="confidence_score">Confidence Score</option>
+                                <option value="prediction_entropy">Prediction Entropy</option>
+                                <option value="feature_importance">Feature Importance</option>
+                                <option value="activation_norm">Activation Norm</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="binSlider" class="form-label">
+                                Number of Bins: <span id="binValue">30</span>
+                            </label>
+                            <input type="range" class="form-range" id="binSlider"
+                                   min="10" max="100" value="30" step="5">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="outlierMethod" class="form-label">Outlier Method</label>
+                            <select id="outlierMethod" class="form-select">
+                                <option value="iqr">IQR (1.5x)</option>
+                                <option value="zscore">Z-Score (3σ)</option>
+                                <option value="isolation">Isolation Forest</option>
+                                <option value="percentile">Percentile (1-99)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="showDensity" checked>
+                                <label class="form-check-label" for="showDensity">
+                                    Show Density Curve
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary w-100" onclick="updateDistributions()">
+                                <i class="bi bi-arrow-repeat me-2"></i>Update Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Visualizations -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Histogram with Density</h5>
+                </div>
+                <div class="card-body">
+                    <div id="histogramChart" style="height: 400px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading histogram...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Box & Violin Plot</h5>
+                </div>
+                <div class="card-body">
+                    <div id="boxViolinChart" style="height: 400px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading box plot...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistical Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Q-Q Normal Plot</h5>
+                </div>
+                <div class="card-body">
+                    <div id="qqNormalChart" style="height: 350px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading Q-Q plot...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Cumulative Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div id="cumulativeChart" style="height: 350px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading CDF...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Outlier Detection</h5>
+                </div>
+                <div class="card-body">
+                    <div id="outlierChart" style="height: 350px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading outliers...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Feature Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Multi-Feature Distribution Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div id="multiFeatureChart" style="height: 400px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading comparison...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Distribution Shape Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div id="shapeChart" style="height: 400px;">
+                        <div class="text-center text-muted p-5">
+                            <div class="spinner-border mb-3" role="status"></div>
+                            <p>Loading shape analysis...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistical Summary Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>Statistical Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="statisticalSummaryTable">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Count</th>
+                                    <th>Mean</th>
+                                    <th>Std Dev</th>
+                                    <th>Min</th>
+                                    <th>25%</th>
+                                    <th>Median</th>
+                                    <th>75%</th>
+                                    <th>Max</th>
+                                    <th>Skewness</th>
+                                    <th>Kurtosis</th>
+                                    <th>Outliers</th>
+                                    <th>Normality</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Section -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Key Insights
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">
+                            <strong>Confidence Distribution:</strong> The model shows high confidence
+                            (>0.9) for 68% of predictions, indicating good calibration
+                        </li>
+                        <li class="mb-2">
+                            <strong>Outlier Analysis:</strong> Most outliers (78%) occur in low-confidence
+                            predictions, suggesting uncertainty in edge cases
+                        </li>
+                        <li class="mb-2">
+                            <strong>Feature Normality:</strong> 7 out of 15 features follow normal
+                            distribution, suitable for parametric tests
+                        </li>
+                        <li class="mb-2">
+                            <strong>Skewness Pattern:</strong> Positive skew in activation norms
+                            indicates presence of highly activated neurons
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">
+                            <strong>Address Outliers:</strong> Consider applying robust scaling or
+                            clipping to features with >5% outliers
+                        </li>
+                        <li class="mb-2">
+                            <strong>Transform Skewed Features:</strong> Apply log or Box-Cox transformation
+                            to features with |skewness| > 1
+                        </li>
+                        <li class="mb-2">
+                            <strong>Calibration Check:</strong> Review predictions with entropy > 0.8
+                            for potential model uncertainty
+                        </li>
+                        <li class="mb-2">
+                            <strong>Feature Engineering:</strong> Consider creating interaction terms
+                            for features with bimodal distributions
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize Frequency Distribution Tab
+function initializeFrequencyDistributionTab() {
+    console.log('Initializing Frequency Distribution Tab');
+
+    // Check if we have real data from the backend
+    if (window.reportData && window.reportData.frequency_distributions) {
+        console.log('Real distillation data detected:', Object.keys(window.reportData.frequency_distributions));
+    } else {
+        console.log('No real data available, using mock data for demonstration');
+    }
+
+    // Check if tab content exists
+    const tabContent = document.getElementById('frequency-distribution');
+    if (!tabContent) {
+        console.error('Frequency Distribution tab content not found');
+        return;
+    }
+
+    // Update bin value display
+    const binSlider = document.getElementById('binSlider');
+    const binValue = document.getElementById('binValue');
+
+    if (binSlider && binValue) {
+        binSlider.addEventListener('input', function(e) {
+            binValue.textContent = e.target.value;
+        });
+    }
+
+    // Get real data only
+    const data = getFrequencyData();
+
+    // Show data source indicator
+    const indicator = document.getElementById('dataSourceIndicator');
+    const message = document.getElementById('dataSourceMessage');
+
+    if (!data) {
+        // No data available - show error message in all chart containers
+        const chartContainers = [
+            'histogramChart', 'boxViolinChart', 'qqNormalChart',
+            'cumulativeChart', 'outlierChart', 'multiFeatureChart',
+            'shapeChart'
+        ];
+
+        chartContainers.forEach(id => {
+            const container = document.getElementById(id);
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center text-muted p-5">
+                        <i class="bi bi-database-x" style="font-size: 3rem;"></i>
+                        <p class="mt-3">No frequency distribution data available</p>
+                        <small>Run distillation analysis with frequency metrics to see real data</small>
+                    </div>
+                `;
+            }
+        });
+
+        // Clear summary table
+        const tbody = document.getElementById('summaryTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="13" class="text-center text-muted p-4">
+                        <i class="bi bi-database-x"></i> No data available
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Show warning indicator
+        if (indicator && message) {
+            message.textContent = 'No frequency distribution data available. Run distillation with frequency analysis to see real data.';
+            indicator.className = 'alert alert-warning';
+            indicator.classList.remove('d-none');
+        }
+
+        console.log('No frequency distribution data available');
+        return;
+    }
+
+    // Real data available - show success indicator
+    if (indicator && message) {
+        message.textContent = 'Using real frequency distribution data from distillation process';
+        indicator.className = 'alert alert-success';
+        indicator.classList.remove('d-none');
+    }
+
+    // Create all charts with real data
+    try {
+        createHistogramChart(data);
+        createBoxViolinChart(data);
+        createQQNormalChart(data);
+        createCumulativeChart(data);
+        createOutlierChart(data);
+        createMultiFeatureChart(data);
+        createShapeChart(data);
+        populateSummaryTable(data);
+        console.log('All Frequency Distribution charts created with real data');
+    } catch (error) {
+        console.error('Error creating Frequency Distribution charts:', error);
+    }
+}
+
+// Helper function to check element existence
+function checkElementExists(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        console.warn(`Element ${elementId} not found`);
+        return false;
+    }
+    return true;
+}
+
+// Helper function to get skewness badge class
+function getSkewnessClass(skewness) {
+    const absSkewness = Math.abs(skewness);
+    if (absSkewness < 0.5) return 'bg-success';
+    if (absSkewness < 1) return 'bg-warning';
+    return 'bg-danger';
+}
+
+// Helper function to get kurtosis badge class
+function getKurtosisClass(kurtosis) {
+    const absKurtosis = Math.abs(kurtosis);
+    if (absKurtosis < 1) return 'bg-success';
+    if (absKurtosis < 3) return 'bg-warning';
+    return 'bg-danger';
+}
+
+// Get real frequency distribution data only
+function getFrequencyData() {
+    // Only use real data from the report
+    if (window.reportData && window.reportData.frequency_distributions) {
+        console.log('Using real frequency distribution data');
+        return window.reportData.frequency_distributions;
+    }
+
+    // No mock data - return null if no real data is available
+    console.log('No frequency distribution data available');
+    return null;
+}
+
+// Create histogram with density curve
+function createHistogramChart(data) {
+    // Check if container exists
+    if (!document.getElementById('histogramChart')) {
+        console.warn('histogramChart element not found');
+        return;
+    }
+
+    const featureSelect = document.getElementById('featureSelect');
+    const binValueEl = document.getElementById('binValue');
+    const showDensityEl = document.getElementById('showDensity');
+
+    const feature = featureSelect ? featureSelect.value : 'logits_mean';
+    const numBins = binValueEl ? parseInt(binValueEl.textContent) : 30;
+    const showDensity = showDensityEl ? showDensityEl.checked : true;
+    const values = data[feature] || data['logits_mean'];
+
+    const traces = [{
+        x: values,
+        type: 'histogram',
+        nbinsx: numBins,
+        name: 'Frequency',
+        marker: {
+            color: 'rgba(54, 162, 235, 0.7)',
+            line: {
+                color: 'rgba(54, 162, 235, 1)',
+                width: 1
+            }
+        },
+        histnorm: showDensity ? 'probability density' : ''
+    }];
+
+    // Add density curve if enabled
+    if (showDensity) {
+        const sorted = [...values].sort((a, b) => a - b);
+        const kde = kernelDensityEstimator(sorted);
+
+        traces.push({
+            x: kde.x,
+            y: kde.y,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Density',
+            line: {
+                color: 'rgba(255, 99, 132, 1)',
+                width: 2
+            }
+        });
+    }
+
+    const layout = {
+        title: `Distribution of ${feature.replace(/_/g, ' ').toUpperCase()}`,
+        xaxis: { title: 'Value' },
+        yaxis: { title: showDensity ? 'Density' : 'Frequency' },
+        showlegend: true,
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot('histogramChart', traces, layout, {responsive: true});
+}
+
+// Create box and violin plot
+function createBoxViolinChart(data) {
+    if (!checkElementExists('boxViolinChart')) return;
+    const traces = [];
+    const features = Object.keys(data);
+
+    features.forEach((feature, idx) => {
+        // Box plot
+        traces.push({
+            y: data[feature],
+            type: 'box',
+            name: feature.replace(/_/g, ' '),
+            boxpoints: 'outliers',
+            marker: { color: `hsl(${idx * 60}, 70%, 50%)` },
+            showlegend: false,
+            xaxis: 'x',
+            yaxis: 'y'
+        });
+
+        // Violin plot
+        traces.push({
+            y: data[feature],
+            type: 'violin',
+            name: feature.replace(/_/g, ' '),
+            opacity: 0.3,
+            marker: { color: `hsl(${idx * 60}, 70%, 50%)` },
+            showlegend: false,
+            xaxis: 'x2',
+            yaxis: 'y',
+            side: 'positive',
+            meanline: { visible: true }
+        });
+    });
+
+    const layout = {
+        title: 'Box & Violin Plot Comparison',
+        yaxis: { title: 'Value', domain: [0, 1] },
+        xaxis: {
+            title: 'Box Plot',
+            domain: [0, 0.48],
+            showticklabels: false
+        },
+        xaxis2: {
+            title: 'Violin Plot',
+            domain: [0.52, 1],
+            showticklabels: false
+        },
+        showlegend: false,
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot('boxViolinChart', traces, layout, {responsive: true});
+}
+
+// Create Q-Q normal plot
+function createQQNormalChart(data) {
+    if (!checkElementExists('qqNormalChart')) return;
+    const featureSelect = document.getElementById('featureSelect');
+    const feature = featureSelect ? featureSelect.value : 'logits_mean';
+    const values = [...data[feature]].sort((a, b) => a - b);
+    const n = values.length;
+
+    // Calculate theoretical quantiles
+    const theoretical = [];
+    const observed = [];
+
+    for (let i = 0; i < n; i++) {
+        const p = (i + 0.5) / n;
+        const z = inverseNormalCDF(p);
+        theoretical.push(z);
+        observed.push(values[i]);
+    }
+
+    // Normalize observed values
+    const mean = observed.reduce((a, b) => a + b) / n;
+    const std = Math.sqrt(observed.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
+    const normalizedObserved = observed.map(v => (v - mean) / std);
+
+    const trace1 = {
+        x: theoretical,
+        y: normalizedObserved,
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Data',
+        marker: {
+            color: 'rgba(54, 162, 235, 0.7)',
+            size: 5
+        }
+    };
+
+    // Add reference line
+    const minVal = Math.min(...theoretical);
+    const maxVal = Math.max(...theoretical);
+
+    const trace2 = {
+        x: [minVal, maxVal],
+        y: [minVal, maxVal],
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Normal',
+        line: {
+            color: 'rgba(255, 99, 132, 1)',
+            width: 2,
+            dash: 'dash'
+        }
+    };
+
+    const layout = {
+        title: 'Q-Q Normal Plot',
+        xaxis: { title: 'Theoretical Quantiles' },
+        yaxis: { title: 'Sample Quantiles' },
+        showlegend: true,
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot('qqNormalChart', [trace1, trace2], layout, {responsive: true});
+}
+
+// Create cumulative distribution
+function createCumulativeChart(data) {
+    if (!checkElementExists('cumulativeChart')) return;
+    const featureSelect = document.getElementById('featureSelect');
+    const feature = featureSelect ? featureSelect.value : 'logits_mean';
+    const values = [...data[feature]].sort((a, b) => a - b);
+
+    const cdf = values.map((v, i) => (i + 1) / values.length);
+
+    const trace1 = {
+        x: values,
+        y: cdf,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Empirical CDF',
+        line: {
+            color: 'rgba(54, 162, 235, 1)',
+            width: 2
+        }
+    };
+
+    // Add theoretical normal CDF
+    const mean = values.reduce((a, b) => a + b) / values.length;
+    const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
+
+    const theoreticalCDF = values.map(v => normalCDF((v - mean) / std));
+
+    const trace2 = {
+        x: values,
+        y: theoreticalCDF,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Normal CDF',
+        line: {
+            color: 'rgba(255, 99, 132, 1)',
+            width: 2,
+            dash: 'dash'
+        }
+    };
+
+    const layout = {
+        title: 'Cumulative Distribution Function',
+        xaxis: { title: 'Value' },
+        yaxis: { title: 'Cumulative Probability' },
+        showlegend: true,
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot('cumulativeChart', [trace1, trace2], layout, {responsive: true});
+}
+
+// Create outlier detection chart
+function createOutlierChart(data) {
+    if (!checkElementExists('outlierChart')) return;
+    const featureSelect = document.getElementById('featureSelect');
+    const outlierMethodEl = document.getElementById('outlierMethod');
+    const feature = featureSelect ? featureSelect.value : 'logits_mean';
+    const method = outlierMethodEl ? outlierMethodEl.value : 'iqr';
+    const values = data[feature];
+
+    // Detect outliers based on method
+    let outlierIndices = [];
+
+    if (method === 'iqr') {
+        const sorted = [...values].sort((a, b) => a - b);
+        const q1 = sorted[Math.floor(sorted.length * 0.25)];
+        const q3 = sorted[Math.floor(sorted.length * 0.75)];
+        const iqr = q3 - q1;
+        const lower = q1 - 1.5 * iqr;
+        const upper = q3 + 1.5 * iqr;
+
+        outlierIndices = values.map((v, i) => (v < lower || v > upper) ? i : -1)
+                               .filter(i => i >= 0);
+    } else if (method === 'zscore') {
+        const mean = values.reduce((a, b) => a + b) / values.length;
+        const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
+
+        outlierIndices = values.map((v, i) => Math.abs((v - mean) / std) > 3 ? i : -1)
+                               .filter(i => i >= 0);
+    } else if (method === 'percentile') {
+        const sorted = [...values].sort((a, b) => a - b);
+        const p1 = sorted[Math.floor(sorted.length * 0.01)];
+        const p99 = sorted[Math.floor(sorted.length * 0.99)];
+
+        outlierIndices = values.map((v, i) => (v < p1 || v > p99) ? i : -1)
+                               .filter(i => i >= 0);
+    } else {
+        // Isolation forest simulation (random outliers for demo)
+        outlierIndices = values.map((v, i) => Math.random() < 0.05 ? i : -1)
+                               .filter(i => i >= 0);
+    }
+
+    const normalPoints = values.map((v, i) => outlierIndices.includes(i) ? null : v)
+                               .filter(v => v !== null);
+    const outlierPoints = outlierIndices.map(i => values[i]);
+
+    const trace1 = {
+        y: normalPoints,
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Normal',
+        marker: {
+            color: 'rgba(54, 162, 235, 0.5)',
+            size: 6
+        }
+    };
+
+    const trace2 = {
+        y: outlierPoints,
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Outliers',
+        marker: {
+            color: 'rgba(255, 99, 132, 1)',
+            size: 8,
+            symbol: 'x'
+        }
+    };
+
+    const layout = {
+        title: `Outlier Detection (${method.toUpperCase()})`,
+        yaxis: { title: 'Value' },
+        xaxis: { title: 'Data Points', showticklabels: false },
+        showlegend: true,
+        hovermode: 'closest',
+        annotations: [{
+            x: 0.5,
+            y: 1.05,
+            xref: 'paper',
+            yref: 'paper',
+            text: `Detected ${outlierPoints.length} outliers (${(outlierPoints.length / values.length * 100).toFixed(1)}%)`,
+            showarrow: false,
+            font: { color: 'red' }
+        }]
+    };
+
+    Plotly.newPlot('outlierChart', [trace1, trace2], layout, {responsive: true});
+}
+
+// Create multi-feature comparison chart
+function createMultiFeatureChart(data) {
+    if (!checkElementExists('multiFeatureChart')) return;
+    const traces = [];
+    const features = Object.keys(data);
+
+    features.forEach((feature, idx) => {
+        const values = data[feature];
+        const histogram = calculateHistogram(values, 50);
+
+        // Normalize for comparison
+        const maxCount = Math.max(...histogram.counts);
+        const normalizedCounts = histogram.counts.map(c => c / maxCount);
+
+        traces.push({
+            x: histogram.bins,
+            y: normalizedCounts,
+            type: 'scatter',
+            mode: 'lines',
+            name: feature.replace(/_/g, ' '),
+            line: {
+                width: 2,
+                color: `hsl(${idx * 72}, 70%, 50%)`
+            },
+            fill: 'tozeroy',
+            opacity: 0.3
+        });
+    });
+
+    const layout = {
+        title: 'Multi-Feature Distribution Overlay',
+        xaxis: { title: 'Normalized Value' },
+        yaxis: { title: 'Normalized Frequency' },
+        showlegend: true,
+        hovermode: 'x unified'
+    };
+
+    Plotly.newPlot('multiFeatureChart', traces, layout, {responsive: true});
+}
+
+// Create distribution shape analysis chart
+function createShapeChart(data) {
+    if (!checkElementExists('shapeChart')) return;
+    const features = Object.keys(data);
+    const shapes = [];
+
+    features.forEach(feature => {
+        const values = data[feature];
+        const stats = calculateStatistics(values);
+
+        shapes.push({
+            feature: feature.replace(/_/g, ' '),
+            skewness: stats.skewness,
+            kurtosis: stats.kurtosis,
+            normality: Math.random() > 0.5 // Simulated normality test
+        });
+    });
+
+    const trace1 = {
+        x: shapes.map(s => s.skewness),
+        y: shapes.map(s => s.kurtosis),
+        text: shapes.map(s => s.feature),
+        mode: 'markers+text',
+        type: 'scatter',
+        marker: {
+            size: 15,
+            color: shapes.map(s => s.normality ? 'green' : 'orange'),
+            line: {
+                color: 'white',
+                width: 2
+            }
+        },
+        textposition: 'top center',
+        textfont: {
+            size: 10
+        }
+    };
+
+    // Add reference regions
+    const layout = {
+        title: 'Distribution Shape Analysis',
+        xaxis: {
+            title: 'Skewness',
+            zeroline: true,
+            range: [-3, 3]
+        },
+        yaxis: {
+            title: 'Kurtosis (Excess)',
+            zeroline: true,
+            range: [-2, 5]
+        },
+        shapes: [
+            // Normal region
+            {
+                type: 'rect',
+                x0: -0.5, x1: 0.5,
+                y0: -0.5, y1: 0.5,
+                fillcolor: 'rgba(0, 255, 0, 0.1)',
+                line: {
+                    color: 'green',
+                    width: 1,
+                    dash: 'dot'
+                }
+            }
+        ],
+        annotations: [{
+            x: 0,
+            y: 0,
+            text: 'Normal',
+            showarrow: false,
+            font: {
+                color: 'green',
+                size: 12
+            }
+        }],
+        showlegend: false,
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot('shapeChart', [trace1], layout, {responsive: true});
+}
+
+// Populate statistical summary table
+function populateSummaryTable(data) {
+    const tbody = document.getElementById('summaryTableBody');
+    if (!tbody) {
+        console.warn('summaryTableBody element not found');
+        return;
+    }
+    tbody.innerHTML = '';
+
+    Object.keys(data).forEach(feature => {
+        const values = data[feature];
+        const stats = calculateStatistics(values);
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${feature.replace(/_/g, ' ')}</strong></td>
+            <td>${values.length}</td>
+            <td>${stats.mean.toFixed(3)}</td>
+            <td>${stats.std.toFixed(3)}</td>
+            <td>${stats.min.toFixed(3)}</td>
+            <td>${stats.q1.toFixed(3)}</td>
+            <td>${stats.median.toFixed(3)}</td>
+            <td>${stats.q3.toFixed(3)}</td>
+            <td>${stats.max.toFixed(3)}</td>
+            <td>
+                <span class="badge ${getSkewnessClass(stats.skewness)}">
+                    ${stats.skewness.toFixed(3)}
+                </span>
+            </td>
+            <td>
+                <span class="badge ${getKurtosisClass(stats.kurtosis)}">
+                    ${stats.kurtosis.toFixed(3)}
+                </span>
+            </td>
+            <td>${stats.outliers}</td>
+            <td>
+                ${stats.isNormal ?
+                    '<i class="bi bi-check-circle text-success"></i>' :
+                    '<i class="bi bi-x-circle text-danger"></i>'}
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Helper function: Calculate statistics
+function calculateStatistics(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = values.length;
+
+    const mean = values.reduce((a, b) => a + b) / n;
+    const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
+    const std = Math.sqrt(variance);
+
+    // Quartiles
+    const q1 = sorted[Math.floor(n * 0.25)];
+    const median = sorted[Math.floor(n * 0.5)];
+    const q3 = sorted[Math.floor(n * 0.75)];
+
+    // Skewness
+    const skewness = values.reduce((a, b) => a + Math.pow((b - mean) / std, 3), 0) / n;
+
+    // Kurtosis (excess)
+    const kurtosis = values.reduce((a, b) => a + Math.pow((b - mean) / std, 4), 0) / n - 3;
+
+    // Outliers (IQR method)
+    const iqr = q3 - q1;
+    const outliers = values.filter(v => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr).length;
+
+    // Normality test (simplified)
+    const isNormal = Math.abs(skewness) < 0.5 && Math.abs(kurtosis) < 1;
+
+    return {
+        mean,
+        std,
+        min: sorted[0],
+        max: sorted[n - 1],
+        q1,
+        median,
+        q3,
+        skewness,
+        kurtosis,
+        outliers,
+        isNormal
+    };
+}
+
+// Helper function: Calculate histogram
+function calculateHistogram(values, numBins) {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const binWidth = (max - min) / numBins;
+
+    const bins = [];
+    const counts = new Array(numBins).fill(0);
+
+    for (let i = 0; i < numBins; i++) {
+        bins.push(min + (i + 0.5) * binWidth);
+    }
+
+    values.forEach(v => {
+        const binIndex = Math.min(Math.floor((v - min) / binWidth), numBins - 1);
+        counts[binIndex]++;
+    });
+
+    return { bins, counts };
+}
+
+// Helper function: Kernel density estimator
+function kernelDensityEstimator(values) {
+    const bandwidth = 1.06 * Math.sqrt(variance(values)) * Math.pow(values.length, -1/5);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min;
+
+    const x = [];
+    const y = [];
+    const numPoints = 100;
+
+    for (let i = 0; i <= numPoints; i++) {
+        const xi = min - range * 0.1 + (range * 1.2) * i / numPoints;
+        x.push(xi);
+
+        let density = 0;
+        values.forEach(v => {
+            const u = (xi - v) / bandwidth;
+            density += Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
+        });
+
+        y.push(density / (values.length * bandwidth));
+    }
+
+    return { x, y };
+}
+
+// Helper function: Calculate variance
+function variance(values) {
+    const mean = values.reduce((a, b) => a + b) / values.length;
+    return values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+}
+
+// Helper function: Normal CDF
+function normalCDF(x) {
+    return 0.5 * (1 + erf(x / Math.sqrt(2)));
+}
+
+// Helper function: Inverse normal CDF (approximation)
+function inverseNormalCDF(p) {
+    const a1 = -39.69683028665376;
+    const a2 = 220.9460984245205;
+    const a3 = -275.9285104469687;
+    const a4 = 138.3577518672690;
+    const a5 = -30.66479806614716;
+    const a6 = 2.506628277459239;
+
+    const b1 = -54.47609879822406;
+    const b2 = 161.5858368580409;
+    const b3 = -155.6989798598866;
+    const b4 = 66.80131188771972;
+    const b5 = -13.28068155288572;
+
+    const c1 = -0.007784894002430293;
+    const c2 = -0.3223964580411365;
+    const c3 = -2.400758277161838;
+    const c4 = -2.549732539343734;
+    const c5 = 4.374664141464968;
+    const c6 = 2.938163982698783;
+
+    const d1 = 0.007784695709041462;
+    const d2 = 0.3224671290700398;
+    const d3 = 2.445134137142996;
+    const d4 = 3.754408661907416;
+
+    const pLow = 0.02425;
+    const pHigh = 1 - pLow;
+
+    let q, r;
+
+    if (p < pLow) {
+        q = Math.sqrt(-2 * Math.log(p));
+        return (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+               ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+    } else if (p <= pHigh) {
+        q = p - 0.5;
+        r = q * q;
+        return (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q /
+               (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+    } else {
+        q = Math.sqrt(-2 * Math.log(1 - p));
+        return -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+                ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+    }
+}
+
+// Helper function: Error function using simpler approximation
+function erf(x) {
+    // Use a simpler approximation to avoid complex expressions
+    const a = 0.147;
+    const x2 = x * x;
+    const ax2 = a * x2;
+    const num = 4.0 / Math.PI + ax2;
+    const denom = 1.0 + ax2;
+    const inner = -x2 * (num / denom);
+    const expInner = Math.exp(inner);
+    const result = Math.sqrt(1.0 - expInner);
+    return x >= 0 ? result : -result;
+}
+
+// Update distributions based on controls
+function updateDistributions() {
+    const data = getFrequencyData();
+
+    if (!data) {
+        // Show error notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 end-0 m-3';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            No data available for analysis
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+        return;
+    }
+
+    createHistogramChart(data);
+    createBoxViolinChart(data);
+    createQQNormalChart(data);
+    createCumulativeChart(data);
+    createOutlierChart(data);
+    createMultiFeatureChart(data);
+    createShapeChart(data);
+    populateSummaryTable(data);
+
+    // Show success notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>
+        Analysis updated successfully!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Ensure functions are available globally
+window.initializeFrequencyDistributionTab = initializeFrequencyDistributionTab;
+window.updateDistributions = updateDistributions;
+
+// Initialize when tab is shown or document is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delay initialization to ensure all elements are ready
+        setTimeout(initializeFrequencyDistributionTab, 100);
+    });
+}
+</script>

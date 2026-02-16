@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Uncertainty Report (Static) - {{ data.model_name }}{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 250px;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            min-width: 50px;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, #3498db, #5dade2);
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 8px;
+            min-height: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bar-label {
+            font-size: 0.85em;
+            font-weight: bold;
+            text-align: center;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
+        .bar-value {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+
+        .metric-val {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Overview</h2>
+
+        <div class="metrics-grid">
+            <div class="metric-item">
+                <div class="metric-label">Uncertainty Score</div>
+                <div class="metric-val {{ 'metric-good' if data.metrics.uncertainty_score >= 0.7 else 'metric-bad' }}">
+                    {{ data.metrics.uncertainty_score | format_number(3) }}
+                </div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Avg Coverage</div>
+                <div class="metric-val {{ 'metric-good' if data.metrics.avg_coverage >= 0.9 else 'metric-bad' }}">
+                    {{ data.metrics.avg_coverage | format_percentage(2) }}
+                </div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Avg Interval Width</div>
+                <div class="metric-val">
+                    {{ data.metrics.avg_width | format_number(4) }}
+                </div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Num Alphas</div>
+                <div class="metric-val">
+                    {{ data.metrics.num_alphas }}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if data.crqr_results %}
+        <section id="crqr-by-alpha">
+            <h2>CRQR Results Grouped by Alpha</h2>
+
+            {% for alpha_group in data.crqr_results | groupby('alpha') %}
+                <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                    <h3>Alpha = {{ alpha_group.grouper | format_number(3) }}</h3>
+
+                    <div class="metrics-grid">
+                        {% set result = alpha_group.list[0] %}
+                        <div class="metric-item">
+                            <div class="metric-label">Expected Coverage</div>
+                            <div class="metric-val">{{ result.expected_coverage | format_percentage(2) }}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Actual Coverage</div>
+                            <div class="metric-val {{ 'metric-good' if (result.actual_coverage - (1 - result.alpha)) | abs <= 0.05 else 'metric-bad' }}">
+                                {{ result.actual_coverage | format_percentage(2) }}
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Coverage Gap</div>
+                            <div class="metric-val">{{ ((result.actual_coverage - (1 - result.alpha)) | abs) | format_percentage(2) }}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Mean Width</div>
+                            <div class="metric-val">{{ result.mean_width | format_number(4) }}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Min Width</div>
+                            <div class="metric-val">{{ result.min_width | format_number(4) if result.min_width else 'N/A' }}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Max Width</div>
+                            <div class="metric-val">{{ result.max_width | format_number(4) if result.max_width else 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+
+        <section id="width-visualization">
+            <h2>Mean Interval Width Visualization</h2>
+            <div class="bar-chart">
+                {% set max_width = data.crqr_results | map(attribute='mean_width') | max %}
+                {% for result in data.crqr_results %}
+                    <div class="bar-item">
+                        <div class="bar" style="height: {{ (result.mean_width / max_width * 100) | int }}%;"></div>
+                        <div class="bar-label">α={{ result.alpha | format_number(2) }}</div>
+                        <div class="bar-value">{{ result.mean_width | format_number(3) }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-top: 20px;">
+                Bar heights represent relative mean interval widths. Wider bars indicate larger prediction intervals.
+            </p>
+        </section>
+
+        <section id="coverage-visualization">
+            <h2>Coverage by Alpha</h2>
+            <div class="bar-chart">
+                {% for result in data.crqr_results %}
+                    <div class="bar-item">
+                        <div class="bar" style="height: {{ result.actual_coverage * 100 }}%; background: linear-gradient(to top, #27ae60, #58d68d);"></div>
+                        <div class="bar-label">α={{ result.alpha | format_number(2) }}</div>
+                        <div class="bar-value">{{ result.actual_coverage | format_percentage(0) }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-top: 20px;">
+                Bar heights represent empirical coverage at each alpha level (max 100%).
+            </p>
+        </section>
+
+        <section id="detailed-table">
+            <h2>Complete CRQR Results Table</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alpha</th>
+                        <th>Expected Coverage</th>
+                        <th>Actual Coverage</th>
+                        <th>Coverage Gap</th>
+                        <th>Mean Width</th>
+                        <th>Min Width</th>
+                        <th>Max Width</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in data.crqr_results %}
+                        <tr>
+                            <td>{{ result.alpha | format_number(3) }}</td>
+                            <td>{{ result.expected_coverage | format_percentage(2) }}</td>
+                            <td class="{{ 'metric-good' if (result.actual_coverage - (1 - result.alpha)) | abs <= 0.05 else 'metric-bad' }}">
+                                {{ result.actual_coverage | format_percentage(2) }}
+                            </td>
+                            <td>{{ ((result.actual_coverage - (1 - result.alpha)) | abs) | format_percentage(2) }}</td>
+                            <td>{{ result.mean_width | format_number(4) }}</td>
+                            <td>{{ result.min_width | format_number(4) if result.min_width else 'N/A' }}</td>
+                            <td>{{ result.max_width | format_number(4) if result.max_width else 'N/A' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% else %}
+        <section id="no-results">
+            <p>No CRQR results available.</p>
+        </section>
+    {% endif %}
+
+    {% if data.test_config %}
+        <section id="test-configuration">
+            <h2>Test Configuration</h2>
+            <table>
+                <tbody>
+                    {% for key, value in data.test_config.items() %}
+                        <tr>
+                            <th>{{ key | format_metric_name }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ test_type|capitalize }} Report: {{ model_name }}</title>
+    
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+    
+    <style>
+        {{ css_content|safe }}
+
+        /* CSS Variables */
+        :root {
+            /* Brand colors */
+            --primary-color: #1b78de;       /* Bright blue */
+            --primary-light: #4287f5;       /* Lighter blue for gradients */
+            --primary-color-dark: #1a5fb4;  /* Darker blue for hover states */
+            --secondary-color: #2c3e50;     /* Dark slate */
+
+            /* Semantic colors */
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+
+            /* UI colors */
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --text-color: #333333;
+            --text-secondary: #555555;
+            --text-muted: #6c757d;
+            --border-color: #dddddd;
+            --background-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8f9fa;
+
+            /* Gradients */
+            --header-bg: linear-gradient(to right, #1a5fb4, #3584e4, #62a0ea);
+            --primary-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+
+            /* Border radius */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+
+            /* Box shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Base styles */
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header styles */
+        .report-header {
+            color: white;
+            padding: 0;
+            margin-bottom: var(--spacing-xl);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: var(--header-bg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            border-radius: var(--border-radius-md);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 1.5rem;
+        }
+
+        .header-logo {
+            flex: 0 0 auto;
+        }
+
+        .header-logo img {
+            max-height: 60px;
+            max-width: 120px;
+        }
+
+        .header-info {
+            flex: 1;
+        }
+
+        .header-info h1 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .report-subtitle {
+            margin: 0 0 0.75rem 0;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .report-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .metadata-item {
+            padding-right: 1rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .metadata-item:last-child {
+            border-right: none;
+        }
+
+        .metadata-item strong {
+            font-weight: 600;
+        }
+
+        /* Report container */
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+            width: 100%;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: var(--spacing-xl);
+            background-color: var(--bg-card);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-card);
+        }
+
+        .section-title {
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        /* Summary section styles */
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem auto;
+            max-width: 1200px;
+            padding: 0;
+        }
+
+        .summary-card-wrapper {
+            flex: 1 1 300px;
+            min-width: 250px;
+        }
+
+        .score-card {
+            text-align: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .score-label {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .score-gauge {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        .gauge-svg circle {
+            transition: stroke-dasharray 0.5s ease-in-out;
+        }
+
+        .score-metrics {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            width: 100%;
+        }
+
+        .metric-item {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .score-desc {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .score-badge {
+            font-weight: bold;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .excellent {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .good {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .moderate {
+            background-color: var(--warning-color);
+            color: var(--dark-color);
+        }
+
+        .needs-improvement {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .info-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100%;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-table td:first-child {
+            width: 50%;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Charts and tables */
+        .chart-container {
+            margin: 1.5rem 0;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-container h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .chart-image-container {
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .chart-image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .full-width-chart {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .no-data-message {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            background-color: var(--light-color);
+            border-radius: var(--border-radius-sm);
+            border: 1px dashed var(--border-color);
+        }
+
+        .table-container {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            background: white;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 1rem;
+        }
+
+        .table-container h3 {
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .table-container table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+        }
+
+        .table-container th {
+            background-color: var(--light-color);
+            color: var(--secondary-color);
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-light);
+            position: relative;
+        }
+
+        .table-container th:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 25%;
+            height: 50%;
+            width: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container td {
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.15s ease;
+        }
+
+        .table-container tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-container tr:hover td {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Alternate row styling */
+        .table-container tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        /* Table heading for specific types */
+        .table-container table.feature-table th:first-child,
+        .table-container table.model-table th:first-child {
+            width: 30%;
+        }
+
+        /* Numeric value styling */
+        .table-container td.numeric {
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            padding: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            background-color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .header-logo {
+                margin-bottom: 1rem;
+            }
+
+            .report-metadata {
+                justify-content: center;
+            }
+
+            .summary-card-wrapper {
+                flex: 1 1 100%;
+            }
+
+            .report-container {
+                padding: var(--spacing-md);
+            }
+
+            .section {
+                padding: var(--spacing-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container for the entire content with consistent margins -->
+    <div class="page-container" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--spacing-lg);">
+        <header class="report-header">
+            <div class="header-container">
+                <div class="header-content">
+                    <div class="header-logo">
+                        <img src="data:image/png;base64, {{ logo|default('') }}" alt="Logo" class="logo">
+                    </div>
+                    <div class="header-info">
+                        <h1>Model Validation Report</h1>
+                        <p class="report-subtitle">Resilience Analysis Report</p>
+                        <div class="report-metadata">
+                            <div class="metadata-item"><strong>Model:</strong> {{ model_name|default('Unknown') }}</div>
+                            <div class="metadata-item"><strong>Date:</strong> {{ timestamp|default('') }}</div>
+                            {% if model_type %}<div class="metadata-item"><strong>Type:</strong> {{ model_type }}</div>{% endif %}
+                            <div class="metadata-item"><strong>Report:</strong> {{ test_type|title }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Stats Section -->
+        <div class="summary-stats">
+            <!-- Resilience Score Card -->
+            <div class="summary-card-wrapper">
+                <div class="score-card">
+                    <div class="score-label">Resilience Score</div>
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 120 120" class="gauge-svg">
+                            <!-- Gauge background -->
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#e6e6e6" stroke-width="10"></circle>
+
+                            <!-- Colored gauge arc based on score -->
+                            <circle
+                                cx="60"
+                                cy="60"
+                                r="50"
+                                fill="none"
+                                {% if (resilience_score|default(0)) > 0.9 %}
+                                    stroke="#28a745"
+                                {% elif (resilience_score|default(0)) > 0.7 %}
+                                    stroke="#ffc107"
+                                {% elif (resilience_score|default(0)) > 0.5 %}
+                                    stroke="#fd7e14"
+                                {% else %}
+                                    stroke="#dc3545"
+                                {% endif %}
+                                stroke-width="10"
+                                stroke-dasharray="{{ (resilience_score|default(0) * 314) }} 314"
+                                transform="rotate(-90 60 60)"
+                            ></circle>
+
+                            <!-- Center value -->
+                            <text x="60" y="65" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">
+                                {{ (resilience_score|default(0) * 100) | round(1) }}%
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="score-metrics">
+                        <div class="metric-item">
+                            <span class="metric-value">{{ avg_performance_gap|default(0) | round(3) }}</span>
+                            <span class="metric-label">Perf. Gap</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value">{{ dist_shift|default(0) | round(3) }}</span>
+                            <span class="metric-label">Dist. Shift</span>
+                        </div>
+                    </div>
+                    <div class="score-desc">
+                        {% if (resilience_score|default(0)) > 0.9 %}
+                            <span class="score-badge excellent">Excellent</span> resilience
+                        {% elif (resilience_score|default(0)) > 0.7 %}
+                            <span class="score-badge good">Good</span> resilience
+                        {% elif (resilience_score|default(0)) > 0.5 %}
+                            <span class="score-badge moderate">Moderate</span> resilience
+                        {% else %}
+                            <span class="score-badge needs-improvement">Needs improvement</span> in resilience
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Information Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Model Information</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Type:</strong></td>
+                            <td>{{ model_type|default('Unknown') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Features:</strong></td>
+                            <td>{{ features|length|default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Primary Metric:</strong></td>
+                            <td>{{ metric|default('Accuracy')|upper }}</td>
+                        </tr>
+                        {% if sensitive_features %}
+                        <tr>
+                            <td><strong>Sensitive Features:</strong></td>
+                            <td>{{ sensitive_features|length|default(0) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if report_data and report_data.alternative_models %}
+                        <tr>
+                            <td><strong>Alternative Models:</strong></td>
+                            <td>{{ report_data.alternative_models|length|default(0) }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Test Summary Card -->
+            <div class="summary-card-wrapper">
+                <div class="info-card">
+                    <div class="info-title">Test Summary</div>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>Resilience Score:</strong></td>
+                            <td>{{ resilience_score|default(0)|round(4) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Performance Gap:</strong></td>
+                            <td>{{ avg_performance_gap|default(0)|round(4) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Distribution Shift:</strong></td>
+                            <td>{{ dist_shift|default(0)|round(4) }}</td>
+                        </tr>
+                        {% if most_affected_scenario %}
+                        <tr>
+                            <td><strong>Most Affected:</strong></td>
+                            <td>{{ most_affected_scenario }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Test Information Section -->
+        <div class="section">
+            <h2 class="section-title">Test Information</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Test Type</h3>
+                    <div class="metric-value">{{ test_type|capitalize }}</div>
+                    <div class="metric-label">Static report</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Model Type</h3>
+                    <div class="metric-value">{{ model_type }}</div>
+                    <div class="metric-label">Algorithm</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Features</h3>
+                    <div class="metric-value">{{ features|length }}</div>
+                    <div class="metric-label">Total features</div>
+                </div>
+
+                {% if sensitive_features %}
+                <div class="metrics-card">
+                    <h3>Sensitive Features</h3>
+                    <div class="metric-value">{{ sensitive_features|length }}</div>
+                    <div class="metric-label">For resilience analysis</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="table-container">
+                <h3>Test Configuration</h3>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Generation Time</th>
+                            <td>{{ timestamp }}</td>
+                        </tr>
+                        {% if sensitive_features %}
+                        <tr>
+                            <th>Sensitive Features</th>
+                            <td>{{ sensitive_features|join(', ') }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Metric</th>
+                            <td>{{ metric|default('Accuracy') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Report Type</th>
+                            <td>Static (non-interactive)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Metrics Section -->
+        <div class="section">
+            <h2 class="section-title">Performance Metrics</h2>
+
+            <div class="table-container">
+                <h3>Resilience Metrics</h3>
+                <table class="model-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Resilience Score</th>
+                            <th>Performance Gap</th>
+                            <th>Distribution Shift</th>
+                            {% if metrics %}
+                                {% for metric_name in metrics|sort %}
+                                    {% if metric_name not in ['resilience_score', 'performance_gap', 'distribution_shift'] %}
+                                    <th>{{ metric_name|title }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Primary model -->
+                        <tr>
+                            <td><strong>{{ model_name }}</strong></td>
+                            <td class="numeric">{{ "%.4f"|format(resilience_score) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(avg_performance_gap) }}</td>
+                            <td class="numeric">{{ "%.4f"|format(dist_shift|default(0)) }}</td>
+                            {% if metrics %}
+                                {% for metric_name, metric_value in metrics.items() %}
+                                    {% if metric_name not in ['resilience_score', 'performance_gap', 'distribution_shift'] %}
+                                    <td class="numeric">{{ "%.4f"|format(metric_value|default(0)) }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Overview Section -->
+        <div class="section">
+            <h2 class="section-title">Overview</h2>
+
+            <div class="metrics-grid">
+                <div class="metrics-card">
+                    <h3>Resilience Score</h3>
+                    <div class="metric-value">{{ "%.4f"|format(resilience_score) }}</div>
+                    <div class="metric-label">Higher is better</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Performance Gap</h3>
+                    <div class="metric-value">{{ "%.4f"|format(avg_performance_gap) }}</div>
+                    <div class="metric-label">Lower is better</div>
+                </div>
+
+                <div class="metrics-card">
+                    <h3>Distribution Shift</h3>
+                    <div class="metric-value">{{ "%.4f"|format(dist_shift|default(0)) }}</div>
+                    <div class="metric-label">Feature distribution change</div>
+                </div>
+
+                {% if most_affected_scenario %}
+                <div class="metrics-card">
+                    <h3>Most Affected Scenario</h3>
+                    <div class="metric-value">{{ most_affected_scenario }}</div>
+                    <div class="metric-label">Worst performing</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Resilience Score Chart -->
+            <div class="chart-container">
+                <h3>Resilience Metrics Overview</h3>
+                <p class="chart-description">Shows the key resilience metrics for the model, including resilience score and performance gap.</p>
+                {% if charts.resilience_score_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.resilience_score_chart }}" alt="Resilience metrics overview" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No resilience metrics data available for visualization.</p>
+                {% endif %}
+            </div>
+
+            <!-- Performance Gap Chart -->
+            <div class="chart-container">
+                <h3>Performance Comparison: Worst vs Remaining Samples</h3>
+                <p class="chart-description">Compares model performance on the worst-affected samples vs. the remaining dataset. A smaller gap indicates better resilience.</p>
+                {% if charts.performance_gap_chart %}
+                    <div class="chart-image-container">
+                        <img src="{{ charts.performance_gap_chart }}" alt="Performance gap analysis" class="full-width-chart">
+                    </div>
+                {% else %}
+                    <p class="no-data-message">No performance gap data available for visualization.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Feature Analysis Section -->
+        <div class="section">
+            <h2 class="section-title">Feature Analysis</h2>
+
+            {% if charts.feature_distribution_shift %}
+            <div class="chart-container">
+                <h3>Feature Distribution Shift</h3>
+                <p class="chart-description">Shows the distribution shift of features between normal and stressed conditions, highlighting features with significant changes.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_distribution_shift }}" alt="Feature distribution shift" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Critical Feature Distributions Chart -->
+            {% if charts.critical_feature_distributions %}
+            <div class="chart-container">
+                <h3>Critical Feature Distributions</h3>
+                <p class="chart-description">Compares the distributions of the most critical features between normal and stressed conditions.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.critical_feature_distributions }}" alt="Critical feature distributions" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Importance Chart -->
+            {% if charts.feature_importance_chart %}
+            <div class="chart-container">
+                <h3>Feature Importance for Resilience</h3>
+                <p class="chart-description">Shows the most important features affecting model resilience. Features with higher importance have greater impact on model performance under stress.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_importance_chart }}" alt="Feature importance for resilience" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Comparison Chart -->
+            {% if charts.feature_comparison_chart %}
+            <div class="chart-container">
+                <h3>Feature Importance: Model vs Resilience Analysis</h3>
+                <p class="chart-description">Compares feature importance from the model's original training versus from resilience analysis, highlighting differences in what impacts general performance versus resilience.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_comparison_chart }}" alt="Feature comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Importance Table -->
+            {% if feature_importance %}
+            <div class="table-container">
+                <h3>Feature Importance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feature, importance in feature_importance|dictsort(by='value', reverse=true) %}
+                        <tr>
+                            <td>{{ feature }}</td>
+                            <td class="numeric">{{ "%.4f"|format(importance) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Residual Analysis Section -->
+        {% if charts.residual_distribution or charts.feature_residual_correlation %}
+        <div class="section">
+            <h2 class="section-title">Residual Analysis</h2>
+
+            <!-- Residual Distribution Chart -->
+            {% if charts.residual_distribution %}
+            <div class="chart-container">
+                <h3>Model Residual Distribution</h3>
+                <p class="chart-description">Shows the distribution of residuals (prediction errors) across different datasets, helping identify biases under stress conditions.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.residual_distribution }}" alt="Residual distribution" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature-Residual Correlation Chart -->
+            {% if charts.feature_residual_correlation %}
+            <div class="chart-container">
+                <h3>Feature-Residual Correlation</h3>
+                <p class="chart-description">Shows which features are most correlated with model errors, helping identify potential areas for model improvement.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_residual_correlation }}" alt="Feature-residual correlation" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Distribution Metrics Section -->
+        {% if charts.distance_metrics_comparison or charts.feature_distance_heatmap %}
+        <div class="section">
+            <h2 class="section-title">Distribution Metrics Analysis</h2>
+
+            <!-- Distance Metrics Comparison Chart -->
+            {% if charts.distance_metrics_comparison %}
+            <div class="chart-container">
+                <h3>Distance Metrics Comparison by Alpha</h3>
+                <p class="chart-description">Compares different distance metrics (PSI, WD1, KS, etc.) across alpha levels, showing how distribution shift is captured by different metrics.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.distance_metrics_comparison }}" alt="Distance metrics comparison by alpha" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Feature Distance Heatmap -->
+            {% if charts.feature_distance_heatmap %}
+            <div class="chart-container">
+                <h3>Feature Distance Heatmap by Metric</h3>
+                <p class="chart-description">Shows the distribution shift of each feature as measured by different metrics, visualizing which features are most affected by different types of distribution shifts.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.feature_distance_heatmap }}" alt="Feature distance heatmap by metric" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Model Comparison Section -->
+        {% if charts.model_comparison_chart or charts.performance_gap_by_alpha or charts.model_resilience_scores %}
+        <div class="section">
+            <h2 class="section-title">Model Comparison</h2>
+
+            {% if charts.model_comparison_chart %}
+            <div class="chart-container">
+                <h3>Model Resilience Comparison</h3>
+                <p class="chart-description">Compares resilience performance across different models under increasing stress levels. Models with more gradual decline are more resilient.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_comparison_chart }}" alt="Model resilience comparison" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.performance_gap_by_alpha %}
+            <div class="chart-container">
+                <h3>Performance Gap by Alpha Level</h3>
+                <p class="chart-description">Shows how the performance gap changes across different alpha levels for each model. Models with smaller gaps at higher alpha levels demonstrate better resilience.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.performance_gap_by_alpha }}" alt="Performance gap by alpha level" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.model_resilience_scores %}
+            <div class="chart-container">
+                <h3>Resilience Scores by Model</h3>
+                <p class="chart-description">Compares the overall resilience score for each model. Higher scores indicate better performance under distribution shifts.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_resilience_scores }}" alt="Model resilience scores" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.model_comparison_scatter %}
+            <div class="chart-container">
+                <h3>Accuracy vs Resilience Score</h3>
+                <p class="chart-description">Scatter plot comparing model accuracy versus resilience score, helping identify models that maintain both high performance and resilience.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.model_comparison_scatter }}" alt="Model comparison scatter plot" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if charts.distance_metrics_comparison %}
+            <div class="chart-container">
+                <h3>Distance Metrics Comparison by Alpha</h3>
+                <p class="chart-description">Compares different distance metrics (PSI, WD1, KS, etc.) across alpha levels, showing how distribution shift is captured by different metrics.</p>
+                <div class="chart-image-container">
+                    <img src="{{ charts.distance_metrics_comparison }}" alt="Distance metrics comparison by alpha" class="full-width-chart">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>Generated by DeepBridge © {{ current_year }}</p>
+        </div>
+    </div>
+</body>
+</html>

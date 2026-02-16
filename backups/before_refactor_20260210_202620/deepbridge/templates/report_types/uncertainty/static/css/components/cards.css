@@ -1,0 +1,55 @@
+/* Cards CSS for static uncertainty report */
+.card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+}
+
+.card-subtitle {
+    font-size: 0.875rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.card-body {
+    padding: 0.5rem 0;
+}
+
+.card-footer {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.info-card {
+    border-left: 4px solid var(--primary-color);
+}
+
+.warning-card {
+    border-left: 4px solid var(--warning-color);
+}
+
+.danger-card {
+    border-left: 4px solid var(--danger-color);
+}
+
+.success-card {
+    border-left: 4px solid var(--success-color);
+}

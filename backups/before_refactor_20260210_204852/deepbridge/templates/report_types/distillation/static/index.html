@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Distillation Report (Static): {{ model_name }}</title>
+
+    {% if favicon %}
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ favicon }}">
+    {% endif %}
+
+    <!-- Embedded CSS -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container static-report">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="header-content">
+                {% if logo %}
+                <div class="header-logo">
+                    <img src="{{ logo }}" alt="DeepBridge Logo" class="logo">
+                </div>
+                {% endif %}
+                <div class="header-info">
+                    <h1>Knowledge Distillation Report</h1>
+                    <p class="report-subtitle">Model Compression and Knowledge Transfer Analysis</p>
+                    <div class="report-metadata">
+                        <span class="metadata-item"><strong>Model:</strong> {{ model_name }}</span>
+                        <span class="metadata-item"><strong>Date:</strong> {{ timestamp }}</span>
+                        <span class="metadata-item"><strong>Models Tested:</strong> {{ total_models }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="section">
+            <h2>📊 Executive Summary</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Models Evaluated</h3>
+                    <div class="value">{{ total_models }}</div>
+                    <p class="metric-subtitle">Distilled models tested</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Best Test Accuracy</h3>
+                    <div class="value">{{ "%.2f" | format(best_accuracy * 100) }}%</div>
+                    <p class="metric-subtitle">Highest performing model</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Best F1 Score</h3>
+                    <div class="value">{{ "%.2f" | format((best_model.metrics.test_f1_score * 100) if best_model.metrics and best_model.metrics.test_f1_score else 0) }}%</div>
+                    <p class="metric-subtitle">Balance of precision/recall</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Best AUC-ROC</h3>
+                    <div class="value">{{ "%.3f" | format(best_model.metrics.test_auc_roc if best_model.metrics and best_model.metrics.test_auc_roc else 0) }}</div>
+                    <p class="metric-subtitle">Classification quality</p>
+                </div>
+            </div>
+
+            <div class="best-model-summary">
+                <h3>🏆 Best Performing Model Configuration</h3>
+                <div class="model-details">
+                    <p><strong>Algorithm:</strong> {{ best_model.model_type | replace("ModelType.", "") | replace("_", " ") | title }}</p>
+                    <p><strong>Hyperparameters:</strong> Temperature = {{ "%.1f" | format(best_model.temperature) }}, Alpha = {{ "%.1f" | format(best_model.alpha) }}</p>
+                    <p><strong>Performance Metrics:</strong>
+                        Accuracy: {{ "%.3f" | format(best_model.metrics.test_accuracy) if best_model.metrics and best_model.metrics.test_accuracy else "N/A" }},
+                        Precision: {{ "%.3f" | format(best_model.metrics.test_precision) if best_model.metrics and best_model.metrics.test_precision else "N/A" }},
+                        Recall: {{ "%.3f" | format(best_model.metrics.test_recall) if best_model.metrics and best_model.metrics.test_recall else "N/A" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Analysis Charts -->
+        <div class="section">
+            <h2>📈 Performance Analysis</h2>
+
+            {% if charts.radar_chart %}
+            <div class="chart-container">
+                <h3>Original vs Best Distilled Model</h3>
+                <img src="{{ charts.radar_chart }}" alt="Radar comparison chart">
+            </div>
+            {% endif %}
+
+            {% if charts.performance_heatmap %}
+            <div class="chart-container">
+                <h3>Model Performance Heatmap</h3>
+                <img src="{{ charts.performance_heatmap }}" alt="Performance heatmap">
+            </div>
+            {% endif %}
+
+            {% if charts.hyperparameter_surface %}
+            <div class="chart-container">
+                <h3>Hyperparameter Impact</h3>
+                <img src="{{ charts.hyperparameter_surface }}" alt="Hyperparameter surface">
+            </div>
+            {% endif %}
+
+            {% if charts.tradeoff_scatter %}
+            <div class="chart-container">
+                <h3>Accuracy vs Complexity Trade-off</h3>
+                <img src="{{ charts.tradeoff_scatter }}" alt="Trade-off scatter plot">
+            </div>
+            {% endif %}
+
+            {% if charts.metrics_comparison %}
+            <div class="chart-container">
+                <h3>Metrics Comparison</h3>
+                <img src="{{ charts.metrics_comparison }}" alt="Metrics comparison">
+            </div>
+            {% endif %}
+
+            {# KS Statistic Distribution chart disabled #}
+            {# {% if charts.ks_distribution %}
+            <div class="chart-container">
+                <h3>KS Statistic Distribution Analysis</h3>
+                <img src="{{ charts.ks_distribution }}" alt="KS statistic distribution">
+            </div>
+            {% endif %} #}
+
+            {% if charts.frequency_distribution %}
+            <div class="chart-container">
+                <h3>Prediction Frequency Distribution</h3>
+                <img src="{{ charts.frequency_distribution }}" alt="Frequency distribution comparison">
+            </div>
+            {% endif %}
+
+
+            {# Model Rankings chart disabled #}
+            {# {% if charts.model_rankings %}
+            <div class="chart-container">
+                <h3>Model Rankings</h3>
+                <img src="{{ charts.model_rankings }}" alt="Model rankings">
+            </div>
+            {% endif %} #}
+        </div>
+
+        <!-- Top Models Table -->
+        <div class="section">
+            <h2>🏆 Top Models Performance</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Model</th>
+                            <th>Temperature</th>
+                            <th>Alpha</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1 Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in all_models[:10] %}
+                        <tr>
+                            <td>#{{ loop.index }}</td>
+                            <td>{{ model.model_type }}</td>
+                            <td>{{ model.temperature }}</td>
+                            <td>{{ model.alpha }}</td>
+                            <td>{{ "%.4f" | format(model.metrics.test_accuracy) if model.metrics and model.metrics.test_accuracy else "N/A" }}</td>
+                            <td>{{ "%.4f" | format(model.metrics.test_precision) if model.metrics and model.metrics.test_precision else "N/A" }}</td>
+                            <td>{{ "%.4f" | format(model.metrics.test_recall) if model.metrics and model.metrics.test_recall else "N/A" }}</td>
+                            <td>{{ "%.4f" | format(model.metrics.test_f1_score) if model.metrics and model.metrics.test_f1_score else "N/A" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="section">
+            <h2>💡 Recommendations</h2>
+            {% for rec in recommendations %}
+            <div class="recommendation-card">
+                <h3>{{ rec.scenario }}</h3>
+                <p><strong>Model:</strong> {{ rec.model }} ({{ rec.config }})</p>
+                <p><strong>Reason:</strong> {{ rec.reason }}</p>
+                <p><strong>Key Metrics:</strong>
+                    Accuracy: {{ "%.4f" | format(rec.metrics.accuracy) }}{% if rec.metrics.f1_score %},
+                    F1: {{ "%.4f" | format(rec.metrics.f1_score) }}{% endif %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generated by DeepBridge Knowledge Distillation Analysis</p>
+            <p>{{ timestamp }}</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!-- Static Resilience Report Details -->
+<div class="details-section">
+    <div class="table-container">
+        <h3>Model Information</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <th>Model Name</th>
+                    <td>{{ model_name }}</td>
+                </tr>
+                <tr>
+                    <th>Model Type</th>
+                    <td>{{ model_type|default('Unknown') }}</td>
+                </tr>
+                <tr>
+                    <th>Test Type</th>
+                    <td>{{ test_type|capitalize }}</td>
+                </tr>
+                <tr>
+                    <th>Features Count</th>
+                    <td>{{ features|length|default(0) }}</td>
+                </tr>
+                {% if sensitive_features %}
+                <tr>
+                    <th>Sensitive Features</th>
+                    <td>{{ sensitive_features|join(', ') }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th>Generation Time</th>
+                    <td>{{ timestamp }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-container">
+        <h3>Resilience Metrics</h3>
+        <table class="model-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Resilience Score</td>
+                    <td class="numeric">{{ "%.4f"|format(resilience_score) }}</td>
+                    <td>Overall model resilience measure (higher is better)</td>
+                </tr>
+                <tr>
+                    <td>Performance Gap</td>
+                    <td class="numeric">{{ "%.4f"|format(avg_performance_gap) }}</td>
+                    <td>Performance difference between normal and worst samples (lower is better)</td>
+                </tr>
+                <tr>
+                    <td>Distribution Shift</td>
+                    <td class="numeric">{{ "%.4f"|format(dist_shift|default(0)) }}</td>
+                    <td>Average feature distribution shift across scenarios</td>
+                </tr>
+                {% if metrics %}
+                    {% for metric_name, metric_value in metrics.items() %}
+                        {% if metric_name not in ['resilience_score', 'performance_gap', 'distribution_shift'] %}
+                        <tr>
+                            <td>{{ metric_name|title }}</td>
+                            <td class="numeric">{{ "%.4f"|format(metric_value|default(0)) }}</td>
+                            <td>Additional model performance metric</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if charts.feature_residual_correlation %}
+    <div class="chart-container">
+        <h3>Feature-Residual Correlation</h3>
+        <p class="chart-description">Shows which features are most correlated with model errors, helping identify potential areas for model improvement.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.feature_residual_correlation }}" alt="Feature-residual correlation" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if charts.residual_distribution %}
+    <div class="chart-container">
+        <h3>Model Residual Distribution</h3>
+        <p class="chart-description">Shows the distribution of residuals (prediction errors) across different datasets, helping identify biases under stress conditions.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.residual_distribution }}" alt="Residual distribution" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+</div>

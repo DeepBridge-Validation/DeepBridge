@@ -1,0 +1,56 @@
+<!-- Static Resilience Report Model Features -->
+<div class="model-features-section">
+    <div class="table-container">
+        <h3>Model Features</h3>
+        {% if features and features|length > 0 %}
+        <table class="feature-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Feature Name</th>
+                    {% if feature_importance %}
+                    <th>Importance</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature in features %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ feature }}</td>
+                    {% if feature_importance and feature in feature_importance %}
+                    <td class="numeric">{{ "%.4f"|format(feature_importance[feature]) }}</td>
+                    {% elif feature_importance %}
+                    <td class="numeric">0.0000</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data-message">No feature information available.</p>
+        {% endif %}
+    </div>
+
+    {% if sensitive_features %}
+    <div class="table-container">
+        <h3>Sensitive Features</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Feature Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature in sensitive_features %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ feature }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,90 @@
+<div class="section">
+    <h2 class="section-title">Performance Overview</h2>
+    <p>This section shows how the model's performance changes under different perturbation levels.</p>
+    
+    <!-- Performance charts selector -->
+    <div class="chart-selector" id="performance_charts_selector">
+        <button class="chart-selector-option active" data-chart-type="perturbation">Perturbation Impact</button>
+        <button class="chart-selector-option" data-chart-type="worst">Worst Case</button>
+        <button class="chart-selector-option" data-chart-type="mean">Mean Performance</button>
+    </div>
+    
+    <!-- Performance charts section -->
+    <div class="performance-charts-container">
+        <div class="chart-container active" data-chart-type="perturbation">
+            <div id="perturbation-chart-plot" class="chart-plot"></div>
+        </div>
+        <div class="chart-container" data-chart-type="worst">
+            <div id="worst-score-chart-plot" class="chart-plot"></div>
+        </div>
+        <div class="chart-container" data-chart-type="mean">
+            <div id="mean-score-chart-plot" class="chart-plot"></div>
+        </div>
+    </div>
+</div>
+
+{% if has_alternative_models %}
+<div class="section model-comparison-section">
+    <h2 class="section-title">Model Comparison</h2>
+    <p>Comparison of robustness between different models.</p>
+    
+    <!-- Model comparison charts selector -->
+    <div class="chart-selector" id="model_comparison_selector">
+        <button class="chart-selector-option active" data-chart-type="overview">Overview</button>
+        <button class="chart-selector-option" data-chart-type="details">Details by Level</button>
+    </div>
+    
+    <!-- Model comparison charts -->
+    <div class="chart-container active" data-chart-type="overview">
+        <div id="model-comparison-chart-plot" class="chart-plot"></div>
+    </div>
+    <div class="chart-container" data-chart-type="details">
+        <div id="model-level-details-chart-plot" class="chart-plot"></div>
+    </div>
+</div>
+{% endif %}
+
+<div class="section results-tables-section">
+    <h2 class="section-title">Detailed Results</h2>
+    
+    <!-- Results tabs -->
+    <div class="results-tabs" id="result_tables_tabs">
+        <div class="tab active" data-tab="model-comparison-results">Model Comparison</div>
+        <div class="tab" data-tab="raw-perturbation-results">Raw Perturbation</div>
+    </div>
+    
+    <!-- Results tab content -->
+    <div id="model-comparison-results" class="tab-content active">
+        <table class="data-table" id="model-comparison-table">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Base Score</th>
+                    <th>Robustness Score</th>
+                    <th>Raw Impact</th>
+                    <th>Quantile Impact</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Will be filled by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    
+    <div id="raw-perturbation-results" class="tab-content">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Perturbation Level</th>
+                    <th>Base Score</th>
+                    <th>Perturbed Score</th>
+                    <th>Impact</th>
+                    <th>Worst Score</th>
+                </tr>
+            </thead>
+            <tbody id="raw-perturbation-data">
+                <!-- Will be filled by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Robustness Report (Static) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Overview</h2>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Robustness Score</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.robustness_score >= 0.7 else 'metric-bad' }}">
+                        {{ data.metrics.robustness_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Base Score</h5>
+                    <p class="metric-value">
+                        {{ data.metrics.base_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Raw Impact</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.avg_raw_impact <= 0.1 else 'metric-bad' }}">
+                        {{ data.metrics.avg_raw_impact | format_percentage(2) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5>Quantile Impact</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.avg_quantile_impact <= 0.1 else 'metric-bad' }}">
+                        {{ data.metrics.avg_quantile_impact | format_percentage(2) }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if data.perturbation_results_raw %}
+        <section id="raw-perturbations">
+            <h2>Raw Perturbation Results</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Mean Score</th>
+                        <th>Worst Score</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in data.perturbation_results_raw %}
+                        <tr>
+                            <td>{{ result.level }}</td>
+                            <td>{{ result.mean_score | format_number(4) }}</td>
+                            <td>{{ result.worst_score | format_number(4) if result.worst_score else 'N/A' }}</td>
+                            <td class="{{ 'metric-good' if result.impact <= 0.1 else 'metric-bad' }}">
+                                {{ result.impact | format_percentage(2) }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    {% if data.perturbation_results_quantile %}
+        <section id="quantile-perturbations">
+            <h2>Quantile Perturbation Results</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Mean Score</th>
+                        <th>Worst Score</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in data.perturbation_results_quantile %}
+                        <tr>
+                            <td>{{ result.level }}</td>
+                            <td>{{ result.mean_score | format_number(4) }}</td>
+                            <td>{{ result.worst_score | format_number(4) if result.worst_score else 'N/A' }}</td>
+                            <td class="{{ 'metric-good' if result.impact <= 0.1 else 'metric-bad' }}">
+                                {{ result.impact | format_percentage(2) }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    {% if data.feature_importance and data.feature_importance | length > 0 %}
+        <section id="feature-importance">
+            <h2>Feature Importance</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Feature</th>
+                        <th>Importance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feature in data.feature_importance %}
+                        <tr>
+                            <td>{{ feature.rank }}</td>
+                            <td>{{ feature.feature_name }}</td>
+                            <td>{{ feature.importance | format_number(4) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+{% endblock %}

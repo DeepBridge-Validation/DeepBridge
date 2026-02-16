@@ -1,0 +1,131 @@
+/* =========================================
+   MODEL ROBUSTNESS REPORT - MAIN STYLES
+   ========================================= */
+
+/* Import our component styles */
+@import url('components/summary.css');
+@import url('components/cards.css');
+@import url('components/charts.css');
+@import url('components/tables.css');
+@import url('components/tabs.css');
+@import url('components/widgets.css');
+@import url('components/details.css');
+
+/* Variables específicas para o relatório de robustez */
+:root {
+    /* Cores específicas para o tema de robustez */
+    --robustness-primary: #1b78de;
+    --robustness-secondary: #3498db;
+    --robustness-highlight: #4287f5;
+    
+    /* Cores para indicação de nível de robustez */
+    --robust-high: #28a745;
+    --robust-medium: #ffc107;
+    --robust-low: #dc3545;
+    
+    /* Gradientes personalizados */
+    --robustness-gradient: linear-gradient(135deg, #4287f5, #1a56b8);
+}
+
+/* Estilos adicionais específicos */
+.robustness-report .section {
+    margin-bottom: 2rem;
+}
+
+.robustness-report .chart-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+}
+
+/* Boxplot specific styles */
+#boxplot-chart-container {
+  min-height: 550px !important;
+  padding: 20px 0;
+  border-radius: 8px;
+  background-color: #fafafa;
+  margin-bottom: 25px;
+}
+
+/* Make sure violin plots have enough contrast */
+.violin-plot .violin-fill {
+  opacity: 0.8 !important;
+}
+
+/* Style for base score markers */
+.base-score-marker {
+  stroke: white !important;
+  stroke-width: 1.5px !important;
+}
+
+/* Improve table presentation */
+.boxplot-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.boxplot-table th {
+  background-color: #f3f3f3;
+  font-weight: bold;
+  text-align: left;
+  padding: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.boxplot-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.boxplot-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.boxplot-table tr:hover {
+  background-color: #f0f0f0;
+}
+
+/* Score drop coloring */
+.boxplot-table .text-danger {
+  color: #d9534f;
+  font-weight: bold;
+}
+
+.boxplot-table .text-warning {
+  color: #f0ad4e;
+}
+
+.boxplot-table .text-success {
+  color: #5cb85c;
+}
+
+.robustness-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.metric-item {
+    flex: 1;
+    min-width: 120px;
+    background-color: #1b78de;
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--robustness-primary);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: #1b78de;
+    margin-top: 0.5rem;
+}

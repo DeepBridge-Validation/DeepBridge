@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge {{ report_type|capitalize }} Report: {{ report_data.model_name }}</title>
+    
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+    
+    <!-- Plotly library -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    
+    <!-- CSS combinado -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container {{ report_type }}-report">
+        <!-- Header comum -->
+        {% include 'common/header.html' %}
+
+        <!-- Navegação em abas usando componente comum -->
+        {% with 
+            tabs=[
+                {'id': 'overview', 'title': 'Overview'},
+                {'id': 'details', 'title': 'Details'},
+                {'id': 'boxplot', 'title': 'Box Plot'},
+                {'id': 'feature_impact', 'title': 'Feature Importance'},
+                {'id': 'model_features', 'title': 'Model Features'}
+            ]
+        %}
+        {% include 'common/navigation.html' %}
+        {% endwith %}
+
+        <!-- Conteúdo das abas -->
+        <div id="overview" class="tab-content active">
+            {% include 'report_types/' + report_type + '/partials/overview.html' %}
+        </div>
+        
+        <div id="details" class="tab-content">
+            {% include 'report_types/' + report_type + '/partials/details.html' %}
+        </div>
+        
+        <div id="boxplot" class="tab-content">
+            {% include 'report_types/' + report_type + '/partials/boxplot.html' %}
+        </div>
+        
+        <div id="feature_impact" class="tab-content">
+            {% include 'report_types/' + report_type + '/partials/features.html' %}
+        </div>
+        
+        <div id="model_features" class="tab-content">
+            {% include 'report_types/' + report_type + '/partials/model_features.html' %}
+        </div>
+        
+        <!-- Footer comum -->
+        {% include 'common/footer.html' %}
+    </div>
+
+    <!-- Inicialização de dados do relatório -->
+    <script>
+        // Disponibilizar dados do relatório para os componentes
+        window.reportData = {{ report_data_json|safe }};
+        
+        // Configuração do relatório
+        window.reportConfig = {
+            reportType: '{{ report_type }}',
+            modelName: '{{ report_data.model_name }}'
+        };
+    </script>
+    
+    <!-- Scripts combinados -->
+    <script>
+        {{ js_content }}
+    </script>
+</body>
+</html>

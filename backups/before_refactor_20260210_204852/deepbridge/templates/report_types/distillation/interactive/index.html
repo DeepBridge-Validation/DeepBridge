@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepBridge Interactive Distillation Report: {{ report_data.model_name|default(model_name) }}</title>
+
+    <!-- Favicon -->
+    {% if favicon_base64 %}
+    <link rel="icon" href="data:image/png;base64,{{ favicon_base64 }}" type="image/png">
+    {% endif %}
+
+    <!-- External dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+            --border-color: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .report-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        /* Header Styles */
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .report-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-header p {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            background: var(--light-color);
+            border-bottom: 2px solid var(--border-color);
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 150px;
+            padding: 1rem;
+            background: transparent;
+            border: none;
+            color: var(--secondary-color);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tab-button:hover {
+            background: rgba(37, 99, 235, 0.05);
+            color: var(--primary-color);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            background: white;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-color);
+        }
+
+        .tab-button i {
+            margin-right: 0.5rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Card Styles */
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .metric-card:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+
+        .metric-card .metric-label {
+            color: var(--secondary-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-card .metric-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table thead {
+            background: var(--light-color);
+        }
+
+        .data-table th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark-color);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .data-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(37, 99, 235, 0.02);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .tab-button {
+                font-size: 0.875rem;
+                padding: 0.75rem 0.5rem;
+            }
+
+            .tab-button i {
+                display: none;
+            }
+
+            .metric-card .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .report-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 1rem; }
+        .mt-4 { margin-top: 1.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        .p-3 { padding: 1rem; }
+        .p-4 { padding: 1.5rem; }
+
+        /* Additional Interactive Styles */
+        .filter-container {
+            background: var(--light-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:hover,
+        .filter-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Tooltip Styles */
+        .tooltip-custom {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip-custom .tooltip-text {
+            visibility: hidden;
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 0.5rem;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 0.875rem;
+        }
+
+        .tooltip-custom:hover .tooltip-text {
+            visibility: visible;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            background: var(--light-color);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 8px;
+            margin: 0.5rem 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+            transition: width 0.3s ease;
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid var(--info-color);
+            color: var(--info-color);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+    </style>
+
+    <!-- Additional CSS from renderer -->
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1>
+                <i class="fas fa-brain"></i>
+                Interactive Distillation Report
+            </h1>
+            <p>{{ report_data.model_name|default(model_name) }} - Generated on {{ report_data.timestamp|default("N/A") }}</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">
+                <i class="fas fa-chart-line"></i> Overview
+            </button>
+            <button class="tab-button" data-tab="model-comparison">
+                <i class="fas fa-balance-scale"></i> Model Comparison
+            </button>
+            <button class="tab-button" data-tab="hyperparameter-analysis">
+                <i class="fas fa-sliders-h"></i> Hyperparameter Analysis
+            </button>
+            <button class="tab-button" data-tab="performance-metrics">
+                <i class="fas fa-tachometer-alt"></i> Performance Metrics
+            </button>
+            <button class="tab-button" data-tab="tradeoff-analysis">
+                <i class="fas fa-exchange-alt"></i> Trade-off Analysis
+            </button>
+            <button class="tab-button" data-tab="ks-distribution">
+                <i class="fas fa-chart-area"></i> KS Distribution
+            </button>
+            <button class="tab-button" data-tab="frequency-distribution">
+                <i class="fas fa-chart-bar"></i> Frequency Distribution
+            </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="overview" class="tab-content active">
+            {% include 'report_types/distillation/interactive/partials/overview.html' %}
+        </div>
+
+        <div id="model-comparison" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/model_comparison.html' %}
+        </div>
+
+        <div id="hyperparameter-analysis" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/hyperparameter_analysis.html' %}
+        </div>
+
+        <div id="performance-metrics" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/performance_metrics.html' %}
+        </div>
+
+        <div id="tradeoff-analysis" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/tradeoff_analysis.html' %}
+        </div>
+
+        <div id="ks-distribution" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/ks_distribution.html' %}
+        </div>
+
+        <div id="frequency-distribution" class="tab-content">
+            {% include 'report_types/distillation/interactive/partials/frequency_distribution.html' %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Tab Navigation Script -->
+    <script>
+        // Tab navigation system
+        class TabManager {
+            constructor() {
+                this.tabs = document.querySelectorAll('.tab-button');
+                this.contents = document.querySelectorAll('.tab-content');
+                this.currentTab = 'overview';
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                this.tabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tabId = tab.getAttribute('data-tab');
+                        this.switchTab(tabId);
+                    });
+                });
+
+                // Handle browser back/forward
+                window.addEventListener('popstate', (e) => {
+                    if (e.state && e.state.tab) {
+                        this.switchTab(e.state.tab, false);
+                    }
+                });
+            }
+
+            switchTab(tabId, pushState = true) {
+                // Update active states
+                this.tabs.forEach(tab => {
+                    if (tab.getAttribute('data-tab') === tabId) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+
+                this.contents.forEach(content => {
+                    if (content.id === tabId) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+
+                // Update URL without reload
+                if (pushState) {
+                    const url = new URL(window.location);
+                    url.searchParams.set('tab', tabId);
+                    window.history.pushState({ tab: tabId }, '', url);
+                }
+
+                // Dispatch custom event for chart initialization
+                window.dispatchEvent(new CustomEvent('tabchange', {
+                    detail: { tabId: tabId, previousTab: this.currentTab }
+                }));
+
+                this.currentTab = tabId;
+
+                // Initialize tab-specific content
+                this.initializeTabContent(tabId);
+            }
+
+            initializeTabContent(tabId) {
+                // Call tab-specific initialization functions
+                const initFunctions = {
+                    'overview': 'initializeOverviewTab',
+                    'model-comparison': 'initializeModelComparisonTab',
+                    'hyperparameter-analysis': 'initializeHyperparameterTab',
+                    'performance-metrics': 'initializePerformanceTab',
+                    'tradeoff-analysis': 'initializeTradeoffTab',
+                    'ks-distribution': 'initializeKSDistributionTab',
+                    'frequency-distribution': 'initializeFrequencyDistributionTab'
+                };
+
+                const funcName = initFunctions[tabId];
+                if (funcName && typeof window[funcName] === 'function') {
+                    window[funcName]();
+                }
+            }
+        }
+
+        // Data management system
+        class DataManager {
+            constructor(data) {
+                this.data = data || {};
+                this.filters = {};
+                this.sortConfig = {};
+            }
+
+            getData(key) {
+                return this.data[key];
+            }
+
+            setFilter(key, value) {
+                this.filters[key] = value;
+                this.applyFilters();
+            }
+
+            clearFilters() {
+                this.filters = {};
+                this.applyFilters();
+            }
+
+            applyFilters() {
+                // Dispatch event for components to update
+                window.dispatchEvent(new CustomEvent('datafiltered', {
+                    detail: { filters: this.filters }
+                }));
+            }
+
+            sortData(data, key, direction = 'asc') {
+                return [...data].sort((a, b) => {
+                    const aVal = a[key];
+                    const bVal = b[key];
+
+                    if (direction === 'asc') {
+                        return aVal > bVal ? 1 : -1;
+                    } else {
+                        return aVal < bVal ? 1 : -1;
+                    }
+                });
+            }
+        }
+
+        // Chart utilities
+        class ChartUtils {
+            static getDefaultLayout() {
+                return {
+                    font: {
+                        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        size: 12,
+                        color: '#1e293b'
+                    },
+                    paper_bgcolor: 'white',
+                    plot_bgcolor: 'white',
+                    margin: { t: 40, r: 20, b: 40, l: 60 },
+                    showlegend: true,
+                    legend: {
+                        bgcolor: 'rgba(255, 255, 255, 0.9)',
+                        bordercolor: '#e2e8f0',
+                        borderwidth: 1
+                    },
+                    xaxis: {
+                        gridcolor: '#e2e8f0',
+                        zerolinecolor: '#cbd5e1'
+                    },
+                    yaxis: {
+                        gridcolor: '#e2e8f0',
+                        zerolinecolor: '#cbd5e1'
+                    }
+                };
+            }
+
+            static getColorPalette() {
+                return [
+                    '#2563eb', // primary
+                    '#10b981', // success
+                    '#f59e0b', // warning
+                    '#ef4444', // danger
+                    '#8b5cf6', // purple
+                    '#ec4899', // pink
+                    '#14b8a6', // teal
+                    '#64748b'  // secondary
+                ];
+            }
+
+            static createResponsiveChart(elementId, data, layout, config = {}) {
+                const defaultConfig = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d']
+                };
+
+                const mergedLayout = {
+                    ...this.getDefaultLayout(),
+                    ...layout
+                };
+
+                Plotly.newPlot(elementId, data, mergedLayout, { ...defaultConfig, ...config });
+
+                // Handle resize
+                window.addEventListener('resize', () => {
+                    Plotly.Plots.resize(elementId);
+                });
+            }
+        }
+
+        // Initialize report data
+        window.reportData = {{ report_data_json|safe }};
+
+        // Parse chart data if available
+        if (window.reportData && window.reportData.chart_data_json) {
+            try {
+                const jsonStr = window.reportData.chart_data_json;
+                let cleanJson = jsonStr;
+
+                cleanJson = cleanJson.replace(/,(\s*})/g, '$1');
+                cleanJson = cleanJson.replace(/,(\s*\])/g, '$1');
+                cleanJson = cleanJson.replace(/\bNaN\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bInfinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\b-Infinity\b/g, 'null');
+                cleanJson = cleanJson.replace(/\bundefined\b/g, 'null');
+
+                window.chartData = JSON.parse(cleanJson);
+            } catch (e) {
+                console.error("Error parsing chart data:", e);
+                window.chartData = {};
+            }
+        } else {
+            window.chartData = window.reportData?.chart_data || {};
+        }
+
+        // Initialize managers
+        let tabManager;
+        let dataManager;
+
+        // Document ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize managers
+            tabManager = new TabManager();
+            dataManager = new DataManager(window.reportData);
+
+            // Check URL for tab parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam) {
+                tabManager.switchTab(tabParam, false);
+            }
+
+            // Initialize first tab
+            if (typeof initializeOverviewTab === 'function') {
+                initializeOverviewTab();
+            }
+
+            // Global error handler for charts
+            window.addEventListener('error', function(e) {
+                if (e.message && e.message.includes('Plotly')) {
+                    console.error('Plotly error:', e.message);
+                    // Handle gracefully
+                }
+            });
+        });
+
+        // Export utilities for use in tabs
+        window.TabManager = TabManager;
+        window.DataManager = DataManager;
+        window.ChartUtils = ChartUtils;
+    </script>
+
+    <!-- Additional JavaScript from renderer -->
+    <script>
+        {{ js_content }}
+    </script>
+</body>
+</html>

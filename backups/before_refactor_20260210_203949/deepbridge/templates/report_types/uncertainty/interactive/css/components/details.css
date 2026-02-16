@@ -1,0 +1,339 @@
+/*
+ * Estilos para a aba de detalhes do relatório de robustez
+ * Fornece estilização específica para visualizações detalhadas de perturbação
+ */
+
+/* Cabeçalhos de seção */
+.details-header {
+  margin: 1.5rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--robustness-primary);
+  color: var(--text-dark);
+}
+
+/* Sub-tabs de detalhes - estilo similar ao chart-selector */
+.details-tabs-container {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.details-tabs {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.details-tab {
+  padding: 0.6rem 1.2rem;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #555;
+  background-color: white;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.details-tab:last-child {
+  margin-right: 0;
+}
+
+.details-tab:hover {
+  color: var(--robustness-primary);
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.details-tab.active {
+  background-color: var(--robustness-primary);
+  color: white;
+  border-color: var(--robustness-primary);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.subtab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.subtab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  margin: 1.5rem 0 1rem;
+  color: #333;
+}
+
+.info-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-section {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1.5rem;
+}
+
+/* Container de controles de perturbação */
+.perturbation-controls {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.perturbation-controls .form-group {
+  margin-right: 1.5rem;
+  margin-bottom: 0;
+}
+
+.perturbation-controls label {
+  margin-right: 0.5rem;
+  font-weight: 600;
+}
+
+.perturbation-controls select {
+  min-width: 120px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+/* Sumário de perturbação */
+.perturbation-summary {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.perturbation-summary h4 {
+  margin: 0 0 1rem;
+  color: var(--text-dark);
+  font-size: 1.25rem;
+}
+
+/* Grid de métricas */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  padding: 1.25rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--robustness-primary);
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* Gráficos de perturbação */
+.perturbation-charts {
+  margin-bottom: 2rem;
+}
+
+.perturbation-charts .chart-container {
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.perturbation-charts h4 {
+  margin: 0 0 1rem;
+  color: var(--text-dark);
+  font-size: 1.25rem;
+}
+
+.chart-plot {
+  width: 100%;
+  min-height: 300px;
+  margin-top: 1rem;
+}
+
+/* Detalhes por característica */
+.perturbation-details {
+  margin-bottom: 2rem;
+}
+
+.perturbation-details h4 {
+  margin: 0 0 1rem;
+  color: var(--text-dark);
+  font-size: 1.25rem;
+}
+
+/* Tabela de características */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.data-table th {
+  background-color: #f3f3f3;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+  position: relative;
+  cursor: pointer;
+}
+
+.data-table th.sortable:after {
+  content: '↕';
+  opacity: 0.4;
+  margin-left: 0.5rem;
+  font-size: 0.8em;
+}
+
+.data-table th.sort-asc:after {
+  content: '↑';
+  opacity: 1;
+}
+
+.data-table th.sort-desc:after {
+  content: '↓';
+  opacity: 1;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.data-table td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Indicadores de impacto */
+.text-success {
+  color: var(--robust-high);
+}
+
+.text-warning {
+  color: var(--robust-medium);
+}
+
+.text-danger {
+  color: var(--robust-low);
+}
+
+/* Estado inativo para filtragem */
+.inactive-row {
+  opacity: 0.4;
+}
+
+/* Mensagens de erro e estado vazio */
+.error-container, .empty-table-message {
+  padding: 2rem;
+  text-align: center;
+  background-color: #fff0f0;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.error-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-title {
+  color: var(--robust-low);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.error-help {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .perturbation-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .perturbation-controls .form-group {
+    margin-right: 0;
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+  
+  .data-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}

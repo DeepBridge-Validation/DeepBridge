@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Uncertainty Report - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Overview</h2>
+
+        <div id="metrics-overview">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Uncertainty Score</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.uncertainty_score >= 0.7 else 'metric-bad' }}">
+                            {{ data.metrics.uncertainty_score | format_number(3) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Avg Coverage</h5>
+                        <p class="metric-value {{ 'metric-good' if data.metrics.avg_coverage >= 0.9 else 'metric-bad' }}">
+                            {{ data.metrics.avg_coverage | format_percentage(2) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Avg Interval Width</h5>
+                        <p class="metric-value">
+                            {{ data.metrics.avg_width | format_number(4) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h5>Num Alphas</h5>
+                        <p class="metric-value">
+                            {{ data.metrics.num_alphas }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+            <p style="margin: 0;">
+                <strong>Interpretation:</strong>
+                {% if data.metrics.uncertainty_score >= 0.8 %}
+                    Excellent uncertainty quantification! The prediction intervals provide reliable coverage with narrow widths.
+                {% elif data.metrics.uncertainty_score >= 0.6 %}
+                    Good uncertainty quantification. Prediction intervals are reasonably reliable.
+                {% else %}
+                    Low uncertainty quantification. Prediction intervals may not be reliable. Intervals may be too narrow or coverage too low.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    {% if include_charts %}
+        <section id="coverage-analysis">
+            <h2>Coverage vs Expected Coverage</h2>
+
+            <div class="chart-container" style="height: 500px;">
+                <canvas id="coverage-chart"></canvas>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3>Analysis</h3>
+                <ul>
+                    <li><strong>Actual Coverage:</strong> Empirical coverage achieved at each alpha level</li>
+                    <li><strong>Expected Coverage:</strong> Theoretical target coverage (1 - alpha)</li>
+                    <li><strong>Ideal:</strong> Actual and expected coverage should be very close for valid intervals</li>
+                </ul>
+
+                {% if data.crqr_results %}
+                    <p>
+                        At the lowest alpha level (highest confidence), the coverage achieved was
+                        <strong>{{ data.crqr_results[0].actual_coverage | format_percentage(2) }}</strong>,
+                        compared to an expected
+                        <strong>{{ data.crqr_results[0].expected_coverage | format_percentage(2) }}</strong>.
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section id="interval-width-analysis">
+            <h2>Interval Width by Alpha</h2>
+
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="width-chart"></canvas>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3>Analysis</h3>
+                <ul>
+                    <li><strong>Mean Width:</strong> Average width of prediction intervals at each alpha level</li>
+                    <li><strong>Trend:</strong> Width should increase as alpha increases (lower confidence = wider intervals)</li>
+                    <li><strong>Efficiency:</strong> Narrower intervals with maintained coverage indicate more efficient uncertainty quantification</li>
+                </ul>
+            </div>
+        </section>
+    {% endif %}
+
+    <section id="detailed-results">
+        <h2>Detailed Results - CRQR Analysis</h2>
+
+        {% if data.crqr_results %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alpha</th>
+                        <th>Expected Coverage</th>
+                        <th>Actual Coverage</th>
+                        <th>Coverage Gap</th>
+                        <th>Mean Width</th>
+                        <th>Min Width</th>
+                        <th>Max Width</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in data.crqr_results %}
+                        <tr>
+                            <td>{{ result.alpha | format_number(3) }}</td>
+                            <td>{{ result.expected_coverage | format_percentage(2) }}</td>
+                            <td class="{{ 'metric-good' if (result.actual_coverage | abs - (1 - result.alpha) | abs) <= 0.05 else 'metric-bad' }}">
+                                {{ result.actual_coverage | format_percentage(2) }}
+                            </td>
+                            <td>{{ ((result.actual_coverage - (1 - result.alpha)) | abs) | format_percentage(2) }}</td>
+                            <td>{{ result.mean_width | format_number(4) }}</td>
+                            <td>{{ result.min_width | format_number(4) if result.min_width else 'N/A' }}</td>
+                            <td>{{ result.max_width | format_number(4) if result.max_width else 'N/A' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No CRQR results available.</p>
+        {% endif %}
+    </section>
+
+    {% if data.test_config %}
+        <section id="test-configuration">
+            <h2>Test Configuration</h2>
+            <table>
+                <tbody>
+                    {% for key, value in data.test_config.items() %}
+                        <tr>
+                            <th>{{ key | format_metric_name }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    {% if include_charts %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Coverage vs Expected Coverage Chart
+                const coverageCtx = document.getElementById('coverage-chart');
+                if (coverageCtx) {
+                    const crqrResults = window.reportData.crqr_results || [];
+                    const alphas = crqrResults.map(r => r.alpha.toFixed(3));
+                    const actualCoverage = crqrResults.map(r => r.actual_coverage * 100);
+                    const expectedCoverage = crqrResults.map(r => r.expected_coverage * 100);
+
+                    new Chart(coverageCtx, {
+                        type: 'line',
+                        data: {
+                            labels: alphas,
+                            datasets: [
+                                {
+                                    label: 'Actual Coverage',
+                                    data: actualCoverage,
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    tension: 0.3,
+                                    borderWidth: 2,
+                                    pointRadius: 5,
+                                    pointBackgroundColor: '#3498db'
+                                },
+                                {
+                                    label: 'Expected Coverage',
+                                    data: expectedCoverage,
+                                    borderColor: '#27ae60',
+                                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                                    borderDash: [5, 5],
+                                    tension: 0.3,
+                                    borderWidth: 2,
+                                    pointRadius: 5,
+                                    pointBackgroundColor: '#27ae60'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Coverage vs Expected Coverage by Alpha Level'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Coverage (%)'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Alpha'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Interval Width Chart
+                const widthCtx = document.getElementById('width-chart');
+                if (widthCtx) {
+                    const crqrResults = window.reportData.crqr_results || [];
+                    const alphas = crqrResults.map(r => r.alpha.toFixed(3));
+                    const meanWidths = crqrResults.map(r => r.mean_width);
+
+                    new Chart(widthCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: alphas,
+                            datasets: [
+                                {
+                                    label: 'Mean Interval Width',
+                                    data: meanWidths,
+                                    backgroundColor: '#e74c3c',
+                                    borderColor: '#c0392b',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Mean Interval Width by Alpha Level'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Mean Width'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Alpha'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        </script>
+    {% endif %}
+{% endblock %}

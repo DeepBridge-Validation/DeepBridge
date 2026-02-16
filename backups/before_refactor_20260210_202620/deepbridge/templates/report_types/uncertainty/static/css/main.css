@@ -1,0 +1,278 @@
+/* Main CSS for static uncertainty report */
+:root {
+    --primary-color: #1b78de;
+    --primary-light: #4287f5;
+    --primary-dark: #1a5fb4;
+    --secondary-color: #2c3e50;
+    --text-color: #333;
+    --text-secondary: #555;
+    --text-muted: #6c757d;
+    --background-color: #f8f9fa;
+    --border-color: #ddd;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --card-bg: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 1rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+p {
+    margin-bottom: 1rem;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.header {
+    background-color: white;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    color: var(--primary-color);
+}
+
+.section {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    transition: box-shadow 0.3s ease;
+}
+
+.section:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.section-title {
+    color: var(--primary-color);
+    padding-left: 0.75rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+    border-bottom: 2px solid rgba(27, 120, 222, 0.1);
+    padding-bottom: 0.85rem;
+    position: relative;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Add a subtle accent to section titles */
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background-color: var(--primary-color);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.25rem;
+    margin: 1.75rem 0;
+}
+
+.metric-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.metric-card h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 2.25rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Enhanced chart layout */
+.chart-section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .chart-section-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Chart styles - these work in conjunction with components/charts.css */
+.chart-container {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.chart-container h3 {
+    color: var(--secondary-color);
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chart-container img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Performance Analysis section styling */
+.section:has(h2:contains("Performance Analysis")) {
+    background-color: #fcfcfc;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Interval Analysis section styling */
+.section:has(h2:contains("Interval Analysis")) {
+    background-color: #fcfcfc;
+    border-left: 4px solid var(--success-color);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+th {
+    background-color: var(--light-color);
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+tr:hover td {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Numeric columns right-aligned */
+td.numeric {
+    text-align: right;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 3rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border-color);
+    background-color: white;
+}
+
+/* Responsive layout adjustments */
+@media (max-width: 768px) {
+    .section {
+        padding: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+    }
+}
+
+/* Enhanced chart grid for organization */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+@media (max-width: 500px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Message styling */
+.no-data-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--light-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-style: italic;
+    border: 1px dashed var(--border-color);
+    margin: 1.5rem 0;
+}

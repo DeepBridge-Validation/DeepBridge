@@ -1,0 +1,132 @@
+/* Estilos específicos para tabs de robustez */
+
+/* Navegação principal em abas */
+.main-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-lg) 0;
+    background-color: var(--bg-card-alt);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+    overflow-x: auto;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Estilização específica dos botões das abas */
+.tab-btn {
+    background-color: var(--bg-card);
+    border: 1px solid transparent;
+    border-radius: var(--border-radius-sm);
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-color);
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+    background-color: var(--light-color);
+    box-shadow: var(--shadow-md);
+}
+
+.tab-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Conteúdo das abas */
+.tab-content {
+    display: none !important;
+    padding: var(--spacing-md);
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+    margin-bottom: var(--spacing-xl);
+}
+
+.tab-content.active {
+    display: block !important;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Sub-abas dentro de uma seção */
+.section-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-md);
+    gap: var(--spacing-sm);
+}
+
+.section-tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.section-tab:hover {
+    color: var(--primary-color);
+}
+
+.section-tab.active {
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Tabs de resultados */
+.results-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-md);
+}
+
+.results-tabs .tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.results-tabs .tab:hover {
+    color: var(--primary-color);
+}
+
+.results-tabs .tab.active {
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Animação para transição de tabs */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .main-tabs {
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: var(--spacing-xs);
+        gap: var(--spacing-xs);
+    }
+    
+    .tab-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .tab-content {
+        padding: var(--spacing-sm);
+    }
+}

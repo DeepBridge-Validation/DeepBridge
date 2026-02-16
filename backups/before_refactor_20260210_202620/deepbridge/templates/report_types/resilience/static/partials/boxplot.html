@@ -1,0 +1,32 @@
+<!-- Static Resilience Report Boxplot -->
+<div class="boxplot-section">
+    {% if charts.critical_feature_distributions %}
+    <div class="chart-container">
+        <h3>Critical Feature Distributions</h3>
+        <p class="chart-description">Compares the distributions of the most critical features between normal and stressed conditions.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.critical_feature_distributions }}" alt="Critical feature distributions" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if charts.residual_distribution %}
+    <div class="chart-container">
+        <h3>Model Residual Distribution</h3>
+        <p class="chart-description">Shows the distribution of residuals (prediction errors) across different datasets, helping identify biases under stress conditions.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.residual_distribution }}" alt="Residual distribution" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if charts.model_comparison_chart %}
+    <div class="chart-container">
+        <h3>Model Resilience Comparison</h3>
+        <p class="chart-description">Compares resilience performance across different models under increasing stress levels. Models with more gradual decline are more resilient.</p>
+        <div class="chart-image-container">
+            <img src="{{ charts.model_comparison_chart }}" alt="Model resilience comparison" class="full-width-chart">
+        </div>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,140 @@
+<div class="summary-stats">
+    <!-- Robustness Score Card -->
+    <div class="summary-card-wrapper">
+        <div class="score-card">
+            <div class="score-label">Robustness Score</div>
+            <div class="score-gauge">
+                <svg viewBox="0 0 120 120" class="gauge-svg">
+                    <!-- Fundo do medidor -->
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e6e6e6" stroke-width="10"></circle>
+                    
+                    <!-- Arco colorido do medidor baseado na pontuação -->
+                    <circle 
+                        cx="60" 
+                        cy="60" 
+                        r="50" 
+                        fill="none" 
+                        {% if (report_data.robustness_score|default(0)) > 0.9 %}
+                            stroke="#28a745"
+                        {% elif (report_data.robustness_score|default(0)) > 0.7 %}
+                            stroke="#ffc107"
+                        {% elif (report_data.robustness_score|default(0)) > 0.5 %}
+                            stroke="#fd7e14"
+                        {% else %}
+                            stroke="#dc3545"
+                        {% endif %}
+                        stroke-width="10" 
+                        stroke-dasharray="{{ (report_data.robustness_score|default(0) * 314) }} 314" 
+                        transform="rotate(-90 60 60)"
+                    ></circle>
+                    
+                    <!-- Valor no centro -->
+                    <text x="60" y="65" text-anchor="middle" font-size="24" font-weight="bold" fill="white">
+                        {{ (report_data.robustness_score|default(0) * 100) | round(1) }}%
+                    </text>
+                </svg>
+            </div>
+            <div class="score-metrics">
+                <div class="metric-item">
+                    <span class="metric-value">{{ (report_data.base_score|default(0) * 100) | round(1) }}%</span>
+                    <span class="metric-label">Base Score</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-value">{{ (report_data.raw_impact|default(0) * 100) | round(2) }}%</span>
+                    <span class="metric-label">Impact</span>
+                </div>
+            </div>
+            <div class="score-desc">
+                {% if (report_data.robustness_score|default(0)) > 0.9 %}
+                    <span class="score-badge excellent">Excellent</span> resistance to perturbations
+                {% elif (report_data.robustness_score|default(0)) > 0.7 %}
+                    <span class="score-badge good">Good</span> resistance to perturbations
+                {% elif (report_data.robustness_score|default(0)) > 0.5 %}
+                    <span class="score-badge moderate">Moderate</span> resistance to perturbations
+                {% else %}
+                    <span class="score-badge needs-improvement">Needs improvement</span> in robustness
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Information Card -->
+    <div class="summary-card-wrapper">
+        <div class="info-card">
+            <div class="info-title">Model Information</div>
+            <table class="info-table">
+                <tr>
+                    <td><strong>Type:</strong></td>
+                    <td>{{ report_data.model_type }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Features:</strong></td>
+                    <td>{{ report_data.feature_count|default(report_data.features|length|default(0)) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Primary Metric:</strong></td>
+                    <td>{{ report_data.metric|default('Score')|upper }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Critical Features:</strong></td>
+                    <td>{{ report_data.feature_subset|length|default(0) }}</td>
+                </tr>
+                {% if report_data.alternative_models %}
+                <tr>
+                    <td><strong>Alternative Models:</strong></td>
+                    <td>{{ report_data.alternative_models|length|default(0) }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    
+    <!-- Test Summary Card -->
+    <div class="summary-card-wrapper">
+        <div class="info-card">
+            <div class="info-title">Test Summary</div>
+            <table class="info-table">
+                <tr>
+                    <td><strong>Perturbation Levels:</strong></td>
+                    <td>{{ report_data.intensity_levels|default(report_data.raw.by_level|length|default(0)) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Iterations Per Level:</strong></td>
+                    <td>{{ report_data.n_iterations|default(report_data.perturbation_count|default(10)) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Max Impact Level:</strong></td>
+                    <td>
+                        {% set max_level = {'level': '0', 'impact': 0} %}
+                        {% if report_data.raw and report_data.raw.by_level %}
+                            {% for level, level_data in report_data.raw.by_level.items() %}
+                                {% if level_data.overall_result and level_data.overall_result.all_features and level_data.overall_result.all_features.impact and level_data.overall_result.all_features.impact > max_level.impact %}
+                                    {% set _ = max_level.update({'level': level, 'impact': level_data.overall_result.all_features.impact}) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        {{ (max_level.impact * 100)|round(2) }}% at {{ max_level.level }}
+                    </td>
+                </tr>
+                {% if report_data.feature_subset %}
+                <tr>
+                    <td><strong>Feature Subset Impact:</strong></td>
+                    <td>
+                        {% set subset_impact = 0 %}
+                        {% if report_data.raw and report_data.raw.by_level %}
+                            {% set found = false %}
+                            {% for level, level_data in report_data.raw.by_level.items() %}
+                                {% if not found and level_data.overall_result and level_data.overall_result.feature_subset and level_data.overall_result.feature_subset.impact %}
+                                    {% set subset_impact = level_data.overall_result.feature_subset.impact %}
+                                    {% set found = true %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        {{ (subset_impact * 100)|round(2) }}%
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>

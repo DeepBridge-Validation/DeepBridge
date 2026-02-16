@@ -1,0 +1,84 @@
+/* Status colors */
+.text-red-600 {
+    color: #dc2626;
+}
+
+.text-yellow-600 {
+    color: #d97706;
+}
+
+.text-green-600 {
+    color: #16a34a;
+}
+
+.positive-value {
+    color: #4caf50;
+}
+
+.negative-value {
+    color: #e53935;
+}
+
+.score-high {
+    color: #2ecc71;
+}
+
+.score-medium {
+    color: #f39c12;
+}
+
+.score-low {
+    color: #e74c3c;
+}
+
+/* Font utilities */
+.font-semibold {
+    font-weight: 600;
+}
+
+/* Display utilities */
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+/* Spacing utilities */
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.my-6 {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}

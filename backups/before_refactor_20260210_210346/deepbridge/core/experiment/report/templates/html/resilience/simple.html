@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Resilience Report (Simple) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="overview">
+        <h2>Resilience Summary</h2>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <strong>Resilience Score:</strong>
+                    <span class="{{ 'metric-good' if data.metrics.resilience_score >= 0.7 else 'metric-bad' }}" style="font-size: 1.2em;">
+                        {{ data.metrics.resilience_score | format_number(3) }}
+                    </span>
+                </div>
+                <div>
+                    <strong>Base Score:</strong>
+                    <span style="font-size: 1.2em;">
+                        {{ data.metrics.base_score | format_number(3) }}
+                    </span>
+                </div>
+                <div>
+                    <strong>Max Performance Gap:</strong>
+                    <span class="{{ 'metric-good' if data.metrics.max_performance_gap <= 0.1 else 'metric-bad' }}" style="font-size: 1.2em;">
+                        {{ data.metrics.max_performance_gap | format_percentage(2) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 15px; background: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px; margin-bottom: 20px;">
+            <strong>Status:</strong>
+            {% if data.metrics.resilience_score >= 0.8 %}
+                ✓ Excellent resilience - Model maintains performance under distribution shifts
+            {% elif data.metrics.resilience_score >= 0.6 %}
+                ⚠ Good resilience - Model is reasonably stable
+            {% else %}
+                ✗ Low resilience - Model is sensitive to distribution changes
+            {% endif %}
+        </div>
+    </section>
+
+    <section id="key-findings">
+        <h2>Key Findings</h2>
+
+        <ul style="line-height: 1.8;">
+            <li>
+                <strong>Average Performance Gap:</strong>
+                {{ data.metrics.avg_performance_gap | format_percentage(2) }}
+            </li>
+            <li>
+                <strong>Distance Metrics Used:</strong>
+                {{ data.distance_metrics | join(', ') }}
+            </li>
+            <li>
+                <strong>Alpha Levels Tested:</strong>
+                {{ data.alphas | join(', ') }}
+            </li>
+            {% if data.metrics.most_affected_feature %}
+            <li>
+                <strong>Most Affected Feature:</strong>
+                {{ data.metrics.most_affected_feature }}
+            </li>
+            {% endif %}
+            <li>
+                <strong>Total Test Scenarios:</strong>
+                {{ data.shift_results | length }}
+            </li>
+        </ul>
+    </section>
+
+    {% if data.feature_importance and data.feature_importance | length > 0 %}
+        <section id="top-features">
+            <h2>Top 5 Important Features</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Feature Name</th>
+                        <th>Importance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feature in data.feature_importance[:5] %}
+                        <tr>
+                            <td>{{ feature.rank }}</td>
+                            <td>{{ feature.feature_name }}</td>
+                            <td>{{ feature.importance | format_number(4) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <section id="recommendations">
+        <h2>Recommendations</h2>
+
+        <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; border-radius: 4px;">
+            {% if data.metrics.resilience_score < 0.6 %}
+                <p><strong>⚠ Action Required:</strong></p>
+                <ul>
+                    <li>Investigate features most sensitive to distribution shifts</li>
+                    <li>Consider retraining with more diverse data</li>
+                    <li>Implement input validation or preprocessing</li>
+                    <li>Monitor model performance in production closely</li>
+                </ul>
+            {% elif data.metrics.resilience_score < 0.8 %}
+                <p><strong>ℹ Suggestions:</strong></p>
+                <ul>
+                    <li>Monitor performance for features with large gaps</li>
+                    <li>Consider additional validation on shifted distributions</li>
+                    <li>Document known sensitivities for stakeholders</li>
+                </ul>
+            {% else %}
+                <p><strong>✓ Good Standing:</strong></p>
+                <ul>
+                    <li>Model shows strong resilience to distribution shifts</li>
+                    <li>Continue monitoring in production</li>
+                    <li>Document resilience as a strength</li>
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Fairness Report (Simple) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="summary">
+        <h2>Fairness Summary</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="metric-card">
+                    <h5>Fairness Score</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.fairness_score >= 0.7 else 'metric-bad' }}">
+                        {{ data.metrics.fairness_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="metric-card">
+                    <h5>Groups Evaluated</h5>
+                    <p class="metric-value">
+                        {{ data.group_results | length if data.group_results else 'N/A' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Status & Interpretation</h3>
+            <div style="padding: 10px 0;">
+                {% if data.metrics.fairness_score >= 0.8 %}
+                    <p style="color: #27ae60; font-weight: bold; margin: 5px 0;">✓ EXCELLENT</p>
+                    <p style="margin: 5px 0;">The model provides equitable performance across demographic groups with minimal disparities.</p>
+                {% elif data.metrics.fairness_score >= 0.6 %}
+                    <p style="color: #f39c12; font-weight: bold; margin: 5px 0;">⚠ ACCEPTABLE</p>
+                    <p style="margin: 5px 0;">The model shows reasonable fairness across groups with some notable disparities that warrant attention.</p>
+                {% else %}
+                    <p style="color: #e74c3c; font-weight: bold; margin: 5px 0;">✗ POOR</p>
+                    <p style="margin: 5px 0;">The model exhibits significant fairness disparities across groups and requires improvement.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% if data.protected_attributes and data.protected_attributes | length > 0 %}
+        <section id="protected-attributes">
+            <h2>Protected Attributes</h2>
+            <ul style="list-style: none; padding: 0;">
+                {% for attr in data.protected_attributes %}
+                    <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                        <strong>{{ attr }}</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <section id="key-findings">
+        <h2>Key Findings</h2>
+        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>
+                    <strong>Fairness Score:</strong>
+                    {% if data.metrics.fairness_score >= 0.8 %}
+                        Excellent ({{ data.metrics.fairness_score | format_percentage }})
+                    {% elif data.metrics.fairness_score >= 0.6 %}
+                        Acceptable ({{ data.metrics.fairness_score | format_percentage }})
+                    {% else %}
+                        Poor ({{ data.metrics.fairness_score | format_percentage }})
+                    {% endif %}
+                </li>
+                {% if data.metrics.worst_group %}
+                    <li>
+                        <strong>Worst Performing Group:</strong> {{ data.metrics.worst_group }}
+                    </li>
+                {% endif %}
+                {% if data.metrics.best_group %}
+                    <li>
+                        <strong>Best Performing Group:</strong> {{ data.metrics.best_group }}
+                    </li>
+                {% endif %}
+                {% if data.group_results %}
+                    <li>
+                        <strong>Total Groups Analyzed:</strong> {{ data.group_results | length }}
+                    </li>
+                {% endif %}
+                {% if data.fairness_metrics and data.fairness_metrics | length > 0 %}
+                    <li>
+                        <strong>Fairness Metrics Evaluated:</strong> {{ data.fairness_metrics | length }}
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </section>
+
+    {% if data.group_results and data.group_results | length > 0 %}
+        <section id="group-comparison">
+            <h2>Group Performance Summary (Top Groups)</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Group</th>
+                        <th>Accuracy</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1 Score</th>
+                        <th>Sample Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set max_rows = [5, data.group_results | length] | min %}
+                    {% for group in data.group_results[:max_rows] %}
+                        <tr>
+                            <td><strong>{{ group.group_name }}</strong></td>
+                            <td>{{ group.accuracy | format_percentage(2) if group.get('accuracy') else 'N/A' }}</td>
+                            <td>{{ group.precision | format_percentage(2) if group.get('precision') else 'N/A' }}</td>
+                            <td>{{ group.recall | format_percentage(2) if group.get('recall') else 'N/A' }}</td>
+                            <td>{{ group.f1_score | format_percentage(2) if group.get('f1_score') else 'N/A' }}</td>
+                            <td>{{ group.size if group.get('size') else 'N/A' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if data.group_results | length > 5 %}
+                <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 10px;">
+                    Showing 5 of {{ data.group_results | length }} groups. View full report for complete details.
+                </p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    <section id="recommendations">
+        <h2>Recommendations</h2>
+        <div style="padding: 15px; background: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+            {% if data.metrics.fairness_score >= 0.8 %}
+                <p><strong>✓ Model Fairness is Excellent</strong></p>
+                <p>Your model demonstrates strong fairness across demographic groups. Recommendations:</p>
+                <ul>
+                    <li>Maintain current model parameters and continue monitoring fairness metrics</li>
+                    <li>Document fairness assessment for compliance and audit purposes</li>
+                    <li>Establish regular fairness audits to ensure continued performance</li>
+                </ul>
+            {% elif data.metrics.fairness_score >= 0.6 %}
+                <p><strong>⚠ Model Fairness Requires Attention</strong></p>
+                <p>Your model shows acceptable fairness but with room for improvement. Recommendations:</p>
+                <ul>
+                    <li>Focus on improving performance for the worst-performing group: <strong>{{ data.metrics.worst_group }}</strong></li>
+                    <li>Consider resampling or reweighting training data to balance group representation</li>
+                    <li>Investigate feature interactions that may cause disparities</li>
+                    <li>Implement fairness constraints in model training</li>
+                </ul>
+            {% else %}
+                <p><strong>✗ Model Fairness Needs Improvement</strong></p>
+                <p>Your model exhibits significant fairness disparities. Immediate actions recommended:</p>
+                <ul>
+                    <li>Address performance gap for the worst-performing group: <strong>{{ data.metrics.worst_group }}</strong></li>
+                    <li>Audit training data for bias and ensure balanced representation</li>
+                    <li>Apply fairness-aware preprocessing techniques</li>
+                    <li>Retrain model with fairness constraints or use fair learning algorithms</li>
+                    <li>Consider ensemble methods that balance fairness and accuracy</li>
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if data.test_config %}
+        <section id="test-details">
+            <h2>Test Details</h2>
+            <table>
+                <tbody>
+                    {% for key, value in data.test_config.items() %}
+                        <tr>
+                            <th style="width: 30%;">{{ key | replace('_', ' ') | title }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+{% endblock %}

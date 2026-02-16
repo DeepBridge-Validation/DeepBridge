@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - {{ model_name }}</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        {{ css_content|safe }}
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1 class="report-header__title">{{ report_title }}</h1>
+            <p class="report-header__subtitle">{{ report_subtitle }}</p>
+            <div class="report-header__metadata">
+                <span class="report-header__metadata-item">
+                    <strong>Model:</strong> {{ model_name }} ({{ model_type }})
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Method:</strong> {{ method|default('Conformal Prediction') }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Alpha Levels:</strong> {{ alpha_levels|length if alpha_levels else 0 }}
+                </span>
+                <span class="report-header__metadata-item">
+                    <strong>Features:</strong> {{ features|length if features else 0 }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-card__label">Base Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(base_score|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Uncertainty Score</span>
+                <span class="metric-card__value">{{ "%.4f"|format(uncertainty_score|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Coverage</span>
+                <span class="metric-card__value">{{ "%.4f"|format(avg_coverage|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Calibration Error</span>
+                <span class="metric-card__value">{{ "%.4f"|format(calibration_error|default(0)) }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-card__label">Avg Width</span>
+                <span class="metric-card__value">{{ "%.4f"|format(avg_width|default(0)) }}</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="coverage">Coverage Analysis</button>
+            <button class="tab-button" data-tab="features">Feature Impact</button>
+            <button class="tab-button" data-tab="calibration">Calibration</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2 class="section__title">Uncertainty Quantification Overview</h2>
+                <p>This report analyzes the model's uncertainty quantification performance using prediction intervals.</p>
+                <div class="chart-container">
+                    <div id="chart-overview"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Coverage vs Width Trade-off</h2>
+                <p>Balance between prediction interval coverage and width across confidence levels.</p>
+                <div class="chart-container">
+                    <div id="chart-tradeoff"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="coverage" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Coverage by Alpha Level</h2>
+                <p>Coverage rates across different confidence levels.</p>
+                <div class="chart-container">
+                    <div id="chart-coverage"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Detailed Coverage Statistics</h2>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Alpha</th>
+                                <th>Target Coverage</th>
+                                <th>Actual Coverage</th>
+                                <th>Avg Width</th>
+                                <th>Calibration Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coverage-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="features" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Feature Impact on Uncertainty</h2>
+                <p>Features that most influence prediction interval width.</p>
+                <div class="chart-container">
+                    <div id="chart-features"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Feature Details</h2>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
+                    <strong>Note:</strong> Values based on feature importance scaled by prediction interval width.
+                    Higher "Width Impact" indicates features more influential on predictions.
+                </p>
+                <div class="data-table-container">
+                    <table class="data-table" style="color: #333 !important;">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Width Impact</th>
+                                <th>Stability Index</th>
+                            </tr>
+                        </thead>
+                        <tbody id="features-table-body" style="color: #333 !important;">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="calibration" class="tab-content">
+            <div class="section">
+                <h2 class="section__title">Calibration Analysis</h2>
+                <p>Calibration curve showing predicted vs actual coverage.</p>
+                <div class="chart-container">
+                    <div id="chart-calibration"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section__title">Interval Width Distribution</h2>
+                <p>Distribution of prediction interval widths.</p>
+                <div class="chart-container">
+                    <div id="chart-width-distribution"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Data -->
+    <script>
+        window.reportData = {{ report_data_json|safe }};
+        console.log('Uncertainty report data loaded:', window.reportData);
+    </script>
+
+    <!-- Tab Navigation JS -->
+    <script>
+        {{ js_content|safe }}
+    </script>
+
+    <!-- Charts Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const data = window.reportData;
+
+                // Plotly configuration for full-width responsive charts with autoscale
+                const plotlyConfig = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToAdd: ['autoScale2d'],
+                    modeBarButtonsToRemove: []
+                };
+
+                // Helper function to ensure layout has autosize and autoscale
+                function ensureFullWidth(chartData) {
+                    if (!chartData.layout) chartData.layout = {};
+                    chartData.layout.autosize = true;
+                    chartData.layout.width = undefined; // Remove fixed width
+
+                    // Enable AutoScale for axes
+                    if (!chartData.layout.xaxis) chartData.layout.xaxis = {};
+                    if (!chartData.layout.yaxis) chartData.layout.yaxis = {};
+
+                    chartData.layout.xaxis.autorange = true;
+                    chartData.layout.yaxis.autorange = true;
+
+                    return chartData;
+                }
+
+                // Render Overview Chart
+                if (data.charts && data.charts.overview) {
+                    const overviewData = typeof data.charts.overview === 'string'
+                        ? JSON.parse(data.charts.overview)
+                        : data.charts.overview;
+                    ensureFullWidth(overviewData);
+                    Plotly.newPlot('chart-overview', overviewData.data, overviewData.layout, plotlyConfig);
+                }
+
+                // Render Coverage Chart
+                if (data.charts && data.charts.coverage) {
+                    const coverageData = typeof data.charts.coverage === 'string'
+                        ? JSON.parse(data.charts.coverage)
+                        : data.charts.coverage;
+                    ensureFullWidth(coverageData);
+                    Plotly.newPlot('chart-coverage', coverageData.data, coverageData.layout, plotlyConfig);
+                }
+
+                // Render Trade-off Chart
+                if (data.charts && data.charts.tradeoff) {
+                    const tradeoffData = typeof data.charts.tradeoff === 'string'
+                        ? JSON.parse(data.charts.tradeoff)
+                        : data.charts.tradeoff;
+                    ensureFullWidth(tradeoffData);
+                    Plotly.newPlot('chart-tradeoff', tradeoffData.data, tradeoffData.layout, plotlyConfig);
+                }
+
+                // Render Feature Impact Chart
+                console.log('[FEATURE_IMPACT_DEBUG] Checking for features chart...');
+                console.log('[FEATURE_IMPACT_DEBUG] data.charts exists:', !!data.charts);
+                console.log('[FEATURE_IMPACT_DEBUG] data.charts.features exists:', !!(data.charts && data.charts.features));
+
+                if (data.charts && data.charts.features) {
+                    console.log('[FEATURE_IMPACT_DEBUG] Processing features chart data...');
+                    const featuresData = typeof data.charts.features === 'string'
+                        ? JSON.parse(data.charts.features)
+                        : data.charts.features;
+
+                    console.log('[FEATURE_IMPACT_DEBUG] featuresData:', featuresData);
+                    console.log('[FEATURE_IMPACT_DEBUG] featuresData.data length:', featuresData.data ? featuresData.data.length : 0);
+                    console.log('[FEATURE_IMPACT_DEBUG] featuresData.layout:', featuresData.layout);
+
+                    if (featuresData.data && featuresData.data.length > 0) {
+                        console.log('[FEATURE_IMPACT_DEBUG] First trace y values:', featuresData.data[0].y);
+                        console.log('[FEATURE_IMPACT_DEBUG] First trace x values:', featuresData.data[0].x);
+                        console.log('[FEATURE_IMPACT_DEBUG] Calling Plotly.newPlot for chart-features...');
+                        ensureFullWidth(featuresData);
+                        Plotly.newPlot('chart-features', featuresData.data, featuresData.layout, plotlyConfig);
+                        console.log('[FEATURE_IMPACT_DEBUG] Plotly.newPlot completed successfully');
+                    } else {
+                        console.error('[FEATURE_IMPACT_DEBUG] No data in featuresData.data!');
+                    }
+                } else {
+                    console.error('[FEATURE_IMPACT_DEBUG] data.charts.features not found!');
+                    console.log('[FEATURE_IMPACT_DEBUG] Available chart keys:', data.charts ? Object.keys(data.charts) : 'data.charts is undefined');
+                }
+
+                // Render Calibration Chart
+                if (data.charts && data.charts.calibration) {
+                    const calibData = typeof data.charts.calibration === 'string'
+                        ? JSON.parse(data.charts.calibration)
+                        : data.charts.calibration;
+                    ensureFullWidth(calibData);
+                    Plotly.newPlot('chart-calibration', calibData.data, calibData.layout, plotlyConfig);
+                }
+
+                // Render Width Distribution
+                console.log('[WIDTH_DIST_DEBUG] Checking for width_distribution chart...');
+                console.log('[WIDTH_DIST_DEBUG] data.charts.width_distribution exists:', !!(data.charts && data.charts.width_distribution));
+
+                if (data.charts && data.charts.width_distribution) {
+                    console.log('[WIDTH_DIST_DEBUG] Found width_distribution chart');
+                    const widthData = typeof data.charts.width_distribution === 'string'
+                        ? JSON.parse(data.charts.width_distribution)
+                        : data.charts.width_distribution;
+                    console.log('[WIDTH_DIST_DEBUG] widthData:', widthData);
+                    ensureFullWidth(widthData);
+                    Plotly.newPlot('chart-width-distribution', widthData.data, widthData.layout, plotlyConfig);
+                    console.log('[WIDTH_DIST_DEBUG] Chart rendered successfully');
+                } else {
+                    console.error('[WIDTH_DIST_DEBUG] width_distribution chart not found!');
+                    console.log('[WIDTH_DIST_DEBUG] Available chart keys:', data.charts ? Object.keys(data.charts) : 'data.charts undefined');
+                }
+
+                // Populate Coverage Table
+                console.log('[COVERAGE_TABLE_DEBUG] Checking for alpha_results...');
+                console.log('[COVERAGE_TABLE_DEBUG] data.alpha_results:', data.alpha_results);
+                console.log('[COVERAGE_TABLE_DEBUG] data keys:', Object.keys(data));
+
+                if (data.alpha_results && data.alpha_results.length > 0) {
+                    console.log('[COVERAGE_TABLE_DEBUG] Found alpha_results with', data.alpha_results.length, 'entries');
+                    const tbody = document.getElementById('coverage-table-body');
+                    data.alpha_results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${result.alpha.toFixed(2)}</td>
+                            <td style="color: #333 !important;">${((1 - result.alpha) * 100).toFixed(1)}%</td>
+                            <td style="color: #333 !important;">${(result.coverage * 100).toFixed(1)}%</td>
+                            <td style="color: #333 !important;">${result.avg_width.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${result.calibration_error.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    console.log('[COVERAGE_TABLE_DEBUG] Table populated successfully');
+                } else {
+                    console.warn('[COVERAGE_TABLE_DEBUG] No alpha_results found or empty array');
+                }
+
+                // Populate Features Table
+                console.log('[FEATURES_TABLE_DEBUG] Checking for feature_impacts...');
+                console.log('[FEATURES_TABLE_DEBUG] data.feature_impacts exists:', !!data.feature_impacts);
+                console.log('[FEATURES_TABLE_DEBUG] data.features exists:', !!data.features);
+                console.log('[FEATURES_TABLE_DEBUG] Available data keys:', Object.keys(data));
+
+                if (data.feature_impacts && data.feature_impacts.length > 0) {
+                    console.log('[FEATURES_TABLE_DEBUG] Found feature_impacts with', data.feature_impacts.length, 'entries');
+                    const tbody = document.getElementById('features-table-body');
+                    data.feature_impacts.forEach(feature => {
+                        const row = document.createElement('tr');
+                        row.style.color = '#333';
+                        row.innerHTML = `
+                            <td style="color: #333 !important;">${feature.name}</td>
+                            <td style="color: #333 !important;">${feature.width_impact.toFixed(4)}</td>
+                            <td style="color: #333 !important;">${feature.coverage_impact.toFixed(4)}</td>
+                        `;
+                        tbody.appendChild(row);
+                        console.log('[FEATURES_TABLE_DEBUG] Added row:', feature.name, feature.width_impact.toFixed(4), feature.coverage_impact.toFixed(4));
+                    });
+                } else {
+                    console.warn('[FEATURES_TABLE_DEBUG] data.feature_impacts not found or empty!');
+                    console.log('[FEATURES_TABLE_DEBUG] data.features content:', data.features);
+
+                    // Fallback: Use feature importance data if available
+                    if (data.features && data.features.feature_list && data.features.feature_list.length > 0) {
+                        console.log('[FEATURES_TABLE_DEBUG] Using fallback: data.features.feature_list');
+                        const tbody = document.getElementById('features-table-body');
+                        data.features.feature_list.forEach(feature => {
+                            const row = document.createElement('tr');
+                            row.style.color = '#333';
+                            row.innerHTML = `
+                                <td style="color: #333 !important;">${feature.name}</td>
+                                <td style="color: #333 !important;">${feature.importance.toFixed(4)}</td>
+                                <td style="color: #333 !important;">N/A</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        console.log('[FEATURES_TABLE_DEBUG] Populated table with', data.features.feature_list.length, 'features');
+                    } else {
+                        console.error('[FEATURES_TABLE_DEBUG] No feature data available at all!');
+                    }
+                }
+
+                console.log('All uncertainty charts and tables rendered successfully');
+            } catch (error) {
+                console.error('Error rendering uncertainty report:', error);
+            }
+        });
+
+        // Handle window resize to ensure charts remain full width
+        window.addEventListener('resize', function() {
+            const chartIds = [
+                'chart-overview',
+                'chart-coverage',
+                'chart-tradeoff',
+                'chart-features',
+                'chart-calibration',
+                'chart-width-distribution'
+            ];
+
+            chartIds.forEach(function(chartId) {
+                const element = document.getElementById(chartId);
+                if (element && element.data) {
+                    Plotly.Plots.resize(element);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

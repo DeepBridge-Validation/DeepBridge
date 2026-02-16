@@ -1,0 +1,145 @@
+<div class="main-tabs" id="main-tabs">
+    {% for tab in tabs %}
+        <button class="tab-btn {% if loop.first %}active{% endif %}" data-tab="{{ tab.id }}">{{ tab.title }}</button>
+    {% endfor %}
+</div>
+
+<!-- Tab navigation styles will be handled by main CSS -->
+
+<script>
+(function() {
+    'use strict';
+
+    function setupTabNavigation() {
+        const DEBUG = true; // Enable debug logs
+
+        function log(message) {
+            if (DEBUG) console.log('[TabNav] ' + message);
+        }
+
+        log('Setting up tab navigation...');
+
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        log('Found ' + tabButtons.length + ' buttons and ' + tabContents.length + ' content sections');
+
+        if (tabButtons.length === 0 || tabContents.length === 0) {
+            log('ERROR: Missing tabs or content');
+            return;
+        }
+
+        // Function to activate a tab
+        function activateTab(tabId) {
+            log('Activating tab: ' + tabId);
+
+            // First, hide ALL tab contents with multiple methods to ensure it works
+            tabContents.forEach(function(content) {
+                content.classList.remove('active');
+                content.setAttribute('aria-hidden', 'true');
+                // Force hide with inline styles
+                content.style.display = 'none';
+                content.style.visibility = 'hidden';
+                content.style.opacity = '0';
+            });
+
+            // Remove active from all buttons
+            tabButtons.forEach(function(btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+
+            // Find and show the target content
+            const targetContent = document.getElementById(tabId);
+            const targetButton = document.querySelector('[data-tab="' + tabId + '"]');
+
+            if (targetContent) {
+                // Force show with inline styles first
+                targetContent.style.display = 'block';
+                targetContent.style.visibility = 'visible';
+                targetContent.style.opacity = '1';
+
+                // Then add the class
+                targetContent.classList.add('active');
+                targetContent.setAttribute('aria-hidden', 'false');
+                log('Content activated: ' + tabId);
+
+                // Trigger chart initialization if functions exist
+                if (window.chartInitializers && window.chartInitializers[tabId]) {
+                    window.chartInitializers[tabId]();
+                }
+
+                // Dispatch custom event
+                document.dispatchEvent(new CustomEvent('tabchange', {
+                    detail: { tabId: tabId, element: targetContent }
+                }));
+            } else {
+                log('ERROR: Content not found for tab: ' + tabId);
+            }
+
+            if (targetButton) {
+                targetButton.classList.add('active');
+                targetButton.setAttribute('aria-selected', 'true');
+                log('Button activated: ' + tabId);
+            }
+        }
+
+        // Add click handlers
+        tabButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const tabId = this.getAttribute('data-tab');
+                log('Button clicked: ' + tabId);
+
+                if (tabId) {
+                    activateTab(tabId);
+                }
+            });
+        });
+
+        // Initialize first tab
+        const firstTab = tabButtons[0];
+        if (firstTab) {
+            const firstTabId = firstTab.getAttribute('data-tab');
+            log('Initializing first tab: ' + firstTabId);
+            activateTab(firstTabId);
+        }
+
+        // Setup chart initializer mapping
+        window.chartInitializers = {
+            'overview': function() {
+                if (typeof initializeOverviewCharts === 'function') initializeOverviewCharts();
+            },
+            'model-comparison': function() {
+                if (typeof initializeComparisonCharts === 'function') initializeComparisonCharts();
+            },
+            'hyperparameter-analysis': function() {
+                if (typeof initializeHyperparameterCharts === 'function') initializeHyperparameterCharts();
+            },
+            'performance-metrics': function() {
+                if (typeof initializePerformanceCharts === 'function') initializePerformanceCharts();
+            },
+            'tradeoff-analysis': function() {
+                if (typeof initializeTradeoffCharts === 'function') initializeTradeoffCharts();
+            },
+            'ks-statistic': function() {
+                if (typeof initializeKSStatisticCharts === 'function') initializeKSStatisticCharts();
+            },
+            'frequency-distribution': function() {
+                if (typeof initializeFrequencyDistributionCharts === 'function') initializeFrequencyDistributionCharts();
+            }
+        };
+
+        log('Tab navigation setup complete');
+    }
+
+    // Run setup when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupTabNavigation);
+    } else {
+        setupTabNavigation();
+    }
+})();
+</script>

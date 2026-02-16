@@ -1,0 +1,31 @@
+<footer class="report-footer">
+    <div class="footer-content">
+        <div class="copyright">
+            &copy; {{ current_year|default('2025') }} DeepBridge. All rights reserved.
+        </div>
+        <div class="footer-links">
+            <button onclick="printReport()" class="btn btn-print">Print Report</button>
+            <button onclick="exportData()" class="btn btn-export">Export Data</button>
+        </div>
+    </div>
+</footer>
+
+<script>
+    function printReport() {
+        window.print();
+    }
+    
+    function exportData() {
+        if (window.reportData) {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.reportData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "report_data.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        } else {
+            alert("No report data available for export.");
+        }
+    }
+</script>

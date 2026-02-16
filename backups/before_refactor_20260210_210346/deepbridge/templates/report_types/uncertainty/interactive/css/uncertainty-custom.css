@@ -1,0 +1,189 @@
+/* Custom CSS for Uncertainty/CRQR Reports */
+
+.metric-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.metric-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.25rem;
+}
+
+.metric-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.subsection-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem 0;
+    color: #343a40;
+}
+
+.coverage-card,
+.interval-card {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.coverage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.alpha-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.calibration-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.calibration-badge.good {
+    background: #d4edda;
+    color: #155724;
+}
+
+.calibration-badge.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.calibration-badge.poor {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.coverage-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.coverage-item {
+    text-align: center;
+}
+
+.coverage-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.coverage-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #212529;
+}
+
+.coverage-gap {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.coverage-gap.positive {
+    color: #28a745;
+}
+
+.coverage-gap.negative {
+    color: #dc3545;
+}
+
+.interval-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.stat-item {
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.info-box,
+.warning-box {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1.5rem;
+}
+
+.info-box {
+    background: #e7f5ff;
+    border-left: 4px solid #0066cc;
+    color: #1864ab;
+}
+
+.warning-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+.predictions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.predictions-table th,
+.predictions-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.predictions-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.predictions-table tr:hover {
+    background: #f8f9fa;
+}
+
+.predictions-table .centered {
+    text-align: center;
+}
+
+.text-muted {
+    color: #6c757d;
+}

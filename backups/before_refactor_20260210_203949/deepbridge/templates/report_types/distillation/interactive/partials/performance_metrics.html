@@ -1,0 +1,944 @@
+<!-- Performance Metrics Tab Content -->
+<div class="performance-metrics-container">
+    <!-- Performance Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-bullseye"></i> Overall Accuracy
+                </div>
+                <div class="metric-value">
+                    {{ "%.2f"|format((report_data.best_model.metrics.test_accuracy|default(0)) * 100) }}%
+                </div>
+                <div class="metric-change {% if report_data.best_model.metrics.test_accuracy|default(0) > 0.9 %}positive{% else %}negative{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    Top 1 Accuracy
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-crosshairs"></i> Precision
+                </div>
+                <div class="metric-value">
+                    {{ "%.2f"|format((report_data.best_model.metrics.test_precision|default(0)) * 100) }}%
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    High precision
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-search"></i> Recall
+                </div>
+                <div class="metric-value">
+                    {{ "%.2f"|format((report_data.best_model.metrics.test_recall|default(0)) * 100) }}%
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    Good coverage
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <i class="fas fa-balance-scale"></i> F1 Score
+                </div>
+                <div class="metric-value">
+                    {{ "%.3f"|format(report_data.best_model.metrics.test_f1_score|default(0)) }}
+                </div>
+                <div class="metric-change positive">
+                    <i class="fas fa-check"></i>
+                    Balanced
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Selector for Metrics -->
+    <div class="filter-container mb-4">
+        <div class="filter-group">
+            <label class="filter-label">Select Model for Detailed Metrics:</label>
+            <select id="model-selector-metrics" class="filter-select">
+                <option value="best" selected>Best Student Model</option>
+                <option value="teacher">Teacher Model</option>
+                {% for model in report_data.all_models[:10] %}
+                <option value="{{ loop.index0 }}">{{ model.config_string }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn-primary ms-3" onclick="updatePerformanceMetrics()">
+                <i class="fas fa-sync"></i> Update Metrics
+            </button>
+        </div>
+    </div>
+
+    <!-- Confusion Matrix and Classification Report -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-th"></i> Confusion Matrix</h3>
+                <div id="confusion-matrix" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-table"></i> Classification Report</h3>
+                <div class="table-responsive">
+                    <table class="data-table" id="classification-report">
+                        <thead>
+                            <tr>
+                                <th>Class</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Support</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classification-tbody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-summary">
+                                <td><strong>Macro Avg</strong></td>
+                                <td id="macro-precision">0.92</td>
+                                <td id="macro-recall">0.91</td>
+                                <td id="macro-f1">0.915</td>
+                                <td id="total-support">1000</td>
+                            </tr>
+                            <tr class="table-summary">
+                                <td><strong>Weighted Avg</strong></td>
+                                <td id="weighted-precision">0.93</td>
+                                <td id="weighted-recall">0.92</td>
+                                <td id="weighted-f1">0.925</td>
+                                <td>-</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROC and PR Curves -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-line"></i> ROC Curves</h3>
+                <div id="roc-curves" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="badge bg-info">AUC-ROC: <span id="auc-roc-value">0.98</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-area"></i> Precision-Recall Curves</h3>
+                <div id="pr-curves" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="badge bg-info">AUC-PR: <span id="auc-pr-value">0.95</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-Class Performance -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-chart-bar"></i> Per-Class Performance Metrics</h3>
+        <div id="per-class-metrics" style="min-height: 400px;">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Analysis -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-exclamation-triangle"></i> Top Confusion Pairs</h3>
+                <div id="confusion-pairs" style="min-height: 350px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-pie"></i> Error Distribution</h3>
+                <div id="error-distribution" style="min-height: 350px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Threshold Analysis -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-slider-h"></i> Threshold Analysis</h3>
+        <div class="row">
+            <div class="col-md-12">
+                <label class="filter-label">Decision Threshold:</label>
+                <input type="range" id="threshold-slider" class="form-range" min="0" max="100" value="50">
+                <span id="threshold-value" class="badge bg-primary">0.50</span>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <div id="threshold-precision" style="min-height: 300px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div id="threshold-recall" style="min-height: 300px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div id="threshold-f1" style="min-height: 300px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibration Plots -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-adjust"></i> Calibration Plot</h3>
+                <div id="calibration-plot" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h3><i class="fas fa-signal"></i> Confidence Distribution</h3>
+                <div id="confidence-distribution" style="min-height: 400px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Summary Table -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-list"></i> Comprehensive Performance Summary</h3>
+        <div class="table-responsive">
+            <table class="data-table" id="performance-summary-table">
+                <thead>
+                    <tr>
+                        <th>Metric Category</th>
+                        <th>Metric Name</th>
+                        <th>Teacher Model</th>
+                        <th>Student Model</th>
+                        <th>Difference</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="4"><strong>Classification</strong></td>
+                        <td>Accuracy</td>
+                        <td>95.2%</td>
+                        <td>92.8%</td>
+                        <td class="text-danger">-2.4%</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td>Precision</td>
+                        <td>93.1%</td>
+                        <td>91.5%</td>
+                        <td class="text-danger">-1.6%</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td>Recall</td>
+                        <td>94.0%</td>
+                        <td>92.1%</td>
+                        <td class="text-danger">-1.9%</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td>F1 Score</td>
+                        <td>0.935</td>
+                        <td>0.918</td>
+                        <td class="text-danger">-0.017</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3"><strong>Probabilistic</strong></td>
+                        <td>AUC-ROC</td>
+                        <td>0.982</td>
+                        <td>0.965</td>
+                        <td class="text-danger">-0.017</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td>AUC-PR</td>
+                        <td>0.956</td>
+                        <td>0.938</td>
+                        <td class="text-danger">-0.018</td>
+                        <td><span class="badge bg-success">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td>Log Loss</td>
+                        <td>0.142</td>
+                        <td>0.198</td>
+                        <td class="text-danger">+0.056</td>
+                        <td><span class="badge bg-warning">Marginal</span></td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3"><strong>Efficiency</strong></td>
+                        <td>Inference Time</td>
+                        <td>50ms</td>
+                        <td>15ms</td>
+                        <td class="text-success">-70%</td>
+                        <td><span class="badge bg-success">Excellent</span></td>
+                    </tr>
+                    <tr>
+                        <td>Memory Usage</td>
+                        <td>1024MB</td>
+                        <td>256MB</td>
+                        <td class="text-success">-75%</td>
+                        <td><span class="badge bg-success">Excellent</span></td>
+                    </tr>
+                    <tr>
+                        <td>Model Size</td>
+                        <td>400MB</td>
+                        <td>100MB</td>
+                        <td class="text-success">-75%</td>
+                        <td><span class="badge bg-success">Excellent</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-summary {
+    background-color: var(--light-color);
+    font-weight: bold;
+}
+
+.table-summary td {
+    border-top: 2px solid var(--border-color);
+}
+
+.performance-metrics-container .metric-value {
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--success-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#performance-summary-table tbody tr:hover {
+    background-color: rgba(37, 99, 235, 0.02);
+}
+
+.form-range {
+    width: 100%;
+}
+
+#threshold-value {
+    margin-left: 10px;
+    font-size: 1rem;
+}
+</style>
+
+<script>
+// Initialize Performance Metrics Tab
+function initializePerformanceTab() {
+    console.log('Initializing Performance Metrics Tab');
+
+    // Initialize slider
+    setupThresholdSlider();
+
+    // Load classification report
+    loadClassificationReport();
+
+    // Initialize all charts
+    setTimeout(() => {
+        createConfusionMatrix();
+        createROCCurves();
+        createPRCurves();
+        createPerClassMetrics();
+        createConfusionPairs();
+        createErrorDistribution();
+        createThresholdAnalysis();
+        createCalibrationPlot();
+        createConfidenceDistribution();
+    }, 100);
+}
+
+// Setup threshold slider
+function setupThresholdSlider() {
+    const slider = document.getElementById('threshold-slider');
+    const value = document.getElementById('threshold-value');
+
+    if (slider) {
+        slider.addEventListener('input', function() {
+            const threshold = this.value / 100;
+            value.textContent = threshold.toFixed(2);
+            updateThresholdAnalysis(threshold);
+        });
+    }
+}
+
+// Create confusion matrix
+function createConfusionMatrix() {
+    const chartDiv = document.getElementById('confusion-matrix');
+    if (!chartDiv) return;
+
+    // Generate sample confusion matrix (10 classes)
+    const classes = ['Class 0', 'Class 1', 'Class 2', 'Class 3', 'Class 4',
+                    'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9'];
+
+    // Create a diagonally dominant matrix
+    const matrix = [];
+    for (let i = 0; i < 10; i++) {
+        const row = [];
+        for (let j = 0; j < 10; j++) {
+            if (i === j) {
+                row.push(80 + Math.floor(Math.random() * 15)); // High values on diagonal
+            } else {
+                row.push(Math.floor(Math.random() * 5)); // Low values off diagonal
+            }
+        }
+        matrix.push(row);
+    }
+
+    const trace = {
+        z: matrix,
+        x: classes,
+        y: classes,
+        type: 'heatmap',
+        colorscale: 'Blues',
+        showscale: true,
+        hovertemplate: 'True: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>',
+        colorbar: {
+            title: 'Count'
+        }
+    };
+
+    const layout = {
+        title: 'Confusion Matrix',
+        xaxis: {
+            title: 'Predicted Label',
+            tickangle: -45
+        },
+        yaxis: {
+            title: 'True Label',
+            autorange: 'reversed'
+        },
+        height: 400
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create ROC curves
+function createROCCurves() {
+    const chartDiv = document.getElementById('roc-curves');
+    if (!chartDiv) return;
+
+    // Generate ROC curve data
+    const fpr = Array.from({length: 100}, (_, i) => i / 99);
+    const tpr_teacher = fpr.map(x => Math.min(1, Math.sqrt(x) * 1.1));
+    const tpr_student = fpr.map(x => Math.min(1, Math.sqrt(x) * 1.05));
+
+    const trace1 = {
+        x: fpr,
+        y: tpr_teacher,
+        name: 'Teacher Model (AUC=0.98)',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3498db', width: 3 }
+    };
+
+    const trace2 = {
+        x: fpr,
+        y: tpr_student,
+        name: 'Student Model (AUC=0.96)',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#2ecc71', width: 3 }
+    };
+
+    const trace3 = {
+        x: [0, 1],
+        y: [0, 1],
+        name: 'Random (AUC=0.50)',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#e74c3c', width: 2, dash: 'dash' }
+    };
+
+    const layout = {
+        title: 'Receiver Operating Characteristic (ROC) Curves',
+        xaxis: {
+            title: 'False Positive Rate',
+            range: [0, 1]
+        },
+        yaxis: {
+            title: 'True Positive Rate',
+            range: [0, 1]
+        },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create PR curves
+function createPRCurves() {
+    const chartDiv = document.getElementById('pr-curves');
+    if (!chartDiv) return;
+
+    const recall = Array.from({length: 100}, (_, i) => i / 99);
+    const precision_teacher = recall.map(r => Math.max(0.5, 1 - 0.5 * r + 0.1 * Math.random()));
+    const precision_student = recall.map(r => Math.max(0.45, 1 - 0.55 * r + 0.1 * Math.random()));
+
+    const trace1 = {
+        x: recall,
+        y: precision_teacher,
+        name: 'Teacher Model (AUC=0.95)',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3498db', width: 3 }
+    };
+
+    const trace2 = {
+        x: recall,
+        y: precision_student,
+        name: 'Student Model (AUC=0.92)',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#2ecc71', width: 3 }
+    };
+
+    const trace3 = {
+        x: [0, 1],
+        y: [0.5, 0.5],
+        name: 'Baseline',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#e74c3c', width: 2, dash: 'dash' }
+    };
+
+    const layout = {
+        title: 'Precision-Recall Curves',
+        xaxis: {
+            title: 'Recall',
+            range: [0, 1]
+        },
+        yaxis: {
+            title: 'Precision',
+            range: [0, 1]
+        },
+        height: 400,
+        hovermode: 'x unified'
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create per-class metrics
+function createPerClassMetrics() {
+    const chartDiv = document.getElementById('per-class-metrics');
+    if (!chartDiv) return;
+
+    const classes = ['Class 0', 'Class 1', 'Class 2', 'Class 3', 'Class 4',
+                    'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9'];
+
+    const trace1 = {
+        x: classes,
+        y: classes.map(() => 0.85 + Math.random() * 0.1),
+        name: 'Precision',
+        type: 'bar',
+        marker: { color: '#3498db' }
+    };
+
+    const trace2 = {
+        x: classes,
+        y: classes.map(() => 0.83 + Math.random() * 0.12),
+        name: 'Recall',
+        type: 'bar',
+        marker: { color: '#2ecc71' }
+    };
+
+    const trace3 = {
+        x: classes,
+        y: classes.map(() => 0.84 + Math.random() * 0.11),
+        name: 'F1 Score',
+        type: 'bar',
+        marker: { color: '#f39c12' }
+    };
+
+    const layout = {
+        title: 'Per-Class Performance Metrics',
+        barmode: 'group',
+        xaxis: {
+            title: 'Class',
+            tickangle: -45
+        },
+        yaxis: {
+            title: 'Score',
+            range: [0, 1]
+        },
+        height: 400
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create confusion pairs chart
+function createConfusionPairs() {
+    const chartDiv = document.getElementById('confusion-pairs');
+    if (!chartDiv) return;
+
+    const pairs = [
+        'Class 3 → Class 5',
+        'Class 7 → Class 1',
+        'Class 2 → Class 8',
+        'Class 9 → Class 4',
+        'Class 0 → Class 6'
+    ];
+    const counts = [23, 19, 17, 15, 12];
+
+    const trace = {
+        x: counts,
+        y: pairs,
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+            color: counts,
+            colorscale: 'Reds',
+            showscale: false
+        },
+        text: counts.map(c => `${c} errors`),
+        textposition: 'outside'
+    };
+
+    const layout = {
+        title: 'Top 5 Confusion Pairs',
+        xaxis: { title: 'Error Count' },
+        yaxis: { title: '' },
+        height: 350,
+        margin: { l: 120 }
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create error distribution pie chart
+function createErrorDistribution() {
+    const chartDiv = document.getElementById('error-distribution');
+    if (!chartDiv) return;
+
+    const trace = {
+        values: [920, 35, 25, 20],
+        labels: ['Correct', 'False Positive', 'False Negative', 'Misclassified'],
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: ['#2ecc71', '#f39c12', '#e67e22', '#e74c3c']
+        },
+        textinfo: 'label+percent',
+        textposition: 'outside'
+    };
+
+    const layout = {
+        title: 'Error Distribution',
+        height: 350,
+        showlegend: true
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace], layout);
+}
+
+// Create threshold analysis
+function createThresholdAnalysis() {
+    const thresholds = Array.from({length: 100}, (_, i) => i / 99);
+
+    // Precision chart
+    const precisionDiv = document.getElementById('threshold-precision');
+    if (precisionDiv) {
+        const precision = thresholds.map(t => 0.7 + 0.25 * t - 0.1 * t * t);
+
+        const trace = {
+            x: thresholds,
+            y: precision,
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#3498db', width: 3 },
+            fill: 'tozeroy'
+        };
+
+        const layout = {
+            title: 'Precision vs Threshold',
+            xaxis: { title: 'Threshold', range: [0, 1] },
+            yaxis: { title: 'Precision', range: [0, 1] },
+            height: 300
+        };
+
+        ChartUtils.createResponsiveChart(precisionDiv.id, [trace], layout);
+    }
+
+    // Recall chart
+    const recallDiv = document.getElementById('threshold-recall');
+    if (recallDiv) {
+        const recall = thresholds.map(t => 1 - 0.3 * t - 0.2 * t * t);
+
+        const trace = {
+            x: thresholds,
+            y: recall,
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#2ecc71', width: 3 },
+            fill: 'tozeroy'
+        };
+
+        const layout = {
+            title: 'Recall vs Threshold',
+            xaxis: { title: 'Threshold', range: [0, 1] },
+            yaxis: { title: 'Recall', range: [0, 1] },
+            height: 300
+        };
+
+        ChartUtils.createResponsiveChart(recallDiv.id, [trace], layout);
+    }
+
+    // F1 Score chart
+    const f1Div = document.getElementById('threshold-f1');
+    if (f1Div) {
+        const f1 = thresholds.map(t => {
+            const p = 0.7 + 0.25 * t - 0.1 * t * t;
+            const r = 1 - 0.3 * t - 0.2 * t * t;
+            return 2 * p * r / (p + r);
+        });
+
+        const trace = {
+            x: thresholds,
+            y: f1,
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#f39c12', width: 3 },
+            fill: 'tozeroy'
+        };
+
+        const layout = {
+            title: 'F1 Score vs Threshold',
+            xaxis: { title: 'Threshold', range: [0, 1] },
+            yaxis: { title: 'F1 Score', range: [0, 1] },
+            height: 300
+        };
+
+        ChartUtils.createResponsiveChart(f1Div.id, [trace], layout);
+    }
+}
+
+// Create calibration plot
+function createCalibrationPlot() {
+    const chartDiv = document.getElementById('calibration-plot');
+    if (!chartDiv) return;
+
+    const bins = Array.from({length: 10}, (_, i) => (i + 0.5) / 10);
+    const teacher_calib = bins.map(b => b + 0.02 * Math.random());
+    const student_calib = bins.map(b => b * 0.95 + 0.03 * Math.random());
+
+    const trace1 = {
+        x: bins,
+        y: teacher_calib,
+        name: 'Teacher Model',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#3498db', width: 3 },
+        marker: { size: 8 }
+    };
+
+    const trace2 = {
+        x: bins,
+        y: student_calib,
+        name: 'Student Model',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#2ecc71', width: 3 },
+        marker: { size: 8 }
+    };
+
+    const trace3 = {
+        x: [0, 1],
+        y: [0, 1],
+        name: 'Perfect Calibration',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#e74c3c', width: 2, dash: 'dash' }
+    };
+
+    const layout = {
+        title: 'Calibration Plot',
+        xaxis: {
+            title: 'Mean Predicted Probability',
+            range: [0, 1]
+        },
+        yaxis: {
+            title: 'Fraction of Positives',
+            range: [0, 1]
+        },
+        height: 400
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2, trace3], layout);
+}
+
+// Create confidence distribution
+function createConfidenceDistribution() {
+    const chartDiv = document.getElementById('confidence-distribution');
+    if (!chartDiv) return;
+
+    const bins = Array.from({length: 20}, (_, i) => i * 0.05);
+    const teacher_hist = bins.map(b => {
+        if (b > 0.8) return 300 + Math.random() * 100;
+        if (b < 0.2) return 200 + Math.random() * 50;
+        return 50 + Math.random() * 30;
+    });
+    const student_hist = bins.map(b => {
+        if (b > 0.7) return 250 + Math.random() * 80;
+        if (b < 0.3) return 180 + Math.random() * 60;
+        return 80 + Math.random() * 40;
+    });
+
+    const trace1 = {
+        x: bins,
+        y: teacher_hist,
+        name: 'Teacher Model',
+        type: 'bar',
+        marker: { color: '#3498db', opacity: 0.7 }
+    };
+
+    const trace2 = {
+        x: bins,
+        y: student_hist,
+        name: 'Student Model',
+        type: 'bar',
+        marker: { color: '#2ecc71', opacity: 0.7 }
+    };
+
+    const layout = {
+        title: 'Prediction Confidence Distribution',
+        barmode: 'overlay',
+        xaxis: {
+            title: 'Confidence Score',
+            range: [0, 1]
+        },
+        yaxis: {
+            title: 'Number of Predictions'
+        },
+        height: 400
+    };
+
+    ChartUtils.createResponsiveChart(chartDiv.id, [trace1, trace2], layout);
+}
+
+// Load classification report
+function loadClassificationReport() {
+    const tbody = document.getElementById('classification-tbody');
+    if (!tbody) return;
+
+    const classes = [];
+    for (let i = 0; i < 10; i++) {
+        classes.push({
+            name: `Class ${i}`,
+            precision: (0.88 + Math.random() * 0.08).toFixed(3),
+            recall: (0.87 + Math.random() * 0.09).toFixed(3),
+            f1: (0.875 + Math.random() * 0.085).toFixed(3),
+            support: Math.floor(90 + Math.random() * 20)
+        });
+    }
+
+    tbody.innerHTML = classes.map(c => `
+        <tr>
+            <td>${c.name}</td>
+            <td>${c.precision}</td>
+            <td>${c.recall}</td>
+            <td>${c.f1}</td>
+            <td>${c.support}</td>
+        </tr>
+    `).join('');
+}
+
+// Update performance metrics
+function updatePerformanceMetrics() {
+    const selector = document.getElementById('model-selector-metrics');
+    const selected = selector.value;
+
+    console.log(`Updating metrics for model: ${selected}`);
+
+    // Show loading
+    document.querySelectorAll('.loading').forEach(el => el.style.display = 'flex');
+
+    // Simulate update
+    setTimeout(() => {
+        // Refresh all charts
+        createConfusionMatrix();
+        createROCCurves();
+        createPRCurves();
+        createPerClassMetrics();
+        loadClassificationReport();
+
+        document.querySelectorAll('.loading').forEach(el => el.style.display = 'none');
+    }, 500);
+}
+
+// Update threshold analysis
+function updateThresholdAnalysis(threshold) {
+    console.log(`Updating analysis for threshold: ${threshold}`);
+    // In a real implementation, this would recalculate metrics
+    createThresholdAnalysis();
+}
+
+// Auto-initialize if tab is active
+if (document.querySelector('#performance-metrics.active')) {
+    document.addEventListener('DOMContentLoaded', initializePerformanceTab);
+}
+</script>

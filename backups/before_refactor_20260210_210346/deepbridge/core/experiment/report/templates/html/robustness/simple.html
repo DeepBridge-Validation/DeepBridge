@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Robustness Report (Simple) - {{ data.model_name }}{% endblock %}
+
+{% block content %}
+    <section id="summary">
+        <h2>Summary</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="metric-card">
+                    <h5>Robustness Score</h5>
+                    <p class="metric-value {{ 'metric-good' if data.metrics.robustness_score >= 0.7 else 'metric-bad' }}">
+                        {{ data.metrics.robustness_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="metric-card">
+                    <h5>Base Score</h5>
+                    <p class="metric-value">
+                        {{ data.metrics.base_score | format_number(3) }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Key Findings</h3>
+            <ul>
+                <li>
+                    <strong>Overall Robustness:</strong>
+                    {% if data.metrics.robustness_score >= 0.8 %}
+                        Excellent ({{ data.metrics.robustness_score | format_percentage }})
+                    {% elif data.metrics.robustness_score >= 0.6 %}
+                        Good ({{ data.metrics.robustness_score | format_percentage }})
+                    {% else %}
+                        Needs Improvement ({{ data.metrics.robustness_score | format_percentage }})
+                    {% endif %}
+                </li>
+                <li>
+                    <strong>Raw Perturbation Impact:</strong> {{ data.metrics.avg_raw_impact | format_percentage }}
+                </li>
+                <li>
+                    <strong>Quantile Perturbation Impact:</strong> {{ data.metrics.avg_quantile_impact | format_percentage }}
+                </li>
+                <li>
+                    <strong>Total Perturbation Tests:</strong>
+                    {{ (data.perturbation_results_raw | length) + (data.perturbation_results_quantile | length) }}
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    {% if data.feature_importance and data.feature_importance | length > 0 %}
+        <section id="top-features">
+            <h2>Top 5 Important Features</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Feature</th>
+                        <th>Importance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feature in data.feature_importance[:5] %}
+                        <tr>
+                            <td>{{ feature.rank }}</td>
+                            <td>{{ feature.feature_name }}</td>
+                            <td>{{ feature.importance | format_number(4) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <section id="recommendations">
+        <h2>Recommendations</h2>
+        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+            {% if data.metrics.robustness_score >= 0.8 %}
+                <p><strong>✓ Model is robust</strong> - Ready for production use</p>
+                <p>The model shows excellent resistance to input perturbations and should perform reliably in production.</p>
+            {% elif data.metrics.robustness_score >= 0.6 %}
+                <p><strong>⚠ Model has acceptable robustness</strong> - Monitor closely</p>
+                <p>The model shows reasonable robustness but should be monitored in production. Consider:</p>
+                <ul>
+                    <li>Additional feature engineering</li>
+                    <li>More diverse training data</li>
+                    <li>Regularization techniques</li>
+                </ul>
+            {% else %}
+                <p><strong>✗ Model has low robustness</strong> - Improvement needed</p>
+                <p>The model is sensitive to perturbations and may not perform reliably. Recommended actions:</p>
+                <ul>
+                    <li>Review and improve feature quality</li>
+                    <li>Add data augmentation</li>
+                    <li>Consider ensemble methods</li>
+                    <li>Implement adversarial training</li>
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,17 @@
+<header class="report-header">
+    <div class="header-content">
+        <div class="header-logo">
+            <img src="data:image/png;base64, {{ logo|default('') }}" alt="Logo" class="logo">
+        </div>
+        <div class="header-info">
+            <h1>{{ report_title|default('Model Validation Report') }}</h1>
+            <p class="report-subtitle">{{ report_subtitle|default('Performance Analysis Report') }}</p>
+            <div class="report-metadata">
+                <div class="metadata-item"><strong>Model:</strong> {{ model_name|default('Unknown') }}</div>
+                <div class="metadata-item"><strong>Date:</strong> {{ timestamp|default('') }}</div>
+                {% if model_type %}<div class="metadata-item"><strong>Type:</strong> {{ model_type }}</div>{% endif %}
+                {% if report_type %}<div class="metadata-item"><strong>Report:</strong> {{ report_type|title }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+</header>
