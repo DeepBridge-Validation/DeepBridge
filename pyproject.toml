@@ -121,6 +121,8 @@ metrics = "bash desenvolvimento/qualidade/scripts/show_metrics.sh"
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
+show_error_codes = true
+pretty = true
 # Start with relaxed mode, will enable strict in Phase 2
 disallow_untyped_defs = false
 check_untyped_defs = true
