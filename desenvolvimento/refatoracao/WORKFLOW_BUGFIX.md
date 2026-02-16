@@ -1,712 +1,446 @@
 # Workflow de Bugfix - DeepBridge v2.0
 
-**Última atualização:** 2026-02-16
-
-Este documento descreve o processo completo para corrigir bugs no ecossistema DeepBridge, desde a identificação até a release do patch.
+Processo estruturado para correção de bugs, hotfixes e patch releases.
 
 ---
 
-## 📋 Índice
+## 🎯 Visão Geral
 
-1. [Visão Geral](#visão-geral)
-2. [Classificação de Bugs](#classificação-de-bugs)
-3. [Workflow Padrão de Bugfix](#workflow-padrão-de-bugfix)
-4. [Workflow de Hotfix (Bugs Críticos)](#workflow-de-hotfix-bugs-críticos)
-5. [Processo de Patch Release](#processo-de-patch-release)
-6. [Templates de Commit](#templates-de-commit)
-7. [Checklist de Bugfix](#checklist-de-bugfix)
-8. [Exemplos Práticos](#exemplos-práticos)
+Este documento define o workflow para:
+1. **Bugfixes regulares:** correções que vão na próxima release
+2. **Hotfixes:** correções urgentes que exigem release imediato
+3. **Patch releases:** lançamento de versões de correção (2.0.1, 2.0.2, etc.)
 
 ---
 
-## Visão Geral
+## 🐛 Workflow de Bugfix Regular
 
-### Princípios
+### 1. Receber e Triar Bug Report
 
-1. **Reprodutibilidade:** Todo bug deve ser reproduzível antes de ser corrigido
-2. **Testes:** Toda correção deve incluir testes que falham antes e passam depois
-3. **Documentação:** Mudanças devem ser documentadas no CHANGELOG
-4. **Rastreabilidade:** Commits devem referenciar a issue do bug
-5. **Velocidade:** Bugs críticos devem ser corrigidos em < 24h
+**Ao receber uma issue de bug:**
 
-### SLA (Service Level Agreement)
+1. Adicionar label `bug`
+2. Verificar se é duplicata
+3. Tentar reproduzir o bug
+4. Avaliar prioridade:
+   - `priority: critical` - quebra funcionalidade essencial, segurança
+   - `priority: high` - impacta muitos usuários
+   - `priority: medium` - impacta alguns usuários
+   - `priority: low` - edge case, workaround disponível
 
-| Prioridade | Tempo de Resposta | Tempo de Resolução | Processo |
-|------------|-------------------|---------------------|----------|
-| 🔴 **Crítico** | < 2 horas | < 24 horas | Hotfix |
-| 🟠 **Alto** | < 8 horas | < 3 dias | Standard |
-| 🟡 **Médio** | < 24 horas | < 1 semana | Standard |
-| 🟢 **Baixo** | < 48 horas | Next release | Standard |
-
----
-
-## Classificação de Bugs
-
-### 🔴 Crítico (Priority: Critical)
-
-**Características:**
-- Bloqueia uso do sistema
-- Perda de dados
-- Vulnerabilidade de segurança
-- Quebra de API pública sem aviso
-
-**Exemplos:**
-- `ImportError` que impede uso do pacote
-- Crash ao inicializar
-- Vazamento de memória crítico
-- SQL injection ou XSS
-
-**Ação:** Hotfix imediato
-
----
-
-### 🟠 Alto (Priority: High)
-
-**Características:**
-- Funcionalidade principal não funciona
-- Workaround existe mas é complexo
-- Afeta muitos usuários
-
-**Exemplos:**
-- Método principal retorna resultado incorreto
-- Performance drasticamente degradada
-- Incompatibilidade com versão comum de dependência
-
-**Ação:** Bugfix prioritário no próximo patch
-
----
-
-### 🟡 Médio (Priority: Medium)
-
-**Características:**
-- Funcionalidade secundária não funciona
-- Workaround simples existe
-- Afeta poucos usuários
-
-**Exemplos:**
-- Mensagem de erro confusa
-- Parâmetro opcional não funciona
-- Documentação desatualizada
-
-**Ação:** Bugfix no próximo minor/patch
-
----
-
-### 🟢 Baixo (Priority: Low)
-
-**Características:**
-- Problema cosmético
-- Não afeta funcionalidade
-- Impacto mínimo
-
-**Exemplos:**
-- Typo em comentário
-- Warning desnecessário
-- Melhoria de mensagem de log
-
-**Ação:** Pode esperar próximo release
-
----
-
-## Workflow Padrão de Bugfix
-
-### 1. Triagem e Reprodução
-
-**1.1 Confirmar a Issue**
-- Ler a issue completamente
-- Verificar se tem informações suficientes
-- Pedir informações adicionais se necessário
-
-**1.2 Reproduzir o Bug**
-```bash
-# Criar ambiente isolado
-python -m venv venv_bugfix
-source venv_bugfix/bin/activate
-
-# Instalar versão afetada
-pip install deepbridge==X.Y.Z
-
-# Tentar reproduzir com código do usuário
-python test_bug.py
-```
-
-**1.3 Criar Teste que Falha**
-```python
-# tests/test_bugfix_issue_123.py
-import pytest
-from deepbridge import ...
-
-def test_bug_issue_123():
-    """
-    Reproduz bug reportado em #123
-    Expected: X
-    Actual: Y (antes do fix)
-    """
-    # Código que demonstra o bug
-    result = function_with_bug()
-    assert result == expected_result  # Falha antes do fix
-```
-
----
-
-### 2. Criar Branch de Fix
-
-```bash
-# Nomenclatura: fix/issue-{number}-{description}
-git checkout -b fix/issue-123-import-error
-
-# Exemplo específico
-git checkout -b fix/issue-123-distillation-import-error
-```
-
-**Convenções de nomenclatura:**
-- `fix/issue-{n}-{short-desc}` - Bug com issue
-- `fix/{short-desc}` - Bug sem issue (descoberto internamente)
-- `hotfix/{short-desc}` - Bug crítico
-
----
-
-### 3. Implementar Correção
-
-**3.1 Localizar a Causa Raiz**
-```bash
-# Usar debugger
-python -m pdb script_with_bug.py
-
-# Adicionar logs temporários
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-**3.2 Implementar Fix**
-- Fazer a menor mudança possível que corrija o bug
-- Evitar refactorings grandes
-- Manter compatibilidade retroativa quando possível
-
-**3.3 Verificar que Teste Agora Passa**
-```bash
-# Rodar teste específico
-pytest tests/test_bugfix_issue_123.py -v
-
-# Rodar suite completa para evitar regressões
-pytest tests/ -v
-```
-
----
-
-### 4. Documentar a Correção
-
-**4.1 Atualizar CHANGELOG.md**
+**Template de resposta inicial:**
 ```markdown
-## [2.0.1] - 2026-02-16
+Obrigado por reportar! Vou investigar e retornar em breve.
 
-### Fixed
-- Fixed ImportError when importing KnowledgeDistiller (#123)
-- Fixed memory leak in training loop (#124)
+**Status:** Em análise
+**Prioridade:** [a definir]
 ```
 
-**4.2 Adicionar Docstring se Relevante**
+### 2. Reproduzir Bug Localmente
+
+```bash
+# Criar ambiente limpo
+python -m venv test_env
+source test_env/bin/activate  # ou test_env\Scripts\activate no Windows
+
+# Instalar versão reportada
+pip install deepbridge==2.0.0  # versão específica do report
+
+# Executar código do report
+python reproduce_bug.py
+```
+
+**Documentar:**
+- ✅ Bug confirmado?
+- 📝 Passos para reproduzir
+- 🔍 Causa raiz identificada
+- 💡 Possível solução
+
+### 3. Criar Branch de Fix
+
+```bash
+# Atualizar main
+git checkout master
+git pull origin master
+
+# Criar branch fix/
+git checkout -b fix/issue-123-description
+
+# Exemplo:
+git checkout -b fix/issue-123-import-error
+```
+
+**Convenção de nomes:**
+- `fix/issue-{número}-{descrição-curta}`
+- `fix/memory-leak-dataloader`
+- `fix/cuda-out-of-memory`
+
+### 4. Implementar Fix
+
+**Boas práticas:**
+
+1. **Fix mínimo:** altere apenas o necessário
+2. **Comentários:** explique por que o fix funciona
+3. **Compatibilidade:** não quebre APIs existentes
+4. **Performance:** não degrade performance
+
+**Exemplo:**
 ```python
-def fixed_function():
-    """
-    Function description.
+# Antes (buggy)
+def process_data(data):
+    return data.split(",")  # Bug: falha se data é None
 
-    Note:
-        Fixed in v2.0.1: Correctly handles edge case X (#123)
-    """
+# Depois (fixed)
+def process_data(data):
+    # Fix: handle None input gracefully (issue #123)
+    if data is None:
+        return []
+    return data.split(",")
 ```
 
----
+### 5. Adicionar Teste de Regressão
 
-### 5. Criar Pull Request
+**SEMPRE adicionar teste que:**
+- Falha antes do fix
+- Passa depois do fix
+- Previne regressão futura
 
-**5.1 Commit com Mensagem Descritiva**
-```bash
-git add .
-git commit -m "fix: resolve ImportError in distillation module
+```python
+# tests/test_bugfix_123.py
+import pytest
+from deepbridge.core import process_data
 
-- Add missing __init__.py import
-- Add test to prevent regression
-- Update CHANGELOG.md
+def test_process_data_handles_none():
+    """Regression test for issue #123: process_data should handle None."""
+    result = process_data(None)
+    assert result == []
 
-Fixes #123"
+def test_process_data_normal_case():
+    """Ensure fix doesn't break normal case."""
+    result = process_data("a,b,c")
+    assert result == ["a", "b", "c"]
 ```
 
-**5.2 Push e Abrir PR**
-```bash
-git push origin fix/issue-123-import-error
-
-# Abrir PR via GitHub CLI
-gh pr create \
-  --title "fix: resolve ImportError in distillation module (#123)" \
-  --body "$(cat <<'EOF'
-## Summary
-Fixes #123 - ImportError when importing KnowledgeDistiller
-
-## Changes
-- Added missing import in `deepbridge/distillation/__init__.py`
-- Added regression test in `tests/test_distillation_imports.py`
-- Updated CHANGELOG.md
-
-## Testing
-- [x] Added test that reproduces the bug
-- [x] Test passes after fix
-- [x] All existing tests pass
-- [x] Manual testing performed
-
-## Breaking Changes
-None - backward compatible
-
----
-🤖 Generated with Claude Code
-EOF
-)"
-```
-
----
-
-### 6. Review e Merge
-
-**6.1 Code Review**
-- Aguardar aprovação de maintainer
-- Responder comentários
-- Fazer ajustes se necessário
-
-**6.2 CI/CD Checks**
-- Verificar que todos os testes passam
-- Verificar cobertura de código
-- Verificar linting
-
-**6.3 Merge**
-```bash
-# Usar squash merge para manter histórico limpo
-gh pr merge --squash --delete-branch
-```
-
----
-
-## Workflow de Hotfix (Bugs Críticos)
-
-Para bugs **críticos** que precisam ser corrigidos imediatamente:
-
-### 1. Notificação Imediata
+### 6. Rodar Testes
 
 ```bash
-# Abrir issue com tag [CRITICAL]
-gh issue create \
-  --title "[CRITICAL] Production ImportError blocking all users" \
-  --label "bug,priority:critical" \
-  --body "..."
-
-# Notificar equipe (Discord, Slack, email)
-```
-
----
-
-### 2. Branch Direto de Main
-
-```bash
-# Criar branch de hotfix
-git checkout main
-git pull origin main
-git checkout -b hotfix/critical-import-error
-```
-
----
-
-### 3. Fix Rápido mas Testado
-
-```bash
-# Implementar fix
-# Escrever teste mínimo
-pytest tests/test_hotfix.py -v
-
 # Rodar suite completa
-pytest tests/ -v
+pytest
+
+# Rodar teste específico
+pytest tests/test_bugfix_123.py -v
+
+# Verificar cobertura
+pytest --cov=deepbridge --cov-report=html
 ```
 
----
+**Critérios de aceitação:**
+- ✅ Todos os testes passam
+- ✅ Novo teste de regressão incluído
+- ✅ Cobertura mantida ou aumentada
+- ✅ Linting passa (`ruff check .`)
 
-### 4. PR Expedito
+### 7. Commit e Push
 
 ```bash
-# Commit e push
+# Adicionar mudanças
 git add .
-git commit -m "hotfix: resolve critical ImportError blocking users
 
-CRITICAL: This fix addresses a production issue affecting all users.
+# Commit seguindo conventional commits
+git commit -m "fix: handle None input in process_data (fixes #123)"
 
-- Fix: Added missing import
-- Test: Regression test added
-- Impact: All users unable to import module
+# Push
+git push origin fix/issue-123-import-error
+```
 
-Fixes #999"
+### 8. Criar Pull Request
 
-git push origin hotfix/critical-import-error
+Use o comando `gh pr create` com título e corpo descritivos incluindo:
+- Summary do fix
+- Mudanças realizadas
+- Testes executados
+- Tipo de mudança
 
-# PR com label priority:critical
-gh pr create --label "priority:critical" --title "..." --body "..."
+### 9. Code Review e Merge
+
+**Antes de fazer merge:**
+- ✅ CI passa (testes, linting, type checking)
+- ✅ Code review aprovado
+- ✅ Conflitos resolvidos
+- ✅ Changelog atualizado (se necessário)
+
+### 10. Atualizar Issue
+
+Na issue original:
+```markdown
+✅ **Fixed in PR #456**
+
+Will be available in next release (2.0.1).
+
+**Workaround until then:**
+[se aplicável]
 ```
 
 ---
+
+## 🚨 Workflow de Hotfix (Bug Crítico)
+
+Para bugs **críticos** que exigem release imediato:
+
+### 1. Avaliar se é Realmente Crítico
+
+**Critérios para hotfix:**
+- ✅ Quebra funcionalidade essencial
+- ✅ Vulnerabilidade de segurança
+- ✅ Perda de dados
+- ✅ Impossibilita uso do sistema
+- ❌ Bug menor (pode esperar próxima release)
+
+### 2. Criar Hotfix Branch
+
+```bash
+# Branch direto da tag de produção
+git checkout -b hotfix/2.0.1 v2.0.0
+
+# Ou da main se já estável
+git checkout -b hotfix/2.0.1 master
+```
+
+### 3. Implementar Fix (Processo Acelerado)
+
+**Mesmos passos do bugfix regular, mas:**
+- ⚡ Prioridade máxima
+- 🎯 Fix mínimo e conservador
+- ✅ Testes essenciais (não suite completa se urgente)
+- 📝 Documentar razão da urgência
+
+### 4. Bump de Versão
+
+```bash
+# Atualizar versão em todos os lugares
+# deepbridge/setup.py
+version="2.0.1"
+
+# deepbridge/__init__.py
+__version__ = "2.0.1"
+
+# Commit
+git commit -m "chore: bump version to 2.0.1 (hotfix)"
+```
 
 ### 5. Release Imediato
 
 ```bash
-# Após merge, release imediato
-# Ver seção "Processo de Patch Release"
-```
+# Tag
+git tag -a v2.0.1 -m "Hotfix: critical bugfix for [issue]"
 
----
+# Push
+git push origin hotfix/2.0.1 --tags
 
-## Processo de Patch Release
-
-### 1. Preparar Release
-
-**1.1 Verificar Mudanças**
-```bash
-# Ver commits desde última release
-git log v2.0.0..HEAD --oneline
-
-# Ver CHANGELOG
-cat CHANGELOG.md
-```
-
-**1.2 Atualizar Versão**
-```bash
-# Atualizar version em setup.py ou pyproject.toml
-# Versão segue Semantic Versioning (MAJOR.MINOR.PATCH)
-
-# Exemplo: 2.0.0 → 2.0.1 (bugfix)
-# __version__ = "2.0.1"
-```
-
-**1.3 Atualizar CHANGELOG**
-```markdown
-## [2.0.1] - 2026-02-16
-
-### Fixed
-- Fixed ImportError when importing KnowledgeDistiller (#123)
-- Fixed memory leak in training loop (#124)
-- Fixed incorrect parameter validation (#125)
-
-### Security
-- Fixed potential XSS in report generation (#126)
-```
-
----
-
-### 2. Criar Tag e Release
-
-**2.1 Commit de Release**
-```bash
-git add setup.py CHANGELOG.md
-git commit -m "chore: release v2.0.1
-
-- Bump version to 2.0.1
-- Update CHANGELOG with bugfixes
-
-Release notes:
-- Fix: ImportError in distillation (#123)
-- Fix: Memory leak in training (#124)
-- Fix: Parameter validation (#125)
-- Security: XSS in reports (#126)"
-```
-
-**2.2 Criar Tag**
-```bash
-# Tag anotada com mensagem
-git tag -a v2.0.1 -m "Release v2.0.1 - Critical bugfixes
-
-Fixes:
-- ImportError in distillation module (#123)
-- Memory leak in training loop (#124)
-- Parameter validation issue (#125)
-- XSS vulnerability in reports (#126)"
-
-# Push tag
-git push origin v2.0.1
-```
-
-**2.3 Criar GitHub Release**
-```bash
-gh release create v2.0.1 \
-  --title "v2.0.1 - Critical Bugfixes" \
-  --notes "$(cat <<'EOF'
-## 🐛 Bugfixes
-
-This patch release addresses several critical issues:
-
-### Fixed
-- **#123** - ImportError when importing KnowledgeDistiller
-- **#124** - Memory leak in training loop
-- **#125** - Incorrect parameter validation
-
-### Security
-- **#126** - Fixed potential XSS vulnerability in report generation
-
-## 📦 Installation
-
-```bash
-pip install --upgrade deepbridge
-```
-
-## 🔄 Migration
-
-No breaking changes - drop-in replacement for 2.0.0.
-
----
-
-**Full Changelog:** https://github.com/guhaase/DeepBridge/compare/v2.0.0...v2.0.1
-EOF
-)"
-```
-
----
-
-### 3. Publicar no PyPI
-
-**3.1 Build**
-```bash
-# Limpar builds anteriores
-rm -rf dist/ build/ *.egg-info
-
-# Build novo pacote
+# Build e publish (ver WORKFLOW_RELEASE.md)
 python -m build
+twine upload dist/*
 ```
 
-**3.2 Verificar Build**
-```bash
-# Listar arquivos gerados
-ls -lh dist/
+### 6. Comunicar Usuários
 
-# Verificar conteúdo
-tar -tzf dist/deepbridge-2.0.1.tar.gz | head -20
+Criar GitHub Release com notas explicando o problema crítico e a solução.
+
+### 7. Merge de Volta para Main
+
+```bash
+# Merge hotfix de volta para desenvolvimento
+git checkout master
+git merge hotfix/2.0.1
+git push origin master
+
+# Deletar branch
+git branch -d hotfix/2.0.1
+git push origin --delete hotfix/2.0.1
 ```
 
-**3.3 Publicar**
-```bash
-# Upload para PyPI
-python -m twine upload dist/*
+---
 
-# Verificar
-pip install --upgrade deepbridge
+## 📦 Patch Release Process
+
+Para releases regulares de correções (não emergenciais):
+
+### 1. Agrupar Bugfixes
+
+**Quando lançar patch release:**
+- Acumulou 3-5 bugfixes importantes
+- Passou 1-2 semanas desde último release
+- Usuários pedindo fix específico
+
+### 2. Preparar Release
+
+```bash
+# Branch de release
+git checkout -b release/2.0.1 master
+
+# Atualizar CHANGELOG.md com os fixes
+# Bump versão
+# Commit
+git commit -m "chore: prepare release 2.0.1"
+```
+
+### 3. Testar Release Candidate
+
+```bash
+# Build
+python -m build
+
+# Test install em ambiente limpo
+python -m venv test_release
+source test_release/bin/activate
+pip install dist/deepbridge-2.0.1-*.whl
+
+# Rodar smoke tests
 python -c "import deepbridge; print(deepbridge.__version__)"
-# Deve mostrar: 2.0.1
+pytest tests/smoke/
+```
+
+### 4. Lançar Release
+
+```bash
+# Tag e push
+git tag -a v2.0.1 -m "Release v2.0.1"
+git push origin release/2.0.1 --tags
+
+# Publish
+twine upload dist/*
+
+# Merge para master
+git checkout master
+git merge release/2.0.1
+git push origin master
+```
+
+### 5. Criar GitHub Release
+
+Use `gh release create` com notas de release detalhadas.
+
+---
+
+## 📝 Templates
+
+### Template de Commit Message (Bugfix)
+
+```
+fix: [descrição curta] (fixes #issue)
+
+[Descrição detalhada do problema]
+[Descrição detalhada da solução]
+[Impactos e considerações]
+
+Closes #issue
+```
+
+### Template de Commit Message (Hotfix)
+
+```
+fix(critical): [descrição curta] (fixes #issue)
+
+⚠️ HOTFIX: [Razão da urgência]
+
+[Descrição do problema crítico]
+[Descrição da solução]
+[Passos de verificação]
+
+Closes #issue
 ```
 
 ---
 
-### 4. Comunicação
+## 🔍 Debugging Tips
 
-**4.1 Anunciar no GitHub**
-- Release notes já criadas no passo 2.3
+### Reproduzir Bugs Reportados
 
-**4.2 Anunciar em Canais**
-- Twitter/X
-- Discord/Slack
-- Mailing list (se houver)
+```bash
+# 1. Isolar ambiente
+python -m venv debug_env && source debug_env/bin/activate
 
-**Template de anúncio:**
-```
-🐛 DeepBridge v2.0.1 Released!
+# 2. Instalar versão exata
+pip install deepbridge==2.0.0
 
-This patch release fixes several critical bugs:
-- ImportError in distillation module
-- Memory leak in training
-- XSS vulnerability in reports
+# 3. Copiar código do report
+# 4. Adicionar prints e breakpoints
+import pdb; pdb.set_trace()
 
-Upgrade now:
-pip install --upgrade deepbridge
-
-Full notes: https://github.com/guhaase/DeepBridge/releases/tag/v2.0.1
+# 5. Rodar com verbose
+python -v reproduce_bug.py
 ```
 
----
+### Logs Detalhados
 
-## Templates de Commit
+```python
+import logging
 
-### Bug Fix Padrão
-```
-fix: [short description]
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
-- Detailed explanation of the bug
-- What was causing it
-- How it was fixed
-
-Fixes #[issue-number]
+# Seu código aqui
 ```
 
-### Hotfix Crítico
-```
-hotfix: [short description]
+### Profiling
 
-CRITICAL: [Why this is critical]
+```bash
+# CPU profiling
+python -m cProfile -o profile.stats buggy_code.py
+python -m pstats profile.stats
 
-- Fix: [What was fixed]
-- Test: [Test added]
-- Impact: [Who is affected]
-
-Fixes #[issue-number]
-```
-
-### Bugfix com Breaking Change (evitar!)
-```
-fix!: [short description]
-
-BREAKING CHANGE: [What breaks]
-
-- Why this breaking change is necessary
-- Migration path for users
-- Deprecation warnings added
-
-Fixes #[issue-number]
+# Memory profiling
+pip install memory_profiler
+python -m memory_profiler buggy_code.py
 ```
 
 ---
 
-## Checklist de Bugfix
+## ✅ Checklist de Verificação
 
-### Antes de Começar
+### Antes de Fazer Commit
+
 - [ ] Bug reproduzido localmente
-- [ ] Prioridade classificada corretamente
-- [ ] Issue criada com label apropriada
-- [ ] Teste que falha criado
-
-### Durante Desenvolvimento
-- [ ] Causa raiz identificada
-- [ ] Fix implementado (mínimo necessário)
-- [ ] Teste agora passa
-- [ ] Todos os testes existentes passam
-- [ ] Nenhuma regressão introduzida
+- [ ] Fix implementado e testado
+- [ ] Teste de regressão adicionado
+- [ ] Todos os testes passam
+- [ ] Linting passa
+- [ ] Type checking passa (mypy)
 - [ ] Código revisado (self-review)
+- [ ] Comentários adicionados se necessário
+- [ ] Issue referenciada no commit
 
-### Antes do PR
-- [ ] CHANGELOG.md atualizado
-- [ ] Commit message segue template
-- [ ] Documentação atualizada (se relevante)
-- [ ] Compatibilidade retroativa mantida (se possível)
+### Antes de Fazer Merge
 
-### No PR
-- [ ] Título descritivo
-- [ ] Descrição completa com contexto
-- [ ] Referência à issue (`Fixes #123`)
-- [ ] Labels apropriadas
-- [ ] CI/CD checks passando
+- [ ] CI verde
+- [ ] Code review aprovado
+- [ ] Sem conflitos
+- [ ] Changelog atualizado (se patch release)
+- [ ] Documentação atualizada (se necessário)
 
-### Para Release
-- [ ] Versão incrementada (PATCH)
-- [ ] CHANGELOG atualizado com data
+### Antes de Lançar Patch Release
+
+- [ ] Todos os bugfixes incluídos testados
+- [ ] Versão atualizada em todos os lugares
+- [ ] CHANGELOG atualizado
 - [ ] Tag criada
-- [ ] Release notes escritas
-- [ ] PyPI publicado
-- [ ] Comunicação feita
+- [ ] Build testado em ambiente limpo
+- [ ] Release notes preparadas
 
 ---
 
-## Exemplos Práticos
+## 📊 Métricas
 
-### Exemplo 1: Bug de Import (Prioridade: Alta)
-
-**Issue:** #123 - `ImportError: cannot import name 'KnowledgeDistiller'`
-
-**Workflow:**
-```bash
-# 1. Reproduzir
-python -c "from deepbridge.distillation import KnowledgeDistiller"
-# ImportError!
-
-# 2. Criar branch
-git checkout -b fix/issue-123-distillation-import
-
-# 3. Criar teste
-cat > tests/test_issue_123.py <<EOF
-def test_import_knowledge_distiller():
-    from deepbridge.distillation import KnowledgeDistiller
-    assert KnowledgeDistiller is not None
-EOF
-
-# 4. Rodar teste (deve falhar)
-pytest tests/test_issue_123.py
-# FAILED
-
-# 5. Identificar problema
-# Falta importar em __init__.py
-
-# 6. Fix
-echo "from .distiller import KnowledgeDistiller" >> deepbridge/distillation/__init__.py
-
-# 7. Testar novamente
-pytest tests/test_issue_123.py
-# PASSED
-
-# 8. Commit e PR
-git add .
-git commit -m "fix: add missing KnowledgeDistiller import
-
-- Added import in deepbridge/distillation/__init__.py
-- Added regression test
-
-Fixes #123"
-
-git push origin fix/issue-123-distillation-import
-gh pr create --title "fix: add missing KnowledgeDistiller import (#123)"
-```
+Acompanhar:
+- Tempo médio para resolver bugs
+- Taxa de regressão (bugs reabertos)
+- Número de hotfixes vs. patches regulares
+- Cobertura de testes de regressão
 
 ---
 
-### Exemplo 2: Memory Leak (Prioridade: Crítica)
+**Última atualização:** 2025-02-16
 
-**Issue:** #124 - Memory usage grows unbounded during training
-
-**Workflow:**
-```bash
-# 1. Reproduzir com profiler
-python -m memory_profiler train_script.py
-# Confirma: memória cresce continuamente
-
-# 2. Hotfix branch
-git checkout main
-git checkout -b hotfix/memory-leak-training
-
-# 3. Identificar causa
-# Tensors não liberados após backward()
-
-# 4. Fix
-# Adicionar .detach() ou torch.no_grad()
-
-# 5. Verificar fix
-python -m memory_profiler train_script.py
-# Memória agora estável
-
-# 6. Commit e release IMEDIATO
-git add .
-git commit -m "hotfix: fix memory leak in training loop
-
-CRITICAL: Memory usage was growing unbounded.
-
-- Fix: Properly detach tensors after backward()
-- Test: Memory usage profiling added
-- Impact: All users training models
-
-Fixes #124"
-
-# 7. PR expedito
-gh pr create --label "priority:critical"
-
-# 8. Após merge: release 2.0.1 imediatamente
-```
-
----
-
-## Recursos Adicionais
-
-- **Issue Templates:** `.github/ISSUE_TEMPLATE/bug_report.md`
-- **PR Template:** `.github/PULL_REQUEST_TEMPLATE.md`
-- **CI/CD:** `.github/workflows/`
-- **Contributing Guide:** `CONTRIBUTING.md`
-- **Plano de Contingência:** `desenvolvimento/refatoracao/PLANO_CONTINGENCIA.md`
-
----
-
-**Dúvidas?** Abra uma issue com label `question` ou consulte o FAQ: `desenvolvimento/refatoracao/FAQ_V2.md`
+Para mais detalhes sobre releases, consulte `WORKFLOW_RELEASE.md`.

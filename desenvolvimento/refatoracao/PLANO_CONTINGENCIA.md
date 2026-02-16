@@ -1,841 +1,593 @@
 # Plano de Contingência - DeepBridge v2.0
 
-**Última atualização:** 2026-02-16
-
-Este documento define procedimentos de contingência para lidar com bugs críticos, falhas de release e outras emergências no ecossistema DeepBridge.
+Procedimentos de resposta a emergências, bugs críticos e situações inesperadas.
 
 ---
 
-## 📋 Índice
+## 🎯 Objetivo
 
-1. [Definições e Severidade](#definições-e-severidade)
-2. [Equipe de Resposta](#equipe-de-resposta)
-3. [Procedimentos de Emergência](#procedimentos-de-emergência)
-4. [Rollback de Release](#rollback-de-release)
-5. [Comunicação de Crise](#comunicação-de-crise)
-6. [Templates de Comunicação](#templates-de-comunicação)
-7. [Pós-Mortem](#pós-mortem)
+Este documento define:
+1. Ações para bugs críticos
+2. Processo de rollback
+3. Templates de comunicação
+4. Escalação e responsabilidades
+5. SLA e tempos de resposta
 
 ---
 
-## Definições e Severidade
+## 🚨 Classificação de Severidade
 
-### 🔴 Severidade 1 (S1) - CRÍTICO
+### Nível 1: CRÍTICO
+**Impacto:** Sistema inutilizável, perda de dados, vulnerabilidade de segurança
 
-**Definição:**
-- Sistema completamente inutilizável
+**Exemplos:**
+- Crash ao importar o pacote
 - Perda/corrupção de dados
-- Vulnerabilidade de segurança ativa
-- Afeta >75% dos usuários
+- Vulnerabilidade de segurança descoberta
+- Quebra completa de funcionalidade core
+
+**SLA:** Resposta < 2 horas, Fix < 24 horas
+
+**Ações:**
+1. Ativar hotfix workflow imediatamente
+2. Notificar todos os usuários
+3. Considerar rollback se fix demorar
+
+---
+
+### Nível 2: ALTO
+**Impacto:** Funcionalidade importante quebrada, workaround difícil
 
 **Exemplos:**
-- Pacote não pode ser importado (`ModuleNotFoundError`)
-- Crash ao inicializar qualquer funcionalidade
-- Vulnerabilidade de segurança explorada ativamente
-- Dependência quebrada que bloqueia instalação
+- Erro em funcionalidade principal
+- Performance severely degraded
+- Documentação incorreta causando uso errado
+- Incompatibilidade com versões comuns de dependências
 
-**SLA:**
-- **Tempo de resposta:** < 2 horas
-- **Tempo de resolução:** < 24 horas
-- **Escalação:** Imediata para todos os maintainers
+**SLA:** Resposta < 8 horas, Fix < 72 horas
+
+**Ações:**
+1. Priorizar fix
+2. Comunicar issue e workaround se disponível
+3. Incluir em próximo patch release
 
 ---
 
-### 🟠 Severidade 2 (S2) - ALTO
-
-**Definição:**
-- Funcionalidade principal não funciona
-- Workaround existe mas é difícil
-- Afeta 25-75% dos usuários
+### Nível 3: MÉDIO
+**Impacto:** Funcionalidade secundária afetada, workaround disponível
 
 **Exemplos:**
-- Função principal retorna resultado incorreto
-- Performance degradada significativamente (>10x mais lenta)
-- Incompatibilidade com versão comum de Python/dependência
+- Bug em feature opcional
+- Performance issue em casos específicos
+- Erro de documentação menor
+- Edge case não tratado
 
-**SLA:**
-- **Tempo de resposta:** < 8 horas
-- **Tempo de resolução:** < 3 dias
-- **Escalação:** Mantainer principal
+**SLA:** Resposta < 24 horas, Fix < 1 semana
+
+**Ações:**
+1. Adicionar à milestone da próxima release
+2. Documentar workaround
+3. Responder na issue com plano
 
 ---
 
-### 🟡 Severidade 3 (S3) - MÉDIO
-
-**Definição:**
-- Funcionalidade secundária não funciona
-- Workaround simples existe
-- Afeta <25% dos usuários
+### Nível 4: BAIXO
+**Impacto:** Inconveniência menor, cosmético
 
 **Exemplos:**
-- Parâmetro opcional não funciona
-- Documentação incorreta causa confusão
-- Warning inesperado mas não prejudicial
+- Typo em mensagem de erro
+- Warning desnecessário
+- Inconsistência de estilo
+- Sugestão de melhoria
 
-**SLA:**
-- **Tempo de resposta:** < 24 horas
-- **Tempo de resolução:** < 1 semana
-- **Escalação:** Não necessária
+**SLA:** Resposta < 48 horas, Fix quando conveniente
 
----
-
-### 🟢 Severidade 4 (S4) - BAIXO
-
-**Definição:**
-- Problema cosmético
-- Não afeta funcionalidade
-- Impacto mínimo
-
-**Exemplos:**
-- Typo em mensagem
-- Log desnecessário
-- Formatação de código
-
-**SLA:**
-- **Tempo de resposta:** < 48 horas
-- **Tempo de resolução:** Próximo release
-- **Escalação:** Não necessária
+**Ações:**
+1. Adicionar ao backlog
+2. Aceitar contribuições da comunidade
 
 ---
 
-## Equipe de Resposta
+## 🔥 Procedimentos de Emergência
 
-### Papéis e Responsabilidades
+### Cenário 1: Bug Crítico Descoberto Após Release
 
-#### Lead Maintainer (Responsável Principal)
-- **Nome:** [Definir]
-- **Contato:** [Email, Phone, Discord]
-- **Responsabilidades:**
-  - Decisão final sobre rollback
-  - Coordenação da resposta
-  - Comunicação externa principal
+**Situação:** v2.0.0 foi lançada, mas usuários reportam crash fatal.
 
-#### Technical Lead (Líder Técnico)
-- **Nome:** [Definir]
-- **Contato:** [Email, Phone, Discord]
-- **Responsabilidades:**
-  - Análise técnica do problema
-  - Implementação de fixes
-  - Coordenação com DevOps
+**Procedimento:**
 
-#### Community Manager (Gestor de Comunidade)
-- **Nome:** [Definir]
-- **Contato:** [Email, Phone, Discord]
-- **Responsabilidades:**
-  - Comunicação com usuários
-  - Gerenciamento de issues
-  - FAQs e suporte
+1. **Confirmar severidade (< 30 minutos)**
+   ```bash
+   # Reproduzir imediatamente
+   python -m venv emergency_test
+   source emergency_test/bin/activate
+   pip install deepbridge==2.0.0
+   python reproduce_critical_bug.py
+   ```
+
+2. **Avaliar opções (< 1 hora)**
+   - **Opção A:** Fix rápido possível → Hotfix
+   - **Opção B:** Fix complexo → Rollback + Comunicação
+
+3. **Se HOTFIX:**
+   ```bash
+   # Branch de hotfix
+   git checkout -b hotfix/2.0.1 v2.0.0
+   
+   # Implementar fix mínimo
+   # ... código ...
+   
+   # Teste rápido mas essencial
+   pytest tests/critical/
+   
+   # Bump versão
+   # Atualizar para 2.0.1
+   
+   # Release imediato
+   git tag -a v2.0.1 -m "Critical hotfix"
+   python -m build
+   twine upload dist/*
+   
+   # Comunicar
+   # (ver templates abaixo)
+   ```
+
+4. **Se ROLLBACK:**
+   ```bash
+   # Yankar release quebrada do PyPI
+   # ATENÇÃO: Yank não remove, só marca como não instalável por padrão
+   twine upload --repository pypi --skip-existing \
+       --config-file ~/.pypirc \
+       --comment "Critical bug, use 2.0.1 instead" \
+       dist/deepbridge-2.0.0*
+   
+   # Ou via interface web do PyPI
+   # Settings → Manage → Yank
+   
+   # Comunicar rollback imediatamente
+   ```
+
+5. **Comunicação (< 2 horas do descobrimento)**
+   - Criar issue no GitHub
+   - Postar no Discussions
+   - Atualizar README com aviso
+   - GitHub Release com nota de urgência
 
 ---
 
-### Canais de Comunicação de Emergência
+### Cenário 2: Dependência Quebrada
 
-#### Interno
-- **Primary:** Discord #emergencies (ou Slack)
-- **Secondary:** Email thread marcado [CRITICAL]
-- **Tertiary:** Phone/SMS (para S1)
+**Situação:** Nova versão de PyTorch/Transformers quebra DeepBridge.
 
-#### Externo
-- **Primary:** GitHub Issues (pinned)
-- **Secondary:** Twitter/X (@deepbridge)
-- **Tertiary:** Email blast (se mailing list existir)
+**Procedimento:**
+
+1. **Pin versão problemática**
+   ```python
+   # setup.py ou pyproject.toml
+   dependencies = [
+       "torch>=1.10.0,<2.1.0",  # Pin max version
+       "transformers>=4.20.0,!=4.35.0",  # Exclude broken version
+   ]
+   ```
+
+2. **Release patch urgente**
+   ```bash
+   git checkout -b fix/pin-dependency master
+   # Atualizar dependencies
+   git commit -m "fix: pin dependency to avoid broken version"
+   # ... release 2.0.1
+   ```
+
+3. **Comunicar workaround**
+   ```markdown
+   ## Workaround for PyTorch 2.1.0 incompatibility
+   
+   If you encounter [error], downgrade PyTorch:
+   
+   ```bash
+   pip install torch==2.0.1
+   ```
+   
+   We are working on compatibility with PyTorch 2.1+.
+   ```
+
+4. **Trabalhar em compatibility fix**
+   - Branch separado
+   - Testar extensivamente
+   - Release quando pronto
 
 ---
 
-## Procedimentos de Emergência
+### Cenário 3: Segurança Vulnerabilidade
 
-### Procedimento para S1 (Crítico)
+**Situação:** CVE reportado em DeepBridge ou dependência.
 
-#### 1. Detecção e Alerta (0-15 min)
+**Procedimento:**
 
-**Quando detectado:**
+1. **Avaliar impacto (URGENTE)**
+   - Afeta versões em produção?
+   - Exploit público disponível?
+   - Severidade (CVSS score)?
+
+2. **Fix silencioso se necessário**
+   ```bash
+   # NÃO criar issue pública inicialmente se exploit grave
+   # Fix em branch privado
+   git checkout -b security/CVE-2025-XXXX master
+   
+   # Implementar fix
+   # ...
+   
+   # Release hotfix
+   git tag -a v2.0.1 -m "Security fix"
+   # ... publish
+   ```
+
+3. **Disclosure responsável**
+   - Aguardar 24-48h após fix publicado
+   - Então publicar advisory no GitHub
+   - Creditar reporter (se autorizado)
+
+4. **Comunicação**
+   ```markdown
+   # Security Advisory: [Título]
+   
+   **Severity:** High
+   **Affected versions:** 2.0.0
+   **Fixed in:** 2.0.1
+   
+   ## Description
+   [Descrição técnica]
+   
+   ## Impact
+   [O que atacante pode fazer]
+   
+   ## Mitigation
+   Upgrade immediately:
+   ```bash
+   pip install --upgrade deepbridge
+   ```
+   
+   ## Credit
+   Thanks to [researcher] for responsible disclosure.
+   ```
+
+---
+
+## 🔄 Processo de Rollback
+
+### Quando Fazer Rollback
+
+**Critérios:**
+- ✅ Bug crítico afeta >50% dos usuários
+- ✅ Sem fix rápido disponível (>24h estimado)
+- ✅ Versão anterior estável disponível
+- ❌ Não fazer rollback se breaking changes já adotados
+
+### Como Fazer Rollback (PyPI)
+
+**IMPORTANTE:** PyPI não permite deletar releases. Apenas "yank" (ocultar).
+
 ```bash
-# Criar issue CRÍTICA imediatamente
-gh issue create \
-  --title "[CRITICAL S1] Brief description" \
-  --label "bug,priority:critical,severity:s1" \
-  --body "$(cat <<'EOF'
-## SEVERITY: S1 - CRITICAL
+# 1. Yank release problemática via interface web
+# https://pypi.org/manage/project/deepbridge/release/2.0.0/
 
-**Impact:** [Describe impact - e.g., "All users cannot install package"]
-**Affected Versions:** [e.g., 2.0.0, 2.0.1]
-**Discovered:** [Date/Time]
-**Reporter:** [Who found it]
+# 2. Ou via twine (se suportado):
+twine upload --skip-existing \
+    --comment "Critical bug, use 1.9.9 instead" \
+    dist/deepbridge-2.0.0*
 
-## Immediate Actions
-- [ ] Issue created and pinned
-- [ ] Team notified
-- [ ] Workaround identified (if any)
-- [ ] Fix in progress
+# 3. Comunicar claramente
+```
+
+### Como Fazer Rollback (Git)
+
+```bash
+# Opção 1: Revert commits (preferido)
+git revert HEAD~3..HEAD  # Reverte últimos 3 commits
+git push origin master
+
+# Opção 2: Reset (apenas se não publicado)
+git reset --hard HEAD~3
+git push --force origin master  # ⚠️ Cuidado!
+
+# Opção 3: Criar branch de fix baseado em versão antiga
+git checkout -b fix-from-stable v1.9.9
+# ... trabalhar no fix
+```
+
+---
+
+## 📢 Templates de Comunicação
+
+### Template 1: Anúncio de Bug Crítico
+
+```markdown
+# ⚠️ Critical Issue in v2.0.0
+
+We have identified a critical issue in DeepBridge v2.0.0 that causes [descrição breve].
+
+## Impact
+- [Quem é afetado]
+- [O que não funciona]
+
+## Status
+We are working on a hotfix and expect to release v2.0.1 within [timeframe].
+
+## Workaround
+Until the fix is released, please:
+```bash
+[workaround se disponível]
+```
+
+## Updates
+We will update this issue with progress. 
+
+**ETA for fix:** [data/hora]
+
+We apologize for the inconvenience and appreciate your patience.
+
+---
+**Reported:** [timestamp]
+**Severity:** Critical
+**Tracking:** #[issue number]
+```
+
+### Template 2: Anúncio de Hotfix
+
+```markdown
+# 🚀 Hotfix Release: v2.0.1
+
+We have released v2.0.1 to address the critical issue reported in #[issue].
+
+## What Changed
+- Fixed: [descrição do bug]
+- Impact: [quem estava afetado]
+
+## Upgrade Instructions
+```bash
+pip install --upgrade deepbridge
+# Verify
+python -c "import deepbridge; print(deepbridge.__version__)"
+# Should print: 2.0.1
+```
 
 ## Details
-[Detailed description, stack trace, etc.]
-EOF
-)"
+[Descrição técnica do problema e solução]
 
-# Pin issue
-gh issue pin [issue-number]
-```
+## Testing
+This release has been tested with:
+- [cenário 1]
+- [cenário 2]
 
-**Notificar equipe:**
-```
-@everyone CRITICAL S1 INCIDENT
-
-Issue: #[number]
-Impact: [Brief description]
-ETA for fix: [Estimate or "investigating"]
-
-Action items:
-- [Lead] Coordinating response
-- [Tech] Investigating root cause
-- [Community] Preparing communication
-
-War room: [Discord link]
-```
+Thank you for your patience and for reporting this issue.
 
 ---
-
-#### 2. Avaliação e Decisão (15-30 min)
-
-**Questões a responder:**
-1. Qual a extensão do impacto?
-2. Existe workaround viável?
-3. Podemos fazer hotfix ou precisamos de rollback?
-4. Quais versões são afetadas?
-
-**Matriz de Decisão:**
-
-| Situação | Ação |
-|----------|------|
-| Bug em versão mais recente + versão anterior funciona | **Rollback** + comunicar downgrade |
-| Bug em todas as versões + fix rápido possível (<4h) | **Hotfix** imediato |
-| Bug em todas as versões + fix complexo (>4h) | **Rollback** + fix planejado |
-| Vulnerabilidade de segurança | **Yank** do PyPI + hotfix urgente |
-
----
-
-#### 3. Execução (30 min - 24h)
-
-**Opção A: Hotfix**
-```bash
-# Ver WORKFLOW_BUGFIX.md seção "Workflow de Hotfix"
-
-# 1. Branch de hotfix
-git checkout -b hotfix/critical-s1-issue-[n]
-
-# 2. Fix mínimo + teste
-# [Implementar fix]
-
-# 3. Test
-pytest tests/ -v
-
-# 4. Commit e PR
-git commit -m "hotfix: critical S1 - [description]
-
-CRITICAL S1: [Impact]
-
-- Fix: [What was fixed]
-- Test: [Test added]
-- Verification: [How tested]
-
-Fixes #[issue-number]"
-
-# 5. Fast-track review e merge
-gh pr create --label "priority:critical,severity:s1"
-
-# 6. Release imediato após merge
+**Released:** [timestamp]
+**Fixes:** #[issue]
 ```
 
-**Opção B: Rollback (ver seção específica)**
-
----
-
-#### 4. Comunicação (Paralelo à execução)
-
-**Comunicado inicial (0-30 min):**
-```markdown
-🚨 CRITICAL ISSUE DETECTED - DeepBridge v2.0.X
-
-We have identified a critical issue affecting [description].
-
-**Impact:** [Who is affected]
-**Status:** Investigating
-**Workaround:** [If available]
-
-We are working on a fix and will update every hour.
-
-Track: https://github.com/guhaase/DeepBridge/issues/[n]
-```
-
-**Updates a cada 1 hora:**
-```markdown
-UPDATE [HH:MM UTC]: [Status update]
-
-- Current status: [Investigating/Fix in progress/Testing]
-- ETA: [Estimate]
-- Workaround: [If discovered]
-```
-
-**Comunicado de resolução:**
-```markdown
-✅ RESOLVED - DeepBridge v2.0.X Critical Issue
-
-The critical issue has been resolved in v2.0.Y.
-
-**Action Required:**
-pip install --upgrade deepbridge
-
-**Details:** https://github.com/guhaase/DeepBridge/releases/tag/v2.0.Y
-
-Thank you for your patience.
-```
-
----
-
-#### 5. Verificação (Após fix)
-
-**Checklist de verificação:**
-- [ ] Fix testado em ambiente limpo
-- [ ] Todos os testes passam
-- [ ] Issue original reproduzida e confirmada resolvida
-- [ ] Instalação via pip funciona
-- [ ] Smoke tests em principais use cases
-- [ ] Documentação atualizada
-- [ ] CHANGELOG atualizado
-
-**Smoke tests:**
-```bash
-# Criar venv limpo
-python -m venv test_env
-source test_env/bin/activate
-
-# Instalar versão com fix
-pip install deepbridge==2.0.Y
-
-# Testar imports principais
-python -c "from deepbridge import Bridge; print('Core OK')"
-python -c "from deepbridge.distillation import KnowledgeDistiller; print('Distillation OK')"
-python -c "from deepbridge.synthetic import SyntheticDataGenerator; print('Synthetic OK')"
-
-# Testar caso específico do bug
-python reproduce_bug.py
-# Deve funcionar sem erro
-```
-
----
-
-### Procedimento para S2 (Alto)
-
-**Processo similar a S1 mas com timelines mais relaxados:**
-- Resposta em 8h
-- Fix em 3 dias
-- Comunicação menos frequente (updates diários)
-
----
-
-## Rollback de Release
-
-### Quando fazer Rollback?
-
-**Fazer rollback se:**
-- Bug S1 sem fix rápido (<4h)
-- Múltiplos bugs S2 descobertos
-- Instabilidade generalizada
-- Perda de dados possível
-
-**NÃO fazer rollback se:**
-- Fix rápido (<4h) é viável
-- Apenas bugs S3/S4
-- Workaround simples existe
-- Versão anterior também tem o bug
-
----
-
-### Processo de Rollback
-
-#### 1. Decisão e Notificação (0-30 min)
-
-```bash
-# Notificar equipe
-echo "ROLLBACK DECISION: Reverting to v2.0.X due to critical issues in v2.0.Y"
-
-# Criar issue de tracking
-gh issue create \
-  --title "[ROLLBACK] Reverting v2.0.Y to v2.0.X" \
-  --label "rollback,priority:critical"
-```
-
----
-
-#### 2. Yank da Versão Problemática no PyPI (30-60 min)
-
-**⚠️ IMPORTANTE:** "Yank" no PyPI NÃO remove o pacote, apenas o marca como indisponível para novas instalações.
-
-```bash
-# Yank versão problemática
-# Requer permissões de maintainer no PyPI
-
-# Via web: https://pypi.org/manage/project/deepbridge/releases/
-# Ou via API (se disponível)
-
-# Marcar como "yanked" com razão
-Reason: "Critical bug - use v2.0.X instead"
-```
-
-**Resultado:**
-- Usuários com `pip install deepbridge` receberão versão anterior (2.0.X)
-- Usuários que já instalaram 2.0.Y NÃO são afetados (precisam downgrade manual)
-
----
-
-#### 3. Comunicar Downgrade Instructions
-
-**Template:**
-```markdown
-🚨 URGENT: Please Downgrade DeepBridge
-
-We have identified critical issues in v2.0.Y.
-
-**Action Required:**
-```bash
-pip install deepbridge==2.0.X
-```
-
-**If you experience issues:**
-```bash
-pip uninstall deepbridge
-pip cache purge
-pip install deepbridge==2.0.X
-```
-
-**Why:** [Brief explanation of bug]
-**Status:** We are working on v2.0.Z with fixes. ETA: [date]
-
-**Details:** https://github.com/guhaase/DeepBridge/issues/[n]
-
-We apologize for the inconvenience.
-```
-
----
-
-#### 4. GitHub Release Update
-
-```bash
-# Editar release notes da versão problemática
-gh release edit v2.0.Y --notes "$(cat <<'EOF'
-⚠️ **DO NOT USE THIS VERSION**
-
-This release has been yanked due to critical issues.
-
-**Use v2.0.X instead:**
-```bash
-pip install deepbridge==2.0.X
-```
-
-**Issues:**
-- #[n] - [Description]
-
-**Fixed in:** v2.0.Z (coming soon)
-EOF
-)"
-```
-
----
-
-#### 5. Preparar Fix Proper
-
-```bash
-# Trabalhar no fix enquanto usuários usam versão anterior
-git checkout -b fix/issues-from-v2.0.Y
-
-# Implementar todos os fixes necessários
-# Testar extensivamente
-# Preparar v2.0.Z
-```
-
----
-
-## Comunicação de Crise
-
-### Princípios de Comunicação
-
-1. **Transparência:** Admitir o problema claramente
-2. **Frequência:** Updates regulares (S1: a cada hora, S2: diariamente)
-3. **Ação:** Sempre incluir "o que o usuário deve fazer"
-4. **Empatia:** Reconhecer o inconveniente causado
-5. **Brevidade:** Ser conciso mas completo
-
----
-
-### Canais de Comunicação
-
-#### Prioridade 1: GitHub
-- Pin da issue
-- Update frequente na issue
-- Release notes
-
-#### Prioridade 2: Social Media
-- Twitter/X
-- Reddit (se houver subreddit)
-- LinkedIn (posts profissionais)
-
-#### Prioridade 3: Direto
-- Email (se mailing list existir)
-- Discord/Slack announcements
-
----
-
-## Templates de Comunicação
-
-### Template: Anúncio de Bug Crítico
+### Template 3: Anúncio de Rollback
 
 ```markdown
-🚨 CRITICAL BUG - DeepBridge v[X.Y.Z]
+# ⚠️ Rollback Notice: v2.0.0 Yanked
 
-**Issue:** [Brief 1-sentence description]
+Due to critical issues, we have yanked v2.0.0 from PyPI.
 
-**Impact:**
-- Who: [Which users are affected]
-- What: [What functionality is broken]
-- Severity: S1/S2
+## What Happened
+[Explicação clara do problema]
 
-**Immediate Action:**
-[Workaround or downgrade instructions]
-
-**Status:**
-- Discovered: [Timestamp]
-- Root cause: [If known, or "Investigating"]
-- ETA for fix: [Estimate or "TBD"]
-
-**Tracking:** https://github.com/guhaase/DeepBridge/issues/[n]
-
-We will provide updates every [frequency].
+## Action Required
+If you installed v2.0.0, please downgrade:
+```bash
+pip install deepbridge==1.9.9
 ```
 
----
+## Next Steps
+We are working on a fixed v2.0.1 release. We will announce when it's ready.
 
-### Template: Anúncio de Hotfix
+## Apology
+We sincerely apologize for this disruption. We are reviewing our release process to prevent this in the future.
+
+---
+**Yanked:** [timestamp]
+**Recommended version:** 1.9.9
+**Tracking:** #[issue]
+```
+
+### Template 4: Security Advisory
 
 ```markdown
-✅ HOTFIX RELEASED - DeepBridge v[X.Y.Z]
+# 🔒 Security Advisory: [CVE-ID]
 
-**Fixed Issues:**
-- #[n] - [Description]
-- #[n] - [Description]
+**Severity:** [Low/Medium/High/Critical]
+**Affected versions:** [range]
+**Fixed in:** [version]
 
-**Action Required:**
+## Summary
+[Descrição não-técnica do problema]
+
+## Technical Details
+[Descrição técnica]
+
+## Exploitation
+[Como pode ser explorado - se apropriado]
+
+## Impact
+[O que um atacante pode fazer]
+
+## Remediation
+Upgrade immediately to v[fixed version]:
 ```bash
 pip install --upgrade deepbridge
 ```
 
-**Verification:**
-```python
-import deepbridge
-print(deepbridge.__version__)  # Should show [X.Y.Z]
-```
-
-**Changes:**
-[Brief description of what changed]
-
-**Full Release Notes:** https://github.com/guhaase/DeepBridge/releases/tag/v[X.Y.Z]
-
-Thank you for your patience!
-```
-
----
-
-### Template: Anúncio de Rollback
-
-```markdown
-⚠️ ROLLBACK NOTICE - DeepBridge v[X.Y.Z] Yanked
-
-Due to critical issues, we have yanked v[X.Y.Z] from PyPI.
-
-**Action Required - Downgrade:**
-```bash
-pip install deepbridge==[PREVIOUS_VERSION]
-```
-
-**Why:**
-[Brief explanation of issues]
-
-**What's Next:**
-We are preparing v[NEXT_VERSION] with fixes.
-ETA: [Date/Time]
-
-**Apology:**
-We sincerely apologize for the disruption. We are improving our testing process to prevent this in the future.
-
-**Track Progress:** https://github.com/guhaase/DeepBridge/issues/[n]
-```
-
----
-
-### Template: Post-Mortem Summary
-
-```markdown
-📊 POST-MORTEM: [Incident Name]
-
-**Date:** [YYYY-MM-DD]
-**Duration:** [X hours]
-**Severity:** S1/S2
-**Impact:** [Number of users / % of user base]
+## Workaround
+If you cannot upgrade immediately:
+[workaround se disponível]
 
 ## Timeline
-- **[HH:MM]** - Issue detected
-- **[HH:MM]** - Team notified, investigation started
-- **[HH:MM]** - Root cause identified
-- **[HH:MM]** - Fix implemented
-- **[HH:MM]** - Fix deployed to production
-- **[HH:MM]** - Incident resolved
+- **Discovered:** [date]
+- **Fixed:** [date]
+- **Released:** [date]
+- **Disclosed:** [date]
 
-## Root Cause
-[Detailed explanation of what went wrong]
-
-## Resolution
-[How it was fixed]
-
-## Lessons Learned
-
-**What Went Well:**
-- [Thing 1]
-- [Thing 2]
-
-**What Went Wrong:**
-- [Thing 1]
-- [Thing 2]
-
-## Action Items
-- [ ] [Action 1] - Assigned: [Name] - Due: [Date]
-- [ ] [Action 2] - Assigned: [Name] - Due: [Date]
-- [ ] [Action 3] - Assigned: [Name] - Due: [Date]
-
-## Prevention
-[Steps being taken to prevent recurrence]
+## Credit
+[Se aplicável] Thanks to [researcher/organization] for responsible disclosure.
 
 ---
-
-Thank you to everyone who helped resolve this incident quickly.
+**CVE:** [CVE-ID]
+**CVSS Score:** [score]
+**References:** [links]
 ```
 
 ---
 
-## Pós-Mortem
+## 👥 Responsabilidades e Escalação
 
-### Quando Conduzir Pós-Mortem
+### Responsáveis
 
-**Obrigatório para:**
-- Todos os incidentes S1
-- Incidentes S2 que afetaram >50% dos usuários
-- Qualquer rollback
+**Maintainer Principal:**
+- Decisões finais sobre hotfixes
+- Aprovação de rollbacks
+- Comunicação oficial
 
-**Opcional para:**
-- Incidentes S2 menores
-- Incidentes S3 recorrentes
+**Contributors:**
+- Triagem inicial de bugs
+- Implementação de fixes
+- Code review
 
----
+**Community:**
+- Report de bugs
+- Teste de fixes
+- Sugestões
 
-### Processo de Pós-Mortem
+### Escalação
 
-#### 1. Reunião de Pós-Mortem (Dentro de 7 dias)
+**Nível 4 (Baixo):**
+→ Qualquer contributor pode resolver
 
-**Participantes:**
-- Lead Maintainer (facilitador)
-- Technical Lead
-- Qualquer pessoa envolvida na resposta
+**Nível 3 (Médio):**
+→ Contributor experiente + review
 
-**Agenda:**
-1. Timeline do incidente (15 min)
-2. Root cause analysis (20 min)
-3. O que funcionou / não funcionou (15 min)
-4. Action items (10 min)
+**Nível 2 (Alto):**
+→ Maintainer + review obrigatório
 
-**Regras:**
-- **Blameless:** Foco no processo, não nas pessoas
-- **Factual:** Baseado em evidências, não suposições
-- **Actionable:** Toda conclusão → action item específico
+**Nível 1 (Crítico):**
+→ Maintainer principal + decisão imediata
 
 ---
 
-#### 2. Documento de Pós-Mortem
+## ⏱️ SLA (Service Level Agreement)
 
-**Estrutura:**
-```markdown
-# Post-Mortem: [Incident Name]
+### Tempos de Resposta
 
-**Date:** [YYYY-MM-DD]
-**Authors:** [Names]
-**Status:** Draft / Final
+| Severidade | Primeira Resposta | Fix Estimado | Patch Release |
+|------------|------------------|--------------|---------------|
+| Crítico    | < 2 horas        | < 24 horas   | Imediato      |
+| Alto       | < 8 horas        | < 72 horas   | < 1 semana    |
+| Médio      | < 24 horas       | < 1 semana   | Próximo patch |
+| Baixo      | < 48 horas       | Backlog      | Quando possível |
 
-## Executive Summary
-[2-3 sentences: what happened, impact, resolution]
-
-## Timeline
-[Detailed timeline with timestamps]
-
-## Root Cause Analysis
-
-### What Happened
-[Factual description]
-
-### Why It Happened
-[Root cause - use "5 Whys" technique]
-
-### Contributing Factors
-- [Factor 1]
-- [Factor 2]
-
-## Impact Assessment
-
-### Metrics
-- **Users Affected:** [Number / Percentage]
-- **Duration:** [Hours/Days]
-- **Downtime:** [If applicable]
-- **Data Loss:** [If any]
-
-### User Impact
-[Qualitative description]
-
-## Response Evaluation
-
-### What Went Well
-- [Positive 1]
-- [Positive 2]
-
-### What Could Be Improved
-- [Improvement 1]
-- [Improvement 2]
-
-## Action Items
-
-| Action | Owner | Due Date | Status |
-|--------|-------|----------|--------|
-| [Action 1] | [Name] | [Date] | 🟡 In Progress |
-| [Action 2] | [Name] | [Date] | ⬜ Not Started |
-
-## Prevention Measures
-
-### Immediate (Within 1 week)
-- [ ] [Measure 1]
-
-### Short-term (Within 1 month)
-- [ ] [Measure 2]
-
-### Long-term (Within 3 months)
-- [ ] [Measure 3]
-
-## Appendix
-
-### References
-- Issue: #[number]
-- PR fixes: #[numbers]
-- Related incidents: [Links]
-
-### Data
-[Logs, metrics, screenshots]
-```
+**Nota:** SLAs são metas, não garantias. Projetos open source dependem de disponibilidade de voluntários.
 
 ---
 
-#### 3. Compartilhar e Arquivar
+## 📊 Métricas de Incidentes
 
-**Compartilhar:**
-- Internamente: Todos os maintainers
-- Publicamente: GitHub discussions (opcional, para transparência)
-- Blog post (opcional, para incidentes grandes)
+Acompanhar para melhorar processos:
 
-**Arquivar:**
-- Salvar em `desenvolvimento/postmortems/YYYY-MM-DD-incident-name.md`
-- Adicionar ao índice de post-mortems
+- **MTTD** (Mean Time To Detect): Tempo até descobrir bug
+- **MTTR** (Mean Time To Respond): Tempo até primeira resposta
+- **MTTF** (Mean Time To Fix): Tempo até fix disponível
+- **Número de hotfixes** por release
+- **Número de rollbacks** por ano
 
 ---
 
-#### 4. Acompanhamento de Action Items
+## 🧪 Testing de Emergência
 
-**Tracking:**
+### Smoke Tests Mínimos
+
 ```bash
-# Criar issues para cada action item
-gh issue create \
-  --title "[Post-Mortem Action] [Description]" \
-  --label "postmortem,improvement" \
-  --assignee [owner]
-
-# Adicionar a projeto/milestone
-gh issue develop [issue-number] --milestone "Post-Incident Improvements"
+# Quick sanity check antes de hotfix release
+python -c "import deepbridge; print(deepbridge.__version__)"
+python -c "from deepbridge.core import BridgeConfig"
+python -c "from deepbridge_distillation import DistillationTrainer"
+python -c "from deepbridge_synthetic import SyntheticDataGenerator"
 ```
 
-**Review:**
-- Weekly: Check-in em action items
-- Monthly: Review de progresso com equipe
+### Testes Críticos
+
+```bash
+# Suite essencial (deve rodar em <5 min)
+pytest tests/critical/ -v --tb=short
+```
 
 ---
 
-## Testes de Contingência
+## 📝 Post-Mortem
 
-### Exercícios de Simulação (Recomendado Quarterly)
+Após resolver incidente crítico, documentar:
 
-**Game Day: Simular Incidente S1**
-1. Designar "incident master" que simula bug
-2. Equipe responde como em incidente real
-3. Medir tempo de detecção → resolução
-4. Identificar gaps no plano
+**Template de Post-Mortem:**
+```markdown
+# Post-Mortem: [Título do Incidente]
 
-**Exemplos de cenários:**
-- "PyPI deploy falhou, pacote corrompido"
-- "Dependência crítica descontinuada"
-- "Vulnerabilidade CVE descoberta no código"
+**Data:** [data]
+**Severidade:** [nível]
+**Duração:** [tempo até resolução]
 
----
+## O Que Aconteceu
+[Descrição cronológica]
 
-## Métricas de Contingência
+## Causa Raiz
+[Análise técnica]
 
-### KPIs para Rastrear
+## Impacto
+- [Número de usuários afetados]
+- [Funcionalidades afetadas]
+- [Downtime se aplicável]
 
-| Métrica | Target | Medição |
-|---------|--------|---------|
-| Time to Detect (TTD) | < 1 hour | Tempo até issue criada |
-| Time to Respond (TTR) | < 2 hours (S1) | Tempo até primeira ação |
-| Time to Resolve (TTRes) | < 24 hours (S1) | Tempo até fix deployed |
-| Recurrence Rate | < 5% | % de bugs que retornam |
+## Linha do Tempo
+- [HH:MM] Incidente reportado
+- [HH:MM] Confirmado e classificado
+- [HH:MM] Hotfix iniciado
+- [HH:MM] Fix testado
+- [HH:MM] Hotfix released
+- [HH:MM] Verificado resolvido
 
----
+## O Que Foi Bem
+[Aspectos positivos da resposta]
 
-## Contatos de Emergência
+## O Que Pode Melhorar
+[Oportunidades de melhoria]
 
-### Maintainers
+## Action Items
+- [ ] [Ação 1] - @responsável
+- [ ] [Ação 2] - @responsável
 
-| Nome | Role | Email | Phone | Discord | Timezone |
-|------|------|-------|-------|---------|----------|
-| [Nome 1] | Lead | [email] | [phone] | [handle] | UTC-X |
-| [Nome 2] | Technical | [email] | [phone] | [handle] | UTC-X |
-| [Nome 3] | Community | [email] | [phone] | [handle] | UTC-X |
-
-### Serviços Externos
-
-| Serviço | Contato | Uso |
-|---------|---------|-----|
-| PyPI Support | pypi-admins@python.org | Issues com PyPI |
-| GitHub Support | [Link] | Issues com GitHub |
-| DNS Provider | [Link] | Se domínio customizado |
+## Lições Aprendidas
+[Conclusões]
+```
 
 ---
 
-## Checklist Rápida de Emergência
+## 🔗 Contatos e Recursos
 
-### ⚡ S1 Quick Response
+### Documentação de Emergência
+- Este documento: `PLANO_CONTINGENCIA.md`
+- Workflow de bugfix: `WORKFLOW_BUGFIX.md`
+- Workflow de release: `WORKFLOW_RELEASE.md`
 
-- [ ] **0-15 min:** Issue criada e pinned, equipe notificada
-- [ ] **15-30 min:** Decisão: Hotfix ou Rollback?
-- [ ] **30 min:** Comunicado inicial publicado
-- [ ] **1h:** Começar implementação de fix
-- [ ] **A cada 1h:** Update público
-- [ ] **4h:** Se não resolvido, considerar rollback
-- [ ] **24h:** Deve estar resolvido ou rollback executado
-- [ ] **7 dias:** Post-mortem completo
+### Links Úteis
+- GitHub Issues: [URL]
+- PyPI Project: https://pypi.org/project/deepbridge/
+- CI/CD: [URL]
+- Monitoring: [URL se aplicável]
 
 ---
 
-**Este documento deve ser revisado e atualizado trimestralmente.**
+**Última atualização:** 2025-02-16
 
-**Última revisão:** 2026-02-16
-**Próxima revisão:** 2026-05-16
+**Revisão:** Este plano deve ser revisado após cada incidente crítico e no mínimo trimestralmente.

@@ -1,485 +1,354 @@
-# FAQ - DeepBridge v2.0 - Perguntas Frequentes
+# FAQ - DeepBridge v2.0
 
-**Última atualização:** 2026-02-16
-
-Este FAQ cobre problemas comuns de instalação, migração e uso do DeepBridge v2.0 após a reestruturação modular.
+Perguntas frequentes sobre a migração para DeepBridge v2.0 e problemas comuns.
 
 ---
 
 ## 📦 Instalação
 
-### P: Como instalar o DeepBridge v2.0?
-
-**R:** Existem três pacotes separados agora:
+### Como instalar o DeepBridge v2.0?
 
 ```bash
-# Pacote core (obrigatório)
-pip install deepbridge
+pip install deepbridge>=2.0.0
+```
 
-# Módulo de destilação (opcional)
+### Como instalar os módulos opcionais?
+
+```bash
+# Para destilação de modelos
 pip install deepbridge-distillation
 
-# Módulo de dados sintéticos (opcional)
+# Para geração de dados sintéticos
 pip install deepbridge-synthetic
+
+# Instalar tudo
+pip install deepbridge[all]
 ```
 
-**Instalar tudo de uma vez:**
+### Como verificar a versão instalada?
 
 ```bash
-pip install deepbridge deepbridge-distillation deepbridge-synthetic
-```
-
----
-
-### P: Posso instalar apenas o que preciso?
-
-**R:** Sim! A arquitetura modular permite instalar apenas os pacotes necessários:
-
-- **Apenas funcionalidades core:** `pip install deepbridge`
-- **Core + Distillation:** `pip install deepbridge deepbridge-distillation`
-- **Core + Synthetic:** `pip install deepbridge deepbridge-synthetic`
-- **Tudo:** `pip install deepbridge deepbridge-distillation deepbridge-synthetic`
-
----
-
-### P: Quais são as dependências de cada pacote?
-
-**R:**
-
-- **deepbridge:** numpy, pandas, scikit-learn, torch (core dependencies)
-- **deepbridge-distillation:** deepbridge>=2.0.0, torch, torchvision
-- **deepbridge-synthetic:** deepbridge>=2.0.0, faker, sdv (optional)
-
-Consulte os arquivos `requirements.txt` de cada repositório para detalhes completos.
-
----
-
-## 🔄 Migração de v1.x para v2.0
-
-### P: Meu código v1.x parou de funcionar. O que mudou?
-
-**R:** A principal mudança são os imports. Veja a tabela de migração:
-
-| **v1.x (Antigo)** | **v2.0 (Novo)** |
-|------------------|----------------|
-| `from DeepBridge.distillation import KnowledgeDistiller` | `from deepbridge.distillation import KnowledgeDistiller` |
-| `from DeepBridge.synthetic import SyntheticDataGenerator` | `from deepbridge.synthetic import SyntheticDataGenerator` |
-| `from DeepBridge.utils import setup_logger` | `from deepbridge.utils import setup_logger` |
-| `from DeepBridge import Bridge` | `from deepbridge import Bridge` |
-
-**Principais mudanças:**
-1. Nome do pacote: `DeepBridge` → `deepbridge` (lowercase)
-2. Estrutura modular: funcionalidades separadas em pacotes independentes
-3. Imports explícitos: submodules precisam ser importados explicitamente
-
----
-
-### P: Recebi `ModuleNotFoundError: No module named 'DeepBridge'`
-
-**R:** Você está usando imports da v1.x. Siga estes passos:
-
-**1. Desinstale a versão antiga:**
-```bash
-pip uninstall DeepBridge
-```
-
-**2. Instale a v2.0:**
-```bash
-pip install deepbridge
-# E módulos opcionais conforme necessário
-pip install deepbridge-distillation deepbridge-synthetic
-```
-
-**3. Atualize seus imports:**
-```python
-# ❌ Antigo (v1.x)
-from DeepBridge.distillation import KnowledgeDistiller
-
-# ✅ Novo (v2.0)
-from deepbridge.distillation import KnowledgeDistiller
-```
-
----
-
-### P: Recebi `ModuleNotFoundError: No module named 'deepbridge.distillation'`
-
-**R:** Você instalou apenas o pacote core. Instale o módulo de destilação:
-
-```bash
-pip install deepbridge-distillation
-```
-
-**Verificar instalação:**
-```bash
-pip list | grep deepbridge
-```
-
-Você deve ver:
-```
-deepbridge               2.0.0
-deepbridge-distillation  2.0.0
-```
-
----
-
-### P: Recebi `ModuleNotFoundError: No module named 'deepbridge.synthetic'`
-
-**R:** Você instalou apenas o pacote core. Instale o módulo de dados sintéticos:
-
-```bash
-pip install deepbridge-synthetic
-```
-
-**Verificar instalação:**
-```bash
-pip list | grep deepbridge
-```
-
-Você deve ver:
-```
-deepbridge              2.0.0
-deepbridge-synthetic    2.0.0
-```
-
----
-
-### P: Como migrar meu código automaticamente?
-
-**R:** Use nosso script de migração automática:
-
-```bash
-# Baixar script (disponível no repo)
-python scripts/migrate_imports.py <seu_arquivo.py>
-
-# Ou para um diretório inteiro
-python scripts/migrate_imports.py <seu_diretorio> --recursive
-```
-
-O script irá:
-- Substituir `DeepBridge` → `deepbridge`
-- Atualizar imports de submódulos
-- Criar backup do arquivo original (.bak)
-
----
-
-## 🏗️ Problemas Comuns
-
-### P: `ImportError: cannot import name 'X' from 'deepbridge'`
-
-**R:** Verifique de qual módulo a funcionalidade faz parte:
-
-```python
-# ❌ Errado
-from deepbridge import KnowledgeDistiller  # Não está no core
-
-# ✅ Correto
-from deepbridge.distillation import KnowledgeDistiller
-```
-
-**Mapeamento de módulos:**
-- `deepbridge.*` → Funcionalidades core (Bridge, utils, base)
-- `deepbridge.distillation.*` → Conhecimento/destilação (requer deepbridge-distillation)
-- `deepbridge.synthetic.*` → Dados sintéticos (requer deepbridge-synthetic)
-
----
-
-### P: Recebi `AttributeError: module 'deepbridge' has no attribute 'X'`
-
-**R:** Você precisa importar explicitamente de submódulos:
-
-```python
-# ❌ Errado
-import deepbridge
-model = deepbridge.KnowledgeDistiller()
-
-# ✅ Correto
-from deepbridge.distillation import KnowledgeDistiller
-model = KnowledgeDistiller()
-```
-
-**Nota:** Na v2.0, imports devem ser explícitos para reduzir overhead.
-
----
-
-### P: Meu ambiente virtual tem versões conflitantes
-
-**R:** Recrie o ambiente virtual:
-
-```bash
-# Desativar e remover ambiente antigo
-deactivate
-rm -rf venv/
-
-# Criar novo ambiente
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-
-# Instalar v2.0
-pip install --upgrade pip
-pip install deepbridge deepbridge-distillation deepbridge-synthetic
-
-# Verificar
-pip list | grep deepbridge
 python -c "import deepbridge; print(deepbridge.__version__)"
 ```
 
 ---
 
-### P: Recebi erro relacionado a dependências (numpy, torch, etc.)
+## 🔄 Migração da v1.x para v2.0
 
-**R:** Certifique-se de ter as versões compatíveis:
+### Quais são as principais mudanças?
 
-```bash
-# Atualizar dependências
-pip install --upgrade numpy pandas scikit-learn torch
+1. **Estrutura modular:** código separado em 3 pacotes
+2. **Novos imports:** `deepbridge.core`, `deepbridge_distillation`, `deepbridge_synthetic`
+3. **APIs simplificadas:** menos parâmetros, mais defaults inteligentes
+4. **Melhor tipagem:** suporte completo a type hints
+5. **Performance:** otimizações em processamento de dados
 
-# Ou reinstalar tudo
-pip uninstall deepbridge deepbridge-distillation deepbridge-synthetic
-pip install deepbridge deepbridge-distillation deepbridge-synthetic
+### Como migrar meus imports?
+
+**Antes (v1.x):**
+```python
+from deepbridge import DistillationTrainer
+from deepbridge import SyntheticDataGenerator
+from deepbridge.utils import load_config
 ```
 
-**Versões recomendadas:**
-- Python: 3.8-3.12
-- NumPy: >=1.19.0
-- PyTorch: >=1.9.0
-- Pandas: >=1.2.0
+**Depois (v2.0):**
+```python
+# Core sempre disponível
+from deepbridge.core import BridgeConfig
+
+# Módulos opcionais
+from deepbridge_distillation import DistillationTrainer
+from deepbridge_synthetic import SyntheticDataGenerator
+```
+
+### Meu código v1.x ainda funciona?
+
+Depende. As principais mudanças:
+
+- ✅ **APIs core:** majoritariamente compatíveis
+- ⚠️ **Distillation:** requer `deepbridge-distillation`
+- ⚠️ **Synthetic:** requer `deepbridge-synthetic`
+- ❌ **Imports antigos:** não funcionam, precisa atualizar
+
+### Existe guia de migração?
+
+Sim! Consulte:
+- `refatoracao/GUIA_MIGRACAO_V2.md` - Guia completo
+- `refatoracao/CHECKLIST_MIGRACAO.md` - Checklist passo a passo
 
 ---
 
-## 🧪 Uso e Desenvolvimento
+## 🐛 Problemas Comuns
 
-### P: Como verifico a versão instalada?
+### ModuleNotFoundError: No module named 'deepbridge_distillation'
 
-**R:**
+**Problema:**
+```python
+from deepbridge_distillation import DistillationTrainer
+# ModuleNotFoundError: No module named 'deepbridge_distillation'
+```
+
+**Solução:**
+```bash
+pip install deepbridge-distillation
+```
+
+**Explicação:** A partir da v2.0, destilação é um módulo opcional separado.
+
+---
+
+### ModuleNotFoundError: No module named 'deepbridge_synthetic'
+
+**Problema:**
+```python
+from deepbridge_synthetic import SyntheticDataGenerator
+# ModuleNotFoundError: No module named 'deepbridge_synthetic'
+```
+
+**Solução:**
+```bash
+pip install deepbridge-synthetic
+```
+
+**Explicação:** A partir da v2.0, geração sintética é um módulo opcional separado.
+
+---
+
+### ImportError: cannot import name 'DistillationTrainer' from 'deepbridge'
+
+**Problema:**
+```python
+from deepbridge import DistillationTrainer
+# ImportError: cannot import name 'DistillationTrainer' from 'deepbridge'
+```
+
+**Solução:**
+Atualize o import:
+```python
+from deepbridge_distillation import DistillationTrainer
+```
+
+**Explicação:** Na v2.0, os módulos opcionais têm seus próprios pacotes.
+
+---
+
+### ImportError: cannot import name 'SyntheticDataGenerator' from 'deepbridge'
+
+**Problema:**
+```python
+from deepbridge import SyntheticDataGenerator
+# ImportError: cannot import name 'SyntheticDataGenerator' from 'deepbridge'
+```
+
+**Solução:**
+Atualize o import:
+```python
+from deepbridge_synthetic import SyntheticDataGenerator
+```
+
+---
+
+### Dependências faltando após instalar deepbridge
+
+**Problema:**
+```
+ModuleNotFoundError: No module named 'torch'
+ModuleNotFoundError: No module named 'transformers'
+```
+
+**Solução:**
+```bash
+# Instalar dependências completas
+pip install deepbridge[all]
+
+# Ou instalar dependências específicas
+pip install torch transformers
+```
+
+**Explicação:** Algumas dependências pesadas são opcionais na v2.0 para reduzir o tamanho da instalação base.
+
+---
+
+### Código lento após migração
+
+**Problema:** O código ficou mais lento após atualizar para v2.0.
+
+**Diagnóstico:**
+1. Verifique se está usando caching:
+```python
+from deepbridge.core import enable_cache
+enable_cache()
+```
+
+2. Verifique configuração de batch size:
+```python
+# Ajuste batch_size conforme sua GPU
+trainer = DistillationTrainer(batch_size=32)  # ou 16, 64, etc.
+```
+
+3. Use profile para identificar gargalos:
+```bash
+python -m cProfile -o profile.stats seu_script.py
+```
+
+---
+
+### Erro ao carregar modelo pré-treinado
+
+**Problema:**
+```
+ValueError: Model checkpoint not compatible with v2.0
+```
+
+**Solução:**
+1. Re-treinar o modelo com v2.0
+2. Ou usar script de conversão (se disponível):
+```bash
+python scripts/convert_checkpoint_v1_to_v2.py --input old_model.pt --output new_model.pt
+```
+
+---
+
+### Warnings sobre deprecated features
+
+**Problema:**
+```
+DeprecationWarning: 'old_parameter' is deprecated, use 'new_parameter' instead
+```
+
+**Solução:**
+Atualize seu código conforme as mensagens de warning. Exemplo:
+```python
+# Antes
+trainer = DistillationTrainer(old_parameter=True)
+
+# Depois
+trainer = DistillationTrainer(new_parameter=True)
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Como depurar problemas?
+
+1. **Ative logs detalhados:**
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+2. **Verifique versões:**
+```bash
+pip list | grep deepbridge
+```
+
+3. **Reproduza em ambiente limpo:**
+```bash
+python -m venv test_env
+source test_env/bin/activate
+pip install deepbridge[all]
+python seu_script.py
+```
+
+### Como reportar um bug?
+
+1. Abra uma issue no GitHub
+2. Use o template de bug report
+3. Inclua:
+   - Versão do DeepBridge
+   - Versão do Python
+   - Sistema operacional
+   - Código para reproduzir o bug
+   - Mensagem de erro completa
+
+### Onde encontrar mais ajuda?
+
+- **Documentação:** `refatoracao/`
+- **Issues:** GitHub Issues
+- **Guias:** `GUIA_MIGRACAO_V2.md`, `CHECKLIST_MIGRACAO.md`
+- **Changelog:** `CHANGELOG.md`
+
+---
+
+## 📊 Performance
+
+### Como otimizar o treinamento?
 
 ```python
-import deepbridge
-print(deepbridge.__version__)  # Exemplo: '2.0.0'
+from deepbridge_distillation import DistillationTrainer
 
-# Para módulos específicos
-import deepbridge.distillation
-import deepbridge.synthetic
-print(deepbridge.distillation.__version__)
-print(deepbridge.synthetic.__version__)
+trainer = DistillationTrainer(
+    batch_size=32,  # Ajuste conforme GPU
+    num_workers=4,  # Paralelização de dados
+    pin_memory=True,  # Acelera transferência GPU
+    mixed_precision=True,  # FP16 para GPUs modernas
+)
 ```
 
-**Via CLI:**
-```bash
-pip show deepbridge
-pip show deepbridge-distillation
-pip show deepbridge-synthetic
-```
+### Como reduzir uso de memória?
 
----
-
-### P: Como reportar um bug?
-
-**R:** Use nossos templates de issue no GitHub:
-
-1. Acesse o repositório correspondente:
-   - Core: https://github.com/guhaase/DeepBridge/issues
-   - Distillation: https://github.com/guhaase/deepbridge-distillation/issues
-   - Synthetic: https://github.com/guhaase/deepbridge-synthetic/issues
-
-2. Clique em "New Issue"
-3. Escolha o template "Bug Report"
-4. Preencha todas as seções (ambiente, código, erro)
-
-**Informações importantes:**
-- Versão de todos os pacotes deepbridge instalados
-- Python version
-- Sistema operacional
-- Código mínimo para reproduzir o erro
-- Mensagem de erro completa
-
----
-
-### P: Como contribuir com o projeto?
-
-**R:**
-
-1. **Fork** do repositório desejado
-2. **Clone** seu fork localmente
-3. **Crie branch** para sua feature: `git checkout -b feature/minha-feature`
-4. **Faça commit** das mudanças: `git commit -m "feat: adiciona X"`
-5. **Push** para o branch: `git push origin feature/minha-feature`
-6. **Abra Pull Request** no GitHub
-
-Consulte `CONTRIBUTING.md` em cada repositório para guidelines detalhadas.
-
----
-
-## 📚 Recursos e Documentação
-
-### P: Onde encontro a documentação completa?
-
-**R:**
-
-- **Documentação principal:** https://deepbridge.readthedocs.io/
-- **Exemplos:** `/examples` em cada repositório
-- **Guias de migração:** `desenvolvimento/refatoracao/GUIA_MIGRACAO.md`
-- **Changelog:** `CHANGELOG.md` em cada repositório
-
----
-
-### P: Onde encontro exemplos de código?
-
-**R:**
-
-Cada repositório tem uma pasta `examples/`:
-
-```bash
-# Clonar repositórios
-git clone https://github.com/guhaase/DeepBridge.git
-git clone https://github.com/guhaase/deepbridge-distillation.git
-git clone https://github.com/guhaase/deepbridge-synthetic.git
-
-# Explorar exemplos
-cd DeepBridge/examples/
-cd deepbridge-distillation/examples/
-cd deepbridge-synthetic/examples/
-```
-
-**Exemplos comuns:**
-- `examples/basic_usage.py` - Uso básico do core
-- `examples/distillation/knowledge_distillation.py` - Destilação de conhecimento
-- `examples/synthetic/generate_data.py` - Geração de dados sintéticos
-
----
-
-### P: A v1.x ainda recebe suporte?
-
-**R:**
-
-- **Manutenção:** Não. A v1.x não recebe mais atualizações.
-- **Bugfixes críticos:** Apenas em casos extremos (segurança).
-- **Recomendação:** Migrar para v2.0 o quanto antes.
-
-**Motivo:** A v2.0 oferece:
-- Arquitetura modular (instale apenas o necessário)
-- Melhor organização de código
-- Instalação via PyPI
-- CI/CD automatizado
-- Documentação aprimorada
-
----
-
-## 🔧 Troubleshooting Avançado
-
-### P: Instalação falha com erro de permissão
-
-**R:**
-
-```bash
-# Opção 1: Usar --user
-pip install --user deepbridge
-
-# Opção 2: Usar ambiente virtual (recomendado)
-python -m venv venv
-source venv/bin/activate
-pip install deepbridge
-```
-
-**Nunca use `sudo pip install`!** Isso pode quebrar o Python do sistema.
-
----
-
-### P: Como limpar cache do pip e reinstalar?
-
-**R:**
-
-```bash
-# Limpar cache
-pip cache purge
-
-# Desinstalar completamente
-pip uninstall -y deepbridge deepbridge-distillation deepbridge-synthetic
-
-# Reinstalar
-pip install --no-cache-dir deepbridge deepbridge-distillation deepbridge-synthetic
-```
-
----
-
-### P: Erro ao importar no Jupyter Notebook
-
-**R:**
-
-Certifique-se de que o kernel do Jupyter está usando o ambiente virtual correto:
-
-```bash
-# Instalar ipykernel no ambiente virtual
-pip install ipykernel
-
-# Registrar kernel
-python -m ipykernel install --user --name=deepbridge-env --display-name "Python (DeepBridge)"
-
-# Abrir Jupyter e selecionar o kernel "Python (DeepBridge)"
-jupyter notebook
-```
-
-**Verificar no notebook:**
 ```python
-import sys
-print(sys.executable)  # Deve apontar para seu venv
-
-import deepbridge
-print(deepbridge.__version__)
+trainer = DistillationTrainer(
+    batch_size=16,  # Reduzir batch size
+    gradient_accumulation_steps=2,  # Simula batch maior
+    max_sequence_length=128,  # Reduzir se possível
+)
 ```
 
 ---
 
-### P: Como desenvolver/editar código localmente?
+## 🔍 Exemplos
 
-**R:**
+### Exemplo básico de destilação
 
-```bash
-# Clonar repositório
-git clone https://github.com/guhaase/DeepBridge.git
-cd DeepBridge
+```python
+from deepbridge.core import BridgeConfig
+from deepbridge_distillation import DistillationTrainer
 
-# Criar ambiente virtual
-python -m venv venv
-source venv/bin/activate
+config = BridgeConfig(
+    teacher_model="bert-base-uncased",
+    student_model="distilbert-base-uncased",
+)
 
-# Instalar em modo editable
-pip install -e .
-
-# Agora mudanças no código são refletidas imediatamente
+trainer = DistillationTrainer(config)
+trainer.train(train_dataset)
 ```
 
-Repita para `deepbridge-distillation` e `deepbridge-synthetic` conforme necessário.
+### Exemplo de geração sintética
 
----
+```python
+from deepbridge_synthetic import SyntheticDataGenerator
 
-## 🆘 Ainda Precisa de Ajuda?
+generator = SyntheticDataGenerator(
+    model="gpt2",
+    num_samples=1000,
+)
 
-Se sua dúvida não foi respondida:
-
-1. **Pesquise issues existentes:** https://github.com/guhaase/DeepBridge/issues
-2. **Abra uma issue:** Use o template "Question"
-3. **Discord/Slack:** (se disponível, adicionar link)
-4. **Email:** (se disponível, adicionar email de contato)
-
----
-
-## 📝 Contribuindo com o FAQ
-
-Encontrou uma solução para um problema comum? Ajude a comunidade:
-
-1. Abra um PR adicionando a pergunta/resposta neste FAQ
-2. Ou crie uma issue com tag `documentation`
-
-**Formato sugerido:**
-
-```markdown
-### P: [Sua pergunta]
-
-**R:** [Sua resposta com código se aplicável]
+synthetic_data = generator.generate(prompts=["exemplo 1", "exemplo 2"])
 ```
 
 ---
 
-**DeepBridge v2.0** - Construindo pontes entre dados e inteligência artificial.
+## 📝 Notas Adicionais
+
+### Compatibilidade com Python
+
+- ✅ Python 3.8+
+- ✅ Python 3.9
+- ✅ Python 3.10
+- ✅ Python 3.11
+- ⚠️ Python 3.12 (algumas dependências podem ter issues)
+
+### Compatibilidade com PyTorch
+
+- ✅ PyTorch 1.10+
+- ✅ PyTorch 1.13
+- ✅ PyTorch 2.0+
+
+---
+
+**Última atualização:** 2025-02-16
+
+Para mais informações, consulte a documentação completa em `refatoracao/`.
