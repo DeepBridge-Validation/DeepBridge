@@ -6,8 +6,18 @@ and performance analysis to create efficient machine learning models.
 """
 
 # Version information
-__version__ = '0.1.62'
+__version__ = '1.63.0'
 __author__ = 'Team DeepBridge'
+
+# Deprecation warning for v1.x
+import warnings
+warnings.warn(
+    "DeepBridge v1.x is deprecated. "
+    "Please upgrade to v2.0: pip install --upgrade deepbridge\n"
+    "Migration guide: https://github.com/DeepBridge-Validation/DeepBridge/blob/master/desenvolvimento/refatoracao/GUIA_RAPIDO_MIGRACAO.md",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 # Core components
 from deepbridge.core.db_data import DBDataset
