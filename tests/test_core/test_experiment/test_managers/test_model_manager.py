@@ -672,6 +672,7 @@ class TestEdgeCases:
             result = manager.create_alternative_models(X_train, y_train, lazy=False)
             assert isinstance(result, dict)
 
+    @pytest.mark.skip(reason="Distillation module migrated to deepbridge-distillation repository (v2.0 migration)")
     def test_none_student_params(self, model_manager):
         """Test with None student_params"""
         with patch('deepbridge.distillation.techniques.surrogate.SurrogateModel') as mock_surrogate:
