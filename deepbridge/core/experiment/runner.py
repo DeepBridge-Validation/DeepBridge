@@ -14,16 +14,9 @@ from deepbridge.core.experiment.parameter_standards import (
     TestResultsDict,
 )
 
-try:
-    # Try to use the factory first
-    from deepbridge.core.experiment.test_result_factory import (
-        TestResultFactory,
-    )
+from deepbridge.core.experiment.test_result_factory import TestResultFactory
 
-    create_test_result = TestResultFactory.create_test_result
-except ImportError:
-    # Fall back to the direct function in results.py
-    from deepbridge.core.experiment.results import create_test_result
+create_test_result = TestResultFactory.create_test_result
 
 from deepbridge.utils.dataset_factory import DBDatasetFactory
 
@@ -218,8 +211,7 @@ class TestRunner(ITestRunner):
 
     def _get_manager(self, test_type: str):
         """
-        Get the appropriate test manager for a test type.
-        Uses the ManagerFactory if available, otherwise falls back to local creation.
+        Get the appropriate test manager for a test type, via ManagerFactory.
 
         Args:
             test_type: Type of test to get a manager for
@@ -231,69 +223,20 @@ class TestRunner(ITestRunner):
         if test_type in self._test_managers:
             return self._test_managers[test_type]
 
-        try:
-            # Try to use the ManagerFactory
-            from deepbridge.core.experiment.manager_factory import (
-                ManagerFactory,
-            )
+        from deepbridge.core.experiment.manager_factory import ManagerFactory
 
-            # Get a manager instance from the factory
-            manager = ManagerFactory.get_manager(
-                test_type=test_type,
-                dataset=self.dataset,
-                alternative_models=self.alternative_models,
-                verbose=self.verbose,
-            )
-
-            # Store the manager instance
-            self._test_managers[test_type] = manager
-
-            return manager
-
-        except ImportError:
-            # Fall back to local creation
-            self._test_managers[test_type] = self._create_manager(test_type)
-            return self._test_managers[test_type]
-
-    def _create_manager(self, test_type: str):
-        """
-        Create a manager instance for a test type.
-        Uses a factory-like approach to create the appropriate manager.
-
-        Args:
-            test_type: Type of test to create a manager for
-
-        Returns:
-            Manager instance for the specified test type
-
-        Raises:
-            ValueError: If the test_type is not supported
-        """
-        # Import manager classes
-        from deepbridge.core.experiment.managers import (
-            HyperparameterManager,
-            ResilienceManager,
-            RobustnessManager,
-            UncertaintyManager,
+        # Get a manager instance from the factory
+        manager = ManagerFactory.get_manager(
+            test_type=test_type,
+            dataset=self.dataset,
+            alternative_models=self.alternative_models,
+            verbose=self.verbose,
         )
 
-        # Create a manager registry (factory pattern)
-        manager_registry = {
-            'robustness': RobustnessManager,
-            'uncertainty': UncertaintyManager,
-            'resilience': ResilienceManager,
-            'hyperparameters': HyperparameterManager,
-        }
+        # Store the manager instance
+        self._test_managers[test_type] = manager
 
-        # Check if the test type is supported
-        if test_type not in manager_registry:
-            raise ValueError(f'Unsupported test type: {test_type}')
-
-        # Create and return the manager instance
-        manager_class = manager_registry[test_type]
-        return manager_class(
-            self.dataset, self.alternative_models, self.verbose
-        )
+        return manager
 
     def _run_standard_test(self, test_type: str, config: dict):
         """
@@ -310,147 +253,20 @@ class TestRunner(ITestRunner):
         Raises:
             ValueError: If the test_type is not supported
         """
-        try:
-            # Try to use the strategy factory
-            from deepbridge.core.experiment.test_strategies import (
-                TestStrategyFactory,
-            )
+        from deepbridge.core.experiment.test_strategies import (
+            TestStrategyFactory,
+        )
 
-            # Get the appropriate strategy for this test type
-            strategy = TestStrategyFactory.create_strategy(test_type)
+        # Get the appropriate strategy for this test type
+        strategy = TestStrategyFactory.create_strategy(test_type)
 
-            # Run the test using the strategy
-            return strategy.run_test(
-                dataset=self.dataset,
-                config=config,
-                feature_subset=self.feature_subset,
-                verbose=self.verbose,
-            )
-
-        except ImportError:
-            # Fall back to direct implementation
-            if test_type == 'robustness':
-                from deepbridge.utils.robustness import run_robustness_tests
-
-                # Initialize the results dictionary
-                results = {}
-
-                # Run test with feature_subset (if any)
-                # The robustness tests now internally handle both all features and feature subset cases
-                results = run_robustness_tests(
-                    self.dataset,
-                    config_name=config.get('config_name', 'quick'),
-                    metric=config.get('metric', 'auc'),
-                    verbose=self.verbose,
-                    feature_subset=self.feature_subset,  # Pass feature_subset directly (None or specific features)
-                )
-
-                return results
-
-            elif test_type == 'uncertainty':
-                from deepbridge.utils.uncertainty import run_uncertainty_tests
-
-                # Initialize the results dictionary
-                results = {}
-
-                # Run test with all features first
-                all_features_result = run_uncertainty_tests(
-                    self.dataset,
-                    config_name=config.get('config_name', 'quick'),
-                    verbose=self.verbose,
-                    feature_subset=None,  # Explicitly set to None to use all features
-                )
-
-                # Initialize results as a copy of the result with all features
-                results = all_features_result
-
-                # If feature_subset specified, run a second test and store separately
-                if self.feature_subset:
-                    # Run test with feature subset
-                    feature_subset_result = run_uncertainty_tests(
-                        self.dataset,
-                        config_name=config.get('config_name', 'quick'),
-                        verbose=self.verbose,
-                        feature_subset=self.feature_subset,
-                    )
-
-                    # Add the subset results at the top level with a distinct key
-                    results['feature_subset_results'] = feature_subset_result
-
-                return results
-
-            elif test_type == 'resilience':
-                from deepbridge.utils.resilience import run_resilience_tests
-
-                # Initialize the results dictionary
-                results = {}
-
-                # Run test with all features first
-                all_features_result = run_resilience_tests(
-                    self.dataset,
-                    config_name=config.get('config_name', 'quick'),
-                    metric=config.get('metric', 'auc'),
-                    verbose=self.verbose,
-                    feature_subset=None,  # Explicitly set to None to use all features
-                )
-
-                # Initialize results as a copy of the result with all features
-                results = all_features_result
-
-                # If feature_subset specified, run a second test and store separately
-                if self.feature_subset:
-                    # Run test with feature subset
-                    feature_subset_result = run_resilience_tests(
-                        self.dataset,
-                        config_name=config.get('config_name', 'quick'),
-                        metric=config.get('metric', 'auc'),
-                        verbose=self.verbose,
-                        feature_subset=self.feature_subset,
-                    )
-
-                    # Add the subset results at the top level with a distinct key
-                    results['feature_subset_results'] = feature_subset_result
-
-                return results
-
-            elif test_type == 'hyperparameters':
-                from deepbridge.utils.hyperparameter import (
-                    run_hyperparameter_tests,
-                )
-
-                # Initialize the results dictionary
-                results = {}
-
-                # Run test with all features first
-                all_features_result = run_hyperparameter_tests(
-                    self.dataset,
-                    config_name=config.get('config_name', 'quick'),
-                    metric=config.get('metric', 'accuracy'),
-                    verbose=self.verbose,
-                    feature_subset=None,  # Explicitly set to None to use all features
-                )
-
-                # Initialize results as a copy of the result with all features
-                results = all_features_result
-
-                # If feature_subset specified, run a second test and store separately
-                if self.feature_subset:
-                    # Run test with feature subset
-                    feature_subset_result = run_hyperparameter_tests(
-                        self.dataset,
-                        config_name=config.get('config_name', 'quick'),
-                        metric=config.get('metric', 'accuracy'),
-                        verbose=self.verbose,
-                        feature_subset=self.feature_subset,
-                    )
-
-                    # Add the subset results at the top level with a distinct key
-                    results['feature_subset_results'] = feature_subset_result
-
-                return results
-
-            else:
-                raise ValueError(f'Unsupported test type: {test_type}')
+        # Run the test using the strategy
+        return strategy.run_test(
+            dataset=self.dataset,
+            config=config,
+            feature_subset=self.feature_subset,
+            verbose=self.verbose,
+        )
 
     def _run_model_test(self, test_type: str, model_dataset, config: dict):
         """Run a test on a specific model dataset"""
@@ -480,117 +296,11 @@ class TestRunner(ITestRunner):
         Returns:
             dict: Test configuration parameters
         """
-        try:
-            # Try to use the factory
-            from deepbridge.core.experiment.test_strategies import (
-                TestStrategyFactory,
-            )
+        from deepbridge.core.experiment.test_strategies import (
+            TestStrategyFactory,
+        )
 
-            return TestStrategyFactory.get_configuration(
-                test_type, config_name
-            )
-        except ImportError:
-            # Fall back to local implementation
-            config_options = {}
-
-            if test_type == 'robustness':
-                if config_name == 'quick':
-                    config_options = {
-                        'perturbation_methods': ['raw', 'quantile'],
-                        'levels': [0.1, 0.2],
-                        'n_trials': 5,
-                        'config_name': config_name,
-                    }
-                elif config_name == 'medium':
-                    config_options = {
-                        'perturbation_methods': [
-                            'raw',
-                            'quantile',
-                            'adversarial',
-                        ],
-                        'levels': [0.05, 0.1, 0.2],
-                        'n_trials': 10,
-                        'config_name': config_name,
-                    }
-                elif config_name == 'full':
-                    config_options = {
-                        'perturbation_methods': [
-                            'raw',
-                            'quantile',
-                            'adversarial',
-                            'custom',
-                        ],
-                        'levels': [0.01, 0.05, 0.1, 0.2, 0.3],
-                        'n_trials': 20,
-                        'config_name': config_name,
-                    }
-
-            elif test_type == 'uncertainty':
-                if config_name == 'quick':
-                    config_options = {
-                        'methods': ['crqr'],
-                        'alpha_levels': [0.1, 0.2],
-                        'config_name': config_name,
-                    }
-                elif config_name == 'medium':
-                    config_options = {
-                        'methods': ['crqr'],
-                        'alpha_levels': [0.05, 0.1, 0.2],
-                        'config_name': config_name,
-                    }
-                elif config_name == 'full':
-                    config_options = {
-                        'methods': ['crqr'],
-                        'alpha_levels': [0.01, 0.05, 0.1, 0.2, 0.3],
-                        'config_name': config_name,
-                    }
-
-            elif test_type == 'resilience':
-                if config_name == 'quick':
-                    config_options = {
-                        'drift_types': ['covariate', 'label'],
-                        'drift_intensities': [0.1, 0.2],
-                        'config_name': config_name,
-                    }
-                elif config_name == 'medium':
-                    config_options = {
-                        'drift_types': ['covariate', 'label', 'concept'],
-                        'drift_intensities': [0.05, 0.1, 0.2],
-                        'config_name': config_name,
-                    }
-                elif config_name == 'full':
-                    config_options = {
-                        'drift_types': [
-                            'covariate',
-                            'label',
-                            'concept',
-                            'temporal',
-                        ],
-                        'drift_intensities': [0.01, 0.05, 0.1, 0.2, 0.3],
-                        'config_name': config_name,
-                    }
-
-            elif test_type == 'hyperparameters':
-                if config_name == 'quick':
-                    config_options = {
-                        'n_trials': 10,
-                        'optimization_metric': 'accuracy',
-                        'config_name': config_name,
-                    }
-                elif config_name == 'medium':
-                    config_options = {
-                        'n_trials': 30,
-                        'optimization_metric': 'accuracy',
-                        'config_name': config_name,
-                    }
-                elif config_name == 'full':
-                    config_options = {
-                        'n_trials': 100,
-                        'optimization_metric': 'accuracy',
-                        'config_name': config_name,
-                    }
-
-            return config_options
+        return TestStrategyFactory.get_configuration(test_type, config_name)
 
     def run_initial_tests(self) -> dict:
         """

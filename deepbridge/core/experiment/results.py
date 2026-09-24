@@ -1495,21 +1495,12 @@ def wrap_results(results_dict: dict) -> ExperimentResult:
     return ExperimentResult.from_dict(results_dict)
 
 
-# Import model results
-try:
-    from deepbridge.core.experiment.model_result import (
-        BaseModelResult,
-        ClassificationModelResult,
-        RegressionModelResult,
-        create_model_result,
-    )
-except ImportError:
-    # Provide simplified implementations if model_result.py is not available
-    def create_model_result(model_name, model_type, metrics, **kwargs):
-        """Simplified factory function"""
-        return SimpleModelResult(
-            model_name=model_name,
-            model_type=model_type,
-            metrics=metrics,
-            **kwargs,
-        )
+# Re-export the model result classes. They live in this package, so an
+# ImportError here means a broken installation and must not be masked by a
+# simplified stand-in that silently changes the returned type.
+from deepbridge.core.experiment.model_result import (
+    BaseModelResult,
+    ClassificationModelResult,
+    RegressionModelResult,
+    create_model_result,
+)

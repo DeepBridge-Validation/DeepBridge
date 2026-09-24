@@ -3,33 +3,64 @@ Core experiment module for model validation and testing.
 This package provides a standard interface for running experiments on ML models.
 """
 
-try:
-    from deepbridge.core.experiment.dependencies import (
-        check_dependencies,
-        print_dependency_status,
-    )
-    from deepbridge.core.experiment.experiment import Experiment
-except ImportError:
-    from core.experiment.dependencies import (
-        check_dependencies,
-        print_dependency_status,
-    )
-    from core.experiment.experiment import Experiment
-
-# Import report manager if available
-try:
-    try:
-        from deepbridge.core.experiment.report.report_manager import (
-            ReportManager,
-        )
-    except ImportError:
-        from core.experiment.report.report_manager import ReportManager
-except ImportError:
-    ReportManager = None
-
-
-# Use relative path with os.path for cross-platform compatibility
+import logging
 import os
+
+logger = logging.getLogger('deepbridge.core.experiment')
+
+# Everything imported below lives inside this package. A failure here means a
+# broken installation, so the ImportError is deliberately left to propagate
+# instead of being swallowed by a fallback that hides the real cause.
+from deepbridge.core.experiment.dependencies import (
+    check_dependencies,
+    print_dependency_status,
+)
+from deepbridge.core.experiment.experiment import Experiment
+from deepbridge.core.experiment.interfaces import (
+    IExperiment,
+    ITestRunner,
+    ModelResult,
+    TestResult,
+)
+from deepbridge.core.experiment.manager_factory import ManagerFactory
+from deepbridge.core.experiment.model_result import (
+    BaseModelResult,
+    ClassificationModelResult,
+    RegressionModelResult,
+    create_model_result,
+)
+from deepbridge.core.experiment.results import (
+    ExperimentResult,
+    HyperparameterResult,
+    ResilienceResult,
+    RobustnessResult,
+    UncertaintyResult,
+    wrap_results,
+)
+from deepbridge.core.experiment.runner import TestRunner
+from deepbridge.core.experiment.test_result_factory import TestResultFactory
+from deepbridge.core.experiment.test_strategies import (
+    HyperparameterTestStrategy,
+    ResilienceTestStrategy,
+    RobustnessTestStrategy,
+    TestStrategy,
+    TestStrategyFactory,
+    UncertaintyTestStrategy,
+)
+
+# The report manager pulls in optional third-party rendering dependencies
+# (jinja2, matplotlib, seaborn, ...). Report generation is optional, so a
+# missing dependency is tolerated - but it is reported loudly, never silently.
+try:
+    from deepbridge.core.experiment.report.report_manager import ReportManager
+except ImportError as exc:
+    ReportManager = None
+    logger.warning(
+        'Report generation is disabled: could not import ReportManager (%s). '
+        'Install the reporting extras to enable it: '
+        'pip install "deepbridge[reports]"',
+        exc,
+    )
 
 # Get the base directory of the package
 base_dir = os.path.dirname(
@@ -44,132 +75,46 @@ else:
     report_manager = None
 
 
-# Try to import new interfaces and implementations
-try:
-    from deepbridge.core.experiment.interfaces import (
-        IExperiment,
-        ITestRunner,
-        ModelResult,
-        TestResult,
+(
+    all_required_installed,
+    missing_required,
+    missing_optional,
+    version_issues,
+) = check_dependencies()
+
+if not all_required_installed:
+    logger.warning(
+        'Some required dependencies are missing (%s); parts of the experiment '
+        'API will not work. Run deepbridge.core.experiment.'
+        'print_dependency_status() for details.',
+        ', '.join(missing_required) if missing_required else 'unknown',
     )
-    from deepbridge.core.experiment.results import (
-        ExperimentResult,
-        HyperparameterResult,
-        ResilienceResult,
-        RobustnessResult,
-        UncertaintyResult,
-        wrap_results,
-    )
-    from deepbridge.core.experiment.runner import TestRunner
 
-    # Import new model result classes
-    try:
-        from deepbridge.core.experiment.model_result import (
-            BaseModelResult,
-            ClassificationModelResult,
-            RegressionModelResult,
-            create_model_result,
-        )
-    except ImportError:
-        pass
-
-    # Import result factory
-    try:
-        from deepbridge.core.experiment.test_result_factory import (
-            TestResultFactory,
-        )
-    except ImportError:
-        pass
-
-    # Check if all dependencies are available
-    (
-        all_required_installed,
-        missing_required,
-        missing_optional,
-        version_issues,
-    ) = check_dependencies()
-
-    if all_required_installed:
-        __all__ = [
-            'Experiment',
-            'TestRunner',
-            'IExperiment',
-            'ITestRunner',
-            'TestResult',
-            'ModelResult',
-            'ExperimentResult',
-            'RobustnessResult',
-            'UncertaintyResult',
-            'ResilienceResult',
-            'HyperparameterResult',
-            'wrap_results',
-            'check_dependencies',
-            'print_dependency_status',
-        ]
-
-        # Add model result classes if available
-        try:
-            if 'BaseModelResult' in globals():
-                __all__.extend(
-                    [
-                        'BaseModelResult',
-                        'ClassificationModelResult',
-                        'RegressionModelResult',
-                        'create_model_result',
-                    ]
-                )
-        except:
-            pass
-
-        # Add TestResultFactory if available
-        if 'TestResultFactory' in globals():
-            __all__.append('TestResultFactory')
-
-        # Import strategy and manager factories if available
-        try:
-            from deepbridge.core.experiment.manager_factory import (
-                ManagerFactory,
-            )
-            from deepbridge.core.experiment.test_strategies import (
-                HyperparameterTestStrategy,
-                ResilienceTestStrategy,
-                RobustnessTestStrategy,
-                TestStrategy,
-                TestStrategyFactory,
-                UncertaintyTestStrategy,
-            )
-
-            # Add to __all__
-            __all__.extend(
-                [
-                    'TestStrategy',
-                    'TestStrategyFactory',
-                    'ManagerFactory',
-                    'RobustnessTestStrategy',
-                    'UncertaintyTestStrategy',
-                    'ResilienceTestStrategy',
-                    'HyperparameterTestStrategy',
-                ]
-            )
-        except ImportError:
-            pass
-    else:
-        # Reduced functionality when dependencies are missing
-        __all__ = [
-            'Experiment',
-            'check_dependencies',
-            'print_dependency_status',
-        ]
-
-except ImportError as e:
-    # Fallback to basic functionality
-    print(f'Warning: Some experiment functionality is not available: {str(e)}')
-    __all__ = ['Experiment', 'check_dependencies', 'print_dependency_status']
-
-    # Create dummy functions for backward compatibility
-    def wrap_results(results):
-        """Dummy implementation when dependencies are missing."""
-        print('Warning: Report generation functionality has been removed.')
-        return results
-
-    __all__.extend(['wrap_results'])
+__all__ = [
+    'Experiment',
+    'TestRunner',
+    'IExperiment',
+    'ITestRunner',
+    'TestResult',
+    'ModelResult',
+    'ExperimentResult',
+    'RobustnessResult',
+    'UncertaintyResult',
+    'ResilienceResult',
+    'HyperparameterResult',
+    'wrap_results',
+    'check_dependencies',
+    'print_dependency_status',
+    'BaseModelResult',
+    'ClassificationModelResult',
+    'RegressionModelResult',
+    'create_model_result',
+    'TestResultFactory',
+    'TestStrategy',
+    'TestStrategyFactory',
+    'ManagerFactory',
+    'RobustnessTestStrategy',
+    'UncertaintyTestStrategy',
+    'ResilienceTestStrategy',
+    'HyperparameterTestStrategy',
+]

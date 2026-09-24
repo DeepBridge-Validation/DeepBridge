@@ -12,9 +12,7 @@ Coverage Target: ~90%+
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
-import os
-import tempfile
+from unittest.mock import Mock, patch
 
 from deepbridge.core.experiment.report.report_manager import ReportManager
 
@@ -23,22 +21,9 @@ from deepbridge.core.experiment.report.report_manager import ReportManager
 
 
 @pytest.fixture
-def temp_templates_dir():
-    """Create temporary templates directory"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
-
-
-@pytest.fixture
-def mock_template_manager():
-    """Create mock TemplateManager"""
-    return Mock()
-
-
-@pytest.fixture
-def mock_asset_manager():
-    """Create mock AssetManager"""
-    return Mock()
+def temp_templates_dir(tmp_path):
+    """Real (empty) templates directory backed by pytest's tmp_path"""
+    return str(tmp_path)
 
 
 @pytest.fixture
@@ -57,8 +42,7 @@ class TestInitialization:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_init_with_default_templates_dir(self, mock_exists, mock_template_mgr, mock_asset_mgr):
+    def test_init_with_default_templates_dir(self, mock_template_mgr, mock_asset_mgr):
         """Test initialization with default templates directory"""
         manager = ReportManager()
 
@@ -69,8 +53,7 @@ class TestInitialization:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_init_with_custom_templates_dir(self, mock_exists, mock_template_mgr, mock_asset_mgr, temp_templates_dir):
+    def test_init_with_custom_templates_dir(self, mock_template_mgr, mock_asset_mgr, temp_templates_dir):
         """Test initialization with custom templates directory"""
         manager = ReportManager(templates_dir=temp_templates_dir)
 
@@ -78,16 +61,16 @@ class TestInitialization:
         mock_template_mgr.assert_called_once_with(temp_templates_dir)
         mock_asset_mgr.assert_called_once_with(temp_templates_dir)
 
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=False)
-    def test_init_raises_error_if_templates_dir_not_found(self, mock_exists):
+    def test_init_raises_error_if_templates_dir_not_found(self, tmp_path):
         """Test that initialization raises error if templates directory doesn't exist"""
+        missing_dir = tmp_path / 'does_not_exist'
+
         with pytest.raises(FileNotFoundError, match='Templates directory not found'):
-            ReportManager(templates_dir='/nonexistent/path')
+            ReportManager(templates_dir=str(missing_dir))
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_init_creates_renderers_dict(self, mock_exists, mock_template_mgr, mock_asset_mgr):
+    def test_init_creates_renderers_dict(self, mock_template_mgr, mock_asset_mgr):
         """Test that renderers dictionary is created"""
         manager = ReportManager()
 
@@ -100,14 +83,18 @@ class TestInitialization:
     @patch('deepbridge.core.experiment.report.renderers.static.StaticResilienceRenderer', side_effect=ImportError)
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     @patch('deepbridge.core.experiment.report.report_manager.logger')
-    def test_init_handles_missing_static_renderers(self, mock_logger, mock_exists, mock_template_mgr, mock_asset_mgr, mock_static):
+    def test_init_handles_missing_static_renderers(self, mock_logger, mock_template_mgr, mock_asset_mgr, mock_static, monkeypatch):
         """Test initialization when static renderers are not available"""
-        # Simulate missing static renderers module
+        # Simulate missing static renderers module. monkeypatch restores the real
+        # entry afterwards so the rest of the suite still sees the module.
         import sys
-        # Remove the module if it exists
-        sys.modules['deepbridge.core.experiment.report.renderers.static'] = None
+
+        monkeypatch.setitem(
+            sys.modules,
+            'deepbridge.core.experiment.report.renderers.static',
+            None,
+        )
 
         manager = ReportManager()
 
@@ -124,8 +111,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_robustness_report(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_robustness_report(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating robustness report"""
         manager = ReportManager()
         manager.renderers['robustness'] = mock_renderer
@@ -140,8 +126,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_uncertainty_report(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_uncertainty_report(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating uncertainty report"""
         manager = ReportManager()
         manager.renderers['uncertainty'] = mock_renderer
@@ -154,8 +139,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_with_custom_model_name(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_with_custom_model_name(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating report with custom model name"""
         manager = ReportManager()
         manager.renderers['robustness'] = mock_renderer
@@ -168,8 +152,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_with_save_chart_enabled(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_with_save_chart_enabled(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating report with save_chart enabled"""
         manager = ReportManager()
         manager.renderers['uncertainty'] = mock_renderer
@@ -182,8 +165,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_case_insensitive_test_type(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_case_insensitive_test_type(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test that test_type is case-insensitive"""
         manager = ReportManager()
         manager.renderers['robustness'] = mock_renderer
@@ -195,8 +177,7 @@ class TestGenerateReportInteractive:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_hyperparameters_plural(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_hyperparameters_plural(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating report with 'hyperparameters' (plural)"""
         manager = ReportManager()
         manager.renderers['hyperparameters'] = mock_renderer
@@ -216,8 +197,7 @@ class TestGenerateReportStatic:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_static_report_when_available(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_static_report_when_available(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating static report when static renderers are available"""
         manager = ReportManager()
         manager.has_static_renderers = True
@@ -235,10 +215,9 @@ class TestGenerateReportStatic:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     @patch('deepbridge.core.experiment.report.report_manager.logger')
     def test_generate_falls_back_to_interactive_if_static_not_available(
-        self, mock_logger, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer
+        self, mock_logger, mock_template_mgr, mock_asset_mgr, mock_renderer
     ):
         """Test fallback to interactive when static renderer not available for test type"""
         manager = ReportManager()
@@ -257,10 +236,9 @@ class TestGenerateReportStatic:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     @patch('deepbridge.core.experiment.report.report_manager.logger')
     def test_generate_with_invalid_report_type(
-        self, mock_logger, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer
+        self, mock_logger, mock_template_mgr, mock_asset_mgr, mock_renderer
     ):
         """Test that invalid report_type defaults to interactive"""
         manager = ReportManager()
@@ -282,9 +260,8 @@ class TestErrorHandling:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     def test_generate_raises_error_for_unsupported_test_type(
-        self, mock_exists, mock_template_mgr, mock_asset_mgr
+        self, mock_template_mgr, mock_asset_mgr
     ):
         """Test that unsupported test type raises NotImplementedError"""
         manager = ReportManager()
@@ -294,9 +271,8 @@ class TestErrorHandling:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     def test_generate_raises_error_when_renderer_fails(
-        self, mock_exists, mock_template_mgr, mock_asset_mgr
+        self, mock_template_mgr, mock_asset_mgr
     ):
         """Test that renderer errors are caught and re-raised as ValueError"""
         manager = ReportManager()
@@ -310,10 +286,9 @@ class TestErrorHandling:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
     @patch('deepbridge.core.experiment.report.report_manager.logger')
     def test_generate_logs_error_when_renderer_fails(
-        self, mock_logger, mock_exists, mock_template_mgr, mock_asset_mgr
+        self, mock_logger, mock_template_mgr, mock_asset_mgr
     ):
         """Test that errors are logged"""
         manager = ReportManager()
@@ -336,8 +311,7 @@ class TestIntegration:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_multiple_report_types(self, mock_exists, mock_template_mgr, mock_asset_mgr):
+    def test_generate_multiple_report_types(self, mock_template_mgr, mock_asset_mgr):
         """Test generating different report types in sequence"""
         manager = ReportManager()
 
@@ -358,8 +332,7 @@ class TestIntegration:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_full_workflow_with_static_and_interactive(self, mock_exists, mock_template_mgr, mock_asset_mgr):
+    def test_full_workflow_with_static_and_interactive(self, mock_template_mgr, mock_asset_mgr):
         """Test switching between static and interactive reports"""
         manager = ReportManager()
         manager.has_static_renderers = True
@@ -398,8 +371,7 @@ class TestEdgeCases:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_with_empty_results(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_with_empty_results(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test generating report with empty results dict"""
         manager = ReportManager()
         manager.renderers['robustness'] = mock_renderer
@@ -411,8 +383,7 @@ class TestEdgeCases:
 
     @patch('deepbridge.core.experiment.report.asset_manager.AssetManager')
     @patch('deepbridge.core.experiment.report.template_manager.TemplateManager')
-    @patch('deepbridge.core.experiment.report.report_manager.os.path.exists', return_value=True)
-    def test_generate_with_mixed_case_report_type(self, mock_exists, mock_template_mgr, mock_asset_mgr, mock_renderer):
+    def test_generate_with_mixed_case_report_type(self, mock_template_mgr, mock_asset_mgr, mock_renderer):
         """Test that report_type is case-insensitive"""
         manager = ReportManager()
         manager.renderers['robustness'] = mock_renderer

@@ -26,6 +26,12 @@ try:
     HAS_VISUALIZATION_LIBS = True
 except ImportError as e:
     HAS_VISUALIZATION_LIBS = False
+    logging.getLogger('deepbridge.reports').warning(
+        'Static resilience charts are disabled: could not import the '
+        'visualization libraries (%s). Install them with '
+        '"pip install matplotlib seaborn pandas scipy".',
+        e,
+    )
 
 # Import our modular chart system
 try:

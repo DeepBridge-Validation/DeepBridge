@@ -8,20 +8,10 @@ import logging
 import re
 from typing import Any, Dict, List, Union
 
-try:
-    import numpy as np
-except ImportError:
-    # Create a minimal np substitute if numpy is not available
-    class NumpySubstitute:
-        @staticmethod
-        def isnan(x):
-            return x != x
-
-        @staticmethod
-        def isinf(x):
-            return x == float('inf') or x == float('-inf')
-
-    np = NumpySubstitute()
+# numpy is a hard dependency of deepbridge, so it is imported directly. The
+# previous silent substitute class hid a broken install behind subtly wrong
+# nan/inf handling.
+import numpy as np
 
 # Configure logger
 logger = logging.getLogger('deepbridge.reports')

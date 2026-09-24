@@ -17,19 +17,14 @@ from deepbridge.core.experiment.results import (
     UncertaintyResult,
 )
 
-try:
-    from deepbridge.core.experiment.model_result import (
-        BaseModelResult,
-        ClassificationModelResult,
-        RegressionModelResult,
-        create_model_result,
-    )
-except ImportError:
-    # Create simplified versions
-    from deepbridge.core.experiment.results import (
-        BaseModelResult,
-        create_model_result,
-    )
+# In-package import: a failure means a broken installation, so it is left to
+# propagate rather than falling back to a simplified stand-in.
+from deepbridge.core.experiment.model_result import (
+    BaseModelResult,
+    ClassificationModelResult,
+    RegressionModelResult,
+    create_model_result,
+)
 
 
 class TestResultFactory:

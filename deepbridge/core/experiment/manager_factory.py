@@ -81,25 +81,23 @@ class ManagerFactory:
 
     @classmethod
     def _import_standard_managers(cls) -> None:
-        """Import and register standard manager classes."""
-        try:
-            # Import managers
-            from deepbridge.core.experiment.managers import (
-                HyperparameterManager,
-                ResilienceManager,
-                RobustnessManager,
-                UncertaintyManager,
-            )
+        """Import and register standard manager classes.
 
-            # Register managers
-            cls.register_manager('robustness', RobustnessManager)
-            cls.register_manager('uncertainty', UncertaintyManager)
-            cls.register_manager('resilience', ResilienceManager)
-            cls.register_manager('hyperparameters', HyperparameterManager)
+        The managers live in this package, so an ImportError here means a
+        broken installation and is allowed to propagate rather than leaving
+        the factory silently empty.
+        """
+        from deepbridge.core.experiment.managers import (
+            HyperparameterManager,
+            ResilienceManager,
+            RobustnessManager,
+            UncertaintyManager,
+        )
 
-        except ImportError:
-            # Failed to import managers
-            pass
+        cls.register_manager('robustness', RobustnessManager)
+        cls.register_manager('uncertainty', UncertaintyManager)
+        cls.register_manager('resilience', ResilienceManager)
+        cls.register_manager('hyperparameters', HyperparameterManager)
 
     @classmethod
     def clear_instances(cls) -> None:

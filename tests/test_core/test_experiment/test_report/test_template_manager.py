@@ -14,8 +14,7 @@ Coverage Target: ~90%+
 
 import pytest
 import os
-import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from deepbridge.core.experiment.report.template_manager import TemplateManager
 
@@ -24,10 +23,9 @@ from deepbridge.core.experiment.report.template_manager import TemplateManager
 
 
 @pytest.fixture
-def temp_templates_dir():
-    """Create temporary templates directory"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
+def temp_templates_dir(tmp_path):
+    """Templates directory backed by pytest's tmp_path"""
+    return str(tmp_path)
 
 
 @pytest.fixture
@@ -37,11 +35,16 @@ def template_manager(temp_templates_dir):
 
 
 @pytest.fixture
-def mock_template():
-    """Create mock Jinja2 template"""
-    template = Mock()
-    template.render = Mock(return_value='<html>rendered</html>')
-    return template
+def write_template(temp_templates_dir):
+    """Write a real template file on disk and return its path"""
+    def _write(name, content):
+        path = os.path.join(temp_templates_dir, name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as handle:
+            handle.write(content)
+        return path
+
+    return _write
 
 
 # ==================== Initialization Tests ====================
@@ -403,36 +406,74 @@ class TestLoadTemplate:
 
 
 class TestRenderTemplate:
-    """Tests for render_template method"""
+    """Behaviour tests for render_template method"""
 
-    def test_render_template_with_simple_context(self, template_manager, mock_template):
-        """Test rendering template with simple context"""
-        context = {'name': 'Alice', 'age': 30}
+    def test_render_template_with_simple_context(
+        self, template_manager, write_template
+    ):
+        """Context values reach the rendered output"""
+        path = write_template(
+            'simple.html', '<html>{{ name }} is {{ age }}</html>'
+        )
+        template = template_manager.load_template(path)
 
-        result = template_manager.render_template(mock_template, context)
+        result = template_manager.render_template(
+            template, {'name': 'Alice', 'age': 30}
+        )
 
-        assert result == '<html>rendered</html>'
-        mock_template.render.assert_called_once_with(name='Alice', age=30)
+        assert result == '<html>Alice is 30</html>'
 
-    def test_render_template_with_empty_context(self, template_manager, mock_template):
-        """Test rendering with empty context"""
-        result = template_manager.render_template(mock_template, {})
+    def test_render_template_with_empty_context(
+        self, template_manager, write_template
+    ):
+        """Rendering with an empty context returns the static content"""
+        path = write_template('static.html', '<html>no variables</html>')
+        template = template_manager.load_template(path)
 
-        assert result == '<html>rendered</html>'
-        mock_template.render.assert_called_once_with()
+        result = template_manager.render_template(template, {})
 
-    def test_render_template_with_complex_context(self, template_manager, mock_template):
-        """Test rendering with complex nested context"""
-        context = {
-            'data': {'nested': {'value': 123}},
-            'list': [1, 2, 3],
-            'bool': True
-        }
+        assert result == '<html>no variables</html>'
 
-        result = template_manager.render_template(mock_template, context)
+    def test_render_template_with_complex_context(
+        self, template_manager, write_template
+    ):
+        """Nested dicts, lists and booleans are rendered correctly"""
+        path = write_template(
+            'complex.html',
+            '<html>'
+            '<span>{{ data.nested.value }}</span>'
+            '<span>{% for item in list %}{{ item }},{% endfor %}</span>'
+            '<span>{{ flag }}</span>'
+            '</html>',
+        )
+        template = template_manager.load_template(path)
 
-        assert result == '<html>rendered</html>'
-        mock_template.render.assert_called_once()
+        result = template_manager.render_template(
+            template,
+            {
+                'data': {'nested': {'value': 123}},
+                'list': [1, 2, 3],
+                'flag': True,
+            },
+        )
+
+        assert '<span>123</span>' in result
+        assert '<span>1,2,3,</span>' in result
+        assert '<span>True</span>' in result
+
+    def test_render_template_escapes_html_by_default(
+        self, template_manager, write_template
+    ):
+        """Autoescaping is active for html templates"""
+        path = write_template('escape.html', '<html>{{ value }}</html>')
+        template = template_manager.load_template(path)
+
+        result = template_manager.render_template(
+            template, {'value': '<script>alert(1)</script>'}
+        )
+
+        assert '<script>' not in result
+        assert '&lt;script&gt;' in result
 
 
 # ==================== Integration Tests ====================

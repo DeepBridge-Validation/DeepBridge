@@ -7,10 +7,6 @@ from .formatters import *
 from .json_formatter import JsonFormatter
 from .validators import *
 
-# Make sure the resilience_charts module is included in the package
-try:
-    from .resilience_charts import ResilienceChartGenerator
-
-    has_resilience_charts = True
-except ImportError:
-    has_resilience_charts = False
+# NOTE: the resilience_charts module was removed from this package. The chart
+# generator now lives in deepbridge.templates.report_types.resilience.static
+# .charts and is imported directly where it is needed.

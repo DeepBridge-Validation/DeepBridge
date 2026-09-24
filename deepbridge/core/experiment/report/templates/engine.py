@@ -233,11 +233,11 @@ class TemplateEngine:
         Returns:
             Version string
         """
-        try:
-            from deepbridge import __version__
-            return __version__
-        except ImportError:
-            return "unknown"
+        # deepbridge is always importable from inside deepbridge itself, and
+        # this runs at render time (not import time), so no guard is needed.
+        from deepbridge import __version__
+
+        return __version__
 
 
 # Default template directory

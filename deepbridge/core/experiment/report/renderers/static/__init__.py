@@ -7,13 +7,10 @@ from .static_resilience_renderer import StaticResilienceRenderer
 from .static_robustness_renderer import StaticRobustnessRenderer
 from .static_uncertainty_renderer import StaticUncertaintyRenderer
 
-# Make sure we expose ResilienceChartGenerator if available
-try:
-    from ...utils.resilience_charts import ResilienceChartGenerator
-
-    has_resilience_charts = True
-except ImportError:
-    has_resilience_charts = False
+# NOTE: the old report.utils.resilience_charts module was removed. The chart
+# generator now lives in deepbridge.templates.report_types.resilience.static
+# .charts and is imported directly by StaticResilienceRenderer, so there is no
+# optional re-export here any more.
 
 __all__ = [
     'BaseStaticRenderer',
@@ -21,7 +18,3 @@ __all__ = [
     'StaticUncertaintyRenderer',
     'StaticResilienceRenderer',
 ]
-
-# Add ResilienceChartGenerator to __all__ if available
-if has_resilience_charts:
-    __all__.append('ResilienceChartGenerator')

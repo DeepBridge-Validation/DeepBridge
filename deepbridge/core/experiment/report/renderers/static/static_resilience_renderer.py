@@ -106,55 +106,20 @@ class StaticResilienceRenderer:
             logger.error(f'Traceback: {traceback.format_exc()}')
             self.np = None
 
-        # Import the new modular Resilience chart utilities
+        # Import the modular Resilience chart utilities.
+        # This module ships with the package; a failure here is reported
+        # loudly instead of being papered over with sys.path tricks.
         try:
-            # Try different possible import paths for the resilience chart generator
-            resilience_chart_module = None
-            try:
-                # Try absolute import
-                from deepbridge.templates.report_types.resilience.static.charts import (
-                    ResilienceChartGenerator,
-                )
-
-                resilience_chart_module = 'deepbridge.templates.report_types.resilience.static.charts'
-            except ImportError:
-                try:
-                    # Try relative import based on project structure
-                    import os
-                    import sys
-
-                    # Get the project root directory (assuming deepbridge is the root package)
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    project_root = os.path.abspath(
-                        os.path.join(current_dir, '../../../../../..')
-                    )
-                    charts_path = os.path.join(
-                        project_root,
-                        'templates',
-                        'report_types',
-                        'resilience',
-                        'static',
-                        'charts',
-                    )
-
-                    if charts_path not in sys.path:
-                        sys.path.append(charts_path)
-                    from __init__ import ResilienceChartGenerator
-
-                    resilience_chart_module = charts_path
-                except ImportError:
-                    # Last try - use original path but just in case it's still available somewhere
-                    from ...utils.resilience_charts import (
-                        ResilienceChartGenerator,
-                    )
-
-                    resilience_chart_module = '...utils.resilience_charts'
+            from deepbridge.templates.report_types.resilience.static.charts import (
+                ResilienceChartGenerator,
+            )
 
             self.resilience_chart_generator = ResilienceChartGenerator(
                 self.chart_generator
             )
             logger.info(
-                f'Successfully loaded resilience-specific chart generator from {resilience_chart_module}'
+                'Successfully loaded resilience-specific chart generator from '
+                'deepbridge.templates.report_types.resilience.static.charts'
             )
 
             # Check resilience chart methods
@@ -186,53 +151,16 @@ class StaticResilienceRenderer:
                         f'ResilienceChartGenerator validation failed: {str(e)}'
                     )
         except ImportError as e:
-            logger.error(f'Resilience chart generator not available: {str(e)}')
-            logger.error(f'Traceback: {traceback.format_exc()}')
             self.resilience_chart_generator = None
-
-            # Try one last approach - import directly from the old module location if still available
-            try:
-                import importlib.util
-                import os
-
-                # Try to find the resilience_charts.py file
-                chart_file = os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(os.path.abspath(__file__))
-                        )
-                    ),
-                    'utils',
-                    'resilience_charts.py',
-                )
-
-                if os.path.exists(chart_file):
-                    logger.info(
-                        f'Found old resilience_charts.py file at {chart_file}'
-                    )
-
-                    # Load the module
-                    spec = importlib.util.spec_from_file_location(
-                        'resilience_charts', chart_file
-                    )
-                    resilience_charts = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(resilience_charts)
-
-                    # Get the class
-                    if hasattr(resilience_charts, 'ResilienceChartGenerator'):
-                        self.resilience_chart_generator = (
-                            resilience_charts.ResilienceChartGenerator(
-                                self.chart_generator
-                            )
-                        )
-                        logger.info(
-                            'Loaded ResilienceChartGenerator from old module file'
-                        )
-            except Exception as e2:
-                logger.error(
-                    f'Failed to load chart generator from file: {str(e2)}'
-                )
-                logger.error(f'Traceback: {traceback.format_exc()}')
+            logger.error(
+                'Resilience charts are unavailable: could not import '
+                'ResilienceChartGenerator from '
+                'deepbridge.templates.report_types.resilience.static.charts '
+                f'({e}). Resilience reports will be rendered without charts. '
+                'This usually means the deepbridge installation is incomplete '
+                'or a plotting dependency (matplotlib/seaborn) is missing.'
+            )
+            logger.error(f'Traceback: {traceback.format_exc()}')
 
     def render(
         self,

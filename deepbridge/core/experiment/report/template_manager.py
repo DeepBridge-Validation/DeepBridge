@@ -9,14 +9,11 @@ import os
 from functools import lru_cache
 from typing import List, Optional
 
-# Try to import markupsafe for safe rendering
-try:
-    from markupsafe import Markup
-except ImportError:
-    # Fallback implementation if markupsafe not available
-    class Markup(str):
-        def __new__(cls, base=''):
-            return str.__new__(cls, base)
+# markupsafe is pulled in by jinja2, which is a hard dependency. It is
+# imported directly: the previous dummy `Markup(str)` fallback silently
+# disabled escaping, which is a security hazard rather than a graceful
+# degradation.
+from markupsafe import Markup
 
 
 # Configure logger
