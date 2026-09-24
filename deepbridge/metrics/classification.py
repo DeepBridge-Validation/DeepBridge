@@ -27,6 +27,7 @@ class Classification:
         y_pred: t.Union[np.ndarray, pd.Series],
         y_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
         reference_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
+        teacher_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
     ) -> dict:
         """
         Calculate multiple evaluation metrics.
@@ -38,6 +39,9 @@ class Classification:
             reference_prob: Probabilities produced by a reference model to
                 compare against (required for the kl_divergence, ks_statistic
                 and r2_score agreement metrics)
+            teacher_prob: Deprecated alias for ``reference_prob``, left over
+                from the removed distillation workflow. It will be dropped in
+                a future release.
 
         Returns:
             dict: Dictionary containing calculated metrics
@@ -49,6 +53,16 @@ class Classification:
         import warnings
 
         logger = logging.getLogger('deepbridge.metrics')
+
+        if teacher_prob is not None:
+            warnings.warn(
+                "'teacher_prob' is deprecated and will be removed; "
+                "use 'reference_prob' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if reference_prob is None:
+                reference_prob = teacher_prob
 
         # Check number of unique classes
         unique_classes_true = np.unique(y_true)
