@@ -851,16 +851,37 @@ class FairnessSuite:
                         ):
                             y_pred_proba = y_pred_proba[:, 1]
                 elif hasattr(train_preds, 'columns'):
-                    # DataFrame format
-                    if 'prediction' in train_preds.columns:
+                    # DataFrame format. The column layout depends on who
+                    # produced it: DBDataset stores prob_class_0/prob_class_1,
+                    # while callers that pass predictions by hand tend to use
+                    # prediction/probability. Accept all of them.
+                    columns = list(train_preds.columns)
+
+                    if 'prediction' in columns:
                         y_pred = train_preds['prediction'].values
-                        # Try to get probabilities
-                        if 'proba_class_1' in train_preds.columns:
-                            y_pred_proba = train_preds['proba_class_1'].values
-                        elif 'probability' in train_preds.columns:
-                            y_pred_proba = train_preds['probability'].values
-            # If no pre-computed predictions, generate them
-            elif (
+
+                    for proba_column in (
+                        'proba_class_1',
+                        'prob_class_1',
+                        'probability',
+                    ):
+                        if proba_column in columns:
+                            y_pred_proba = train_preds[proba_column].values
+                            break
+
+                    if y_pred is None and y_pred_proba is not None:
+                        # Only probabilities were stored: derive the labels
+                        # from the positive-class probability.
+                        y_pred = (
+                            np.asarray(y_pred_proba) >= 0.5
+                        ).astype(int)
+
+            # Fall back to the model whenever the stored predictions did not
+            # yield a usable y_pred: unknown column layout, or nothing stored
+            # at all. Without this fallback y_pred stays None, and
+            # np.asarray(None) is a 0-dimensional array that only fails much
+            # later, inside the metrics, as "too many indices for array".
+            if y_pred is None and (
                 hasattr(self.dataset, 'model')
                 and self.dataset.model is not None
             ):
@@ -905,7 +926,7 @@ class FairnessSuite:
                     y_pred_proba = scaler.fit_transform(
                         decision.reshape(-1, 1)
                     ).flatten()
-            else:
+            elif y_pred is None:
                 raise ValueError(
                     'No model found in dataset. Cannot compute predictions.\n'
                     'Provide a trained model when creating DBDataset.'

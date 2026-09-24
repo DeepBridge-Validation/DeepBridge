@@ -573,6 +573,9 @@ class TestRunner:
 
         # Initialize results dictionary
         results = {}
+        # Tests that raised instead of producing a result, so the summary
+        # below can tell the difference between "ran" and "ran and failed".
+        failed_tests = {}
 
         # Run robustness tests if requested
         if 'robustness' in self.tests:
@@ -661,21 +664,34 @@ class TestRunner:
                     results['fairness'] = fairness_result
                     print('✅ Fairness Tests Finished!')
                 except Exception as e:
-                    self.logger.error(f'Error running fairness tests: {e}')
-                    results['fairness'] = {}
+                    # Do NOT store an empty dict here. An empty result is
+                    # indistinguishable from "the test never ran", and that
+                    # is exactly what hid a crash in statistical_parity: the
+                    # run reported success while fairness silently produced
+                    # nothing. Record the failure and let the summary say so.
+                    self.logger.exception(
+                        f'Error running fairness tests: {e}'
+                    )
+                    failed_tests['fairness'] = f'{type(e).__name__}: {e}'
+                    print(f'❌ Fairness Tests FAILED: {type(e).__name__}: {e}')
 
         # Store results in the object for future reference
         self.test_results.update(results)
 
-        # Print completion message for all tests
-        if results:
-            completed_tests = list(results.keys())
+        # Print completion message. Only tests that actually produced a
+        # result are counted as successful; a failed test must never be
+        # reported as "completed successfully".
+        completed_tests = list(results.keys())
+        if completed_tests:
             if len(completed_tests) == 1:
                 print(f'🎉 Test completed successfully: {completed_tests[0]}')
             else:
                 print(
                     f'🎉 All {len(completed_tests)} tests completed successfully!'
                 )
+        if failed_tests:
+            for name, error in failed_tests.items():
+                print(f'⚠️  Test failed and produced no result: {name} ({error})')
 
         return results
 
