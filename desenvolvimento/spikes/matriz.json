@@ -1,0 +1,29 @@
+{
+  "robustness": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "OK 75 KB",
+    "legado/static": "OK 598 KB",
+    "novo/ReportGenerator": "ERRO RuntimeError: Report generation failed for robustness: robustness_score must be between 0 and 1, got 1.0105318355379287"
+  },
+  "uncertainty": {
+    "_resultados": "ok (16 chaves)",
+    "legado/interactive": "OK 59 KB",
+    "legado/static": "OK 336 KB",
+    "novo/ReportGenerator": "ERRO RuntimeError: Report generation failed for uncertainty: uncertainty_score must be between 0 and 1, got 1.0857142857142859"
+  },
+  "resilience": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "OK 50 KB",
+    "legado/static": "OK 569 KB",
+    "novo/ReportGenerator": "OK 10 KB"
+  },
+  "hyperparameter": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "ERRO ValueError: Failed to generate hyperparameter report: Failed to generate hyperparameter report: 'report_type' is undefined",
+    "legado/static": "ERRO ValueError: Failed to generate hyperparameter report: Failed to generate hyperparameter report: 'report_type' is undefined",
+    "novo/ReportGenerator": "METODO INEXISTENTE na API nova"
+  },
+  "fairness": {
+    "_resultados": "AUSENTE: nenhum resultado produzido"
+  }
+}

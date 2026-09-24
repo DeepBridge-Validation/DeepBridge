@@ -43,6 +43,9 @@ planejamento_*
 # ja excluido: uma negacao sob "desenvolvimento/" nunca teria efeito.
 desenvolvimento/*
 !desenvolvimento/analises/
+!desenvolvimento/spikes/
+# ...mas o HTML de referencia gerado pelo spike nao entra: e grande e regeneravel
+desenvolvimento/spikes/output/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
