@@ -28,7 +28,6 @@ academic/
 wheels/
 scripts/
 simular_lib/
-academic/
 papers/
 espuma/
 linkedin/
@@ -38,10 +37,12 @@ planejamento_report/
 planejamento_fairness/
 planejamento_IA/
 planejamento_*
-desenvolvimento/
-!desenvolvimento/refatorar/
-!desenvolvimento/refatoracao/
-papers/
+# Planejamento interno fica fora do repositorio publico, com uma excecao:
+# analises/ tem documentos versionados. Precisa ser "desenvolvimento/*" e nao
+# "desenvolvimento/", porque o git nao reinclui arquivo dentro de diretorio
+# ja excluido: uma negacao sob "desenvolvimento/" nunca teria efeito.
+desenvolvimento/*
+!desenvolvimento/analises/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -151,7 +152,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-venv_refactor/  # Virtual environment para refatoração
+# Virtual environment para refatoracao
+venv_refactor/
 
 # Spyder project settings
 .spyderproject
@@ -210,9 +212,12 @@ PROJETO/
 PROJETO_REFORMULADO/
 
 # Refactoring related files
-desenvolvimento/refatorar/logs/           # Logs de execução da refatoração
-desenvolvimento/refatorar/prompt_temp.txt # Prompt temporário gerado
-backups/before_refactor_*/                # Backups automáticos antes da refatoração
+# Logs de execucao da refatoracao
+desenvolvimento/refatorar/logs/
+# Prompt temporario gerado
+desenvolvimento/refatorar/prompt_temp.txt
+# Backups automaticos antes da refatoracao
+backups/before_refactor_*/
 
 # Virtual environment for refactoring
 /venv_refactor/
