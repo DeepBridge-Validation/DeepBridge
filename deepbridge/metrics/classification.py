@@ -26,7 +26,7 @@ class Classification:
         y_true: t.Union[np.ndarray, pd.Series],
         y_pred: t.Union[np.ndarray, pd.Series],
         y_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
-        teacher_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
+        reference_prob: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
     ) -> dict:
         """
         Calculate multiple evaluation metrics.
@@ -35,7 +35,9 @@ class Classification:
             y_true: Ground truth (correct) target values
             y_pred: Binary prediction values
             y_prob: Predicted probabilities (required for AUC metrics)
-            teacher_prob: Teacher model probabilities (required for KL divergence)
+            reference_prob: Probabilities produced by a reference model to
+                compare against (required for the kl_divergence, ks_statistic
+                and r2_score agreement metrics)
 
         Returns:
             dict: Dictionary containing calculated metrics
@@ -131,12 +133,12 @@ class Classification:
                     metrics['auc_pr'] = None
                     metrics['log_loss'] = None
 
-        # Calculate KL divergence if teacher probabilities are provided
-        if teacher_prob is not None and y_prob is not None:
+        # Calculate the agreement metrics if reference probabilities are provided
+        if reference_prob is not None and y_prob is not None:
             try:
                 # Ensure we're working with numpy arrays
-                if isinstance(teacher_prob, pd.Series):
-                    teacher_prob = teacher_prob.values
+                if isinstance(reference_prob, pd.Series):
+                    reference_prob = reference_prob.values
                 if isinstance(y_prob, pd.Series):
                     y_prob = y_prob.values
 
@@ -144,13 +146,13 @@ class Classification:
                 metrics[
                     'kl_divergence'
                 ] = Classification.calculate_kl_divergence(
-                    teacher_prob, y_prob
+                    reference_prob, y_prob
                 )
 
                 # Calculate KS statistic with error handling
                 try:
                     ks_result = Classification.calculate_ks_statistic(
-                        teacher_prob, y_prob
+                        reference_prob, y_prob
                     )
                     metrics['ks_statistic'], metrics['ks_pvalue'] = ks_result
                 except Exception:
@@ -160,7 +162,7 @@ class Classification:
                 # Calculate R² with error handling
                 try:
                     r2 = Classification.calculate_r2_score(
-                        teacher_prob, y_prob
+                        reference_prob, y_prob
                     )
                     metrics['r2_score'] = r2
                 except Exception:
@@ -180,6 +182,7 @@ class Classification:
         target_column: str,
         pred_column: str,
         prob_column: t.Optional[str] = None,
+        reference_prob_column: t.Optional[str] = None,
         teacher_prob_column: t.Optional[str] = None,
     ) -> dict:
         """
@@ -190,20 +193,36 @@ class Classification:
             target_column: Name of the column with ground truth values
             pred_column: Name of the column with binary predictions
             prob_column: Name of the column with probabilities (optional)
-            teacher_prob_column: Name of the column with teacher probabilities (optional)
+            reference_prob_column: Name of the column holding a reference
+                model's probabilities to compare against (optional)
+            teacher_prob_column: Deprecated alias for ``reference_prob_column``,
+                left over from the removed distillation workflow. It will be
+                dropped in a future release.
 
         Returns:
             dict: Dictionary containing the calculated metrics
         """
+        if teacher_prob_column is not None:
+            import warnings
+
+            warnings.warn(
+                "'teacher_prob_column' is deprecated and will be removed; "
+                "use 'reference_prob_column' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if reference_prob_column is None:
+                reference_prob_column = teacher_prob_column
+
         y_true = data[target_column]
         y_pred = data[pred_column]
         y_prob = data[prob_column] if prob_column else None
-        teacher_prob = (
-            data[teacher_prob_column] if teacher_prob_column else None
+        reference_prob = (
+            data[reference_prob_column] if reference_prob_column else None
         )
 
         return Classification.calculate_metrics(
-            y_true, y_pred, y_prob, teacher_prob
+            y_true, y_pred, y_prob, reference_prob
         )
 
     @staticmethod
@@ -214,8 +233,8 @@ class Classification:
         Calculate KL divergence between two probability distributions.
 
         Args:
-            p: Teacher model probabilities (reference distribution)
-            q: Student model probabilities (approximating distribution)
+            p: Reference distribution
+            q: Approximating distribution
 
         Returns:
             float: KL divergence value
@@ -247,97 +266,98 @@ class Classification:
 
     @staticmethod
     def calculate_ks_statistic(
-        teacher_prob: t.Union[np.ndarray, pd.Series],
-        student_prob: t.Union[np.ndarray, pd.Series],
+        reference_prob: t.Union[np.ndarray, pd.Series],
+        model_prob: t.Union[np.ndarray, pd.Series],
     ) -> t.Tuple[float, float]:
         """
-        Calculate Kolmogorov-Smirnov statistic between teacher and student probability distributions.
+        Calculate the Kolmogorov-Smirnov statistic between two probability
+        distributions.
 
         Args:
-            teacher_prob: Teacher model probabilities
-            student_prob: Student model probabilities
+            reference_prob: Probabilities of the reference distribution
+            model_prob: Probabilities of the distribution being compared
 
         Returns:
             Tuple[float, float]: KS statistic and p-value
         """
         # Convert inputs to numpy arrays if they're pandas Series or other types
-        if not isinstance(teacher_prob, np.ndarray):
-            teacher_prob = np.array(teacher_prob)
-        if not isinstance(student_prob, np.ndarray):
-            student_prob = np.array(student_prob)
+        if not isinstance(reference_prob, np.ndarray):
+            reference_prob = np.array(reference_prob)
+        if not isinstance(model_prob, np.ndarray):
+            model_prob = np.array(model_prob)
 
         # For binary classification, we only need the probability of positive class
-        if len(teacher_prob.shape) > 1:
-            teacher_prob = teacher_prob[:, 1]  # Probability of positive class
-        if len(student_prob.shape) > 1:
-            student_prob = student_prob[:, 1]  # Probability of positive class
+        if len(reference_prob.shape) > 1:
+            reference_prob = reference_prob[:, 1]  # Probability of positive class
+        if len(model_prob.shape) > 1:
+            model_prob = model_prob[:, 1]  # Probability of positive class
 
         # Verify that we have valid input data
-        if np.isnan(teacher_prob).any() or np.isnan(student_prob).any():
+        if np.isnan(reference_prob).any() or np.isnan(model_prob).any():
             # Remove NaN values
-            valid_indices = ~(np.isnan(teacher_prob) | np.isnan(student_prob))
-            teacher_prob = teacher_prob[valid_indices]
-            student_prob = student_prob[valid_indices]
+            valid_indices = ~(np.isnan(reference_prob) | np.isnan(model_prob))
+            reference_prob = reference_prob[valid_indices]
+            model_prob = model_prob[valid_indices]
 
-        if len(teacher_prob) == 0 or len(student_prob) == 0:
+        if len(reference_prob) == 0 or len(model_prob) == 0:
             return 0.0, 1.0  # Return default values indicating no difference
 
         # Calculate KS statistic and p-value
         try:
-            ks_stat, p_value = stats.ks_2samp(teacher_prob, student_prob)
+            ks_stat, p_value = stats.ks_2samp(reference_prob, model_prob)
             return float(ks_stat), float(p_value)
         except Exception:
             raise
 
     @staticmethod
     def calculate_r2_score(
-        teacher_prob: t.Union[np.ndarray, pd.Series],
-        student_prob: t.Union[np.ndarray, pd.Series],
+        reference_prob: t.Union[np.ndarray, pd.Series],
+        model_prob: t.Union[np.ndarray, pd.Series],
     ) -> float:
         """
-        Calculate R² between teacher and student probability distributions.
+        Calculate R² between two probability distributions.
 
         Args:
-            teacher_prob: Teacher model probabilities
-            student_prob: Student model probabilities
+            reference_prob: Probabilities of the reference distribution
+            model_prob: Probabilities of the distribution being compared
 
         Returns:
             float: R² score
         """
         # Convert inputs to numpy arrays if they're pandas Series or other types
-        if not isinstance(teacher_prob, np.ndarray):
-            teacher_prob = np.array(teacher_prob)
-        if not isinstance(student_prob, np.ndarray):
-            student_prob = np.array(student_prob)
+        if not isinstance(reference_prob, np.ndarray):
+            reference_prob = np.array(reference_prob)
+        if not isinstance(model_prob, np.ndarray):
+            model_prob = np.array(model_prob)
 
         # For binary classification, we only need the probability of positive class
-        if len(teacher_prob.shape) > 1:
-            teacher_prob = teacher_prob[:, 1]  # Probability of positive class
-        if len(student_prob.shape) > 1:
-            student_prob = student_prob[:, 1]  # Probability of positive class
+        if len(reference_prob.shape) > 1:
+            reference_prob = reference_prob[:, 1]  # Probability of positive class
+        if len(model_prob.shape) > 1:
+            model_prob = model_prob[:, 1]  # Probability of positive class
 
         # Verify that we have valid input data
-        if np.isnan(teacher_prob).any() or np.isnan(student_prob).any():
+        if np.isnan(reference_prob).any() or np.isnan(model_prob).any():
             # Remove NaN values
-            valid_indices = ~(np.isnan(teacher_prob) | np.isnan(student_prob))
-            teacher_prob = teacher_prob[valid_indices]
-            student_prob = student_prob[valid_indices]
+            valid_indices = ~(np.isnan(reference_prob) | np.isnan(model_prob))
+            reference_prob = reference_prob[valid_indices]
+            model_prob = model_prob[valid_indices]
 
-        if len(teacher_prob) == 0 or len(student_prob) == 0:
+        if len(reference_prob) == 0 or len(model_prob) == 0:
             return 0.0  # Return default value indicating no correlation
 
         try:
             # Sort distributions to compare in a way that measures shape similarity
-            teacher_sorted = np.sort(teacher_prob)
-            student_sorted = np.sort(student_prob)
+            reference_sorted = np.sort(reference_prob)
+            model_sorted = np.sort(model_prob)
 
             # Ensure equal length by truncating the longer one
-            min_len = min(len(teacher_sorted), len(student_sorted))
-            teacher_sorted = teacher_sorted[:min_len]
-            student_sorted = student_sorted[:min_len]
+            min_len = min(len(reference_sorted), len(model_sorted))
+            reference_sorted = reference_sorted[:min_len]
+            model_sorted = model_sorted[:min_len]
 
             # Calculate R² score
-            r2 = r2_score(teacher_sorted, student_sorted)
+            r2 = r2_score(reference_sorted, model_sorted)
 
             return float(r2)
         except Exception:

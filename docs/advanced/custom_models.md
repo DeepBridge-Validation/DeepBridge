@@ -300,5 +300,5 @@ def test_custom_model():
 ## Next Steps
 
 - Check [Model Validation](../guides/validation.md) for more on experiment management
-- See [Model Distillation](../guides/distillation.md) for distillation techniques
+- For distillation techniques, see the separate [deepbridge-distillation](https://github.com/DeepBridge-Validation/deepbridge-distillation) package
 - Review the [API Reference](../api/complete_reference.md) for detailed documentation

@@ -7,7 +7,7 @@ import pandas as pd
 class DatabaseProbabilityManager:
     """
     Helper class to manage probability extraction from DBDataset objects.
-    Ensures consistent probability handling throughout the distillation process.
+    Ensures consistent probability handling throughout the experiment.
     """
 
     def __init__(self, dataset: 'DBDataset', verbose: bool = True):

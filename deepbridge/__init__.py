@@ -1,11 +1,8 @@
 """
 DeepBridge - Model Validation Toolkit
 
-DeepBridge v2.0 focuses on comprehensive model validation.
-
-For additional features:
-- Model Distillation: pip install deepbridge-distillation
-- Synthetic Data: pip install deepbridge-synthetic
+DeepBridge v2.0 focuses on comprehensive model validation: robustness,
+uncertainty, resilience, hyperparameter and fairness testing.
 
 Migration Guide: https://github.com/DeepBridge-Validation/DeepBridge/blob/master/desenvolvimento/refatoracao/GUIA_RAPIDO_MIGRACAO.md
 """
@@ -21,11 +18,8 @@ from deepbridge.core.experiment import Experiment
 # Utils
 from deepbridge.utils.model_registry import ModelType
 
-# Import CLI app
-try:
-    from deepbridge.cli.commands import app as cli_app
-except ImportError:
-    cli_app = None
+# CLI app (imported eagerly: a broken CLI must fail loudly, not become None)
+from deepbridge.cli.commands import app as cli_app
 
 __all__ = [
     # Core components

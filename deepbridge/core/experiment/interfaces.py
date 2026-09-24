@@ -7,45 +7,21 @@ import typing as t
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-# Import standardized parameter names and types
-try:
-    from deepbridge.core.experiment.parameter_standards import (
-        ConfigName,
-        DatasetType,
-        ExperimentType,
-        FeatureImportanceDict,
-        ModelType,
-        ParameterNames,
-        TestConfigDict,
-        TestResultsDict,
-        TestType,
-    )
-except ImportError:
-    # If parameter standards aren't available, define placeholders
-    class ParameterNames:
-        """Placeholder for parameter names"""
-
-        DATASET = 'dataset'
-        FEATURE_SUBSET = 'feature_subset'
-        CONFIG_NAME = 'config_name'
-        VERBOSE = 'verbose'
-        METRIC = 'metric'
-
-    # Use strings for test types
-    class TestType:
-        """Placeholder for test types"""
-
-        ROBUSTNESS = 'robustness'
-        UNCERTAINTY = 'uncertainty'
-        RESILIENCE = 'resilience'
-        HYPERPARAMETERS = 'hyperparameters'
-
-    # Placeholder type aliases
-    DatasetType = t.TypeVar('DatasetType')
-    ModelType = t.TypeVar('ModelType')
-    FeatureImportanceDict = t.Dict[str, float]
-    TestConfigDict = t.Dict[str, t.Any]
-    TestResultsDict = t.Dict[str, t.Any]
+# Import standardized parameter names and types.
+# These are part of this package and are a hard requirement: if the import fails
+# the installation is broken and we want the ImportError to surface immediately
+# instead of silently degrading to placeholder types.
+from deepbridge.core.experiment.parameter_standards import (
+    ConfigName,
+    DatasetType,
+    ExperimentType,
+    FeatureImportanceDict,
+    ModelType,
+    ParameterNames,
+    TestConfigDict,
+    TestResultsDict,
+    TestType,
+)
 
 # Result Interfaces
 class TestResult(ABC):
@@ -260,17 +236,3 @@ class IExperiment(ABC):
         """
         pass
 
-    # save_report method has been removed as part of the visualization/reporting cleanup
-
-    @abstractmethod
-    def fit(self, **kwargs) -> 'IExperiment':
-        """
-        Fit a model to the data.
-
-        Args:
-            **kwargs: Parameters for model fitting
-
-        Returns:
-            Self (for method chaining)
-        """
-        pass

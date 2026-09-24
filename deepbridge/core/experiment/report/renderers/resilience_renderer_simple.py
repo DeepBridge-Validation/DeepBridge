@@ -1,5 +1,5 @@
 """
-Simple renderer for resilience reports - Following distillation pattern.
+Simple renderer for resilience reports.
 Uses Plotly for visualizations and single-page template approach.
 
 Refactored in Phase 2 to use BaseRenderer template methods.

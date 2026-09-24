@@ -21,7 +21,7 @@ from deepbridge.utils.model_registry import ModelType
 
 @pytest.fixture
 def mock_config():
-    """Cria mock de DistillationConfig."""
+    """Cria mock de objeto de configuracao com log_info."""
     config = Mock()
     config.log_info = Mock()
     return config

@@ -14,9 +14,8 @@ class ModelHandler:
         self._predictions = None
         self._prob_cols = None
         self._initialize_predictions = False
-        self._original_predictions = (
-            None  # Store original predictions for synthetic data
-        )
+        # Predictions captured before any transformation is applied
+        self._original_predictions = None
 
     @property
     def model(self) -> t.Any:

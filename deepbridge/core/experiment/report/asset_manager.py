@@ -94,7 +94,7 @@ class AssetManager:
         Parameters:
         -----------
         report_type : str
-            The type of report (e.g., 'distillation', 'uncertainty', etc.)
+            The type of report (e.g., 'robustness', 'uncertainty', etc.)
         asset_path : str
             The relative path to the asset within the report type directory
 

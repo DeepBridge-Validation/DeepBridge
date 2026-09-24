@@ -1,5 +1,3 @@
-import typing as t
-
 import numpy as np
 import pandas as pd
 
@@ -28,7 +26,7 @@ class ModelManager:
     def create_alternative_models(self, X_train, y_train, lazy=False):
         """
         Create 3 alternative models different from the original model,
-        using ModelRegistry directly without SurrogateModel.
+        using ModelRegistry directly.
 
         OTIMIZAÇÃO: Suporta lazy loading para evitar treinar modelos
         desnecessariamente. Use lazy=True para retornar dict vazio.
@@ -151,131 +149,3 @@ class ModelManager:
             print(f'Created {len(alternative_models)} alternative models')
 
         return alternative_models
-
-    def create_distillation_model(
-        self,
-        distillation_method: str,
-        student_model_type: ModelType,
-        student_params: t.Optional[dict],
-        temperature: float,
-        alpha: float,
-        use_probabilities: bool,
-        n_trials: int,
-        validation_split: float,
-    ) -> object:
-        """Create appropriate distillation model based on method and available data"""
-        if use_probabilities:
-            prob_train = self.dataset.original_prob
-            if prob_train is None:
-                raise ValueError(
-                    'No teacher probabilities available. Set use_probabilities=False to use teacher model'
-                )
-            return self._create_model_from_probabilities(
-                distillation_method,
-                student_model_type,
-                student_params,
-                temperature,
-                alpha,
-                n_trials,
-                validation_split,
-            )
-        else:
-            if self.dataset.model is None:
-                raise ValueError(
-                    'No teacher model available. Set use_probabilities=True to use pre-calculated probabilities'
-                )
-            return self._create_model_from_teacher(
-                distillation_method,
-                student_model_type,
-                student_params,
-                temperature,
-                alpha,
-                n_trials,
-                validation_split,
-            )
-
-    def _create_model_from_probabilities(
-        self,
-        distillation_method: str,
-        student_model_type: ModelType,
-        student_params: t.Optional[dict],
-        temperature: float,
-        alpha: float,
-        n_trials: int,
-        validation_split: float,
-    ) -> object:
-        """Create distillation model from pre-calculated probabilities"""
-        prob_train = self.dataset.original_prob
-
-        if distillation_method.lower() == 'surrogate':
-            # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.surrogate import (
-                SurrogateModel,
-            )
-
-            return SurrogateModel.from_probabilities(
-                probabilities=prob_train,
-                student_model_type=student_model_type,
-                student_params=student_params,
-                random_state=None,  # Use default or get from dataset
-                validation_split=validation_split,
-                n_trials=n_trials,
-            )
-        elif distillation_method.lower() == 'knowledge_distillation':
-            # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.knowledge_distillation import (
-                KnowledgeDistillation,
-            )
-
-            return KnowledgeDistillation.from_probabilities(
-                probabilities=prob_train,
-                student_model_type=student_model_type,
-                student_params=student_params,
-                temperature=temperature,
-                alpha=alpha,
-                n_trials=n_trials,
-                validation_split=validation_split,
-                random_state=None,  # Use default or get from dataset
-            )
-        else:
-            raise ValueError(
-                f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'"
-            )
-
-    def _create_model_from_teacher(
-        self,
-        distillation_method: str,
-        student_model_type: ModelType,
-        student_params: t.Optional[dict],
-        temperature: float,
-        alpha: float,
-        n_trials: int,
-        validation_split: float,
-    ) -> object:
-        """Create distillation model from teacher model"""
-        if distillation_method.lower() == 'surrogate':
-            # Surrogate method doesn't support direct use of teacher model
-            raise ValueError(
-                'The surrogate method does not support direct use of teacher model. '
-                "Please set use_probabilities=True or use method='knowledge_distillation'"
-            )
-        elif distillation_method.lower() == 'knowledge_distillation':
-            # Import at runtime to avoid circular import
-            from deepbridge.distillation.techniques.knowledge_distillation import (
-                KnowledgeDistillation,
-            )
-
-            return KnowledgeDistillation(
-                teacher_model=self.dataset.model,
-                student_model_type=student_model_type,
-                student_params=student_params,
-                temperature=temperature,
-                alpha=alpha,
-                n_trials=n_trials,
-                validation_split=validation_split,
-                random_state=None,  # Use default or get from dataset
-            )
-        else:
-            raise ValueError(
-                f"Unknown distillation method: {distillation_method}. Use 'surrogate' or 'knowledge_distillation'"
-            )

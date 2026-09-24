@@ -105,7 +105,7 @@ deepbridge distill predict ./models/model.joblib new_data.csv -o predictions.csv
 
 - Check out the [Quick Start Guide](tutorials/quickstart.md) for a detailed introduction
 - Learn about [Model Validation](guides/validation.md)
-- Explore [Model Distillation](guides/distillation.md)
+- For model distillation, see the separate [deepbridge-distillation](https://github.com/DeepBridge-Validation/deepbridge-distillation) package
 - See the [API Reference](api/complete_reference.md) for detailed documentation
 
 ## Contributing

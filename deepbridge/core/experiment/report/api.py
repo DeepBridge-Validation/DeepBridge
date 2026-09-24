@@ -31,7 +31,7 @@ class ReportGenerator:
     - resilience_renderer.py, resilience_renderer_simple.py, static_resilience_renderer.py
     - uncertainty_renderer.py, uncertainty_renderer_simple.py, static_uncertainty_renderer.py
     - fairness_renderer.py, fairness_renderer_simple.py
-    - distillation_renderer.py, hyperparameter_renderer.py
+    - hyperparameter_renderer.py
 
     All report types and styles are now handled through configuration.
 
@@ -112,7 +112,6 @@ class ReportGenerator:
             'uncertainty': UncertaintyDataTransformer(),
             'fairness': FairnessDataTransformer(),
             # Others will be added as they are implemented
-            # 'distillation': DistillationDataTransformer(),
         }
 
         logger.info("ReportGenerator initialized")
@@ -252,32 +251,6 @@ class ReportGenerator:
         """
         return self._generate_report(
             report_type='fairness',
-            results=results,
-            output_path=output_path,
-            config=config
-        )
-
-    def generate_distillation_report(
-        self,
-        results: Dict[str, Any],
-        output_path: Union[str, Path],
-        config: Optional[RenderConfig] = None,
-    ) -> Path:
-        """Generate distillation report.
-
-        Replaces:
-        - DistillationRenderer
-
-        Args:
-            results: Raw experiment results
-            output_path: Path where to save the report
-            config: Rendering configuration
-
-        Returns:
-            Path to the generated report file
-        """
-        return self._generate_report(
-            report_type='distillation',
             results=results,
             output_path=output_path,
             config=config

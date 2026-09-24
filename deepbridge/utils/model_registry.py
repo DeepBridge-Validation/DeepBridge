@@ -179,7 +179,7 @@ class LogisticGAM(StatsModelsGAM):
 
 
 class ModelType(Enum):
-    """Supported model types for knowledge distillation."""
+    """Supported model types."""
 
     GLM_CLASSIFIER = auto()
     GAM_CLASSIFIER = auto()
@@ -209,7 +209,7 @@ class ModelConfig:
 
 
 class ModelRegistry:
-    """Registry for supported student models in knowledge distillation."""
+    """Registry of supported machine learning models."""
 
     @staticmethod
     def _logistic_regression_param_space(

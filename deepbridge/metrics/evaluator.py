@@ -1,26 +1,25 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 
-from deepbridge.config.settings import DistillationConfig
 from deepbridge.utils.model_registry import ModelType
 
 
 class MetricsEvaluator:
     """
-    Evaluates and analyzes metrics from distillation experiments.
+    Evaluates and analyzes metrics from a table of experiment results.
 
     Provides functionality to find best models, analyze results,
     and extract metrics information.
     """
 
-    def __init__(self, results_df: pd.DataFrame, config: DistillationConfig):
+    def __init__(self, results_df: pd.DataFrame, config: Any):
         """
         Initialize the metrics evaluator.
 
         Args:
             results_df: DataFrame containing experiment results
-            config: Configuration information
+            config: Configuration object exposing a ``log_info(message)`` method
         """
         self.results_df = results_df
         self.config = config

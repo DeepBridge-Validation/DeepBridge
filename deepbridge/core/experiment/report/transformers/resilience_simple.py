@@ -1,5 +1,5 @@
 """
-Simple data transformer for resilience reports - Following distillation pattern.
+Simple data transformer for resilience reports.
 Transforms raw resilience results into a format suitable for report generation.
 """
 
@@ -15,7 +15,7 @@ logger = logging.getLogger('deepbridge.reports')
 class ResilienceDataTransformerSimple:
     """
     Transforms resilience experiment results for report generation.
-    Simple, clean approach following the distillation pattern.
+    Simple, flat transformation with no intermediate representations.
     """
 
     def transform(

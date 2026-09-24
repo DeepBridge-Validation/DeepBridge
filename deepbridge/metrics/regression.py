@@ -19,7 +19,7 @@ class Regression:
     def calculate_metrics(
         y_true: t.Union[np.ndarray, pd.Series],
         y_pred: t.Union[np.ndarray, pd.Series],
-        teacher_pred: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
+        reference_pred: t.Optional[t.Union[np.ndarray, pd.Series]] = None,
     ) -> dict:
         """
         Calculate multiple evaluation metrics for regression.
@@ -27,7 +27,9 @@ class Regression:
         Args:
             y_true: Ground truth (correct) target values
             y_pred: Predicted values
-            teacher_pred: Teacher model predictions (optional, for comparison)
+            reference_pred: Predictions of a reference model to compare
+                against (optional). When given, agreement metrics between
+                ``reference_pred`` and ``y_pred`` are added to the result.
 
         Returns:
             dict: Dictionary containing calculated metrics
@@ -43,35 +45,35 @@ class Regression:
             explained_variance_score(y_true, y_pred)
         )
 
-        # Calculate additional metrics if teacher model predictions are provided
-        if teacher_pred is not None:
+        # Agreement with a reference model, when one is supplied
+        if reference_pred is not None:
             try:
                 # Ensure we're working with numpy arrays
-                if isinstance(teacher_pred, pd.Series):
-                    teacher_pred = teacher_pred.values
+                if isinstance(reference_pred, pd.Series):
+                    reference_pred = reference_pred.values
                 if isinstance(y_pred, pd.Series):
                     y_pred = y_pred.values
 
-                # Calculate R² between teacher and student predictions
-                metrics['teacher_student_r2'] = float(
-                    r2_score(teacher_pred, y_pred)
+                # R² between the reference predictions and this model's
+                metrics['reference_r2'] = float(
+                    r2_score(reference_pred, y_pred)
                 )
 
-                # Calculate the MSE between teacher and student predictions
-                metrics['teacher_student_mse'] = float(
-                    mean_squared_error(teacher_pred, y_pred)
+                # MSE between the reference predictions and this model's
+                metrics['reference_mse'] = float(
+                    mean_squared_error(reference_pred, y_pred)
                 )
 
-                # Calculate the correlation coefficient between teacher and student predictions
-                metrics['teacher_student_corr'] = float(
-                    np.corrcoef(teacher_pred, y_pred)[0, 1]
+                # Correlation between the reference predictions and this model's
+                metrics['reference_corr'] = float(
+                    np.corrcoef(reference_pred, y_pred)[0, 1]
                 )
 
             except Exception as e:
                 print(f'Error calculating comparison metrics: {str(e)}')
-                metrics['teacher_student_r2'] = None
-                metrics['teacher_student_mse'] = None
-                metrics['teacher_student_corr'] = None
+                metrics['reference_r2'] = None
+                metrics['reference_mse'] = None
+                metrics['reference_corr'] = None
 
         return metrics
 
@@ -80,7 +82,7 @@ class Regression:
         data: pd.DataFrame,
         target_column: str,
         pred_column: str,
-        teacher_pred_column: t.Optional[str] = None,
+        reference_pred_column: t.Optional[str] = None,
     ) -> dict:
         """
         Calculates metrics using DataFrame columns.
@@ -89,15 +91,16 @@ class Regression:
             data: DataFrame containing the predictions
             target_column: Name of the column with ground truth values
             pred_column: Name of the column with predictions
-            teacher_pred_column: Name of the column with teacher predictions (optional)
+            reference_pred_column: Name of the column holding a reference
+                model's predictions to compare against (optional)
 
         Returns:
             dict: Dictionary containing the calculated metrics
         """
         y_true = data[target_column]
         y_pred = data[pred_column]
-        teacher_pred = (
-            data[teacher_pred_column] if teacher_pred_column else None
+        reference_pred = (
+            data[reference_pred_column] if reference_pred_column else None
         )
 
-        return Regression.calculate_metrics(y_true, y_pred, teacher_pred)
+        return Regression.calculate_metrics(y_true, y_pred, reference_pred)

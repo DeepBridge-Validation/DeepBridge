@@ -2,7 +2,7 @@
 Testes para deepbridge.core.experiment.Experiment
 
 Objetivo: Elevar coverage de 44% para 80%+
-Foco: Fluxos principais de inicialização, fit, e execução de testes
+Foco: Fluxos principais de inicialização e execução de testes
 """
 
 import pytest
@@ -105,14 +105,11 @@ class TestExperimentInitialization:
         assert experiment.metrics_calculator is not None
 
     def test_init_binary_classification_no_model(self, binary_dataset_no_model):
-        """Testa inicialização sem modelo (auto_fit deve ser True)."""
-        # Dataset sem modelo e sem predictions deve gerar erro ou auto_fit
-        # Vamos testar que o experimento é criado
+        """Testa inicialização com dataset sem modelo."""
         experiment = Experiment(
             dataset=binary_dataset_no_model,
             experiment_type='binary_classification',
-            random_state=42,
-            auto_fit=False  # Desabilitar auto_fit para evitar erro
+            random_state=42
         )
 
         assert experiment is not None
@@ -351,18 +348,6 @@ class TestExperimentProperties:
 class TestExperimentBasicMethods:
     """Testes de métodos básicos do Experiment."""
 
-    def test_get_student_predictions_requires_fit(self, binary_dataset_with_model):
-        """Testa que get_student_predictions requer fit() primeiro."""
-        experiment = Experiment(
-            dataset=binary_dataset_with_model,
-            experiment_type='binary_classification',
-            random_state=42
-        )
-
-        # Deve levantar erro se chamar antes de fit()
-        with pytest.raises(ValueError, match="No trained distillation model"):
-            experiment.get_student_predictions(dataset='test')
-
     # Removido: test_calculate_metrics_basic - método requer formato específico de predições
     # que é complexo de mockar corretamente. Coverage será atingida via outros testes.
 
@@ -391,9 +376,6 @@ class TestExperimentBasicMethods:
 
         with pytest.raises(ValueError, match="Model .* not found"):
             experiment.get_feature_importance('nonexistent_model')
-
-    # Removido: test_compare_all_models - requer setup complexo de alternative_models
-    # Coverage será atingida via testes de integração
 
     def test_get_comprehensive_results(self, binary_dataset_with_model):
         """Testa get_comprehensive_results."""

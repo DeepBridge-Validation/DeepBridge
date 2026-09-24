@@ -1,4 +1,3 @@
-import logging
 import typing as t
 from pathlib import Path
 
@@ -12,7 +11,6 @@ from deepbridge.core.experiment.model_evaluation import ModelEvaluation
 from deepbridge.metrics.classification import Classification
 from deepbridge.metrics.regression import Regression
 from deepbridge.utils.logger import get_logger
-from deepbridge.utils.model_registry import ModelType
 
 # TestRunner is imported at runtime to avoid circular imports
 # This approach is cleaner than local imports in methods
@@ -181,10 +179,8 @@ class Experiment(IExperiment):
 
     def _process_initial_metrics(self):
         """Calculate initial metrics and standardize format"""
-        # Calculate initial metrics - pass self as experiment to allow access to surrogate model
-        self.initial_results = self.test_runner.run_initial_tests(
-            experiment=self
-        )
+        # Calculate initial metrics
+        self.initial_results = self.test_runner.run_initial_tests()
 
         # Process all models to ensure roc_auc is present and properly formatted
         if 'models' in self.initial_results:
@@ -232,7 +228,6 @@ class Experiment(IExperiment):
         test_size: float = 0.2,
         random_state: int = 42,
         config: t.Optional[dict] = None,
-        auto_fit: t.Optional[bool] = None,
         tests: t.Optional[t.List[str]] = None,
         feature_subset: t.Optional[t.List[str]] = None,
         protected_attributes: t.Optional[t.List[str]] = None,
@@ -246,8 +241,6 @@ class Experiment(IExperiment):
             test_size: Proportion of data to use for testing
             random_state: Random seed for reproducibility
             config: Optional configuration dictionary
-            auto_fit: Whether to automatically fit a model. If None, will be set to True only if
-                      dataset has probabilities but no model.
             tests: List of tests to prepare for the model. Available tests: ["robustness", "uncertainty",
                    "resilience", "hyperparameters", "fairness"]. Tests will only be executed when run_tests() is called.
             feature_subset: List of feature names to specifically test in the experiments.
@@ -308,14 +301,6 @@ class Experiment(IExperiment):
             f'Initializing experiment with type: {experiment_type}, tests: {tests}'
         )
 
-        # Automatically determine auto_fit value based on model presence
-        if auto_fit is None:
-            # If dataset has a model, auto_fit=False, otherwise auto_fit=True
-            auto_fit = not (
-                hasattr(dataset, 'model') and dataset.model is not None
-            )
-        self.auto_fit = auto_fit
-
         # Initialize metrics calculator based on experiment type
         if experiment_type == 'binary_classification':
             self.metrics_calculator = Classification()
@@ -325,9 +310,8 @@ class Experiment(IExperiment):
             # For forecasting or other types, default to None for now
             self.metrics_calculator = None
 
-        # Initialize results storage and models
+        # Initialize results storage
         self._results_data = {'train': {}, 'test': {}}
-        self.distillation_model = None
 
         # Initialize components and prepare data
         self._initialize_components(dataset, test_size, random_state)
@@ -335,143 +319,8 @@ class Experiment(IExperiment):
         # Initialize test runner
         self._initialize_test_runner()
 
-        # Auto-fit if enabled and dataset has probabilities
-        if (
-            self.auto_fit
-            and hasattr(dataset, 'original_prob')
-            and dataset.original_prob is not None
-        ):
-            self._auto_fit_model()
-
         # Calculate initial metrics
         self._process_initial_metrics()
-
-    def _auto_fit_model(self):
-        """Auto-fit a model when probabilities are available but no model is present"""
-        default_model_type = self.model_manager.get_default_model_type()
-
-        if default_model_type is not None:
-            self.fit(
-                student_model_type=default_model_type,
-                temperature=1.0,
-                alpha=0.5,
-                use_probabilities=True,
-                verbose=False,
-            )
-        # No action needed if no default model type is available
-
-    def _create_distillation_model(
-        self,
-        distillation_method,
-        student_model_type,
-        student_params,
-        temperature,
-        alpha,
-        use_probabilities,
-        n_trials,
-        validation_split,
-    ):
-        """
-        Create and configure a distillation model.
-
-        Args:
-            distillation_method: Which distillation approach to use
-            student_model_type: Type of model to use as student
-            student_params: Parameters for student model
-            temperature: Temperature for distillation
-            alpha: Weighting factor for loss combination
-            use_probabilities: Whether to use probabilities for distillation
-            n_trials: Number of hyperparameter optimization trials
-            validation_split: Proportion of data for validation
-
-        Returns:
-            Configured distillation model instance
-        """
-        return self.model_manager.create_distillation_model(
-            distillation_method,
-            student_model_type,
-            student_params,
-            temperature,
-            alpha,
-            use_probabilities,
-            n_trials,
-            validation_split,
-        )
-
-    def _train_and_evaluate_model(self, model, verbose):
-        """
-        Train the model and evaluate on train and test sets.
-
-        Args:
-            model: The model to train and evaluate
-            verbose: Whether to output training information
-
-        Returns:
-            Tuple of (train_metrics, test_metrics)
-        """
-        # Train the model
-        model.fit(self.X_train, self.y_train, verbose=verbose)
-
-        # Evaluate on train set
-        train_metrics = self.model_evaluation.evaluate_distillation(
-            model, 'train', self.X_train, self.y_train, self.prob_train
-        )
-
-        # Evaluate on test set
-        test_metrics = self.model_evaluation.evaluate_distillation(
-            model, 'test', self.X_test, self.y_test, self.prob_test
-        )
-
-        return train_metrics, test_metrics
-
-    def fit(
-        self,
-        student_model_type=ModelType.LOGISTIC_REGRESSION,
-        student_params=None,
-        temperature=1.0,
-        alpha=0.5,
-        use_probabilities=True,
-        n_trials=50,
-        validation_split=0.2,
-        verbose=True,
-        distillation_method='surrogate',
-        **kwargs,
-    ):
-        """Train a model using either Surrogate Model or Knowledge Distillation approach."""
-        if self.experiment_type != 'binary_classification':
-            raise ValueError(
-                'Distillation methods are only supported for binary classification'
-            )
-
-        # Configure logging
-        logging_state = self._configure_logging(verbose)
-
-        try:
-            # Create distillation model
-            self.distillation_model = self._create_distillation_model(
-                distillation_method,
-                student_model_type,
-                student_params,
-                temperature,
-                alpha,
-                use_probabilities,
-                n_trials,
-                validation_split,
-            )
-
-            # Train and evaluate model
-            train_metrics, test_metrics = self._train_and_evaluate_model(
-                self.distillation_model, verbose
-            )
-
-            # Store results
-            self._results_data['train'] = train_metrics['metrics']
-            self._results_data['test'] = test_metrics['metrics']
-
-            return self
-        finally:
-            # Restore logging state
-            self._restore_logging(logging_state, verbose)
 
     def _calculate_model_feature_importance(
         self, model_name: str, model_data: dict, model_obj: t.Any
@@ -619,23 +468,6 @@ class Experiment(IExperiment):
             if value is not None and not isinstance(value, str):
                 metrics[key] = float(value)
 
-    def _configure_logging(self, verbose: bool) -> t.Optional[int]:
-        """Configure logging for Optuna based on verbose mode"""
-        if not verbose:
-            optuna_logger = logging.getLogger('optuna')
-            optuna_logger_level = optuna_logger.getEffectiveLevel()
-            optuna_logger.setLevel(logging.ERROR)
-            return optuna_logger_level
-        return None
-
-    def _restore_logging(
-        self, logging_state: t.Optional[int], verbose: bool
-    ) -> None:
-        """Restore Optuna logging to original state"""
-        if not verbose and logging_state is not None:
-            optuna_logger = logging.getLogger('optuna')
-            optuna_logger.setLevel(logging_state)
-
     def run_tests(self, config_name: str = 'quick', **kwargs) -> dict:
         """
         Run all tests specified during initialization with the given configuration.
@@ -652,14 +484,10 @@ class Experiment(IExperiment):
 
         # First, ensure we have initial metrics
         if not hasattr(self, 'initial_results') or not self.initial_results:
-            # Pass self as experiment to allow access to surrogate model
-            self.initial_results = self.test_runner.run_initial_tests(
-                experiment=self
-            )
+            self.initial_results = self.test_runner.run_initial_tests()
 
-        # Run the requested tests - pass self as experiment to allow access to surrogate model
+        # Run the requested tests
         test_kwargs = kwargs.copy()
-        test_kwargs['experiment'] = self
         # Pass protected_attributes to test_runner for fairness tests
         if hasattr(self, 'protected_attributes') and self.protected_attributes:
             test_kwargs['protected_attributes'] = self.protected_attributes
@@ -728,39 +556,14 @@ class Experiment(IExperiment):
 
     @property
     def model(self):
-        """Return either the distillation model (if trained) or the model from dataset."""
-        if (
-            hasattr(self, 'distillation_model')
-            and self.distillation_model is not None
-        ):
-            return self.distillation_model
-        elif hasattr(self.dataset, 'model') and self.dataset.model is not None:
+        """Return the model from the dataset, or None if the dataset has none."""
+        if hasattr(self.dataset, 'model') and self.dataset.model is not None:
             return self.dataset.model
         return None
 
-    def get_student_predictions(self, dataset: str = 'test') -> pd.DataFrame:
-        """Get predictions from the trained student model."""
-        if (
-            not hasattr(self, 'distillation_model')
-            or self.distillation_model is None
-        ):
-            raise ValueError(
-                'No trained distillation model available. Call fit() first'
-            )
-
-        return self.model_evaluation.get_predictions(
-            self.distillation_model,
-            self.X_train if dataset == 'train' else self.X_test,
-            self.y_train if dataset == 'train' else self.y_test,
-        )
-
-    def calculate_metrics(
-        self, y_true, y_pred, y_prob=None, teacher_prob=None
-    ):
+    def calculate_metrics(self, y_true, y_pred, y_prob=None):
         """Calculate metrics based on experiment type."""
-        return self.model_evaluation.calculate_metrics(
-            y_true, y_pred, y_prob, teacher_prob
-        )
+        return self.model_evaluation.calculate_metrics(y_true, y_pred, y_prob)
 
     def get_feature_importance(self, model_name='primary_model'):
         """
@@ -819,22 +622,6 @@ class Experiment(IExperiment):
 
         return model_data['feature_importance']
 
-    def compare_all_models(self, dataset='test'):
-        """Compare all models including original, alternative, and distilled."""
-        X = self.X_train if dataset == 'train' else self.X_test
-        y = self.y_train if dataset == 'train' else self.y_test
-
-        return self.model_evaluation.compare_all_models(
-            dataset,
-            self.dataset.model if hasattr(self.dataset, 'model') else None,
-            self.alternative_models,
-            self.distillation_model
-            if hasattr(self, 'distillation_model')
-            else None,
-            X,
-            y,
-        )
-
     def get_comprehensive_results(self):
         """Return a comprehensive dictionary with all metrics and information."""
         # Simplified version that returns basic experiment info
@@ -843,15 +630,12 @@ class Experiment(IExperiment):
             'config': {
                 'test_size': self.test_size,
                 'random_state': self.random_state,
-                'auto_fit': self.auto_fit,
             },
             'model_info': {
                 'has_primary_model': self.model is not None,
                 'has_alternative_models': len(self.alternative_models) > 0
                 if self.alternative_models
                 else False,
-                'has_distillation_model': hasattr(self, 'distillation_model')
-                and self.distillation_model is not None,
             },
         }
 
@@ -1081,6 +865,5 @@ class Experiment(IExperiment):
                     'experiment_type': self.experiment_type,
                     'test_size': self.test_size,
                     'random_state': self.random_state,
-                    'auto_fit': self.auto_fit,
                 }
             }

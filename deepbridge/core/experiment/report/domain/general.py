@@ -61,7 +61,6 @@ class ReportType(str, Enum):
     ROBUSTNESS = 'robustness'
     RESILIENCE = 'resilience'
     FAIRNESS = 'fairness'
-    DISTILLATION = 'distillation'
     HYPERPARAMETER = 'hyperparameter'
     CUSTOM = 'custom'
 

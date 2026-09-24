@@ -1,5 +1,5 @@
 site_name: DeepBridge
-site_description: A Python library for model validation and distillation
+site_description: A Python library for model validation
 site_author: Gustavo Haase
 repo_url: https://github.com/DeepBridge-Validation/DeepBridge
 repo_name: deepbridge
@@ -57,10 +57,7 @@ nav:
   - User Guide:
     - Core Concepts:
       - Model Validation: guides/validation.md
-      - Model Distillation: guides/distillation.md
-      - Synthetic Data: guides/synthetic_data.md
     - Tutorials:
-      - Auto Distiller Tutorial: tutorials/AutoDistiller.md
       - Complete Workflow: tutorials/complete_workflow.md
     - CLI Reference: guides/cli.md
     
@@ -69,17 +66,7 @@ nav:
       - Testing Framework: technical/testing_framework.md
       - Robustness Testing: concepts/robustness.md
       - Report Generation: technical/report_generation.md
-    - Model Distillation:
-      - Knowledge Distillation Concepts: concepts/knowledge_distillation.md
-      - How Models Learn: concepts/model_learns.md
-      - What is Knowledge Distillation?: concepts/what_Knowledge.md
-      - Auto Distillation: concepts/auto_distillation.md
-    - Synthetic Data:
-      - Overview: concepts/synthetic_data.md
-      - Gaussian Copula: concepts/synthetic_gaussian_copula.md
-      - UltraLight Generator: concepts/synthetic_UltraLightGenerator.md
-      - CTGAN: concepts/synthetic_ctgan.md
-      
+
   - Technical Reference:
     - Architecture:
       - Implementation Guide: technical/implementation_guide.md
@@ -88,8 +75,6 @@ nav:
       - Core APIs:
         - DBDataset: api/db_data.md
         - Experiment: api/experiment.md
-        - Auto Distiller: api/auto_distiller.md
-        - Synthetic Data: api/synthetic.md
       - CLI API: api/cli.md
       
   - Advanced Topics:
