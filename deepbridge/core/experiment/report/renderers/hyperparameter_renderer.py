@@ -93,6 +93,13 @@ class HyperparameterRenderer(BaseRenderer):
             # Add hyperparameter-specific context fields
             context.update(
                 {
+                    # The template needs the report style too. Without it the
+                    # render died with "'report_type' is undefined", which is
+                    # why hyperparameter reports never worked. Note that
+                    # test_type ('hyperparameter') and report_type
+                    # ('interactive' or 'static') are different things: the
+                    # include paths use test_type, this one is the style.
+                    'report_type': report_type,
                     'report_title': 'Hyperparameter Tuning Report',
                     'report_subtitle': 'Feature Importance and Optimization Results',
                     'importance_scores': report_data.get(

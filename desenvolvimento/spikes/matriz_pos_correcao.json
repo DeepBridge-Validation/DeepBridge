@@ -1,0 +1,32 @@
+{
+  "robustness": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "OK 75 KB",
+    "legado/static": "OK 598 KB",
+    "novo/ReportGenerator": "ERRO RuntimeError: Report generation failed for robustness: robustness_score must be between 0 and 1, got 1.007991196389929"
+  },
+  "uncertainty": {
+    "_resultados": "ok (16 chaves)",
+    "legado/interactive": "OK 59 KB",
+    "legado/static": "OK 336 KB",
+    "novo/ReportGenerator": "ERRO RuntimeError: Report generation failed for uncertainty: uncertainty_score must be between 0 and 1, got 1.0923280423280424"
+  },
+  "resilience": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "OK 50 KB",
+    "legado/static": "OK 569 KB",
+    "novo/ReportGenerator": "OK 10 KB"
+  },
+  "hyperparameter": {
+    "_resultados": "ok (2 chaves)",
+    "legado/interactive": "OK 334 KB",
+    "legado/static": "OK 334 KB",
+    "novo/ReportGenerator": "METODO INEXISTENTE na API nova"
+  },
+  "fairness": {
+    "_resultados": "ok (12 chaves)",
+    "legado/interactive": "OK 450 KB",
+    "legado/static": "OK 133 KB",
+    "novo/ReportGenerator": "OK 15 KB"
+  }
+}
