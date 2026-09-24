@@ -216,3 +216,26 @@ backups/before_refactor_*/                # Backups automáticos antes da refato
 
 # Virtual environment for refactoring
 /venv_refactor/
+
+# ==============================================================================
+# Reorganizacao 2026 - Fase 0 (higiene do repositorio)
+# Artefatos gerados, ambientes virtuais e backups: nada disso e versionado.
+# ==============================================================================
+
+# Ambientes virtuais de refatoracao
+venv_refactor/
+venv*/
+
+# Copias/backups do pacote (reconstruiveis pelo historico do git)
+backups/
+*.backup
+
+# Relatorios de cobertura gerados
+coverage.json
+
+# Saidas de execucao geradas pelos exemplos e pelos testes
+custom_output/
+distillation_results/
+
+# Configuracao local do Claude Code
+.claude/
