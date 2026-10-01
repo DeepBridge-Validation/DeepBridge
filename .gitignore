@@ -23,8 +23,16 @@ lib64/
 parts/
 sdist/
 var/
-data/
-academic/
+# ATENCAO: estes padroes sao de diretorio de TRABALHO na raiz do repositorio,
+# nao de nome de pacote. Sem a barra inicial, "data/" casava com QUALQUER
+# diretorio chamado data em qualquer nivel - inclusive
+# deepbridge/core/experiment/report/data/, um pacote Python importado por
+# report/__init__.py e report/api.py. O resultado era um clone limpo deste
+# branch que nao conseguia nem importar deepbridge.core.experiment.report, e
+# arquivos de codigo que o git nao oferecia para commit (nem apareciam como
+# "??"). A barra inicial ancora o padrao na raiz.
+/data/
+/academic/
 wheels/
 scripts/
 simular_lib/
