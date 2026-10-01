@@ -8,6 +8,7 @@ import pytest
 
 from deepbridge.core.experiment.parameter_standards import (
     TestType,
+    ValidationTestType,
     ConfigName,
     ExperimentType,
     standardize_feature_names,
@@ -24,11 +25,23 @@ class TestEnumStrMethods:
     """Tests for enum __str__ methods"""
 
     def test_test_type_str(self):
-        """Test TestType __str__ method"""
-        assert str(TestType.ROBUSTNESS) == 'robustness'
-        assert str(TestType.UNCERTAINTY) == 'uncertainty'
-        assert str(TestType.RESILIENCE) == 'resilience'
-        assert str(TestType.HYPERPARAMETERS) == 'hyperparameters'
+        """Test ValidationTestType __str__ method"""
+        assert str(ValidationTestType.ROBUSTNESS) == 'robustness'
+        assert str(ValidationTestType.UNCERTAINTY) == 'uncertainty'
+        assert str(ValidationTestType.RESILIENCE) == 'resilience'
+        assert str(ValidationTestType.HYPERPARAMETERS) == 'hyperparameters'
+
+    def test_test_type_legacy_alias(self):
+        """The deprecated TestType alias must stay bound to the same enum.
+
+        ``TestType`` is the pre-2.0 public name of ``ValidationTestType`` and
+        is kept for the whole 2.x line, so user code importing it keeps
+        working. Importing the alias here also guards the ``__test__ = False``
+        marker on the class: without it, this very import makes pytest emit a
+        PytestCollectionWarning.
+        """
+        assert TestType is ValidationTestType
+        assert TestType.ROBUSTNESS is ValidationTestType.ROBUSTNESS
 
     def test_config_name_str(self):
         """Test ConfigName __str__ method"""

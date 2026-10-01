@@ -4,7 +4,7 @@ import numpy as np
 
 from deepbridge.core.experiment.parameter_standards import (
     ConfigName,
-    TestType,
+    ValidationTestType,
     get_test_config,
     is_valid_config_name,
     is_valid_test_type,

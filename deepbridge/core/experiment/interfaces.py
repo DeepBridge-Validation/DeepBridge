@@ -20,7 +20,8 @@ from deepbridge.core.experiment.parameter_standards import (
     ParameterNames,
     TestConfigDict,
     TestResultsDict,
-    TestType,
+    TestType,  # noqa: F401  deprecated alias, re-exported for compatibility
+    ValidationTestType,
 )
 
 # Result Interfaces

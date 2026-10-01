@@ -7,7 +7,7 @@ Tests enums and standard parameter names.
 import pytest
 from deepbridge.core.experiment.parameter_standards import (
     ParameterNames,
-    TestType,
+    ValidationTestType,
     ConfigName,
     ExperimentType
 )
@@ -64,33 +64,33 @@ class TestParameterNames:
         assert ParameterNames.RECALL == 'recall'
 
 
-class TestTestTypeEnum:
-    """Test TestType enum."""
+class TestValidationTestTypeEnum:
+    """Test ValidationTestType enum."""
 
     def test_test_type_values(self):
-        """Test that TestType has correct values."""
-        assert TestType.ROBUSTNESS.value == 'robustness'
-        assert TestType.UNCERTAINTY.value == 'uncertainty'
-        assert TestType.RESILIENCE.value == 'resilience'
-        assert TestType.HYPERPARAMETERS.value == 'hyperparameters'
+        """Test that ValidationTestType has correct values."""
+        assert ValidationTestType.ROBUSTNESS.value == 'robustness'
+        assert ValidationTestType.UNCERTAINTY.value == 'uncertainty'
+        assert ValidationTestType.RESILIENCE.value == 'resilience'
+        assert ValidationTestType.HYPERPARAMETERS.value == 'hyperparameters'
 
     def test_test_type_str(self):
-        """Test TestType string representation."""
-        assert str(TestType.ROBUSTNESS) == 'robustness'
-        assert str(TestType.UNCERTAINTY) == 'uncertainty'
-        assert str(TestType.RESILIENCE) == 'resilience'
-        assert str(TestType.HYPERPARAMETERS) == 'hyperparameters'
+        """Test ValidationTestType string representation."""
+        assert str(ValidationTestType.ROBUSTNESS) == 'robustness'
+        assert str(ValidationTestType.UNCERTAINTY) == 'uncertainty'
+        assert str(ValidationTestType.RESILIENCE) == 'resilience'
+        assert str(ValidationTestType.HYPERPARAMETERS) == 'hyperparameters'
 
     def test_test_type_iteration(self):
-        """Test that we can iterate over TestType values."""
-        test_types = list(TestType)
+        """Test that we can iterate over ValidationTestType values."""
+        test_types = list(ValidationTestType)
         assert len(test_types) == 4
-        assert TestType.ROBUSTNESS in test_types
+        assert ValidationTestType.ROBUSTNESS in test_types
 
     def test_test_type_comparison(self):
-        """Test TestType comparison."""
-        assert TestType.ROBUSTNESS == TestType.ROBUSTNESS
-        assert TestType.ROBUSTNESS != TestType.UNCERTAINTY
+        """Test ValidationTestType comparison."""
+        assert ValidationTestType.ROBUSTNESS == ValidationTestType.ROBUSTNESS
+        assert ValidationTestType.ROBUSTNESS != ValidationTestType.UNCERTAINTY
 
 
 class TestConfigNameEnum:

@@ -57,8 +57,17 @@ class ParameterNames:
 
 
 # Test type enum
-class TestType(Enum):
-    """Enum for standardized test types"""
+class ValidationTestType(Enum):
+    """Enum for standardized validation test types"""
+
+    # Not a pytest test class. pytest tries to collect any class whose name
+    # starts with "Test" and warns (PytestCollectionWarning) when it cannot,
+    # which an Enum never can. This marker stays after the rename because the
+    # legacy ``TestType`` alias below still exposes this class under a Test*
+    # name; dropping it would bring the warning back for any module that
+    # imports the alias. ``__test__`` is a dunder, so Enum does not turn it
+    # into a member.
+    __test__ = False
 
     ROBUSTNESS = 'robustness'
     UNCERTAINTY = 'uncertainty'
@@ -67,6 +76,15 @@ class TestType(Enum):
 
     def __str__(self):
         return self.value
+
+
+# Deprecated alias. ``TestType`` was the public name of this enum through
+# DeepBridge 2.0.0; it was renamed to ``ValidationTestType`` because the
+# "Test" prefix made pytest try to collect it as a test class. The name is
+# part of the published API and may appear in user code, so the alias is kept
+# for the whole 2.x line and removed in 3.0.0. New code must use
+# ``ValidationTestType``.
+TestType = ValidationTestType
 
 
 # Config type enum
@@ -133,7 +151,7 @@ def get_test_types() -> t.List[str]:
     Returns:
         List of standardized test type strings
     """
-    return [test_type.value for test_type in TestType]
+    return [test_type.value for test_type in ValidationTestType]
 
 
 def get_config_names() -> t.List[str]:
@@ -365,10 +383,10 @@ HYPERPARAMETER_CONFIGS = {
 
 # Master configuration dictionary mapping test types to their configurations
 TEST_CONFIGS = {
-    TestType.ROBUSTNESS.value: ROBUSTNESS_CONFIGS,
-    TestType.UNCERTAINTY.value: UNCERTAINTY_CONFIGS,
-    TestType.RESILIENCE.value: RESILIENCE_CONFIGS,
-    TestType.HYPERPARAMETERS.value: HYPERPARAMETER_CONFIGS,
+    ValidationTestType.ROBUSTNESS.value: ROBUSTNESS_CONFIGS,
+    ValidationTestType.UNCERTAINTY.value: UNCERTAINTY_CONFIGS,
+    ValidationTestType.RESILIENCE.value: RESILIENCE_CONFIGS,
+    ValidationTestType.HYPERPARAMETERS.value: HYPERPARAMETER_CONFIGS,
 }
 
 

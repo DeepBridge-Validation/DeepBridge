@@ -7,7 +7,7 @@ import typing as t
 from deepbridge.core.experiment.managers.base_manager import BaseManager
 from deepbridge.core.experiment.parameter_standards import (
     ConfigName,
-    TestType,
+    ValidationTestType,
     get_test_config,
     is_valid_config_name,
 )

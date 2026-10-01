@@ -14,7 +14,7 @@ from deepbridge.core.experiment.interfaces import (
     ITestRunner,
     IExperiment,
     ParameterNames,
-    TestType
+    ValidationTestType
 )
 
 
@@ -407,26 +407,36 @@ class TestParameterNames:
         assert ParameterNames.METRIC == 'metric'
 
 
-class TestTestTypeEnum:
-    """Tests for TestType enum/placeholder"""
+class TestValidationTestTypeEnum:
+    """Tests for the ValidationTestType enum re-exported by interfaces"""
 
     def test_test_type_has_robustness(self):
         """Test ROBUSTNESS constant"""
-        assert hasattr(TestType, 'ROBUSTNESS')
+        assert hasattr(ValidationTestType, 'ROBUSTNESS')
         # May be enum or string depending on whether parameter_standards is available
-        assert TestType.ROBUSTNESS is not None
+        assert ValidationTestType.ROBUSTNESS is not None
 
     def test_test_type_has_uncertainty(self):
         """Test UNCERTAINTY constant"""
-        assert hasattr(TestType, 'UNCERTAINTY')
-        assert TestType.UNCERTAINTY is not None
+        assert hasattr(ValidationTestType, 'UNCERTAINTY')
+        assert ValidationTestType.UNCERTAINTY is not None
 
     def test_test_type_has_resilience(self):
         """Test RESILIENCE constant"""
-        assert hasattr(TestType, 'RESILIENCE')
-        assert TestType.RESILIENCE is not None
+        assert hasattr(ValidationTestType, 'RESILIENCE')
+        assert ValidationTestType.RESILIENCE is not None
 
     def test_test_type_has_hyperparameters(self):
         """Test HYPERPARAMETERS constant"""
-        assert hasattr(TestType, 'HYPERPARAMETERS')
-        assert TestType.HYPERPARAMETERS is not None
+        assert hasattr(ValidationTestType, 'HYPERPARAMETERS')
+        assert ValidationTestType.HYPERPARAMETERS is not None
+
+    def test_interfaces_still_exports_legacy_alias(self):
+        """interfaces re-exported TestType before the rename; keep it working.
+
+        Imported inside the test so the deprecated name is not bound at module
+        level, where pytest would try to collect it.
+        """
+        from deepbridge.core.experiment.interfaces import TestType
+
+        assert TestType is ValidationTestType
