@@ -43,23 +43,20 @@ class UncertaintyRenderer:
 
         self.data_transformer = UncertaintyDataTransformer()
 
-        # Try to import the new chart generator
-        try:
-            from deepbridge.templates.report_types.uncertainty.static.charts import (
-                UncertaintyChartGenerator,
-            )
+        # Both modules ship inside the deepbridge package, so a failure here
+        # is a broken installation, not a missing optional extra. The import
+        # is therefore unguarded: setting chart_generator = None used to make
+        # a chart-less report look like a successful one.
+        from deepbridge.templates.report_types.uncertainty.static.charts import (
+            UncertaintyChartGenerator,
+        )
 
-            from ...utils.seaborn_utils import SeabornChartGenerator
+        from ...utils.seaborn_utils import SeabornChartGenerator
 
-            self.chart_generator = UncertaintyChartGenerator(
-                SeabornChartGenerator()
-            )
-            logger.info('Initialized UncertaintyChartGenerator for rendering')
-        except ImportError:
-            self.chart_generator = None
-            logger.warning(
-                'UncertaintyChartGenerator not available, chart generation may be limited'
-            )
+        self.chart_generator = UncertaintyChartGenerator(
+            SeabornChartGenerator()
+        )
+        logger.info('Initialized UncertaintyChartGenerator for rendering')
 
     def render(
         self,

@@ -65,17 +65,16 @@ class StaticUncertaintyRenderer:
 
         self.chart_generator = SeabornChartGenerator()
 
-        # Import UncertaintyChartGenerator for specific uncertainty charts
-        try:
-            from deepbridge.templates.report_types.uncertainty.static.charts import (
-                UncertaintyChartGenerator,
-            )
+        # UncertaintyChartGenerator ships inside the deepbridge package, so a
+        # failure here means a broken installation. The import is unguarded:
+        # falling back to None produced reports without uncertainty charts and
+        # only a warning buried in the log.
+        from deepbridge.templates.report_types.uncertainty.static.charts import (
+            UncertaintyChartGenerator,
+        )
 
-            self.uncertainty_chart_generator = UncertaintyChartGenerator()
-            logger.info('Successfully loaded UncertaintyChartGenerator')
-        except ImportError as e:
-            logger.warning(f'Could not load UncertaintyChartGenerator: {e}')
-            self.uncertainty_chart_generator = None
+        self.uncertainty_chart_generator = UncertaintyChartGenerator()
+        logger.info('Successfully loaded UncertaintyChartGenerator')
 
     def render(
         self,
@@ -192,9 +191,13 @@ class StaticUncertaintyRenderer:
                         'Using chart mapper to ensure all chart names are properly mapped'
                     )
                     charts = ensure_chart_mappings(charts)
-                except ImportError:
-                    logger.info(
-                        'Chart mapper not available, using explicit mappings'
+                except ImportError as map_err:
+                    logger.warning(
+                        'Could not import deepbridge.core.experiment.report.'
+                        'chart_mapper (%s); falling back to explicit chart '
+                        'name mappings. This module ships with deepbridge, so '
+                        'the installation is probably incomplete.',
+                        map_err,
                     )
                     # Make sure we explicitly create mappings for the two chart types that need it
                     if (
@@ -2227,9 +2230,13 @@ class StaticUncertaintyRenderer:
                         )
                     else:
                         logger.warning('No additional charts were generated')
-                except (ImportError, AttributeError):
-                    logger.info(
-                        'Additional uncertainty charts module not available'
+                except ImportError as charts_err:
+                    logger.warning(
+                        'Additional uncertainty charts are unavailable: '
+                        'could not import '
+                        'deepbridge.core.experiment.report.utils.'
+                        'uncertainty_report_charts (%s).',
+                        charts_err,
                     )
                 except Exception as e:
                     logger.error(

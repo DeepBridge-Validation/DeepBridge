@@ -23,24 +23,17 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-# Try to import visualization libraries
-try:
-    import matplotlib.patches as mpatches
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
+# matplotlib and seaborn are mandatory dependencies of deepbridge (declared
+# in pyproject). They are imported unconditionally so a broken installation
+# raises here instead of leaving every visualization silently disabled.
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.gridspec import GridSpec
 
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-    warnings.warn('matplotlib not available. Visualizations will not work.')
-
-try:
-    import seaborn as sns
-
-    SEABORN_AVAILABLE = True
-except ImportError:
-    SEABORN_AVAILABLE = False
-    warnings.warn('seaborn not available. Some visualizations may be limited.')
+# Kept as module-level constants because callers branch on them.
+MATPLOTLIB_AVAILABLE = True
+SEABORN_AVAILABLE = True
 
 
 class FairnessVisualizer:

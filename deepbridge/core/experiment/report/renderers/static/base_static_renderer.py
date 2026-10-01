@@ -50,25 +50,22 @@ class BaseStaticRenderer:
 
         self.data_transformer = DataTransformer()
 
-        # Try to import required libraries
-        try:
-            import matplotlib.pyplot as plt
-            import numpy as np
-            import pandas as pd
-            import seaborn as sns
+        # matplotlib, numpy, pandas and seaborn are mandatory dependencies of
+        # deepbridge (declared in pyproject), so they are imported
+        # unconditionally. Catching the ImportError here only turned a broken
+        # install into silently chart-less reports.
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
 
-            self.sns = sns
-            self.plt = plt
-            self.pd = pd
-            self.np = np
-            self.has_visualization_libs = True
-            # Set default style
-            sns.set_theme(style='whitegrid')
-        except ImportError as e:
-            logger.error(
-                f'Required libraries for static visualization not available: {str(e)}'
-            )
-            self.has_visualization_libs = False
+        self.sns = sns
+        self.plt = plt
+        self.pd = pd
+        self.np = np
+        self.has_visualization_libs = True
+        # Set default style
+        sns.set_theme(style='whitegrid')
 
     def render(
         self,

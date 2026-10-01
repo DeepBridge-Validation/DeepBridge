@@ -114,9 +114,15 @@ class StaticRobustnessRenderer:
                 static_transformer = StaticRobustnessTransformer()
                 report_data = static_transformer.transform(results, model_name)
                 logger.info('Applied static transformations to report data')
-            except ImportError:
+            except ImportError as transformer_err:
                 logger.warning(
-                    'Static transformer not available, using standard transformations'
+                    'Could not import StaticRobustnessTransformer from '
+                    'deepbridge.core.experiment.report.transformers.static '
+                    '(%s); falling back to the standard transformations, so '
+                    'the static report will be missing its static-only data. '
+                    'This module ships with deepbridge, so the installation '
+                    'is probably incomplete.',
+                    transformer_err,
                 )
 
             # Transform initial results data if available

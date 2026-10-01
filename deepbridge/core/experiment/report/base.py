@@ -19,16 +19,13 @@ class DataTransformer:
 
     def __init__(self):
         """Initialize the data transformer."""
-        # Import numpy if available for handling numpy types
-        try:
-            import numpy as np
+        # NumPy is a mandatory dependency of deepbridge (declared in
+        # pyproject), so it is imported unconditionally. Swallowing the
+        # ImportError here used to leave self.np silently set to None, which
+        # made a broken installation look like a working one.
+        import numpy as np
 
-            self.np = np
-        except ImportError:
-            self.np = None
-            logger.warning(
-                'NumPy not available. NumPy type conversion disabled.'
-            )
+        self.np = np
 
     def transform(
         self,

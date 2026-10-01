@@ -544,43 +544,43 @@ class WidthVsCoverageStatic(StaticImageGenerator):
         """Create static width vs coverage chart."""
         self._validate_data(data, ['coverage', 'width'])
 
-        try:
-            import base64
-            import io
+        # matplotlib is a mandatory dependency of deepbridge (declared in
+        # pyproject). The import is unguarded so a genuine ImportError
+        # propagates instead of being re-raised as a misleading
+        # "Matplotlib required for static images" ValueError.
+        import base64
+        import io
 
-            import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
 
-            fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
+        fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
-            ax.plot(
-                data['coverage'],
-                data['width'],
-                'o-',
-                color='#2ca02c',
-                linewidth=2,
-                markersize=8,
-            )
+        ax.plot(
+            data['coverage'],
+            data['width'],
+            'o-',
+            color='#2ca02c',
+            linewidth=2,
+            markersize=8,
+        )
 
-            ax.set_xlabel('Coverage', fontsize=12)
-            ax.set_ylabel('Average Width', fontsize=12)
-            ax.set_title(
-                kwargs.get('title', 'Width vs Coverage Trade-off'),
-                fontsize=14,
-                fontweight='bold',
-            )
-            ax.grid(True, alpha=0.3)
-            ax.set_xlim(0, 1.05)
+        ax.set_xlabel('Coverage', fontsize=12)
+        ax.set_ylabel('Average Width', fontsize=12)
+        ax.set_title(
+            kwargs.get('title', 'Width vs Coverage Trade-off'),
+            fontsize=14,
+            fontweight='bold',
+        )
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(0, 1.05)
 
-            buffer = io.BytesIO()
-            fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
-            buffer.seek(0)
-            img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            plt.close(fig)
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        plt.close(fig)
 
-            return img_base64, 'png'
-
-        except ImportError:
-            raise ValueError('Matplotlib required for static images')
+        return img_base64, 'png'
 
 
 class PerturbationImpactStatic(StaticImageGenerator):
@@ -590,48 +590,48 @@ class PerturbationImpactStatic(StaticImageGenerator):
         """Create static perturbation impact chart."""
         self._validate_data(data, ['perturbation_levels', 'mean_scores'])
 
-        try:
-            import base64
-            import io
+        # matplotlib is a mandatory dependency of deepbridge (declared in
+        # pyproject). The import is unguarded so a genuine ImportError
+        # propagates instead of being re-raised as a misleading
+        # "Matplotlib required for static images" ValueError.
+        import base64
+        import io
 
-            import matplotlib.pyplot as plt
-            import numpy as np
+        import matplotlib.pyplot as plt
+        import numpy as np
 
-            fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
+        fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
-            std_scores = data.get('std_scores', [0] * len(data['mean_scores']))
+        std_scores = data.get('std_scores', [0] * len(data['mean_scores']))
 
-            ax.errorbar(
-                data['perturbation_levels'],
-                data['mean_scores'],
-                yerr=std_scores,
-                fmt='o-',
-                color='#d62728',
-                linewidth=2,
-                markersize=8,
-                capsize=5,
-            )
+        ax.errorbar(
+            data['perturbation_levels'],
+            data['mean_scores'],
+            yerr=std_scores,
+            fmt='o-',
+            color='#d62728',
+            linewidth=2,
+            markersize=8,
+            capsize=5,
+        )
 
-            ax.set_xlabel('Perturbation Level', fontsize=12)
-            ax.set_ylabel('Performance Score', fontsize=12)
-            ax.set_title(
-                kwargs.get('title', 'Performance vs Perturbation Level'),
-                fontsize=14,
-                fontweight='bold',
-            )
-            ax.grid(True, alpha=0.3)
-            ax.set_ylim(0, 1.05)
+        ax.set_xlabel('Perturbation Level', fontsize=12)
+        ax.set_ylabel('Performance Score', fontsize=12)
+        ax.set_title(
+            kwargs.get('title', 'Performance vs Perturbation Level'),
+            fontsize=14,
+            fontweight='bold',
+        )
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.05)
 
-            buffer = io.BytesIO()
-            fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
-            buffer.seek(0)
-            img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            plt.close(fig)
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        plt.close(fig)
 
-            return img_base64, 'png'
-
-        except ImportError:
-            raise ValueError('Matplotlib required for static images')
+        return img_base64, 'png'
 
 
 # ==================================================================================

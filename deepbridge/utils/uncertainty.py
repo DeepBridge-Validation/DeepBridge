@@ -2,9 +2,12 @@
 Utility functions for uncertainty quantification.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+
+logger = logging.getLogger('deepbridge.uncertainty')
 
 
 def run_uncertainty_tests(
@@ -43,8 +46,19 @@ def run_uncertainty_tests(
             dataset, config_name, verbose, feature_subset
         )
 
-    except ImportError:
-        # Fallback to standard version if enhanced is not available
+    except ImportError as exc:
+        # Fallback to the standard version. The enhanced suite ships inside
+        # the deepbridge package, so this path means the installation is
+        # incomplete (or the enhanced suite itself fails to import) - it is
+        # reported instead of silently changing which analysis runs.
+        logger.warning(
+            'Falling back to the standard uncertainty analysis: could not '
+            'import deepbridge.validation.wrappers.'
+            'enhanced_uncertainty_suite (%s). The returned metrics will be '
+            'the standard, less detailed ones.',
+            exc,
+        )
+
         from deepbridge.validation.wrappers.uncertainty_suite import (
             UncertaintySuite,
         )

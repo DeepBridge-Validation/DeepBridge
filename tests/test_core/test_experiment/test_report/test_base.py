@@ -2,7 +2,7 @@
 Comprehensive tests for DataTransformer base class.
 
 This test suite validates:
-1. __init__ - initialization with/without numpy
+1. __init__ - initialization (numpy is a mandatory dependency)
 2. transform - base transformation logic
 3. _deep_copy - deep copy with special type handling
 4. convert_numpy_types - numpy type conversion
@@ -549,15 +549,25 @@ class TestEdgeCases:
         assert result['model_name'] == 'model_v1.0-beta (test)'
 
     @patch('deepbridge.core.experiment.report.base.logger')
-    def test_init_without_numpy_logs_warning(self, mock_logger):
-        """Test that initialization without numpy logs warning"""
-        with patch.dict('sys.modules', {'numpy': None}):
-            with patch('builtins.__import__', side_effect=ImportError("No numpy")):
-                transformer = DataTransformer()
+    def test_init_propagates_numpy_import_error(self, mock_logger):
+        """A failing numpy import must propagate out of __init__.
 
-                assert transformer.np is None
-                mock_logger.warning.assert_called_once()
-                assert 'NumPy not available' in str(mock_logger.warning.call_args)
+        NumPy is a mandatory dependency (declared in ``[tool.poetry
+        .dependencies]``), so an ImportError means a broken installation, not
+        a supported configuration. The constructor used to swallow it and
+        leave ``self.np = None`` behind a warning, which made a broken install
+        look like a working one; that guard was removed on purpose. This test
+        pins the replacement contract: fail loudly, and never log-and-degrade.
+        """
+        with pytest.raises(ImportError, match='No numpy'):
+            # ``patch`` is the inner context so ``builtins.__import__`` is
+            # already restored by the time pytest.raises inspects the error.
+            with patch(
+                'builtins.__import__', side_effect=ImportError('No numpy')
+            ):
+                DataTransformer()
+
+        mock_logger.warning.assert_not_called()
 
     def test_deep_copy_with_list(self, transformer):
         """Test _deep_copy with list in fallback path"""

@@ -55,56 +55,53 @@ class StaticResilienceRenderer:
         self.initial_results_transformer = InitialResultsTransformer()
 
         # Import Seaborn chart utilities
-        try:
-            from ...utils.seaborn_utils import SeabornChartGenerator
+        # SeabornChartGenerator ships inside the deepbridge package, so a
+        # failure here is a broken installation rather than a missing
+        # optional extra. Setting chart_generator = None used to yield a
+        # report with no charts and only a log line to show for it.
+        from ...utils.seaborn_utils import SeabornChartGenerator
 
-            self.chart_generator = SeabornChartGenerator()
+        self.chart_generator = SeabornChartGenerator()
+        logger.info(
+            'Successfully imported and initialized SeabornChartGenerator'
+        )
+
+        # Check if the chart generator has visualization libraries
+        if hasattr(self.chart_generator, 'has_visualization_libs'):
             logger.info(
-                'Successfully imported and initialized SeabornChartGenerator'
+                f'SeabornChartGenerator has_visualization_libs: {self.chart_generator.has_visualization_libs}'
+            )
+        else:
+            logger.warning(
+                'SeabornChartGenerator does not have has_visualization_libs attribute'
             )
 
-            # Check if the chart generator has visualization libraries
-            if hasattr(self.chart_generator, 'has_visualization_libs'):
-                logger.info(
-                    f'SeabornChartGenerator has_visualization_libs: {self.chart_generator.has_visualization_libs}'
-                )
-            else:
-                logger.warning(
-                    'SeabornChartGenerator does not have has_visualization_libs attribute'
-                )
+        # Check available methods
+        chart_methods = [
+            method
+            for method in dir(self.chart_generator)
+            if callable(getattr(self.chart_generator, method))
+            and not method.startswith('_')
+        ]
+        logger.info(f'Available chart methods: {chart_methods}')
 
-            # Check available methods
-            chart_methods = [
-                method
-                for method in dir(self.chart_generator)
-                if callable(getattr(self.chart_generator, method))
-                and not method.startswith('_')
-            ]
-            logger.info(f'Available chart methods: {chart_methods}')
-        except ImportError as e:
-            logger.error(f'Could not import SeabornChartGenerator: {str(e)}')
-            logger.error(f'Traceback: {traceback.format_exc()}')
-            self.chart_generator = None
+        # numpy, matplotlib, seaborn and pandas are mandatory dependencies of
+        # deepbridge (declared in pyproject), so they are imported
+        # unconditionally. Setting self.np = None on ImportError produced
+        # empty reports instead of an error.
+        import matplotlib
+        import numpy as np
 
-        # Import necessary libraries for chart generation
-        try:
-            import matplotlib
-            import numpy as np
+        matplotlib.use('Agg')  # Use non-interactive backend
+        import pandas as pd
+        import seaborn as sns
 
-            matplotlib.use('Agg')  # Use non-interactive backend
-            import pandas as pd
-            import seaborn as sns
-
-            self.np = np
-            self.sns = sns
-            self.pd = pd
-            logger.info(
-                'Successfully imported visualization libraries (numpy, matplotlib, seaborn, pandas)'
-            )
-        except ImportError as e:
-            logger.error(f'Could not import visualization libraries: {str(e)}')
-            logger.error(f'Traceback: {traceback.format_exc()}')
-            self.np = None
+        self.np = np
+        self.sns = sns
+        self.pd = pd
+        logger.info(
+            'Successfully imported visualization libraries (numpy, matplotlib, seaborn, pandas)'
+        )
 
         # Import the modular Resilience chart utilities.
         # This module ships with the package; a failure here is reported

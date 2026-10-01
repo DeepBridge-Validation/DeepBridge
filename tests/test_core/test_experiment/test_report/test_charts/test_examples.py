@@ -216,11 +216,30 @@ class TestSimpleBarImageGenerator:
             mock_ax.set_ylabel.assert_called_once_with('Y Label')
             mock_ax.bar.assert_called_once_with(['A', 'B'], [10, 20], color='#ff0000')
 
-    def test_create_image_missing_matplotlib(self):
-        """Test error when matplotlib is not available"""
-        # Mock to make matplotlib import fail inside _create_image
+    def test_create_image_propagates_matplotlib_import_error(self):
+        """A failing matplotlib import must propagate out of _create_image.
+
+        Matplotlib is a mandatory dependency (declared in ``[tool.poetry
+        .dependencies]``), so an ImportError means a broken installation, not
+        a supported configuration. ``_create_image`` used to catch it and
+        re-raise a ``ValueError('Matplotlib required for static images')``,
+        which hid the real cause; the guard was removed on purpose. This test
+        pins the replacement contract: the ImportError reaches the caller
+        intact. ``ModuleNotFoundError`` is an ImportError subclass, so
+        blanking ``sys.modules`` exercises the same path.
+        """
+        # Mock to make matplotlib import fail inside _create_image.
+        #
+        # Both ``matplotlib`` and ``matplotlib.pyplot`` have to be captured and
+        # put back. Restoring only ``pyplot`` leaves ``sys.modules`` without the
+        # top-level package, so the next importer builds a *fresh*
+        # ``matplotlib`` module while the stale ``pyplot`` object stays cached.
+        # That fresh package never gets the submodule attributes ``pyplot``
+        # normally sets as a side effect of its own import, and later tests die
+        # with ``module 'matplotlib' has no attribute 'backend_bases'``.
         import sys
         matplotlib_backup = sys.modules.get('matplotlib.pyplot')
+        matplotlib_pkg_backup = sys.modules.get('matplotlib')
 
         try:
             # Remove matplotlib from modules to simulate ImportError
@@ -234,10 +253,12 @@ class TestSimpleBarImageGenerator:
                 generator = SimpleBarImageGenerator()
                 data = {'labels': ['A', 'B'], 'values': [10, 20]}
 
-                with pytest.raises(ValueError, match='Matplotlib required'):
+                with pytest.raises(ImportError, match='matplotlib'):
                     generator._create_image(data)
         finally:
-            # Restore matplotlib
+            # Restore matplotlib (package first, then pyplot)
+            if matplotlib_pkg_backup is not None:
+                sys.modules['matplotlib'] = matplotlib_pkg_backup
             if matplotlib_backup is not None:
                 sys.modules['matplotlib.pyplot'] = matplotlib_backup
 

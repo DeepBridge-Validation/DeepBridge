@@ -192,40 +192,39 @@ class SimpleBarImageGenerator(StaticImageGenerator):
         """Create bar chart as base64 PNG."""
         self._validate_data(data, ['labels', 'values'])
 
-        try:
-            import base64
-            import io
+        # matplotlib is a mandatory dependency of deepbridge (declared in
+        # pyproject). The import is unguarded so a genuine ImportError
+        # propagates instead of being re-raised as a misleading
+        # "Matplotlib required for static images" ValueError.
+        import base64
+        import io
 
-            import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
 
-            # Create figure
-            fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
+        # Create figure
+        fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 6)))
 
-            # Plot
-            ax.bar(
-                data['labels'],
-                data['values'],
-                color=kwargs.get('color', '#2ca02c'),
-            )
+        # Plot
+        ax.bar(
+            data['labels'],
+            data['values'],
+            color=kwargs.get('color', '#2ca02c'),
+        )
 
-            # Styling
-            ax.set_title(kwargs.get('title', 'Bar Chart'))
-            ax.set_xlabel(kwargs.get('xlabel', 'Category'))
-            ax.set_ylabel(kwargs.get('ylabel', 'Value'))
-            ax.grid(True, alpha=0.3, axis='y')
+        # Styling
+        ax.set_title(kwargs.get('title', 'Bar Chart'))
+        ax.set_xlabel(kwargs.get('xlabel', 'Category'))
+        ax.set_ylabel(kwargs.get('ylabel', 'Value'))
+        ax.grid(True, alpha=0.3, axis='y')
 
-            # Convert to base64
-            buffer = io.BytesIO()
-            fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
-            buffer.seek(0)
-            img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            plt.close(fig)
+        # Convert to base64
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        plt.close(fig)
 
-            return img_base64, 'png'
-
-        except ImportError:
-            logger.warning('Matplotlib not available, returning error')
-            raise ValueError('Matplotlib required for static images')
+        return img_base64, 'png'
 
 
 # ==================================================================================

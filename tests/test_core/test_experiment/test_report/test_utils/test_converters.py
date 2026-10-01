@@ -50,14 +50,25 @@ class TestInitialization:
         # Just verify it doesn't crash
 
     @patch('deepbridge.core.experiment.report.utils.converters.logger')
-    def test_initialization_without_numpy(self, mock_logger):
-        """Test initialization when numpy is not available"""
-        with patch.dict('sys.modules', {'numpy': None}):
-            with patch('builtins.__import__', side_effect=ImportError("No numpy")):
-                converter = DataTypeConverter()
+    def test_initialization_propagates_numpy_import_error(self, mock_logger):
+        """A failing numpy import must propagate out of __init__.
 
-                assert converter.np is None
-                mock_logger.warning.assert_called_once()
+        NumPy is a mandatory dependency (declared in ``[tool.poetry
+        .dependencies]``), so an ImportError means a broken installation, not
+        a supported configuration. The old guard turned it into
+        ``self.np = None`` plus a warning, which silently disabled every
+        numpy conversion downstream. This test pins the replacement contract:
+        fail loudly, and never log-and-degrade.
+        """
+        with pytest.raises(ImportError, match='No numpy'):
+            # ``patch`` is the inner context so ``builtins.__import__`` is
+            # already restored by the time pytest.raises inspects the error.
+            with patch(
+                'builtins.__import__', side_effect=ImportError('No numpy')
+            ):
+                DataTypeConverter()
+
+        mock_logger.warning.assert_not_called()
 
 
 # ==================== convert_numpy_types - Basic Types Tests ====================

@@ -29,8 +29,40 @@ class BaseChartGenerator:
         """
         self.chart_generator = seaborn_chart_generator
 
-        # Make visualization libraries available globally
-        try:
+        # matplotlib, numpy, pandas, seaborn and scipy are all mandatory
+        # dependencies of deepbridge (declared in pyproject), so they are
+        # imported unconditionally. Degrading to has_visualization_libs =
+        # False made a broken install look like a chart-less report.
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
+        from scipy import stats
+
+        self.sns = sns
+        self.plt = plt
+        self.pd = pd
+        self.np = np
+        self.stats = stats
+
+        # Set default style
+        sns.set_theme(style='whitegrid')
+        self.has_visualization_libs = True
+
+        # If using existing chart generator, ensure we have access to its plt object
+        if self.chart_generator and hasattr(self.chart_generator, 'plt'):
+            self.plt = self.chart_generator.plt
+
+    def _validate_chart_generator(self):
+        """Check if we have a valid chart generator to work with."""
+        if (
+            not hasattr(self, 'plt')
+            or not hasattr(self, 'sns')
+            or not hasattr(self, 'pd')
+        ):
+            # Same mandatory dependencies as in __init__: imported without a
+            # guard so a missing library raises instead of silently clearing
+            # has_visualization_libs.
             import matplotlib.pyplot as plt
             import numpy as np
             import pandas as pd
@@ -46,45 +78,6 @@ class BaseChartGenerator:
             # Set default style
             sns.set_theme(style='whitegrid')
             self.has_visualization_libs = True
-        except ImportError as e:
-            logger.error(
-                f'Required libraries for visualization not available: {str(e)}'
-            )
-            self.has_visualization_libs = False
-
-        # If using existing chart generator, ensure we have access to its plt object
-        if self.chart_generator and hasattr(self.chart_generator, 'plt'):
-            self.plt = self.chart_generator.plt
-
-    def _validate_chart_generator(self):
-        """Check if we have a valid chart generator to work with."""
-        if (
-            not hasattr(self, 'plt')
-            or not hasattr(self, 'sns')
-            or not hasattr(self, 'pd')
-        ):
-            # Try to import visualization libraries if not already loaded
-            try:
-                import matplotlib.pyplot as plt
-                import numpy as np
-                import pandas as pd
-                import seaborn as sns
-                from scipy import stats
-
-                self.sns = sns
-                self.plt = plt
-                self.pd = pd
-                self.np = np
-                self.stats = stats
-
-                # Set default style
-                sns.set_theme(style='whitegrid')
-                self.has_visualization_libs = True
-            except ImportError as e:
-                logger.error(
-                    f'Required libraries for visualization not available: {str(e)}'
-                )
-                self.has_visualization_libs = False
 
         if not self.chart_generator and not getattr(
             self, 'has_visualization_libs', False

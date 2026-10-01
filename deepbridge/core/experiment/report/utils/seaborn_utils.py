@@ -21,41 +21,38 @@ class SeabornChartGenerator:
         """
         Initialize the chart generator.
         """
-        # Try to import required libraries
-        try:
-            import matplotlib.pyplot as plt
-            import numpy as np
-            import pandas as pd
-            import seaborn as sns
+        # matplotlib, numpy, pandas and seaborn are all mandatory
+        # dependencies of deepbridge (declared in pyproject). They are
+        # imported unconditionally so a broken installation raises instead of
+        # silently producing a generator with has_visualization_libs = False,
+        # which yields empty charts indistinguishable from "did not run".
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
 
-            self.sns = sns
-            self.plt = plt
-            self.pd = pd
-            self.np = np
-            self.has_visualization_libs = True
+        self.sns = sns
+        self.plt = plt
+        self.pd = pd
+        self.np = np
+        self.has_visualization_libs = True
 
-            # Set default style
-            sns.set_theme(style='whitegrid')
-            # Use a color palette that works well for most charts
-            sns.set_palette('deep')
-            # Improve font scaling for better readability
-            plt.rcParams.update(
-                {
-                    'font.size': 12,
-                    'axes.labelsize': 14,
-                    'axes.titlesize': 16,
-                    'xtick.labelsize': 12,
-                    'ytick.labelsize': 12,
-                    'legend.fontsize': 12,
-                    'figure.titlesize': 18,
-                }
-            )
-
-        except ImportError as e:
-            logger.error(
-                f'Required libraries for visualization not available: {str(e)}'
-            )
-            self.has_visualization_libs = False
+        # Set default style
+        sns.set_theme(style='whitegrid')
+        # Use a color palette that works well for most charts
+        sns.set_palette('deep')
+        # Improve font scaling for better readability
+        plt.rcParams.update(
+            {
+                'font.size': 12,
+                'axes.labelsize': 14,
+                'axes.titlesize': 16,
+                'xtick.labelsize': 12,
+                'ytick.labelsize': 12,
+                'legend.fontsize': 12,
+                'figure.titlesize': 18,
+            }
+        )
 
     def generate_encoded_chart(self, func, *args, **kwargs) -> str:
         """

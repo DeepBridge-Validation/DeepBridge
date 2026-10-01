@@ -13,82 +13,44 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-# Try to import visualization libraries
+# matplotlib, pandas, seaborn and scipy are mandatory dependencies of
+# deepbridge (declared in pyproject), so they are imported unconditionally.
+# Guarding them only turned a broken installation into a report with no
+# charts, which is indistinguishable from "the test did not run".
+import matplotlib
+
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from scipy import stats
+
+# Kept as a module-level constant because the transformer and the tests
+# branch on it.
+HAS_VISUALIZATION_LIBS = True
+
+# Import our modular chart system. It ships inside the deepbridge package,
+# so there is a single, canonical import path: the old sys.path fallback
+# ("from __init__ import ...") only worked when the process happened to run
+# from the right directory and hid real packaging errors.
 try:
-    import matplotlib
-
-    matplotlib.use('Agg')  # Use non-interactive backend
-    import matplotlib.pyplot as plt
-    import pandas as pd
-    import seaborn as sns
-    from scipy import stats
-
-    HAS_VISUALIZATION_LIBS = True
-except ImportError as e:
-    HAS_VISUALIZATION_LIBS = False
-    logging.getLogger('deepbridge.reports').warning(
-        'Static resilience charts are disabled: could not import the '
-        'visualization libraries (%s). Install them with '
-        '"pip install matplotlib seaborn pandas scipy".',
-        e,
-    )
-
-# Import our modular chart system
-try:
-    # Attempt to import using relative path from project root
     from deepbridge.templates.report_types.resilience.static.charts import (
         ResilienceChartGenerator,
     )
 
     HAS_CHART_GENERATOR = True
     logging.getLogger('deepbridge.reports').info(
-        f'Successfully imported ResilienceChartGenerator'
+        'Successfully imported ResilienceChartGenerator'
     )
-except ImportError:
-    try:
-        # Alternative import path - using absolute path from system
-        import os
-        import sys
-
-        # Get the project root directory
-        project_root = os.path.abspath(
-            os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(
-                                os.path.dirname(os.path.dirname(__file__))
-                            )
-                        )
-                    )
-                )
-            )
-        )
-        charts_path = os.path.join(
-            project_root,
-            'templates',
-            'report_types',
-            'resilience',
-            'static',
-            'charts',
-        )
-        if charts_path not in sys.path:
-            sys.path.append(charts_path)
-        # Try import again
-        from __init__ import ResilienceChartGenerator
-
-        HAS_CHART_GENERATOR = True
-        logging.getLogger('deepbridge.reports').info(
-            f'Successfully imported ResilienceChartGenerator using path: {charts_path}'
-        )
-    except ImportError as e:
-        HAS_CHART_GENERATOR = False
-        logging.getLogger('deepbridge.reports').error(
-            f'Error importing ResilienceChartGenerator: {str(e)}'
-        )
-        logging.getLogger('deepbridge.reports').error(
-            f'Charts path attempted: templates/report_types/resilience/static/charts'
-        )
+except ImportError as e:
+    HAS_CHART_GENERATOR = False
+    logging.getLogger('deepbridge.reports').error(
+        'Resilience charts are unavailable: could not import '
+        'ResilienceChartGenerator from '
+        'deepbridge.templates.report_types.resilience.static.charts (%s). '
+        'This normally means the deepbridge installation is incomplete.',
+        e,
+    )
 
 logger = logging.getLogger('deepbridge.reports')
 

@@ -18,16 +18,12 @@ class DataTypeConverter:
 
     def __init__(self):
         """Initialize the converter."""
-        # Import numpy if available
-        try:
-            import numpy as np
+        # NumPy is a mandatory dependency of deepbridge (declared in
+        # pyproject), so it is imported unconditionally instead of being
+        # degraded to self.np = None on ImportError.
+        import numpy as np
 
-            self.np = np
-        except ImportError:
-            self.np = None
-            logger.warning(
-                'NumPy not available. NumPy type conversion disabled.'
-            )
+        self.np = np
 
     def convert_numpy_types(self, data: Any) -> Any:
         """

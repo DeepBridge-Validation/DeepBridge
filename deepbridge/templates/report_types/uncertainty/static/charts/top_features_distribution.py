@@ -11,6 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from scipy import stats
 
 logger = logging.getLogger('deepbridge.reports')
 
@@ -132,11 +133,12 @@ class TopFeaturesDistributionChart:
                     linewidth=0.5,
                 )
 
-                # Add KDE overlay if requested and scipy is available
+                # Add KDE overlay if requested. scipy is a mandatory
+                # dependency (declared in pyproject) and is imported at module
+                # level: a missing scipy must raise, not quietly drop the KDE
+                # overlay.
                 if show_kde:
                     try:
-                        from scipy import stats
-
                         # KDE for reliable
                         if len(reliable_values) > 1:
                             kde_reliable = stats.gaussian_kde(reliable_values)
@@ -163,10 +165,6 @@ class TopFeaturesDistributionChart:
                                 label='KDE Unreliable',
                                 linestyle='--',
                             )
-                    except ImportError:
-                        logger.warning(
-                            'scipy not available, skipping KDE overlay'
-                        )
                     except Exception as e:
                         logger.warning(f'Could not compute KDE: {str(e)}')
 

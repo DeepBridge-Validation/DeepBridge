@@ -14,16 +14,19 @@ import logging
 import math
 from typing import Any, Dict, List, Union
 
+# NumPy is a mandatory dependency of deepbridge (declared in pyproject), so
+# it is imported unconditionally and at the top: a missing numpy has to
+# surface as an ImportError instead of silently disabling numpy type
+# handling.
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
-# Try to import numpy if available
-try:
-    import numpy as np
-
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-    logger.debug('NumPy not available, numpy type handling disabled')
+# Always True: numpy is a hard dependency and the import above is
+# unconditional. Kept only because this name is part of the module's public
+# surface (tests import it), NOT as a feature flag - there is no code path
+# in this module where numpy is absent.
+HAS_NUMPY = True
 
 
 class SafeJSONEncoder(json.JSONEncoder):
@@ -33,7 +36,7 @@ class SafeJSONEncoder(json.JSONEncoder):
     Handles:
     - NaN and Infinity (converted to None)
     - datetime objects (converted to ISO format)
-    - numpy types (if numpy is available)
+    - numpy types (int, float, ndarray, bool_)
     - Other non-serializable objects (converted to string)
 
     Example:
@@ -64,19 +67,18 @@ class SafeJSONEncoder(json.JSONEncoder):
         if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
             return obj.isoformat()
 
-        # Handle numpy types if numpy is available
-        if HAS_NUMPY:
-            if isinstance(obj, np.integer):
-                return int(obj)
-            if isinstance(obj, np.floating):
-                # Check for NaN/Inf in numpy floats
-                if np.isnan(obj) or np.isinf(obj):
-                    return None
-                return float(obj)
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            if isinstance(obj, np.bool_):
-                return bool(obj)
+        # Handle numpy types
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            # Check for NaN/Inf in numpy floats
+            if np.isnan(obj) or np.isinf(obj):
+                return None
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.bool_):
+            return bool(obj)
 
         # Default: convert to string
         try:
@@ -97,7 +99,7 @@ def safe_json_dumps(
     This function handles special cases that would normally cause json.dumps to fail:
     - NaN and Infinity values (converted to null)
     - datetime objects (converted to ISO format strings)
-    - numpy types (if numpy is available)
+    - numpy types (int, float, ndarray, bool_)
     - Other non-serializable objects (converted to strings)
 
     Parameters:
@@ -191,7 +193,7 @@ def clean_for_json(data: Any) -> Any:
             return None
         return data
 
-    elif HAS_NUMPY and isinstance(data, (np.floating, np.integer)):
+    elif isinstance(data, (np.floating, np.integer)):
         if isinstance(data, np.floating) and (
             np.isnan(data) or np.isinf(data)
         ):
@@ -302,19 +304,16 @@ if __name__ == '__main__':
     js_str = format_for_javascript(test_data)
     print(f'JavaScript ready: const data = {js_str};')
 
-    # Test 5: NumPy types (if available)
-    if HAS_NUMPY:
-        print('\n5. Testing NumPy types...')
-        test_data = {
-            'np_int': np.int64(42),
-            'np_float': np.float64(3.14),
-            'np_nan': np.float64(np.nan),
-            'np_array': np.array([1, 2, 3]),
-        }
-        json_str = safe_json_dumps(test_data, indent=2)
-        print(f'JSON output:\n{json_str}')
-    else:
-        print('\n5. NumPy not available, skipping NumPy tests')
+    # Test 5: NumPy types
+    print('\n5. Testing NumPy types...')
+    test_data = {
+        'np_int': np.int64(42),
+        'np_float': np.float64(3.14),
+        'np_nan': np.float64(np.nan),
+        'np_array': np.array([1, 2, 3]),
+    }
+    json_str = safe_json_dumps(test_data, indent=2)
+    print(f'JSON output:\n{json_str}')
 
     print('\n' + '=' * 80)
     print('Test Complete')
