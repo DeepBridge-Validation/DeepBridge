@@ -14,7 +14,30 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
+from ..data.base import SCORE_MAX
 from .base import ReportBaseModel
+
+# ---------------------------------------------------------------------------
+# Contrato de score: UMA regra, nao duas
+# ---------------------------------------------------------------------------
+#
+# Este layer pydantic e paralelo ao layer de dataclasses em
+# report/data/, e os dois descrevem os MESMOS campos. Enquanto aqui os scores
+# tinham le=1.0 e lá o contrato era [0, 1.25], o repositorio afirmava duas
+# regras contraditorias para o mesmo numero e recusava aqui o resultado que
+# aceitava lá. SCORE_MIN/SCORE_MAX vem de report/data/base.py, que e a unica
+# fonte do contrato (a justificativa dos limites esta documentada lá).
+#
+# Consequencias aplicadas neste modulo:
+# - score agregado: limite superior SCORE_MAX, sem limite inferior. Passar de
+#   1.0 e legitimo (o modelo foi melhor sob perturbacao) e ficar abaixo de 0.0
+#   tambem e medicao possivel para metrica de erro (perda relativa > 100%).
+# - impacto / gap: sao valores COM SINAL. Impacto negativo significa "foi
+#   melhor sob perturbacao" e gap negativo significa "o subconjunto deslocado
+#   foi melhor"; ge=0.0 recusava exatamente esses casos.
+# - metrica bruta (base_score, mean_score, worst_metric...): NAO e normalizada.
+#   Para regressao com MSE/MAE ela passa de 1.0 com facilidade e com R2 pode
+#   ser negativa, logo nao pode ter ge/le de proporcao.
 
 
 class ResilienceMetrics(ReportBaseModel):
@@ -22,9 +45,12 @@ class ResilienceMetrics(ReportBaseModel):
 
     resilience_score: float = Field(
         default=1.0,
-        ge=0.0,
-        le=1.0,
-        description='Overall resilience quality score (0-1)',
+        le=SCORE_MAX,
+        description=(
+            'Overall resilience quality score: 1 - mean relative '
+            'performance gap. Above 1.0 = the shifted subset was better, '
+            'below 0.0 = it lost more than the whole reference performance'
+        ),
     )
     total_scenarios: int = Field(
         default=0,
@@ -38,17 +64,26 @@ class ResilienceMetrics(ReportBaseModel):
     )
     avg_performance_gap: float = Field(
         default=0.0,
-        ge=0.0,
-        description='Average performance gap across all scenarios',
+        description=(
+            'Average performance gap across all scenarios (signed: negative '
+            'means the shifted subset performed better)'
+        ),
     )
     max_performance_gap: float = Field(
-        default=0.0, ge=0.0, description='Maximum performance gap observed'
+        default=0.0, description='Maximum performance gap observed (signed)'
     )
     min_performance_gap: float = Field(
-        default=0.0, ge=0.0, description='Minimum performance gap observed'
+        default=0.0,
+        description=(
+            'Minimum performance gap observed (signed, routinely negative)'
+        ),
     )
     base_performance: float = Field(
-        default=0.0, ge=0.0, le=1.0, description='Baseline model performance'
+        default=0.0,
+        description=(
+            'Baseline model performance in the unit of the metric (not '
+            'normalized)'
+        ),
     )
 
     @property
@@ -169,10 +204,17 @@ class HardSampleTestData(ReportBaseModel):
 class TestTypeSummary(ReportBaseModel):
     """Results summary for a specific test type."""
 
+    # Not a pytest test class. The "Test" prefix here means "test type" in the
+    # validation sense, but pytest tries to collect any class whose name starts
+    # with "Test" and warns (PytestCollectionWarning) when it cannot, which a
+    # pydantic model with a generated __init__ never can. ``__test__`` is a
+    # dunder, so pydantic does not treat it as a model field.
+    __test__ = False
+
     test_type: str = Field(description='Name of test type')
     total_tests: int = Field(default=0, ge=0)
     valid_tests: int = Field(default=0, ge=0)
-    avg_performance_gap: float = Field(default=0.0, ge=0.0)
+    avg_performance_gap: float = Field(default=0.0)
     has_results: bool = Field(default=False)
 
 

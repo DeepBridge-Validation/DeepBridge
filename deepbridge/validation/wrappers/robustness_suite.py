@@ -515,7 +515,29 @@ class RobustnessSuite:
         )
 
         # Calculate robustness score: 1.0 - avg_overall_impact
-        # Higher score means more robust (less impact from perturbations)
+        #
+        # impact = (base_score - perturbed_score) / base_score (e o inverso
+        # para MSE/MAE/RMSE, onde maior e pior - ver
+        # robustness/robustness_evaluator.py), logo robustness_score = fracao
+        # do desempenho base retida sob perturbacao. 1.0 = nenhum impacto.
+        #
+        # NAO ha clamp em nenhum dos dois lados, de proposito, e os dois lados
+        # sao informacao verdadeira:
+        #   > 1.0  o modelo foi MELHOR perturbado (impact negativo, por
+        #          variacao amostral). Clampar em 1.0 tornaria "nao foi
+        #          afetado" indistinguivel de "melhorou".
+        #   < 0.0  so acontece com metrica de erro: impact = (perturbado -
+        #          base)/base nao tem limite superior, entao uma perturbacao
+        #          que mais que dobra o MSE da impact > 1. O score negativo
+        #          significa "perdeu mais que todo o desempenho base" e e uma
+        #          medicao real, nao erro de codificacao.
+        #
+        # O contrato que aceita os dois excedentes esta em
+        # core/experiment/report/data/base.py: acima de SCORE_MAX levanta
+        # ValueError (o excedente acima de 1.0 e limitado por mecanismo),
+        # abaixo de SCORE_MIN passa com ScoreOutOfRangeWarning (abaixo nao e
+        # limitado por mecanismo, e recusar bloquearia o relatorio de um
+        # resultado real).
         results['robustness_score'] = 1.0 - results['avg_overall_impact']
 
         # No longer storing visualizations in the results dictionary

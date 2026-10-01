@@ -164,9 +164,17 @@ class TestRobustnessReportData:
             data.validate()
 
     def test_validate_invalid_robustness_score(self):
-        """Test validation with invalid robustness score."""
+        """Score acima do teto do contrato (SCORE_MAX) e recusado.
+
+        1.5 e recusado porque passa de SCORE_MAX = 1.25, NAO porque passa de
+        1.0: um score pouco acima de 1.0 ("o modelo foi melhor sob
+        perturbacao") e resultado legitimo e e aceito. O contrato esta em
+        report/data/base.py.
+        """
+        from deepbridge.core.experiment.report.data.base import SCORE_MAX
+
         metrics = RobustnessMetrics(
-            robustness_score=1.5,  # Invalid: > 1
+            robustness_score=1.5,  # Invalid: > SCORE_MAX
             base_score=0.85
         )
 
@@ -178,8 +186,15 @@ class TestRobustnessReportData:
             metrics=metrics
         )
 
-        with pytest.raises(ValueError, match="robustness_score must be between 0 and 1"):
+        with pytest.raises(
+            ValueError,
+            match=r"robustness_score must not exceed 1\.25",
+        ):
             data.validate()
+
+        # E o valor logo abaixo do teto passa.
+        metrics.robustness_score = SCORE_MAX
+        assert data.validate() is True
 
     def test_to_dict(self):
         """Test conversion to dictionary."""

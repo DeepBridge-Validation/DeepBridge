@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 from deepbridge.core.experiment.parameter_standards import (
     ConfigName,
-    TestType,
+    ValidationTestType,
     get_test_config,
     is_valid_config_name,
 )
@@ -32,7 +32,7 @@ class UncertaintySuite:
         try:
             uncertainty_configs = {
                 config_name: get_test_config(
-                    TestType.UNCERTAINTY.value, config_name
+                    ValidationTestType.UNCERTAINTY.value, config_name
                 )
                 for config_name in [
                     ConfigName.QUICK.value,

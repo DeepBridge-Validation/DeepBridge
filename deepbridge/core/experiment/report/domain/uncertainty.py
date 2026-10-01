@@ -14,7 +14,30 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field, field_validator, model_validator
 
+from ..data.base import SCORE_MAX
 from .base import ReportBaseModel
+
+# ---------------------------------------------------------------------------
+# Contrato de score: UMA regra, nao duas
+# ---------------------------------------------------------------------------
+#
+# Este layer pydantic e paralelo ao layer de dataclasses em
+# report/data/, e os dois descrevem os MESMOS campos. Enquanto aqui os scores
+# tinham le=1.0 e lá o contrato era [0, 1.25], o repositorio afirmava duas
+# regras contraditorias para o mesmo numero e recusava aqui o resultado que
+# aceitava lá. SCORE_MIN/SCORE_MAX vem de report/data/base.py, que e a unica
+# fonte do contrato (a justificativa dos limites esta documentada lá).
+#
+# Consequencias aplicadas neste modulo:
+# - score agregado: limite superior SCORE_MAX, sem limite inferior. Passar de
+#   1.0 e legitimo (o modelo foi melhor sob perturbacao) e ficar abaixo de 0.0
+#   tambem e medicao possivel para metrica de erro (perda relativa > 100%).
+# - impacto / gap: sao valores COM SINAL. Impacto negativo significa "foi
+#   melhor sob perturbacao" e gap negativo significa "o subconjunto deslocado
+#   foi melhor"; ge=0.0 recusava exatamente esses casos.
+# - metrica bruta (base_score, mean_score, worst_metric...): NAO e normalizada.
+#   Para regressao com MSE/MAE ela passa de 1.0 com facilidade e com R2 pode
+#   ser negativa, logo nao pode ter ge/le de proporcao.
 
 
 class UncertaintyMetrics(ReportBaseModel):
@@ -27,9 +50,12 @@ class UncertaintyMetrics(ReportBaseModel):
 
     uncertainty_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
-        description='Overall uncertainty quality score (0-1)',
+        le=SCORE_MAX,
+        description=(
+            'Overall uncertainty quality score: fraction of the nominal '
+            'coverage actually achieved. Above 1.0 = over-coverage, which is '
+            'a real result'
+        ),
     )
 
     coverage: float = Field(
@@ -134,8 +160,7 @@ class AlternativeModelData(ReportBaseModel):
 
     uncertainty_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
+        le=SCORE_MAX,
         description='Overall uncertainty score for this method',
     )
 

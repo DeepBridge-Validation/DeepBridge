@@ -27,10 +27,111 @@ from sklearn.model_selection import train_test_split
 
 from deepbridge.core.experiment.parameter_standards import (
     ConfigName,
-    TestType,
+    ValidationTestType,
     get_test_config,
     is_valid_config_name,
 )
+
+# ---------------------------------------------------------------------------
+# Performance gap: sinal e escala
+# ---------------------------------------------------------------------------
+#
+# Todas as rotas desta suite comparam um subconjunto DEGRADADO (worst sample,
+# worst cluster, outer sample, hard sample, subconjunto deslocado) contra um
+# subconjunto de REFERENCIA (o resto dos dados). O resilience_score e
+# calculado como 1 - mean(gap), o que exige duas propriedades do gap que o
+# codigo antigo nao garantia:
+#
+# 1. SINAL. gap > 0 tem de significar "o subconjunto degradado esta pior".
+#    Para metrica de erro (MSE, MAE, RMSE, SMAPE, MAPE) menor e melhor, logo o
+#    sinal se inverte. Duas das cinco rotas faziam 'referencia - degradado'
+#    sem essa correcao: com metric='mse'/'mae' o gap saia NEGATIVO justamente
+#    quando o modelo era MENOS resiliente, e o score passava de 1.0 ("mais que
+#    perfeitamente resiliente") no caso em que o modelo degradou.
+#
+# 2. ESCALA. 1 - gap so faz sentido se o gap for uma FRACAO. A diferenca
+#    absoluta de MSE esta em unidade de erro ao quadrado e nao tem limite:
+#    um gap medio de 30 produziria score -29, e um gap de -30 produziria 31.
+#    Por isso o score usa o gap RELATIVO (gap / |metrica de referencia|), que
+#    e exatamente a definicao que robustness ja usa para o seu impacto
+#    ((base - perturbado)/base). Com isso os dois scores passam a significar
+#    a mesma coisa: fracao do desempenho de referencia retida.
+#
+# O gap absoluto continua publicado em 'performance_gap' (e o que os graficos
+# e o ranking de features usam, na unidade da metrica); o relativo vai em
+# 'performance_gap_relative' e e o unico que entra no score.
+
+# Metricas em que MENOR e MELHOR.
+ERROR_METRICS = frozenset({'mse', 'mae', 'rmse', 'smape', 'mape', 'msle'})
+
+# Abaixo disso a metrica de referencia nao serve como denominador (modelo
+# perfeito na referencia, ou R2 em torno de zero): o gap relativo fica
+# indefinido em vez de explodir para 1e10.
+_MIN_REFERENCE_MAGNITUDE = 1e-9
+
+
+def is_error_metric(metric: Any) -> bool:
+    """True quando valores MENORES da metrica indicam desempenho melhor."""
+    return str(metric).strip().lower() in ERROR_METRICS
+
+
+def signed_performance_gap(metric: Any, degraded: float, reference: float):
+    """Gap positivo quando o subconjunto degradado esta pior.
+
+    Args:
+        metric: Nome da metrica (define o sentido de "melhor").
+        degraded: Metrica no subconjunto degradado (worst/outer/hard/shifted).
+        reference: Metrica no subconjunto de referencia (o resto).
+    """
+    if degraded is None or reference is None:
+        return np.nan
+    if np.isnan(degraded) or np.isnan(reference):
+        return np.nan
+    if is_error_metric(metric):
+        return degraded - reference
+    return reference - degraded
+
+
+def relative_performance_gap(metric: Any, degraded: float, reference: float):
+    """Gap como fracao da metrica de referencia (adimensional).
+
+    Retorna np.nan quando a referencia e pequena demais para servir de
+    denominador - o caso fica de fora da media do score em vez de produzir um
+    numero sem sentido.
+    """
+    gap = signed_performance_gap(metric, degraded, reference)
+    if gap is None or np.isnan(gap):
+        return np.nan
+    denominator = abs(float(reference))
+    if denominator < _MIN_REFERENCE_MAGNITUDE:
+        return np.nan
+    return gap / denominator
+
+
+def _mean_of_valid(values):
+    """Media dos valores numericos finitos, ou None se nao houver nenhum.
+
+    Nao devolve 0.0 nem 1.0 quando nao ha dado: 0.0 seria indistinguivel de
+    "gap medido igual a zero" e esconderia a ausencia de medicao.
+    """
+    valid = [
+        float(v)
+        for v in values
+        if v is not None and not np.isnan(float(v))
+    ]
+    if not valid:
+        return None
+    return float(np.mean(valid))
+
+
+def _as_optional_float(value):
+    """float(value), ou None quando o valor e NaN/None (para o dict de saida)."""
+    if value is None:
+        return None
+    value = float(value)
+    if np.isnan(value):
+        return None
+    return value
 
 
 class ResilienceSuite:
@@ -45,7 +146,7 @@ class ResilienceSuite:
             # Convert the drift-based configurations to test specific format
             central_configs = {
                 config_name: get_test_config(
-                    TestType.RESILIENCE.value, config_name
+                    ValidationTestType.RESILIENCE.value, config_name
                 )
                 for config_name in [
                     ConfigName.QUICK.value,
@@ -774,8 +875,15 @@ class ResilienceSuite:
                     f'Unsupported metric for regression: {metric}'
                 )
 
-        # Calculate performance gap
-        performance_gap = remaining_metric - worst_metric
+        # Calculate performance gap.
+        # O sinal depende da metrica (ver signed_performance_gap no topo do
+        # modulo): para mse/mae/smape o pior subconjunto tem metrica MAIOR.
+        performance_gap = signed_performance_gap(
+            metric, worst_metric, remaining_metric
+        )
+        performance_gap_relative = relative_performance_gap(
+            metric, worst_metric, remaining_metric
+        )
 
         # Calculate feature distribution shift
         feature_distances = self._calculate_feature_distances(
@@ -790,7 +898,10 @@ class ResilienceSuite:
             'distance_metric': distance_metric,
             'worst_metric': worst_metric,
             'remaining_metric': remaining_metric,
-            'performance_gap': performance_gap,
+            'performance_gap': _as_optional_float(performance_gap),
+            'performance_gap_relative': _as_optional_float(
+                performance_gap_relative
+            ),
             'feature_distances': feature_distances,
             'worst_sample_count': len(worst_samples),
             'remaining_sample_count': len(remaining_samples),
@@ -973,11 +1084,13 @@ class ResilienceSuite:
             else:
                 raise ValueError(f'Unsupported metric: {metric}')
 
-        # Calculate performance gap
-        if not np.isnan(worst_metric) and not np.isnan(remaining_metric):
-            performance_gap = remaining_metric - worst_metric
-        else:
-            performance_gap = np.nan
+        # Calculate performance gap (sinal corrigido para metrica de erro)
+        performance_gap = signed_performance_gap(
+            metric, worst_metric, remaining_metric
+        )
+        performance_gap_relative = relative_performance_gap(
+            metric, worst_metric, remaining_metric
+        )
 
         # Calculate feature statistics for worst samples
         feature_statistics = {}
@@ -1013,9 +1126,10 @@ class ResilienceSuite:
             'remaining_metric': float(remaining_metric)
             if not np.isnan(remaining_metric)
             else None,
-            'performance_gap': float(performance_gap)
-            if not np.isnan(performance_gap)
-            else None,
+            'performance_gap': _as_optional_float(performance_gap),
+            'performance_gap_relative': _as_optional_float(
+                performance_gap_relative
+            ),
             'worst_indices': worst_indices.tolist(),
             'worst_errors': errors[worst_indices].tolist(),
             'worst_sample_count': len(worst_indices),
@@ -1226,15 +1340,12 @@ class ResilienceSuite:
                     remaining_metric = r2_score(y_remaining, y_pred_remaining)
 
             # Calculate performance gap
-            if not np.isnan(worst_cluster_metric) and not np.isnan(
-                remaining_metric
-            ):
-                if metric in ['mse', 'mae']:  # Error metrics
-                    performance_gap = worst_cluster_metric - remaining_metric
-                else:  # Score metrics
-                    performance_gap = remaining_metric - worst_cluster_metric
-            else:
-                performance_gap = np.nan
+            performance_gap = signed_performance_gap(
+                metric, worst_cluster_metric, remaining_metric
+            )
+            performance_gap_relative = relative_performance_gap(
+                metric, worst_cluster_metric, remaining_metric
+            )
 
         # Calculate feature importance (features that define worst cluster)
         worst_cluster_mask = cluster_labels == worst_cluster_id
@@ -1279,9 +1390,10 @@ class ResilienceSuite:
             'remaining_metric': float(remaining_metric)
             if not np.isnan(remaining_metric)
             else None,
-            'performance_gap': float(performance_gap)
-            if not np.isnan(performance_gap)
-            else None,
+            'performance_gap': _as_optional_float(performance_gap),
+            'performance_gap_relative': _as_optional_float(
+                performance_gap_relative
+            ),
             'worst_cluster_size': cluster_sizes[worst_cluster_id],
             'remaining_size': sum(cluster_sizes)
             - cluster_sizes[worst_cluster_id],
@@ -1439,13 +1551,12 @@ class ResilienceSuite:
                 raise ValueError(f'Unsupported metric: {metric}')
 
         # Calculate performance gap
-        if not np.isnan(outer_metric) and not np.isnan(inner_metric):
-            if metric in ['mse', 'mae']:  # Error metrics
-                performance_gap = outer_metric - inner_metric
-            else:  # Score metrics
-                performance_gap = inner_metric - outer_metric
-        else:
-            performance_gap = np.nan
+        performance_gap = signed_performance_gap(
+            metric, outer_metric, inner_metric
+        )
+        performance_gap_relative = relative_performance_gap(
+            metric, outer_metric, inner_metric
+        )
 
         # Calculate feature deviations
         feature_deviations = {}
@@ -1485,9 +1596,10 @@ class ResilienceSuite:
             'inner_metric': float(inner_metric)
             if not np.isnan(inner_metric)
             else None,
-            'performance_gap': float(performance_gap)
-            if not np.isnan(performance_gap)
-            else None,
+            'performance_gap': _as_optional_float(performance_gap),
+            'performance_gap_relative': _as_optional_float(
+                performance_gap_relative
+            ),
             'outer_indices': outer_indices.tolist(),
             'outer_scores': outlier_scores[outer_indices].tolist(),
             'outer_sample_count': len(outer_indices),
@@ -1723,13 +1835,12 @@ class ResilienceSuite:
                 raise ValueError(f'Unsupported metric: {metric}')
 
         # Calculate performance gap
-        if not np.isnan(hard_metric) and not np.isnan(easy_metric):
-            if metric in ['mse', 'mae']:  # Error metrics
-                performance_gap = hard_metric - easy_metric
-            else:  # Score metrics
-                performance_gap = easy_metric - hard_metric
-        else:
-            performance_gap = np.nan
+        performance_gap = signed_performance_gap(
+            metric, hard_metric, easy_metric
+        )
+        performance_gap_relative = relative_performance_gap(
+            metric, hard_metric, easy_metric
+        )
 
         # Calculate feature complexity (variance in hard samples)
         feature_complexity = {}
@@ -1766,9 +1877,10 @@ class ResilienceSuite:
             'easy_metric': float(easy_metric)
             if not np.isnan(easy_metric)
             else None,
-            'performance_gap': float(performance_gap)
-            if not np.isnan(performance_gap)
-            else None,
+            'performance_gap': _as_optional_float(performance_gap),
+            'performance_gap_relative': _as_optional_float(
+                performance_gap_relative
+            ),
             'hard_indices': hard_indices.tolist(),
             'disagreement_scores': disagreement_scores.tolist(),
             'hard_sample_count': len(hard_indices),
@@ -2003,12 +2115,18 @@ class ResilienceSuite:
         for alpha, alpha_results in results['distribution_shift'][
             'by_alpha'
         ].items():
-            avg_performance_gap = np.mean(
+            avg_performance_gap = _mean_of_valid(
                 [r['performance_gap'] for r in alpha_results]
             )
             results['distribution_shift']['by_alpha'][alpha] = {
                 'results': alpha_results,
                 'avg_performance_gap': avg_performance_gap,
+                'avg_performance_gap_relative': _mean_of_valid(
+                    [
+                        r.get('performance_gap_relative')
+                        for r in alpha_results
+                    ]
+                ),
             }
 
         # For each distance metric, find the features with highest shift
@@ -2048,207 +2166,132 @@ class ResilienceSuite:
         for alpha, alpha_results in results['worst_sample'][
             'by_alpha'
         ].items():
-            # Filter out None performance gaps
-            valid_gaps = [
-                r['performance_gap']
-                for r in alpha_results
-                if r['performance_gap'] is not None
-            ]
-            if valid_gaps:
-                avg_performance_gap = np.mean(valid_gaps)
-            else:
-                avg_performance_gap = 0.0
+            avg_performance_gap = _mean_of_valid(
+                [r['performance_gap'] for r in alpha_results]
+            )
             results['worst_sample']['by_alpha'][alpha] = {
                 'results': alpha_results,
                 'avg_performance_gap': avg_performance_gap,
+                'avg_performance_gap_relative': _mean_of_valid(
+                    [
+                        r.get('performance_gap_relative')
+                        for r in alpha_results
+                    ]
+                ),
             }
 
         # Calculate worst-cluster summaries
         for n_clusters, cluster_results in results['worst_cluster'][
             'by_n_clusters'
         ].items():
-            # Filter out None performance gaps
-            valid_gaps = [
-                r['performance_gap']
-                for r in cluster_results
-                if r['performance_gap'] is not None
-            ]
-            if valid_gaps:
-                avg_performance_gap = np.mean(valid_gaps)
-            else:
-                avg_performance_gap = 0.0
+            avg_performance_gap = _mean_of_valid(
+                [r['performance_gap'] for r in cluster_results]
+            )
             results['worst_cluster']['by_n_clusters'][n_clusters] = {
                 'results': cluster_results,
                 'avg_performance_gap': avg_performance_gap,
+                'avg_performance_gap_relative': _mean_of_valid(
+                    [
+                        r.get('performance_gap_relative')
+                        for r in cluster_results
+                    ]
+                ),
             }
 
         # Calculate outer-sample summaries
         for alpha, alpha_results in results['outer_sample'][
             'by_alpha'
         ].items():
-            # Filter out None performance gaps
-            valid_gaps = [
-                r['performance_gap']
-                for r in alpha_results
-                if r['performance_gap'] is not None
-            ]
-            if valid_gaps:
-                avg_performance_gap = np.mean(valid_gaps)
-            else:
-                avg_performance_gap = 0.0
+            avg_performance_gap = _mean_of_valid(
+                [r['performance_gap'] for r in alpha_results]
+            )
             results['outer_sample']['by_alpha'][alpha] = {
                 'results': alpha_results,
                 'avg_performance_gap': avg_performance_gap,
+                'avg_performance_gap_relative': _mean_of_valid(
+                    [
+                        r.get('performance_gap_relative')
+                        for r in alpha_results
+                    ]
+                ),
             }
 
         # Calculate hard-sample summaries
         for threshold, threshold_results in results['hard_sample'][
             'by_threshold'
         ].items():
-            # Filter out None performance gaps
-            valid_gaps = [
-                r['performance_gap']
-                for r in threshold_results
-                if r['performance_gap'] is not None
-            ]
-            if valid_gaps:
-                avg_performance_gap = np.mean(valid_gaps)
-            else:
-                avg_performance_gap = 0.0
+            avg_performance_gap = _mean_of_valid(
+                [r['performance_gap'] for r in threshold_results]
+            )
             results['hard_sample']['by_threshold'][threshold] = {
                 'results': threshold_results,
                 'avg_performance_gap': avg_performance_gap,
+                'avg_performance_gap_relative': _mean_of_valid(
+                    [
+                        r.get('performance_gap_relative')
+                        for r in threshold_results
+                    ]
+                ),
             }
 
-        # Calculate overall resilience score considering all test types
+        # Calculate overall resilience score.
+        #
+        # resilience_score = 1 - mean(gap relativo), onde o gap relativo e a
+        # fracao do desempenho de referencia perdida pelo subconjunto
+        # degradado (ver os comentarios de signed_performance_gap /
+        # relative_performance_gap no topo do modulo).
+        #
+        # Nao ha clamp em nenhum dos dois lados, e os dois lados sao
+        # informacao verdadeira:
+        #   > 1.0  o subconjunto deslocado foi MELHOR que a referencia. Zerar
+        #          isso (o antigo max(0.0, gap)) tornava esse caso
+        #          indistinguivel de "nao foi afetado".
+        #   < 0.0  o subconjunto degradado perdeu MAIS que todo o desempenho
+        #          de referencia (erro mais que dobrou). O antigo min(1.0,
+        #          gap) publicava 0.0 aqui, o que ao menos tinha o sinal
+        #          certo; o problema era o outro lado: com metrica de erro o
+        #          gap vinha com o sinal invertido em duas rotas, entao o
+        #          score passava de 1.0 justamente quando o modelo degradava.
+        #
+        # O contrato que aceita os dois excedentes esta em
+        # core/experiment/report/data/base.py (SCORE_MIN/SCORE_MAX/
+        # validate_score).
+        #
+        # A media e por TIPO DE TESTE (a media dos alphas/clusters/limiares de
+        # cada tipo entra uma vez). Antes cada alpha entrava solto na lista,
+        # entao um tipo configurado com mais alphas pesava mais no score que
+        # os outros sem nenhuma razao.
+        gap_sources = [
+            ('distribution_shift', 'by_alpha'),
+            ('worst_sample', 'by_alpha'),
+            ('worst_cluster', 'by_n_clusters'),
+            ('outer_sample', 'by_alpha'),
+            ('hard_sample', 'by_threshold'),
+        ]
+
         all_gaps = []
-
-        # Add distribution_shift gaps
-        if results['distribution_shift']['by_alpha']:
-            for alpha in results['distribution_shift']['by_alpha'].keys():
-                all_gaps.append(
-                    results['distribution_shift']['by_alpha'][alpha][
-                        'avg_performance_gap'
-                    ]
-                )
-
-        # Add worst_sample gaps
-        if results['worst_sample']['by_alpha']:
-            for alpha in results['worst_sample']['by_alpha'].keys():
-                gap = results['worst_sample']['by_alpha'][alpha][
-                    'avg_performance_gap'
-                ]
-                if gap is not None and not np.isnan(gap):
-                    all_gaps.append(gap)
-
-        # Add worst_cluster gaps
-        if results['worst_cluster']['by_n_clusters']:
-            for n_clusters in results['worst_cluster']['by_n_clusters'].keys():
-                gap = results['worst_cluster']['by_n_clusters'][n_clusters][
-                    'avg_performance_gap'
-                ]
-                if gap is not None and not np.isnan(gap):
-                    all_gaps.append(gap)
-
-        # Add outer_sample gaps
-        if results['outer_sample']['by_alpha']:
-            for alpha in results['outer_sample']['by_alpha'].keys():
-                gap = results['outer_sample']['by_alpha'][alpha][
-                    'avg_performance_gap'
-                ]
-                if gap is not None and not np.isnan(gap):
-                    all_gaps.append(gap)
-
-        # Add hard_sample gaps
-        if results['hard_sample']['by_threshold']:
-            for threshold in results['hard_sample']['by_threshold'].keys():
-                gap = results['hard_sample']['by_threshold'][threshold][
-                    'avg_performance_gap'
-                ]
-                if gap is not None and not np.isnan(gap):
-                    all_gaps.append(gap)
-
-        # Calculate composite resilience score
-        if all_gaps:
-            results['resilience_score'] = 1.0 - min(
-                1.0, max(0.0, np.mean(all_gaps))
-            )
-        else:
-            results['resilience_score'] = 1.0
-
-        # Add test-specific scores
         results['test_scores'] = {}
-        if results['distribution_shift']['by_alpha']:
-            ds_gaps = [
-                results['distribution_shift']['by_alpha'][a][
-                    'avg_performance_gap'
+        for test_name, by_key in gap_sources:
+            summaries = results.get(test_name, {}).get(by_key) or {}
+            mean_relative_gap = _mean_of_valid(
+                [
+                    summary.get('avg_performance_gap_relative')
+                    for summary in summaries.values()
                 ]
-                for a in results['distribution_shift']['by_alpha'].keys()
-            ]
-            if ds_gaps:
-                results['test_scores']['distribution_shift'] = 1.0 - min(
-                    1.0, max(0.0, np.mean(ds_gaps))
-                )
+            )
+            if mean_relative_gap is not None:
+                all_gaps.append(mean_relative_gap)
+                results['test_scores'][test_name] = 1.0 - mean_relative_gap
 
-        if results['worst_sample']['by_alpha']:
-            ws_gaps = [
-                results['worst_sample']['by_alpha'][a]['avg_performance_gap']
-                for a in results['worst_sample']['by_alpha'].keys()
-                if results['worst_sample']['by_alpha'][a][
-                    'avg_performance_gap'
-                ]
-                is not None
-            ]
-            if ws_gaps:
-                results['test_scores']['worst_sample'] = 1.0 - min(
-                    1.0, max(0.0, np.mean(ws_gaps))
-                )
-
-        if results['worst_cluster']['by_n_clusters']:
-            wc_gaps = [
-                results['worst_cluster']['by_n_clusters'][n][
-                    'avg_performance_gap'
-                ]
-                for n in results['worst_cluster']['by_n_clusters'].keys()
-                if results['worst_cluster']['by_n_clusters'][n][
-                    'avg_performance_gap'
-                ]
-                is not None
-            ]
-            if wc_gaps:
-                results['test_scores']['worst_cluster'] = 1.0 - min(
-                    1.0, max(0.0, np.mean(wc_gaps))
-                )
-
-        if results['outer_sample']['by_alpha']:
-            os_gaps = [
-                results['outer_sample']['by_alpha'][a]['avg_performance_gap']
-                for a in results['outer_sample']['by_alpha'].keys()
-                if results['outer_sample']['by_alpha'][a][
-                    'avg_performance_gap'
-                ]
-                is not None
-            ]
-            if os_gaps:
-                results['test_scores']['outer_sample'] = 1.0 - min(
-                    1.0, max(0.0, np.mean(os_gaps))
-                )
-
-        if results['hard_sample']['by_threshold']:
-            hs_gaps = [
-                results['hard_sample']['by_threshold'][t][
-                    'avg_performance_gap'
-                ]
-                for t in results['hard_sample']['by_threshold'].keys()
-                if results['hard_sample']['by_threshold'][t][
-                    'avg_performance_gap'
-                ]
-                is not None
-            ]
-            if hs_gaps:
-                results['test_scores']['hard_sample'] = 1.0 - min(
-                    1.0, max(0.0, np.mean(hs_gaps))
-                )
+        if all_gaps:
+            results['resilience_score'] = 1.0 - float(np.mean(all_gaps))
+        else:
+            # Nenhum gap utilizavel: ou nenhum teste rodou, ou a metrica de
+            # referencia era degenerada em todos eles. O score fica 1.0 por
+            # compatibilidade, mas a contagem abaixo deixa a diferenca entre
+            # "perfeito" e "nao medido" visivel para quem le os resultados.
+            results['resilience_score'] = 1.0
+        results['resilience_score_test_types_used'] = len(all_gaps)
 
         # Store parameters
         results['alphas'] = sorted(all_alphas)
@@ -2308,8 +2351,14 @@ class ResilienceSuite:
             report_lines.append(
                 f'\n### Alpha = {alpha} (Worst {int(alpha*100)}% of samples)'
             )
+            alpha_gap = alpha_data.get('avg_performance_gap')
             report_lines.append(
-                f"Average performance gap: {alpha_data.get('avg_performance_gap', 0):.3f}"
+                'Average performance gap: '
+                + (
+                    f'{alpha_gap:.3f}'
+                    if alpha_gap is not None
+                    else 'not measured'
+                )
             )
 
             # Add individual test results

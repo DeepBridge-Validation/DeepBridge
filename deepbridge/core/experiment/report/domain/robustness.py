@@ -14,7 +14,30 @@ from typing import Dict, List, Optional
 
 from pydantic import Field
 
+from ..data.base import SCORE_MAX
 from .base import ReportBaseModel
+
+# ---------------------------------------------------------------------------
+# Contrato de score: UMA regra, nao duas
+# ---------------------------------------------------------------------------
+#
+# Este layer pydantic e paralelo ao layer de dataclasses em
+# report/data/, e os dois descrevem os MESMOS campos. Enquanto aqui os scores
+# tinham le=1.0 e lá o contrato era [0, 1.25], o repositorio afirmava duas
+# regras contraditorias para o mesmo numero e recusava aqui o resultado que
+# aceitava lá. SCORE_MIN/SCORE_MAX vem de report/data/base.py, que e a unica
+# fonte do contrato (a justificativa dos limites esta documentada lá).
+#
+# Consequencias aplicadas neste modulo:
+# - score agregado: limite superior SCORE_MAX, sem limite inferior. Passar de
+#   1.0 e legitimo (o modelo foi melhor sob perturbacao) e ficar abaixo de 0.0
+#   tambem e medicao possivel para metrica de erro (perda relativa > 100%).
+# - impacto / gap: sao valores COM SINAL. Impacto negativo significa "foi
+#   melhor sob perturbacao" e gap negativo significa "o subconjunto deslocado
+#   foi melhor"; ge=0.0 recusava exatamente esses casos.
+# - metrica bruta (base_score, mean_score, worst_metric...): NAO e normalizada.
+#   Para regressao com MSE/MAE ela passa de 1.0 com facilidade e com R2 pode
+#   ser negativa, logo nao pode ter ge/le de proporcao.
 
 
 class RobustnessMetrics(ReportBaseModel):
@@ -22,30 +45,38 @@ class RobustnessMetrics(ReportBaseModel):
 
     base_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
-        description='Baseline model performance without perturbations',
+        description=(
+            'Baseline model performance without perturbations, in the unit '
+            'of the chosen metric (not normalized: MSE/MAE pass 1.0 easily '
+            'and R2 can be negative)'
+        ),
     )
     robustness_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
-        description='Overall robustness quality score (0-1)',
+        le=SCORE_MAX,
+        description=(
+            'Overall robustness quality score: fraction of the baseline '
+            'performance retained under perturbation. 1.0 = unaffected, '
+            'above 1.0 = better under perturbation, below 0.0 = lost more '
+            'than the whole baseline (error metrics)'
+        ),
     )
     avg_raw_impact: float = Field(
         default=0.0,
-        ge=0.0,
-        description='Average raw performance impact across perturbations',
+        description=(
+            'Average raw performance impact across perturbations (signed: '
+            'negative means the model performed better)'
+        ),
     )
     avg_quantile_impact: float = Field(
         default=0.0,
-        ge=0.0,
-        description='Average quantile-based performance impact',
+        description='Average quantile-based performance impact (signed)',
     )
     avg_overall_impact: float = Field(
         default=0.0,
-        ge=0.0,
-        description='Average overall impact (mean of raw and quantile)',
+        description=(
+            'Average overall impact, mean of raw and quantile (signed)'
+        ),
     )
     metric: str = Field(
         default='AUC',
@@ -74,21 +105,24 @@ class PerturbationLevelData(ReportBaseModel):
     )
     mean_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
-        description='Mean score at this perturbation level',
+        description=(
+            'Mean score at this perturbation level, in the unit of the '
+            'metric (not normalized)'
+        ),
     )
     std_score: float = Field(
         default=0.0, ge=0.0, description='Standard deviation of scores'
     )
     impact: float = Field(
-        default=0.0, ge=0.0, description='Performance impact at this level'
+        default=0.0,
+        description=(
+            'Performance impact at this level (signed: negative means the '
+            'model performed better under perturbation)'
+        ),
     )
     worst_score: float = Field(
         default=0.0,
-        ge=0.0,
-        le=1.0,
-        description='Worst score observed at this level',
+        description='Worst score observed at this level (metric unit)',
     )
 
     @property
@@ -105,7 +139,8 @@ class FeatureRobustnessData(ReportBaseModel):
         default=0.0, ge=0.0, description='Base feature importance'
     )
     robustness_impact: float = Field(
-        default=0.0, ge=0.0, description='Feature-specific robustness impact'
+        default=0.0,
+        description='Feature-specific robustness impact (signed)',
     )
 
     @property
