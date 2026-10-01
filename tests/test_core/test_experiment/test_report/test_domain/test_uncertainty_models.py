@@ -48,19 +48,23 @@ class TestUncertaintyMetrics:
         assert metrics.coverage == 0.0
 
     def test_validation_uncertainty_score_range(self):
-        """Test that uncertainty_score is validated to [0, 1]."""
+        """O contrato e [SCORE_MIN, SCORE_MAX], o mesmo de report/data/base.py.
+
+        Sobre-cobertura (score > 1.0) e um resultado real: medido 1.0857 num
+        dataset de 1200 linhas. O que o teto pega e erro de codificacao.
+        """
+        from deepbridge.core.experiment.report.data.base import SCORE_MAX
+
         # Valid
         UncertaintyMetrics(uncertainty_score=0.0)
         UncertaintyMetrics(uncertainty_score=1.0)
         UncertaintyMetrics(uncertainty_score=0.5)
-
-        # Invalid - too low
-        with pytest.raises(ValidationError):
-            UncertaintyMetrics(uncertainty_score=-0.1)
+        UncertaintyMetrics(uncertainty_score=1.0857)
+        UncertaintyMetrics(uncertainty_score=SCORE_MAX)
 
         # Invalid - too high
         with pytest.raises(ValidationError):
-            UncertaintyMetrics(uncertainty_score=1.1)
+            UncertaintyMetrics(uncertainty_score=SCORE_MAX + 0.01)
 
     def test_validation_coverage_range(self):
         """Test that coverage is validated to [0, 1]."""

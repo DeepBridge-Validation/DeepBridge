@@ -43,18 +43,49 @@ class TestRobustnessMetrics:
         assert metrics.metric == 'AUC'
 
     def test_validation_score_range(self):
-        """Test that scores are validated to [0, 1]."""
+        """O contrato do score e [SCORE_MIN, SCORE_MAX], nao [0, 1].
+
+        SCORE_MAX vem de report/data/base.py, a unica fonte do contrato.
+        robustness_score acima de 1.0 significa "o modelo foi melhor sob
+        perturbacao" e e um resultado real (medido: 1.0105), por isso 1.1 e
+        aceito aqui; so o que nao pode ser medicao continua recusado.
+        """
+        from deepbridge.core.experiment.report.data.base import SCORE_MAX
+
         # Valid
         RobustnessMetrics(base_score=0.0)
         RobustnessMetrics(base_score=1.0)
         RobustnessMetrics(robustness_score=0.5)
+        RobustnessMetrics(robustness_score=1.1)
+        RobustnessMetrics(robustness_score=SCORE_MAX)
 
-        # Invalid
+        # Acima do teto e erro de codificacao (escala percentual, score nao
+        # normalizado), nao desempenho de modelo.
         with pytest.raises(ValidationError):
-            RobustnessMetrics(base_score=-0.1)
+            RobustnessMetrics(robustness_score=SCORE_MAX + 0.01)
 
         with pytest.raises(ValidationError):
-            RobustnessMetrics(robustness_score=1.1)
+            RobustnessMetrics(robustness_score=85.0)
+
+    def test_base_score_is_not_a_normalized_proportion(self):
+        """base_score e a metrica bruta: MSE passa de 1.0, R2 pode ser < 0.
+
+        Limitar base_score a [0, 1] recusava o resultado real de qualquer
+        regressao com MSE/MAE.
+        """
+        assert RobustnessMetrics(base_score=2500.0).base_score == 2500.0
+        assert RobustnessMetrics(base_score=-0.3).base_score == -0.3
+
+    def test_impact_is_signed(self):
+        """Impacto negativo = o modelo foi melhor sob perturbacao."""
+        metrics = RobustnessMetrics(
+            avg_overall_impact=-0.0105,
+            avg_raw_impact=-0.01,
+            avg_quantile_impact=-0.011,
+        )
+        assert metrics.avg_overall_impact == -0.0105
+        assert metrics.avg_raw_impact == -0.01
+        assert metrics.avg_quantile_impact == -0.011
 
     def test_is_robust_property(self):
         """Test is_robust property."""
