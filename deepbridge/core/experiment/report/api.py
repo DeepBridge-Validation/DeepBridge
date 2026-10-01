@@ -31,9 +31,13 @@ class ReportGenerator:
     - resilience_renderer.py, resilience_renderer_simple.py, static_resilience_renderer.py
     - uncertainty_renderer.py, uncertainty_renderer_simple.py, static_uncertainty_renderer.py
     - fairness_renderer.py, fairness_renderer_simple.py
-    - hyperparameter_renderer.py
+    - hyperparameter_renderer.py (ainda por delegacao - veja
+      generate_hyperparameter_report)
 
-    All report types and styles are now handled through configuration.
+    All report types and styles are now handled through configuration, com
+    uma excecao: hyperparameter nao tem camada de dados tipada nem template
+    novo, entao generate_hyperparameter_report delega ao ReportManager
+    legado e aceita apenas saida HTML.
 
     Example:
         >>> from deepbridge.core.experiment.report import ReportGenerator, RenderConfig
@@ -111,10 +115,33 @@ class ReportGenerator:
             'resilience': ResilienceDataTransformer(),
             'uncertainty': UncertaintyDataTransformer(),
             'fairness': FairnessDataTransformer(),
-            # Others will be added as they are implemented
+            # hyperparameter nao esta aqui de proposito: ele nao tem camada de
+            # dados tipada (data/hyperparameter.py) nem template novo
+            # (templates/html/hyperparameter/), por isso
+            # generate_hyperparameter_report nao passa por _generate_report e
+            # delega ao ReportManager legado. Veja o metodo para o porque.
         }
 
+        # ReportManager legado, instanciado sob demanda por
+        # generate_hyperparameter_report. Nao e criado no __init__ porque
+        # importar os renderers legados carrega matplotlib/seaborn e aplica
+        # monkey-patches de chart, custo que o caminho novo nao deve pagar
+        # quando ninguem pede relatorio de hyperparameter.
+        self._legacy_manager = None
+
         logger.info("ReportGenerator initialized")
+
+    def _get_legacy_manager(self):
+        """Return the legacy ReportManager, creating it on first use.
+
+        Returns:
+            ReportManager instance (shared across calls on this generator)
+        """
+        if self._legacy_manager is None:
+            from .report_manager import ReportManager
+
+            self._legacy_manager = ReportManager()
+        return self._legacy_manager
 
     def generate_robustness_report(
         self,
@@ -255,6 +282,118 @@ class ReportGenerator:
             output_path=output_path,
             config=config
         )
+
+    def generate_hyperparameter_report(
+        self,
+        results: Dict[str, Any],
+        output_path: Union[str, Path],
+        config: Optional[RenderConfig] = None,
+        model_name: str = "Model",
+    ) -> Path:
+        """Generate hyperparameter importance report.
+
+        Substitui: HyperparameterRenderer.
+
+        ATENCAO - este metodo e uma ponte, nao uma porta do caminho novo.
+
+        Os outros quatro tipos seguem o pipeline
+        transformer -> ReportData.validate() -> renderer/template. O
+        hyperparameter nunca foi portado para esse pipeline: nao existe
+        data/hyperparameter.py (HyperparameterReportData +
+        HyperparameterDataTransformer) nem templates/html/hyperparameter/.
+        Antes deste metodo, chamar a API nova para hyperparameter dava
+        AttributeError, enquanto o caminho legado gerava o relatorio
+        normalmente - os dados da suite sempre estiveram sadios, faltava so
+        o caminho.
+
+        Enquanto a camada tipada nao existir, este metodo delega ao
+        ReportManager legado, que tem o HyperparameterRenderer completo (com
+        template, graficos e assets). A delegacao e explicita e nao captura
+        excecao: se o renderer legado falhar, o erro sobe como ValueError
+        dele, porque um relatorio que nao pode ser gerado precisa falhar
+        visivelmente em vez de produzir arquivo vazio.
+
+        Consequencias que o chamador precisa conhecer:
+
+        - config.format: so OutputFormat.HTML funciona. JSON exigiria o
+          ReportData tipado, que nao existe para este tipo, portanto
+          levanta NotImplementedError em vez de devolver algo incompleto.
+        - config.style: FULL e INTERACTIVE viram o report_type legado
+          'interactive'; STATIC e SIMPLE viram 'static'. O ReportManager
+          ainda nao tem renderer estatico de hyperparameter, entao ele
+          mesmo cai para o interativo e registra o aviso - os dois estilos
+          produzem hoje o mesmo HTML.
+        - demais flags de RenderConfig (include_charts, theme,
+          embed_assets, ...) sao ignoradas: o renderer legado tem a
+          configuracao propria dele. Portar o tipo para o pipeline novo e o
+          que faz essas flags passarem a valer.
+
+        Args:
+            results: Raw experiment results do teste de hyperparameters
+                (tipicamente {'primary_model': {...},
+                'alternative_models': {...}})
+            output_path: Path where to save the report
+            config: Rendering configuration (None for defaults)
+            model_name: Nome do modelo exibido no relatorio; usado so quando
+                os proprios results nao trazem 'model_name'
+
+        Returns:
+            Path to the generated report file
+
+        Raises:
+            NotImplementedError: Se config.format nao for HTML
+            ValueError: Se a geracao falhar no renderer legado
+
+        Example:
+            >>> generator = ReportGenerator()
+            >>> generator.generate_hyperparameter_report(
+            ...     results=experiment.test_results['hyperparameters'],
+            ...     output_path="hyperparameter.html",
+            ...     model_name="RandomForest",
+            ... )
+        """
+        if config is None:
+            config = RenderConfig()
+
+        output_path = Path(output_path)
+
+        if config.format != OutputFormat.HTML:
+            raise NotImplementedError(
+                f"hyperparameter reports only support "
+                f"{OutputFormat.HTML.value} output, got "
+                f"{config.format.value}. This report type has no typed data "
+                f"layer yet (no data/hyperparameter.py), so it is served by "
+                f"the legacy HTML renderer and cannot be serialized."
+            )
+
+        legacy_style = (
+            'static'
+            if config.style in (ReportStyle.STATIC, ReportStyle.SIMPLE)
+            else 'interactive'
+        )
+
+        logger.info("Generating hyperparameter report...")
+        logger.info(f"Output: {output_path}")
+        logger.info(
+            f"Style: {config.style.value} -> legacy report_type "
+            f"'{legacy_style}' (delegating to ReportManager)"
+        )
+
+        # O renderer legado recebe str e nao garante que o diretorio exista,
+        # ao contrario de BaseRenderer._write_output do caminho novo. Criar
+        # aqui mantem o contrato igual ao dos outros generate_*_report.
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        report_path = self._get_legacy_manager().generate_report(
+            test_type='hyperparameter',
+            results=results,
+            file_path=str(output_path),
+            model_name=model_name,
+            report_type=legacy_style,
+        )
+
+        logger.info(f"Report generated successfully: {report_path}")
+        return Path(report_path)
 
     def _generate_report(
         self,
@@ -432,3 +571,21 @@ def generate_fairness_report(
     """Convenience function to generate fairness report."""
     generator = ReportGenerator(**kwargs)
     return generator.generate_fairness_report(results, output_path, config)
+
+
+def generate_hyperparameter_report(
+    results: Dict[str, Any],
+    output_path: Union[str, Path],
+    config: Optional[RenderConfig] = None,
+    model_name: str = "Model",
+    **kwargs
+) -> Path:
+    """Convenience function to generate hyperparameter importance report.
+
+    Veja ReportGenerator.generate_hyperparameter_report: este tipo ainda e
+    atendido pelo renderer legado, portanto so aceita saida HTML.
+    """
+    generator = ReportGenerator(**kwargs)
+    return generator.generate_hyperparameter_report(
+        results, output_path, config, model_name=model_name
+    )
