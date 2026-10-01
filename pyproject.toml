@@ -1,6 +1,9 @@
 [tool.poetry]
 name = "deepbridge"
-version = "2.0.0"
+version = "2.1.0"
+# A descricao do master ainda dizia "and Knowledge Distillation". Destilacao
+# saiu do core na 2.0 e virou o pacote deepbridge-distillation, entao a versao
+# deste branch e a correta.
 description = "DeepBridge: Model Validation Toolkit for Machine Learning"
 authors = ["Team DeepBridge <gustavo.haase@gmail.com>"]
 readme = "README.md"
