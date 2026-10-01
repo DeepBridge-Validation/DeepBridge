@@ -85,9 +85,10 @@ test: add tests for feature Z
    ```bash
    # Run full test suite
    pytest
-   
-   # Run linting
-   flake8 deepbridge
+
+   # Run linting and formatting (ruff is the project's only style tool)
+   task lint
+   task format
    ```
 
 3. **Create Pull Request**
@@ -116,12 +117,15 @@ test: add tests for feature Z
 
 ### IDE Configuration
 
-VS Code settings:
+VS Code settings (the project uses ruff for both linting and formatting;
+flake8, blue, isort and pylint were removed):
 ```json
 {
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.formatting.provider": "black"
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true
+    },
+    "ruff.lint.enable": true
 }
 ```
 

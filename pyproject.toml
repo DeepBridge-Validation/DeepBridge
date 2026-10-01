@@ -57,22 +57,23 @@ weasyprint = ">=60.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
-blue = "^0.9.1"
-isort = "^6.0.0"
+pytest-timeout = "^2.3.1"
 taskipy = "^1.14.1"
 pytest-asyncio = "^1.2.0"
 aif360 = "^0.6.1"
 fairlearn = "^0.13.0"
 mypy = "^1.19.1"
+# ruff e a unica ferramenta de estilo do projeto: cobre lint (incluindo as
+# regras de isort/flake8/pylint que interessam) e formatacao. blue, isort,
+# flake8 e pylint foram removidos no item 7.2 da reorganizacao por
+# sobreposicao.
 ruff = "^0.15.0"
-pylint = "^4.0.4"
 pre-commit = "^4.5.1"
 radon = "^6.0.1"
 types-requests = "^2.32.4.20260107"
 types-setuptools = "^80.10.0.20260124"
 types-tabulate = "^0.9.0.20241207"
 types-jinja2 = "^2.11.9"
-flake8 = ">=3.8,<5.0.0"
 
 
 [tool.poetry.group.doc.dependencies]
@@ -89,29 +90,49 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 pythonpath = "."
-addopts =  "--doctest-modules"
+# --doctest-modules foi REMOVIDO (item 2.7): com testpaths = ["tests"] ele so
+# tentava coletar doctests dos proprios arquivos de teste, que nao tem nenhum.
+# Contagem de testes identica com e sem ele (2540), e a sua presenca obrigava
+# todo comando de teste do projeto a passar -o addopts="".
+# --durations=10 deixa os testes mais lentos visiveis a cada execucao, para
+# proteger o tempo de suite (~45-65s hoje).
+addopts = "--durations=10"
+# Guarda contra teste que trava (rede, loop infinito, deadlock). Generoso de
+# proposito: o teste mais lento hoje esta muito abaixo disso, entao 60s so
+# dispara em travamento real.
+#
+# Requer o plugin pytest-timeout, que esta em [tool.poetry.group.dev]. Sem ele
+# instalado no ambiente, o pytest imprime "PytestConfigWarning: Unknown config
+# option: timeout" em TODA execucao e a protecao fica inerte - foi o que
+# aconteceu no venv de refatoracao. Se essa linha de warning aparecer,
+# instale o grupo dev em vez de remover esta opcao.
+timeout = 60
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
-[tool.isort]
-profile = "black"
-line_length = 79
-
 [tool.taskipy.tasks]
-lint = "blue --check --diff . && isort --check --diff ."
+# O escopo cobre deepbridge/ E tests/, como o par blue+isort cobria antes
+# (eles rodavam na raiz inteira). Com o escopo so em deepbridge/, o
+# [tool.ruff.lint.per-file-ignores] abaixo declarava regra para "tests/*" que
+# nenhuma tarefa alcancava.
+lint = "ruff check deepbridge/ tests/"
+format = "ruff format deepbridge/ tests/"
 docs = "mkdocs serve"
-pre_test = "task lint"
+# NAO existe mais "pre_test = task lint": o lint tem hoje alguns milhares de
+# ocorrencias pre-existentes (UP006/UP045/F401 em massa), entao o gate nunca
+# passava e o unico efeito pratico era impedir "task test" de rodar. O lint
+# continua obrigatorio em "task quality", onde falhar e o comportamento
+# desejado.
 test = "pytest tests/ -s -x --cov=deepbridge -vv"
 post_test = "coverage html"
-format = "blue . && isort ."
 type-check = "mypy deepbridge/"
-lint-ruff = "ruff check deepbridge/"
-lint-pylint = "pylint deepbridge/"
-lint-all = "task lint && task lint-ruff"
-quality = "task format && task lint-all && task type-check && task test"
-metrics = "bash desenvolvimento/qualidade/scripts/show_metrics.sh"
+quality = "task format && task lint && task type-check && task test"
+# Nao ha tarefa "metrics": ela chamava
+# desenvolvimento/qualidade/scripts/show_metrics.sh, que nao e versionado
+# (desenvolvimento/* esta no .gitignore), logo quebrava em clone novo. O
+# script continua no disco de quem o tem e pode ser chamado direto.
 
 # MyPy Configuration
 [tool.mypy]
@@ -217,7 +238,7 @@ select = [
     "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501",  # line too long (handled by blue)
+    "E501",  # line too long (handled by ruff format)
     "B008",  # do not perform function calls in argument defaults
 ]
 
@@ -225,29 +246,8 @@ ignore = [
 "__init__.py" = ["F401", "F403"]
 "tests/*" = ["S101", "ARG001"]
 
-# Pylint Configuration
-[tool.pylint.main]
-py-version = "3.10"
-jobs = 0
-ignore-paths = [
-    "^tests/.*$",
-    "^.*/__pycache__/.*$",
-]
-
-[tool.pylint.messages_control]
-disable = [
-    "C0111",  # missing-docstring (will add in Phase 4)
-    "C0103",  # invalid-name
-    "R0913",  # too-many-arguments
-    "R0914",  # too-many-locals
-    "W0212",  # protected-access
-]
-
-[tool.pylint.format]
-max-line-length = 79
-
-[tool.pylint.design]
-max-args = 8
-max-attributes = 12
-max-branches = 15
-max-statements = 60
+[tool.ruff.format]
+# O projeto era formatado por blue (= black com aspas simples). Sem isto,
+# `task format` reescreveria todo o pacote de aspas simples para duplas num
+# unico diff gigante.
+quote-style = "single"
